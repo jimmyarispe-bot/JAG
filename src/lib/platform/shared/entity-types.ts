@@ -16,6 +16,7 @@ export const PLATFORM_ENTITY_TYPES = [
   "grant",
   "invoice",
   "transportation_route",
+  "admissions_lead",
 ] as const;
 
 export type PlatformEntityType = (typeof PLATFORM_ENTITY_TYPES)[number];

@@ -7,7 +7,8 @@ import type { ProgramValue } from "@/lib/constants/programs";
 import type { LeadStageValue } from "@/lib/constants/admissions";
 import { parseFundingSourcesFromForm } from "@/lib/funding/helpers";
 import { syncLeadFundingSources } from "@/lib/funding/sync";
-import { recordInitialStage, transitionLeadStage } from "@/lib/admissions/workflow";
+import { recordInitialStage } from "@/lib/admissions/workflow";
+import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import {
   onEnrollmentCompleted,
   onInquirySubmitted,
@@ -75,7 +76,7 @@ export async function updateLeadStage(leadId: string, leadStage: LeadStageValue)
     data: { user },
   } = await supabase.auth.getUser();
 
-  const result = await transitionLeadStage(supabase, leadId, leadStage, user?.id ?? null);
+  const result = await transitionCaseStage(supabase, leadId, leadStage, user?.id ?? null);
 
   if (result.error) return { error: result.error };
 
@@ -97,6 +98,7 @@ export async function updateLeadStage(leadId: string, leadStage: LeadStageValue)
   }
 
   revalidatePath("/dashboard/admissions");
+  revalidatePath(`/dashboard/admissions/cases/${leadId}`);
   revalidatePath(`/dashboard/admissions/leads/${leadId}`);
   return { success: true };
 }
@@ -172,7 +174,7 @@ export async function scheduleTour(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  const result = await transitionLeadStage(
+  const result = await transitionCaseStage(
     supabase,
     leadId,
     "tour_scheduled",

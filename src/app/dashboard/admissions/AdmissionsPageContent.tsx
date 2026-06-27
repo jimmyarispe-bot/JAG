@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AdmissionsReporting } from "@/components/admissions/AdmissionsReporting";
+import { AdmissionsPipelineBoard } from "@/components/admissions/AdmissionsPipelineBoard";
 import { ExecutiveAdmissionsDashboard } from "@/components/admissions/ExecutiveAdmissionsDashboard";
 import { KanbanBoard } from "@/components/admissions/KanbanBoard";
 import { LeadList } from "@/components/admissions/LeadList";
@@ -14,7 +15,8 @@ import { getAdmissionsReporting, getLeads } from "@/lib/admissions/queries";
 
 export const ADMISSIONS_TABS = [
   { href: "/dashboard/admissions?view=executive", label: "Executive", value: "executive" },
-  { href: "/dashboard/admissions?view=kanban", label: "Kanban Board", value: "kanban" },
+  { href: "/dashboard/admissions?view=pipeline", label: "Pipeline Board", value: "pipeline" },
+  { href: "/dashboard/admissions?view=kanban", label: "Legacy Kanban", value: "kanban" },
   { href: "/dashboard/admissions?view=list", label: "Lead List", value: "list" },
   { href: "/dashboard/admissions?view=reporting", label: "Reporting", value: "reporting" },
 ] as const;
@@ -95,6 +97,8 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
         <AdmissionsReporting report={report} />
       ) : view === "list" ? (
         <LeadList leads={leads} />
+      ) : view === "pipeline" ? (
+        <AdmissionsPipelineBoard leads={leads} />
       ) : (
         <KanbanBoard leads={leads} />
       )}

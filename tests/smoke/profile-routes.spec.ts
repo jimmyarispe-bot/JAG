@@ -46,8 +46,13 @@ test.describe("Profile route smoke tests", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("admissions dashboard redirects to login when unauthenticated", async ({ page }) => {
-    await page.goto("/dashboard/admissions?view=executive");
+  test("admissions case workspace redirects to login when unauthenticated", async ({ page }) => {
+    await page.goto("/dashboard/admissions/cases/test-case-id?section=pipeline");
     await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("legacy lead detail redirects to case workspace", async ({ page }) => {
+    await page.goto("/dashboard/admissions/leads/test-lead-id?tab=decision");
+    await expect(page).toHaveURL(/\/login|\/dashboard\/admissions\/cases\/test-lead-id\?section=decisions/);
   });
 });

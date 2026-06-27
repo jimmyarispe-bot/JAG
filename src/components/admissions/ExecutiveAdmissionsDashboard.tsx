@@ -161,7 +161,7 @@ export function ExecutiveAdmissionsDashboard({
                   <tr key={lead.id} className="border-b border-slate-50">
                     <td className="py-2 pr-4">
                       <Link
-                        href={`/dashboard/admissions/leads/${lead.id}`}
+                        href={`/dashboard/admissions/cases/${lead.id}`}
                         className="font-medium text-brand-600 hover:underline"
                       >
                         {lead.first_name} {lead.last_name}

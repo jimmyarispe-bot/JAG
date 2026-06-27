@@ -31,12 +31,13 @@ describe("Admissions registry validation", () => {
 describe("Admissions OS catalog", () => {
   it("defines all core entities", () => {
     const keys = ADMISSIONS_ENTITIES.map((entity) => entity.key);
+    expect(keys).toContain("case");
     expect(keys).toContain("inquiry");
     expect(keys).toContain("application");
     expect(keys).toContain("interview");
     expect(keys).toContain("enrollment");
     expect(keys).toContain("waitlist");
-    expect(keys).toHaveLength(11);
+    expect(keys).toHaveLength(12);
   });
 
   it("defines 14 pipeline stages", () => {

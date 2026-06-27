@@ -232,6 +232,30 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventDefinition> = {
     visibility: "internal",
     label: "System Event",
   },
+  "admissions.inquiry_created": {
+    moduleKey: "admissions",
+    classification: "operational",
+    visibility: "staff",
+    label: "Inquiry Created",
+  },
+  "admissions.stage_changed": {
+    moduleKey: "admissions",
+    classification: "operational",
+    visibility: "staff",
+    label: "Pipeline Stage Changed",
+  },
+  "admissions.decision_recorded": {
+    moduleKey: "admissions",
+    classification: "operational",
+    visibility: "staff",
+    label: "Decision Recorded",
+  },
+  "admissions.enrollment_completed": {
+    moduleKey: "admissions",
+    classification: "operational",
+    visibility: "staff",
+    label: "Enrollment Completed",
+  },
 };
 
 export function getActivityEventDefinition(eventType: string): ActivityEventDefinition | undefined {

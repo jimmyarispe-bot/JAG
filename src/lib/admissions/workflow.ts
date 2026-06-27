@@ -1,4 +1,8 @@
 import type { LeadStageValue } from "@/lib/constants/admissions";
+import {
+  getPipelineStageAutomatedTask,
+  resolvePipelineStageFromLeadStage,
+} from "@/lib/admissions/registry";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -110,13 +114,16 @@ export async function createStageAutomatedTasks(
   }
 
   const config = STANDARD_AUTOMATED_TASKS[newStage];
-  if (!config) return;
+  const pipelineStage = resolvePipelineStageFromLeadStage(newStage);
+  const registryTask = pipelineStage ? getPipelineStageAutomatedTask(pipelineStage) : undefined;
+  const taskConfig = registryTask ?? config;
+  if (!taskConfig) return;
 
   await createAutomatedTask(
     supabase,
     leadId,
-    config.taskName,
-    formatDateISO(addDays(new Date(), config.dueDays))
+    taskConfig.taskName,
+    formatDateISO(addDays(new Date(), taskConfig.dueDays))
   );
 }
 

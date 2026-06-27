@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
+import {
+  getActiveOrderedPipelineStages,
+  pipelineStageColor,
+  pipelineStageLabel,
+  resolvePipelineStageFromLeadStage,
+} from "@/lib/admissions/registry";
+import { updateCaseStage } from "@/lib/admissions/case/actions";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
-import { LEAD_STAGES } from "@/lib/constants/admissions";
+import { LEAD_STAGES, type LeadStageValue } from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
-import { updateLeadStage } from "@/lib/admissions/actions";
 import {
   daysInCurrentStage,
   pipelineAgingClasses,
@@ -13,26 +19,30 @@ import {
 } from "@/lib/admissions/workflow";
 import type { AdmissionLead } from "@/lib/admissions/queries";
 
-interface KanbanBoardProps {
+interface AdmissionsPipelineBoardProps {
   leads: AdmissionLead[];
 }
 
-export function KanbanBoard({ leads }: KanbanBoardProps) {
+/** OS pipeline board — groups leads by canonical pipeline stage. */
+export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps) {
   const [, startTransition] = useTransition();
+  const stages = getActiveOrderedPipelineStages();
 
-  function handleStageChange(leadId: string, stage: string) {
+  function handleStageChange(leadId: string, stage: LeadStageValue) {
     startTransition(async () => {
-      await updateLeadStage(leadId, stage as (typeof LEAD_STAGES)[number]["value"]);
+      await updateCaseStage(leadId, stage);
     });
   }
 
   return (
     <div className="flex gap-4 overflow-x-auto pb-4">
-      {LEAD_STAGES.map((stage) => {
-        const stageLeads = leads.filter((l) => l.lead_stage === stage.value);
+      {stages.map((stage) => {
+        const stageLeads = leads.filter(
+          (lead) => resolvePipelineStageFromLeadStage(lead.lead_stage) === stage.key
+        );
         return (
           <div
-            key={stage.value}
+            key={stage.key}
             className="flex w-72 shrink-0 flex-col rounded-2xl border border-slate-200/80 bg-slate-50"
           >
             <div className="border-b border-slate-200/80 px-4 py-3">
@@ -71,9 +81,12 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
                     {lead.program && (
                       <p className="mt-1 text-xs text-slate-500">{programLabel(lead.program)}</p>
                     )}
+                    <p className="mt-1 text-xs text-slate-400 capitalize">
+                      {pipelineStageLabel(resolvePipelineStageFromLeadStage(lead.lead_stage) ?? stage.key)}
+                    </p>
                     <select
                       value={lead.lead_stage}
-                      onChange={(e) => handleStageChange(lead.id, e.target.value)}
+                      onChange={(e) => handleStageChange(lead.id, e.target.value as LeadStageValue)}
                       className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700"
                     >
                       {LEAD_STAGES.map((s) => (
@@ -86,7 +99,7 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
                 );
               })}
               {stageLeads.length === 0 && (
-                <p className="py-4 text-center text-xs text-slate-400">No leads</p>
+                <p className="py-4 text-center text-xs text-slate-400">No cases</p>
               )}
             </div>
           </div>
@@ -95,3 +108,6 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
     </div>
   );
 }
+
+/** @deprecated Use AdmissionsPipelineBoard — legacy kanban alias */
+export const AdmissionsCasePipelineBoard = AdmissionsPipelineBoard;

@@ -3,6 +3,15 @@ import type { AdmissionsEntityDefinition } from "@/lib/admissions/registry/types
 /** Core Admissions OS entity catalog (B-03 Phase 1). */
 export const ADMISSIONS_ENTITIES: AdmissionsEntityDefinition[] = [
   {
+    key: "case",
+    label: "Admissions Case",
+    pluralLabel: "Admissions Cases",
+    table: "admissions_leads",
+    moduleKey: "admissions",
+    status: "live",
+    description: "Workflow container orchestrating inquiry through enrollment for one prospective student.",
+  },
+  {
     key: "inquiry",
     label: "Inquiry",
     pluralLabel: "Inquiries",

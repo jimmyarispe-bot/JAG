@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
 import { leadStageColor, leadStageLabel } from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
 import { daysInCurrentStage, pipelineAgingClasses } from "@/lib/admissions/workflow";
@@ -50,7 +51,7 @@ export function LeadList({ leads }: LeadListProps) {
               <tr key={lead.id} className="hover:bg-slate-50/50">
                 <td className="px-4 py-3">
                   <Link
-                    href={`/dashboard/admissions/leads/${lead.id}`}
+                    href={buildAdmissionsCaseHref(lead.id)}
                     className="font-medium text-brand-600 hover:text-brand-700"
                   >
                     {lead.first_name} {lead.last_name}

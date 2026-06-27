@@ -15,6 +15,7 @@ export const PROFILE_KINDS = [
   "grant",
   "vendor",
   "facility",
+  "admissions_case",
 ] as const;
 
 export type ProfileKind = (typeof PROFILE_KINDS)[number];
