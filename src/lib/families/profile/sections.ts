@@ -46,6 +46,167 @@ async function loadFamilyStudentIds(supabase: AuthClient, familyId: string): Pro
   return students.map((student) => student.id);
 }
 
+const CLOSED_ADMISSION_STAGES = ["enrolled", "declined"];
+
+async function loadFamilyOverviewDashboard(
+  supabase: AuthClient,
+  env: FamilyProfileEnvelope
+) {
+  const studentIds = await loadFamilyStudentIds(supabase, env.familyId);
+  const now = new Date().toISOString();
+  const today = now.split("T")[0];
+  const alertSince = new Date(Date.now() - 30 * 86400000).toISOString();
+
+  const [
+    family,
+    students,
+    studentRelationships,
+    guardianRelationships,
+    tags,
+    guardians,
+    financial,
+    recentActivity,
+    transportationRoutes,
+    alertEvents,
+  ] = await Promise.all([
+    loadFamilyRecord(supabase, env.familyId),
+    loadFamilyStudents(supabase, env.familyId),
+    getFamilyStudentRelationships(supabase, env.familyId),
+    getFamilyGuardianRelationships(supabase, env.familyId),
+    env.organizationId
+      ? getEntityTags(supabase, "family", env.familyId)
+      : Promise.resolve([]),
+    import("@/lib/students/queries").then((m) => m.getGuardiansByFamily(env.familyId)),
+    import("@/lib/finance/family-center").then((m) =>
+      m.getFamilyFinancialProfile(supabase, env.familyId)
+    ),
+    getEntityActivity(supabase, "family", env.familyId, { limit: 10 }),
+    studentIds.length
+      ? supabase
+          .from("platform_relationships")
+          .select("id")
+          .eq("from_entity_type", "student")
+          .in("from_entity_id", studentIds)
+          .eq("relationship_type", "student.transportation_route")
+          .eq("status", "active")
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("platform_activity_events")
+      .select("severity")
+      .eq("family_id", env.familyId)
+      .in("severity", ["warning", "critical"])
+      .gte("occurred_at", alertSince),
+  ]);
+
+  const leadIdsFromStudents = [
+    ...new Set(
+      (
+        await supabase
+          .from("students")
+          .select("admissions_lead_id")
+          .eq("family_id", env.familyId)
+          .not("admissions_lead_id", "is", null)
+      ).data?.map((row) => row.admissions_lead_id).filter(Boolean) ?? []
+    ),
+  ];
+
+  const guardianEmails = [
+    ...new Set(
+      (guardians ?? [])
+        .map((g) => g.email?.trim().toLowerCase())
+        .filter((email): email is string => Boolean(email))
+    ),
+  ];
+
+  const [openLeadRes, upcomingMeetingsRes, missingDocsRes] = await Promise.all([
+    (async () => {
+      const leadIdSet = new Set<string>(leadIdsFromStudents as string[]);
+      if (guardianEmails.length) {
+        const { data: emailLeads } = await supabase
+          .from("admissions_leads")
+          .select("id, lead_stage")
+          .in("guardian_email", guardianEmails);
+        for (const lead of emailLeads ?? []) {
+          if (!CLOSED_ADMISSION_STAGES.includes(lead.lead_stage)) {
+            leadIdSet.add(lead.id);
+          }
+        }
+      }
+      if (!leadIdSet.size) return 0;
+      const { data: leads } = await supabase
+        .from("admissions_leads")
+        .select("id, lead_stage")
+        .in("id", [...leadIdSet]);
+      return (leads ?? []).filter((lead) => !CLOSED_ADMISSION_STAGES.includes(lead.lead_stage))
+        .length;
+    })(),
+    studentIds.length
+      ? supabase
+          .from("student_instructional_meetings")
+          .select("id, title, scheduled_at, student_id, students(first_name, last_name)")
+          .in("student_id", studentIds)
+          .gte("scheduled_at", now)
+          .order("scheduled_at", { ascending: true })
+          .limit(5)
+      : Promise.resolve({ data: [] }),
+    (async () => {
+      let count = 0;
+      if (studentIds.length) {
+        const { count: expiredDocs } = await supabase
+          .from("student_documents")
+          .select("id", { count: "exact", head: true })
+          .in("student_id", studentIds)
+          .eq("status", "active")
+          .lt("expires_at", today);
+        count += expiredDocs ?? 0;
+      }
+      if (leadIdsFromStudents.length) {
+        const { data: apps } = await supabase
+          .from("admissions_applications")
+          .select("id")
+          .in("lead_id", leadIdsFromStudents);
+        const appIds = apps?.map((app) => app.id) ?? [];
+        if (appIds.length) {
+          const { count: checklistOpen } = await supabase
+            .from("admissions_application_checklist_items")
+            .select("id", { count: "exact", head: true })
+            .in("application_id", appIds)
+            .neq("status", "complete");
+          count += checklistOpen ?? 0;
+        }
+      }
+      return count;
+    })(),
+  ]);
+
+  const alertRows = alertEvents.data ?? [];
+  const tuitionBalance = Number(financial?.account?.balance ?? 0);
+  const scholarshipCount = financial?.scholarships?.length ?? 0;
+
+  return {
+    family,
+    students,
+    guardians: guardians ?? [],
+    studentRelationships,
+    guardianRelationships,
+    tags,
+    metrics: {
+      studentCount: students.length,
+      guardianCount: guardians?.length ?? 0,
+      tuitionBalance,
+      scholarshipCount,
+      openAdmissions: openLeadRes,
+      missingDocuments: missingDocsRes,
+      upcomingMeetings: upcomingMeetingsRes.data?.length ?? 0,
+      transportationRoutes: transportationRoutes.data?.length ?? 0,
+      alertCount: alertRows.length,
+      criticalAlerts: alertRows.filter((row) => row.severity === "critical").length,
+    },
+    upcomingMeetingsList: upcomingMeetingsRes.data ?? [],
+    recentActivity,
+  };
+}
+
 /** Family profile section definitions — registered via Platform Profile Registry. */
 export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
   section({
@@ -60,16 +221,7 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     loadData: async (supabase, envelope) => {
       const env = familyEnvelope(envelope);
       if (!env) return null;
-      const [family, students, studentRelationships, guardianRelationships, tags] = await Promise.all([
-        loadFamilyRecord(supabase, env.familyId),
-        loadFamilyStudents(supabase, env.familyId),
-        getFamilyStudentRelationships(supabase, env.familyId),
-        getFamilyGuardianRelationships(supabase, env.familyId),
-        env.organizationId
-          ? getEntityTags(supabase, "family", env.familyId)
-          : Promise.resolve([]),
-      ]);
-      return { family, students, studentRelationships, guardianRelationships, tags };
+      return loadFamilyOverviewDashboard(supabase, env);
     },
   }),
   section({

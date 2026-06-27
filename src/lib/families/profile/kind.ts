@@ -15,8 +15,8 @@ export const FAMILY_PROFILE_LEGACY_REDIRECTS: Record<string, string> = {
 export const FAMILY_PROFILE_KIND: ProfileKindDefinition = {
   kind: "family",
   entityType: "family",
-  label: "Family Profile",
-  subtitle: "Family Profile",
+  label: "Household Profile",
+  subtitle: "Household",
   basePath: "/dashboard/families",
   sectionParam: "section",
   defaultSection: "overview",

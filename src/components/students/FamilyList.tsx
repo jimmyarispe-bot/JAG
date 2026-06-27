@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Family } from "@/lib/students/queries";
 
 interface FamilyListProps {
@@ -12,7 +13,11 @@ export function FamilyList({ families }: FamilyListProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {families.map((family) => (
-        <article key={family.id} className="rounded-2xl border border-slate-200/80 bg-white p-5">
+        <Link
+          key={family.id}
+          href={`/dashboard/families/${family.id}?section=overview`}
+          className="rounded-2xl border border-slate-200/80 bg-white p-5 transition-colors hover:border-brand-200 hover:bg-brand-50/30"
+        >
           <h3 className="font-semibold text-slate-900">{family.family_name}</h3>
           <p className="mt-1 text-sm text-slate-500">{family.schools?.name}</p>
           {family.primary_address && (
@@ -21,7 +26,7 @@ export function FamilyList({ families }: FamilyListProps) {
           {family.billing_email && (
             <p className="mt-1 text-xs text-slate-400">{family.billing_email}</p>
           )}
-        </article>
+        </Link>
       ))}
     </div>
   );

@@ -34,7 +34,7 @@ export async function buildFamilyProfileEnvelope(
     organizationId,
     schoolId: family.school_id,
     displayName: family.family_name,
-    subtitle: "Family Profile",
+    subtitle: "Household",
     basePath: "/dashboard/families",
     sectionParam: "section",
     defaultSection: "overview",

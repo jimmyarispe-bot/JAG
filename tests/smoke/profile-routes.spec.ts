@@ -21,6 +21,16 @@ test.describe("Profile route smoke tests", () => {
     await expect(page).toHaveURL(/\/login|section=activity/);
   });
 
+  test("family profile redirects to login when unauthenticated", async ({ page }) => {
+    await page.goto("/dashboard/families/test-family-id");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("family profile deep link redirects to login when unauthenticated", async ({ page }) => {
+    await page.goto("/dashboard/families/test-family-id?section=students");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
   test("platform diagnostics redirects to login when unauthenticated", async ({ page }) => {
     await page.goto("/dashboard/platform/diagnostics");
     await expect(page).toHaveURL(/\/login/);

@@ -59,6 +59,8 @@ Route: `/dashboard/students/{id}?section=overview` (legacy `?tab=` still support
 
 Employee route: `/dashboard/hr/employees/{id}?section=overview` (legacy `?tab=` issues HTTP redirect to `?section=`)
 
+Family route: `/dashboard/families/{id}?section=overview` — household operational dashboard on Overview
+
 ## Developer diagnostics
 
 Platform engineers can inspect registry and service health at `/dashboard/platform/diagnostics`. The page is read-only and mirrors build-time registry validation output.
