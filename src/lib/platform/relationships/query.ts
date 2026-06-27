@@ -64,6 +64,13 @@ export async function getRelationshipsTo(
     .eq("to_entity_id", toEntityId)
     .order("effective_date", { ascending: false });
 
+  if (filters?.relationshipType) {
+    const types = Array.isArray(filters.relationshipType)
+      ? filters.relationshipType
+      : [filters.relationshipType];
+    q = q.in("relationship_type", types);
+  }
+
   if (filters?.status) {
     const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
     q = q.in("status", statuses);
@@ -80,6 +87,39 @@ export async function getStudentSupportTeam(
   studentId: string
 ): Promise<PlatformRelationship[]> {
   return getRelationshipsFrom(supabase, "student", studentId, {
+    relationshipType: [
+      "student.teacher",
+      "student.advisor",
+      "student.therapist",
+      "student.case_manager",
+    ],
+  });
+}
+
+export async function getEmployeeRelationships(
+  supabase: AuthClient,
+  employeeId: string,
+  filters?: RelationshipQueryFilters
+): Promise<PlatformRelationship[]> {
+  return getRelationshipsFrom(supabase, "employee", employeeId, filters);
+}
+
+/** Employees who report to this supervisor (employee.supervisor relationships). */
+export async function getEmployeeDirectReports(
+  supabase: AuthClient,
+  supervisorEmployeeId: string
+): Promise<PlatformRelationship[]> {
+  return getRelationshipsTo(supabase, "employee", supervisorEmployeeId, {
+    relationshipType: "employee.supervisor",
+  });
+}
+
+/** Students assigned to this employee via support-team relationship types. */
+export async function getEmployeeAssignedStudents(
+  supabase: AuthClient,
+  employeeId: string
+): Promise<PlatformRelationship[]> {
+  return getRelationshipsTo(supabase, "employee", employeeId, {
     relationshipType: [
       "student.teacher",
       "student.advisor",

@@ -6,6 +6,9 @@ export {
   getRelationshipsFrom,
   getRelationshipsTo,
   getStudentRelationships,
+  getEmployeeRelationships,
+  getEmployeeDirectReports,
+  getEmployeeAssignedStudents,
   getStudentSupportTeam,
 } from "@/lib/platform/relationships/query";
 export type {

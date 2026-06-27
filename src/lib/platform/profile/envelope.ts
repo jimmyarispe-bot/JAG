@@ -14,11 +14,13 @@ export async function loadEnabledModuleKeys(
     return [
       "admissions",
       "ssis",
+      "hr",
       "scheduling",
       "finance",
       "scholarships",
       "compliance",
       "transportation",
+      "decision_intelligence",
       "platform",
     ];
   }

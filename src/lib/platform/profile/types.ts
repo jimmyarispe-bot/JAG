@@ -26,11 +26,15 @@ export function isProfileKind(value: string): value is ProfileKind {
 /** Navigation groups — shared taxonomy across all profile kinds. */
 export const PROFILE_SECTION_GROUPS = [
   "core",
+  "employment",
+  "hr",
   "learning",
   "student_life",
   "support",
   "financial",
   "operations",
+  "communication",
+  "relationships",
   "intelligence",
   "system",
 ] as const;
@@ -39,11 +43,15 @@ export type ProfileSectionGroup = (typeof PROFILE_SECTION_GROUPS)[number];
 
 export const PROFILE_SECTION_GROUP_LABELS: Record<ProfileSectionGroup, string> = {
   core: "Core",
+  employment: "Employment",
+  hr: "HR",
   learning: "Learning",
   student_life: "Student Life",
   support: "Support",
   financial: "Financial",
   operations: "Operations",
+  communication: "Communication",
+  relationships: "Relationships",
   intelligence: "Intelligence",
   system: "System",
 };

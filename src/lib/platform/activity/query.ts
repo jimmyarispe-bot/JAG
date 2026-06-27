@@ -65,6 +65,14 @@ export async function getStudentActivityFeed(
   return getActivityFeed(supabase, { studentId, ...options });
 }
 
+export async function getEmployeeActivityFeed(
+  supabase: AuthClient,
+  employeeId: string,
+  options?: ActivityFeedFilters
+): Promise<PlatformActivityEvent[]> {
+  return getEntityActivity(supabase, "employee", employeeId, options);
+}
+
 export async function getAuditActivity(
   supabase: AuthClient,
   filters: {
