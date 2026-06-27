@@ -1,5 +1,5 @@
 import type { PlatformActivityEvent } from "@/lib/platform/activity/types";
-import { ProfileCard, ProfileEmpty } from "@/components/students/profile/shared/ProfilePrimitives";
+import { ProfileCard, ProfileEmpty } from "@/components/platform/profile-workspace/ProfilePrimitives";
 
 interface ActivityTimelineFeedProps {
   events: PlatformActivityEvent[];

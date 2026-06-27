@@ -1,5 +1,5 @@
 import type { PlatformRelationship } from "@/lib/platform/relationships/types";
-import { ProfileCard, ProfileEmpty } from "@/components/students/profile/shared/ProfilePrimitives";
+import { ProfileCard, ProfileEmpty } from "@/components/platform/profile-workspace/ProfilePrimitives";
 
 interface ProfileRelationshipsListProps {
   relationships: PlatformRelationship[];

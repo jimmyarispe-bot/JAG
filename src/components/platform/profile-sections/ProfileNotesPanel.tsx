@@ -1,5 +1,5 @@
 import type { PlatformNote } from "@/lib/platform/notes/types";
-import { ProfileCard, ProfileEmpty } from "@/components/students/profile/shared/ProfilePrimitives";
+import { ProfileCard, ProfileEmpty } from "@/components/platform/profile-workspace/ProfilePrimitives";
 
 interface ProfileNotesPanelProps {
   notes: PlatformNote[];

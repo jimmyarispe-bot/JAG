@@ -1,5 +1,5 @@
 import type { PlatformEntityTag } from "@/lib/platform/tags/types";
-import { ProfileBadge } from "@/components/students/profile/shared/ProfilePrimitives";
+import { ProfileBadge } from "@/components/platform/profile-workspace/ProfilePrimitives";
 
 interface ProfileTagsListProps {
   tags: PlatformEntityTag[];

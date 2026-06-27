@@ -64,6 +64,7 @@ export function EmployeeProfileWorkspace({
         alerts: sectionContributions?.header?.alerts,
       }}
       sectionNav={<ProfileWorkspaceSectionNav navigation={navigation} />}
+      workspaceAlerts={sectionContributions?.workspaceAlerts}
       context={{
         quickActions: sectionContributions?.context?.quickActions ?? (
           <p className="text-sm text-slate-500">
