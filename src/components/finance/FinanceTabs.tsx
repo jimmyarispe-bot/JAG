@@ -3,6 +3,7 @@ import { InvoiceList } from "./InvoiceList";
 import { PaymentList } from "./PaymentList";
 import { BillingForms } from "./BillingForms";
 import { formatCurrency } from "@/lib/format";
+import { buildFamilyProfileSectionHref } from "@/lib/families/profile/href";
 import type {
   BillingAccount,
   Invoice,
@@ -58,7 +59,7 @@ export function FinanceTabs({
           return (
             <Link
               key={f.id}
-              href={`/dashboard/finance/families/${f.id}`}
+              href={buildFamilyProfileSectionHref(f.id, "tuition")}
               className="rounded-xl border border-brand-200 bg-brand-50/40 p-4 hover:bg-brand-50"
             >
               <h3 className="font-medium text-slate-900">{f.family_name}</h3>
@@ -147,7 +148,7 @@ export function FinanceTabs({
           <p className="col-span-full py-8 text-center text-sm text-slate-500">No billing accounts yet.</p>
         ) : (
           accounts.map((a) => (
-            <Link key={a.id} href={`/dashboard/finance/families/${a.family_id}`} className="rounded-2xl border border-slate-200/80 bg-white p-5 hover:border-brand-200">
+            <Link key={a.id} href={buildFamilyProfileSectionHref(a.family_id, "tuition")} className="rounded-2xl border border-slate-200/80 bg-white p-5 hover:border-brand-200">
               <h3 className="font-semibold text-slate-900">{a.families?.family_name ?? "Account"}</h3>
               <p className="mt-1 text-sm text-slate-500">Balance: ${Number(a.balance).toLocaleString()}</p>
               {a.sibling_discount_student_id && (

@@ -189,28 +189,6 @@ export async function getFamilies() {
 
 
 
-export async function getFamilyById(id: string) {
-
-  const supabase = await createAuthClient();
-
-  const { data } = await supabase
-
-    .from("families")
-
-    .select("*, schools(name)")
-
-    .eq("id", id)
-
-    .single();
-
-
-
-  return data as Family | null;
-
-}
-
-
-
 export async function getGuardiansByFamily(familyId: string) {
 
   const supabase = await createAuthClient();

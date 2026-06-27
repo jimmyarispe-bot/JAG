@@ -244,6 +244,13 @@ describe("Family Profile routes", () => {
     ).toBe("/dashboard/families/family-1?section=tuition");
   });
 
+  it("maps legacy finance family route to canonical tuition section", async () => {
+    const { buildFamilyProfileSectionHref } = await import("@/lib/families/profile/href");
+    expect(buildFamilyProfileSectionHref("family-1", "tuition")).toBe(
+      "/dashboard/families/family-1?section=tuition"
+    );
+  });
+
   it("denies financial sections without finance permissions", () => {
     const hidden = resolveSectionVisibility(
       {

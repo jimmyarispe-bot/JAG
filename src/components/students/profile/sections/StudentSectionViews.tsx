@@ -9,7 +9,6 @@ import {
   BehaviorPanel,
   DocumentsPanel,
   EngagementPanel,
-  FamilyPanel,
   FundingPanel,
   MedicalPanel,
   OverviewPanel,
@@ -19,6 +18,7 @@ import {
   SpedPanel,
 } from "@/components/students/profile/panels/StudentProfilePanels";
 import { ProfileCard, ProfileEmpty, ProfileItem } from "@/components/students/profile/shared/ProfilePrimitives";
+import { buildFamilyProfileSectionHref } from "@/lib/families/profile/href";
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import type { PlatformActivityEvent } from "@/lib/platform/activity/types";
 import type { StudentConversionLink } from "@/lib/sis/queries";
@@ -255,16 +255,54 @@ export function FamilySection(props: ProfileSectionViewProps) {
     households: Record<string, unknown>[];
     relationships: PlatformRelationship[];
   } | null;
+  const env = isStudentProfileEnvelope(props.envelope) ? props.envelope : null;
   if (!data) return <ProfileSectionPlaceholder title="Family & Guardians" status="live" />;
+
+  const familyId = env?.familyId ?? data.student?.family_id ?? null;
+  const familyName = data.student?.families?.family_name;
+
   return (
     <div className="space-y-6">
-      <FamilyPanel
-        guardians={data.guardians}
-        authorizedContacts={data.authorizedContacts}
-        familyName={data.student?.families?.family_name}
-        siblings={data.siblings}
-        households={data.households}
-      />
+      <ProfileCard title={familyName ? `Family: ${familyName}` : "Family & Guardians"}>
+        {!familyId ? (
+          <ProfileEmpty>No family linked to this student</ProfileEmpty>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+              <ProfileItem label="Guardians" value={String(data.guardians.length)} />
+              <ProfileItem label="Households" value={String(data.households.length)} />
+              <ProfileItem label="Siblings" value={String(data.siblings.length)} />
+              <ProfileItem label="Contacts" value={String(data.authorizedContacts.length)} />
+            </div>
+            <div className="flex flex-wrap gap-3 text-sm">
+              <Link
+                href={buildFamilyProfileSectionHref(familyId, "overview")}
+                className="font-medium text-brand-600 hover:text-brand-700"
+              >
+                View family profile →
+              </Link>
+              <Link
+                href={buildFamilyProfileSectionHref(familyId, "parents-guardians")}
+                className="text-slate-600 hover:text-brand-600"
+              >
+                Guardians
+              </Link>
+              <Link
+                href={buildFamilyProfileSectionHref(familyId, "household")}
+                className="text-slate-600 hover:text-brand-600"
+              >
+                Household
+              </Link>
+              <Link
+                href={buildFamilyProfileSectionHref(familyId, "tuition")}
+                className="text-slate-600 hover:text-brand-600"
+              >
+                Tuition
+              </Link>
+            </div>
+          </div>
+        )}
+      </ProfileCard>
       <ProfileRelationshipsList relationships={data.relationships ?? []} />
     </div>
   );

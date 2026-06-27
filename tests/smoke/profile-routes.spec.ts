@@ -31,6 +31,16 @@ test.describe("Profile route smoke tests", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test("legacy finance family route redirects to family profile tuition section", async ({ page }) => {
+    await page.goto("/dashboard/finance/families/test-family-id");
+    await expect(page).toHaveURL(/\/login|\/dashboard\/families\/test-family-id\?section=tuition/);
+  });
+
+  test("family profile legacy tab redirect target requires auth", async ({ page }) => {
+    await page.goto("/dashboard/families/test-family-id?tab=billing");
+    await expect(page).toHaveURL(/\/login|section=tuition/);
+  });
+
   test("platform diagnostics redirects to login when unauthenticated", async ({ page }) => {
     await page.goto("/dashboard/platform/diagnostics");
     await expect(page).toHaveURL(/\/login/);

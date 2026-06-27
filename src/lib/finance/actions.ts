@@ -261,7 +261,8 @@ export async function addBillingPayerAction(formData: FormData) {
     custody_basis: (formData.get("custody_basis") as string) || null,
   });
   if (error) return { error: error.message };
-  revalidatePath(`/dashboard/finance/families/${formData.get("family_id")}`);
+  const familyId = formData.get("family_id");
+  if (familyId) revalidatePath(`/dashboard/families/${familyId}`);
   return { success: true };
 }
 
@@ -278,7 +279,8 @@ export async function addPaymentMethodAction(formData: FormData) {
     provider: "square_planned",
   });
   if (error) return { error: error.message };
-  revalidatePath(`/dashboard/finance/families/${formData.get("family_id")}`);
+  const familyId = formData.get("family_id");
+  if (familyId) revalidatePath(`/dashboard/families/${familyId}`);
   revalidatePath("/apply/portal/finance");
   return { success: true };
 }

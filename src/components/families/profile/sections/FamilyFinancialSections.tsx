@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { ProfileRecordTable } from "@/components/platform/profile-sections/ProfileRecordTable";
 import { ProfileStatGrid } from "@/components/platform/profile-sections/ProfileStatGrid";
 import {
   ProfileCard,
   ProfileEmpty,
 } from "@/components/platform/profile-workspace/ProfilePrimitives";
+import { FamilyFinancialCenter } from "@/components/finance/FamilyFinancialCenter";
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import { isFamilyProfileEnvelope } from "@/lib/families/profile/types";
 import {
@@ -119,15 +119,11 @@ export function TuitionSection(props: ProfileSectionViewProps) {
         </ProfileCard>
       )}
 
-      {envelope && (
-        <p className="text-sm text-slate-600">
-          <Link
-            href={`/dashboard/finance/families/${envelope.familyId}`}
-            className="font-medium text-brand-600 hover:text-brand-700"
-          >
-            Open Family Financial Center →
-          </Link>
-        </p>
+      {envelope && data && (
+        <FamilyFinancialCenter
+          familyId={envelope.familyId}
+          profile={data as Parameters<typeof FamilyFinancialCenter>[0]["profile"]}
+        />
       )}
 
       <ProfileRecordTable

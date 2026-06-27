@@ -32,13 +32,3 @@ export async function getFamilyHouseholds(familyId: string) {
     .order("is_primary", { ascending: false });
   return data ?? [];
 }
-
-export async function getGuardiansWithDetails(familyId: string) {
-  const supabase = await createAuthClient();
-  const { data } = await supabase
-    .from("guardians")
-    .select("*")
-    .eq("family_id", familyId)
-    .order("is_primary", { ascending: false });
-  return data ?? [];
-}

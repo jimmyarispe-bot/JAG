@@ -1,6 +1,7 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { enqueuePlatformJob } from "@/lib/platform/automation/queue";
 import { createMissionControlItem } from "@/lib/platform/automation/mission-control";
+import { buildFamilyProfileSectionHref } from "@/lib/families/profile/href";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -26,7 +27,7 @@ export async function syncFinanceAlertsToMissionControl(supabase: AuthClient) {
       itemType: "finance_alert",
       title: `Overdue invoice ${inv.invoice_number}`,
       body: `Balance due: $${(Number(inv.total_amount) - Number(inv.amount_paid)).toFixed(2)}`,
-      href: familyId ? `/dashboard/finance/families/${familyId}` : "/dashboard/finance",
+      href: familyId ? buildFamilyProfileSectionHref(familyId, "tuition") : "/dashboard/finance",
       entityType: "invoices",
       entityId: inv.id,
     });
@@ -86,7 +87,9 @@ export async function processFinanceQueueJobs(supabase: AuthClient) {
       itemType: "finance_alert",
       title,
       body: String(payload.message ?? ""),
-      href: payload.family_id ? `/dashboard/finance/families/${payload.family_id}` : "/dashboard/finance",
+      href: payload.family_id
+        ? buildFamilyProfileSectionHref(String(payload.family_id), "tuition")
+        : "/dashboard/finance",
       entityType: job.entity_type,
       entityId: job.entity_id,
     });

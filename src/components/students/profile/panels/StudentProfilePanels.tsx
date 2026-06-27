@@ -11,7 +11,7 @@ import {
 } from "@/components/students/profile/shared/ProfilePrimitives";
 import { gradeLabel } from "@/lib/constants/grades";
 import { programLabel } from "@/lib/constants/programs";
-import type { GuardianRecord, SisEnrollment, StudentRecord } from "@/lib/students/queries";
+import type { SisEnrollment, StudentRecord } from "@/lib/students/queries";
 import type { StudentConversionLink } from "@/lib/sis/queries";
 import type { ExecutiveSummary } from "@/lib/ssis/queries";
 
@@ -206,89 +206,6 @@ export function ProfilePanel({
                 <span className="ml-2 text-xs text-slate-400">
                   {new Date(String(t.created_at)).toLocaleDateString()}
                 </span>
-              </li>
-            ))}
-          </ul>
-        </ProfileCard>
-      )}
-    </div>
-  );
-}
-
-export function FamilyPanel({
-  guardians,
-  authorizedContacts,
-  familyName,
-  siblings,
-  households,
-}: {
-  guardians: GuardianRecord[];
-  authorizedContacts: Record<string, unknown>[];
-  familyName?: string | null;
-  siblings: Record<string, unknown>[];
-  households: Record<string, unknown>[];
-}) {
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <ProfileCard title={familyName ? `Family: ${familyName}` : "Guardians"}>
-        {guardians.length === 0 ? (
-          <ProfileEmpty>No guardians linked</ProfileEmpty>
-        ) : (
-          <ul className="space-y-2">
-            {guardians.map((g) => (
-              <li key={g.id} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
-                <span className="font-medium">
-                  {g.first_name} {g.last_name}
-                </span>
-                {g.is_primary && <span className="ml-2 text-xs text-brand-600">Primary</span>}
-                {g.email && <p className="text-slate-500">{g.email}</p>}
-                {g.phone && <p className="text-slate-500">{g.phone}</p>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </ProfileCard>
-      <ProfileCard title="Authorized Contacts">
-        {authorizedContacts.length === 0 ? (
-          <ProfileEmpty>No additional contacts</ProfileEmpty>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {authorizedContacts.map((c) => (
-              <li key={String(c.id)} className="rounded-xl bg-slate-50 px-3 py-2">
-                <span className="font-medium">
-                  {String(c.first_name)} {String(c.last_name)}
-                </span>
-                <span className="ml-2 text-xs capitalize text-slate-400">{String(c.contact_type)}</span>
-                {Boolean(c.can_pick_up) && (
-                  <span className="ml-2 text-xs text-emerald-600">Pickup OK</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </ProfileCard>
-      {households.length > 0 && (
-        <ProfileCard title="Households">
-          <ul className="space-y-2 text-sm">
-            {households.map((h) => (
-              <li key={String(h.id)} className="rounded-xl bg-slate-50 px-3 py-2">
-                <span className="font-medium">{String(h.label)}</span>
-                {Boolean(h.is_primary) && <span className="ml-2 text-xs text-brand-600">Primary</span>}
-                {Boolean(h.address) && <p className="text-slate-500">{String(h.address)}</p>}
-              </li>
-            ))}
-          </ul>
-        </ProfileCard>
-      )}
-      {siblings.length > 0 && (
-        <ProfileCard title="Siblings">
-          <ul className="space-y-2 text-sm">
-            {siblings.map((s) => (
-              <li key={String(s.id)} className="rounded-xl bg-slate-50 px-3 py-2">
-                <span className="font-medium">
-                  {String(s.first_name)} {String(s.last_name)}
-                </span>
-                <span className="ml-2 text-xs text-slate-400">{String(s.relationship_label)}</span>
               </li>
             ))}
           </ul>
