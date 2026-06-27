@@ -6,3 +6,12 @@ export * from "@/lib/platform/notes";
 export * from "@/lib/platform/profile";
 export * from "@/lib/platform/shared/entity-types";
 export { extractSchoolOrganizationId, resolveActorUserId, resolveSchoolContext, resolveStudentContext } from "@/lib/platform/shared/context";
+export {
+  applyPlatformTagsAction,
+  createPlatformNoteAction,
+  createPlatformTagAction,
+  deletePlatformNoteAction,
+  pinPlatformNoteAction,
+  removePlatformTagAction,
+  updatePlatformNoteAction,
+} from "@/lib/platform/services/server-actions";

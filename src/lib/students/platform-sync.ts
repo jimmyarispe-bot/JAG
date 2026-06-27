@@ -1,4 +1,4 @@
-import { createRelationship, upsertPrimaryRelationship } from "@/lib/platform/relationships";
+import { upsertActiveRelationship, upsertPrimaryRelationship } from "@/lib/platform/relationships";
 import { extractSchoolOrganizationId, resolveActorUserId, resolveSchoolContext, resolveStudentContext } from "@/lib/platform/shared/context";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
@@ -97,7 +97,7 @@ export async function syncGuardianStudentRelationships(
   const actorUserId = await resolveActorUserId(supabase);
 
   for (const student of students ?? []) {
-    await createRelationship(supabase, {
+    await upsertActiveRelationship(supabase, {
       organizationId,
       schoolId: family.school_id,
       relationshipType: "student.guardian",
@@ -125,7 +125,7 @@ export async function syncEnrollmentRelationship(
 
   const actorUserId = await resolveActorUserId(supabase);
 
-  await createRelationship(supabase, {
+  await upsertActiveRelationship(supabase, {
     organizationId: ctx.organizationId,
     schoolId: ctx.schoolId,
     relationshipType: "student.enrollment",

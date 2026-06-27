@@ -54,6 +54,7 @@ export interface ApplyTagsInput {
   tagIds: string[];
   appliedBy?: string | null;
   source?: TagSource;
+  expiresAt?: string | null;
   /** For activity context */
   schoolId?: string | null;
   studentId?: string | null;

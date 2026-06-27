@@ -34,14 +34,21 @@ export async function getTags(
 export async function getEntityTags(
   supabase: AuthClient,
   entityType: string,
-  entityId: string
+  entityId: string,
+  options?: { includeExpired?: boolean }
 ): Promise<PlatformEntityTag[]> {
-  const { data } = await supabase
+  let q = supabase
     .from("platform_entity_tags")
     .select("*, platform_tags(*)")
     .eq("entity_type", entityType)
     .eq("entity_id", entityId)
     .order("applied_at", { ascending: false });
+
+  if (options?.includeExpired !== true) {
+    q = q.or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+  }
+
+  const { data } = await q;
 
   return (data ?? []) as PlatformEntityTag[];
 }

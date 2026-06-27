@@ -1,6 +1,7 @@
 import { publishEvent } from "@/lib/integration-hub/event-bus";
 import { getActivityEventDefinition } from "@/lib/platform/activity/catalog";
 import type { RecordActivityInput } from "@/lib/platform/activity/types";
+import { validateRecordActivityInput } from "@/lib/platform/activity/validate";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -20,16 +21,17 @@ export async function recordActivity(
   supabase: AuthClient,
   input: RecordActivityInput
 ): Promise<{ id: string | null; error?: string }> {
-  const def = getActivityEventDefinition(input.eventType);
-  const moduleKey = input.moduleKey ?? def?.moduleKey ?? "platform";
-  const classification = input.classification ?? def?.classification ?? "operational";
-  const visibility = input.visibility ?? def?.visibility ?? "staff";
+  const validation = validateRecordActivityInput(input);
+  if (!validation.ok) {
+    return { id: null, error: validation.error };
+  }
+
+  const def = getActivityEventDefinition(input.eventType)!;
+  const moduleKey = input.moduleKey ?? def.moduleKey;
+  const classification = input.classification ?? def.classification;
+  const visibility = input.visibility ?? def.visibility;
   const summary = input.summary ?? input.title;
   const searchableText = buildSearchableText({ ...input, summary });
-
-  if (!input.schoolId && !input.organizationId) {
-    return { id: null, error: "Activity events require schoolId or organizationId" };
-  }
 
   const row = {
     organization_id: input.organizationId ?? null,
