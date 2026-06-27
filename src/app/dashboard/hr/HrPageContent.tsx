@@ -19,6 +19,7 @@ import { canAccessHrAdmin } from "@/lib/hr/access";
 import { getRecruitingPipeline, getComplianceCenter } from "@/lib/hr/employee-profile";
 import { getWorkforceAnalytics, getOrgChart } from "@/lib/hr/analytics";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { resolvePrimarySchoolId } from "@/lib/platform/identity/school-access";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 
 export const HR_TABS = [
@@ -47,9 +48,7 @@ export async function HrPageContent({ searchParams }: HrPageContentProps) {
   const ctx = await getIdentityContext();
   if (!ctx || !canAccessHrAdmin(ctx)) redirect("/dashboard");
 
-  const schoolId =
-    ctx?.orgAssignments.find((a) => a.is_primary)?.school_id ||
-    ctx?.accessibleSchoolIds[0];
+  const schoolId = resolvePrimarySchoolId(ctx) ?? undefined;
 
   const supabase = await createAuthClient();
 

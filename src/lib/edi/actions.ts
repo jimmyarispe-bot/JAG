@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { resolvePrimarySchoolId } from "@/lib/platform/identity/school-access";
 import { canManageEdi } from "@/lib/edi/access";
 import { recordDecision, rejectRecommendation } from "@/lib/edi/decision-history";
 import { createEdiScenario } from "@/lib/edi/scenario-comparison";
@@ -10,11 +11,8 @@ import { syncExecutiveDecisionIntelligence } from "@/lib/edi/automation";
 import type { EdiScenarioInput } from "@/lib/edi/types";
 
 function resolveSchoolId(ctx: NonNullable<Awaited<ReturnType<typeof getIdentityContext>>>, formSchoolId?: string | null) {
-  const schoolId =
-    formSchoolId ||
-    ctx.orgAssignments.find((a) => a.is_primary)?.school_id ||
-    ctx.accessibleSchoolIds[0];
-  if (!schoolId || !ctx.accessibleSchoolIds.includes(schoolId)) {
+  const schoolId = resolvePrimarySchoolId(ctx, formSchoolId);
+  if (!schoolId) {
     throw new Error("Invalid school");
   }
   return schoolId;

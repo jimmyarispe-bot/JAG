@@ -1,6 +1,7 @@
 import { StatCard } from "@/components/dashboard/StatCard";
 import { QuickLaunchGrid } from "@/components/dashboard/QuickLaunchGrid";
 import { getSessionUser } from "@/lib/auth/session";
+import { requirePagePermission } from "@/lib/platform/identity/page-guard";
 import {
   formatCount,
   formatCurrency,
@@ -8,6 +9,20 @@ import {
 } from "@/lib/dashboard/metrics";
 
 export default async function ExecutiveHomePage() {
+  await requirePagePermission([
+    "mission_control.access",
+    "executive.dashboard",
+    "students.view",
+    "admissions.view",
+    "finance.view",
+    "hr.view",
+    "scholarships.view",
+    "work.view",
+    "compliance.view",
+    "ai.teacher",
+    "employee.self_service",
+  ]);
+
   const [sessionUser, metrics] = await Promise.all([
     getSessionUser(),
     getDashboardMetrics(),

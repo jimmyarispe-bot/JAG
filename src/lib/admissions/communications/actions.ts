@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAuthClient } from "@/lib/supabase/server-auth";
+import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import {
   processCommunicationQueue,
   triggerCommunications,
@@ -10,8 +10,14 @@ import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/
 import { renderTemplate, type MergeContext } from "@/lib/admissions/communications/merge-fields";
 import { sendTransactionalEmail } from "@/lib/platform/email/sendgrid";
 
+async function requireAdmissionsManage() {
+  return assertAnyPermission("admissions.manage", "admissions.accept", "admissions.view");
+}
+
 export async function runCommunicationQueueProcessor() {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   await processCommunicationQueue(supabase);
   return { success: true };
 }
@@ -22,7 +28,9 @@ export async function fireCommunicationTrigger(input: {
   triggerEvent: CommunicationTriggerEvent;
   mergeOverrides?: Partial<MergeContext>;
 }) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -42,7 +50,9 @@ export async function fireCommunicationTrigger(input: {
 }
 
 export async function resendCommunication(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -97,7 +107,9 @@ export async function resendCommunication(formData: FormData) {
 }
 
 export async function sendManualCommunication(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -146,7 +158,9 @@ export async function sendManualCommunication(formData: FormData) {
 }
 
 export async function updateCommunicationTemplate(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertAnyPermission("admissions.manage", "admissions.accept");
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const id = formData.get("id") as string;
 
   const { error } = await supabase
@@ -166,7 +180,9 @@ export async function updateCommunicationTemplate(formData: FormData) {
 }
 
 export async function customizeQueuedCommunication(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const queueId = formData.get("queue_id") as string;
   const leadId = formData.get("lead_id") as string;
 
@@ -184,7 +200,9 @@ export async function customizeQueuedCommunication(formData: FormData) {
 }
 
 export async function cancelQueuedCommunication(queueId: string, leadId: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { error } = await supabase
     .from("admissions_communication_queue")
     .update({ status: "cancelled" })
@@ -196,7 +214,9 @@ export async function cancelQueuedCommunication(queueId: string, leadId: string)
 }
 
 export async function markStaffNotificationRead(notificationId: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   await supabase
     .from("admissions_staff_notifications")
     .update({ read_at: new Date().toISOString() })
@@ -206,6 +226,9 @@ export async function markStaffNotificationRead(notificationId: string) {
 }
 
 export async function previewTemplateMerge(formData: FormData) {
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+
   const subject = formData.get("subject") as string;
   const body = formData.get("body") as string;
   const sampleContext: MergeContext = {

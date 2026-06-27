@@ -6,6 +6,7 @@ import { generateSectionSessions } from "@/lib/scheduling/session-generator";
 import { detectSchedulingConflicts, syncConflictsToMissionControl } from "@/lib/scheduling/conflicts";
 import { recordSessionAttendance } from "@/lib/scheduling/attendance-bridge";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { resolvePrimarySchoolId } from "@/lib/platform/identity/school-access";
 
 export async function generateSessionsAction(formData: FormData) {
   const supabase = await createAuthClient();
@@ -37,9 +38,7 @@ export async function runSchedulingIntelligenceAction(formData: FormData) {
   }
 
   const schoolId =
-    (formData.get("school_id") as string) ||
-    ctx.orgAssignments.find((a) => a.is_primary)?.school_id ||
-    ctx.accessibleSchoolIds[0] ||
+    resolvePrimarySchoolId(ctx, formData.get("school_id") as string | undefined) ??
     ctx.orgAssignments[0]?.school_id;
   if (!schoolId) return { error: "School required" };
 

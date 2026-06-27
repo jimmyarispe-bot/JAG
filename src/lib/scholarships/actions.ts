@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAuthClient } from "@/lib/supabase/server-auth";
+import { assertAnyPermission, assertPermission } from "@/lib/platform/identity/action-guards";
 import { SCHOLARSHIP_APPROVER } from "@/lib/constants/admissions";
 
 export async function updateScholarshipStatus(
@@ -10,7 +10,9 @@ export async function updateScholarshipStatus(
   approvedAmount?: number,
   reviewNotes?: string
 ) {
-  const supabase = await createAuthClient();
+  const auth = await assertAnyPermission("scholarships.approve", "scholarships.view");
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
 
   const updates: Record<string, unknown> = {
@@ -41,7 +43,9 @@ export async function updateScholarshipStatus(
 }
 
 export async function createScholarshipDocument(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertPermission("scholarships.view");
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
 
   const { error } = await supabase.from("scholarship_documents").insert({
@@ -58,7 +62,9 @@ export async function createScholarshipDocument(formData: FormData) {
 }
 
 export async function submitScholarshipApplication(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertPermission("scholarships.view");
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
 
   const { error } = await supabase.from("scholarship_applications").insert({
     application_id: formData.get("application_id") as string,

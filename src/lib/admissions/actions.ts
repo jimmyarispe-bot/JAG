@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAuthClient } from "@/lib/supabase/server-auth";
+import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import type { GradeValue } from "@/lib/constants/grades";
 import type { ProgramValue } from "@/lib/constants/programs";
 import type { LeadStageValue } from "@/lib/constants/admissions";
@@ -15,8 +15,14 @@ import {
   onTourScheduled,
 } from "@/lib/admissions/communications/triggers";
 
+async function requireAdmissionsManage() {
+  return assertAnyPermission("admissions.manage", "admissions.accept", "admissions.view");
+}
+
 export async function createLead(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -55,7 +61,6 @@ export async function createLead(formData: FormData) {
   }
 
   await recordInitialStage(supabase, data.id, user?.id ?? null);
-
   await onInquirySubmitted(supabase, data.id, user?.id ?? null);
 
   revalidatePath("/dashboard/admissions");
@@ -63,7 +68,9 @@ export async function createLead(formData: FormData) {
 }
 
 export async function updateLeadStage(leadId: string, leadStage: LeadStageValue) {
-  const supabase = await createAuthClient();
+  const auth = await assertAnyPermission("admissions.manage", "admissions.accept");
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -95,7 +102,9 @@ export async function updateLeadStage(leadId: string, leadStage: LeadStageValue)
 }
 
 export async function addLeadNote(leadId: string, noteText: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -112,7 +121,9 @@ export async function addLeadNote(leadId: string, noteText: string) {
 }
 
 export async function addLeadTask(leadId: string, taskName: string, dueDate: string | null) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
 
   const { error } = await supabase.from("admissions_tasks").insert({
     lead_id: leadId,
@@ -127,7 +138,9 @@ export async function addLeadTask(leadId: string, taskName: string, dueDate: str
 }
 
 export async function completeTask(taskId: string, leadId: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
 
   const { error } = await supabase
     .from("admissions_tasks")
@@ -140,7 +153,9 @@ export async function completeTask(taskId: string, leadId: string) {
 }
 
 export async function scheduleTour(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -175,7 +190,9 @@ export async function scheduleTour(formData: FormData) {
 }
 
 export async function scheduleInterview(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();

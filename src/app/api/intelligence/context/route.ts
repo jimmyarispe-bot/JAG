@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { guardApiRoute } from "@/lib/platform/identity/api-guard";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { resolvePrimarySchoolId } from "@/lib/platform/identity/school-access";
 import { getPrimaryOrganizationId } from "@/lib/enterprise-data/context";
 import { buildSecureContext } from "@/lib/intelligence-platform/context-builder";
 import { PROVIDER_ADAPTER_ARCHITECTURE } from "@/lib/intelligence-platform/provider-abstraction";
@@ -49,7 +50,9 @@ export async function POST(request: Request) {
       ? body.organizationId
       : defaultOrgId;
   const schoolId =
-    typeof body.schoolId === "string" ? body.schoolId : ctx.accessibleSchoolIds[0] ?? undefined;
+    typeof body.schoolId === "string"
+      ? body.schoolId
+      : resolvePrimarySchoolId(ctx) ?? undefined;
   const moduleName = typeof body.module === "string" ? body.module : "general";
   const scopes =
     body.scopes && typeof body.scopes === "object"

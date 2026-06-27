@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { buildProfileEnvelopeBase } from "@/lib/platform/profile/envelope";
 import { extractSchoolOrganizationId } from "@/lib/platform/shared/context";
+import { canAccessSchool } from "@/lib/platform/identity/school-access";
 import type { IdentityContext } from "@/lib/platform/identity/context";
 import type { EmployeeProfileEnvelope } from "@/lib/employees/profile/types";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
@@ -22,10 +23,7 @@ export async function buildEmployeeProfileEnvelope(
 
   if (!employee) return null;
 
-  if (
-    !identity.isFounder &&
-    !identity.accessibleSchoolIds.includes(employee.school_id)
-  ) {
+  if (!canAccessSchool(identity, employee.school_id)) {
     notFound();
   }
 

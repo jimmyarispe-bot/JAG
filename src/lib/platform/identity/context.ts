@@ -10,7 +10,10 @@ export interface IdentityContext extends SessionUser {
   effectiveUserId: string;
   permissions: string[];
   orgAssignments: OrgAssignment[];
+  /** School ids the user is explicitly assigned to. Empty when unrestricted. */
   accessibleSchoolIds: string[];
+  /** True for CEO/Founder/Executive Director — may access any school. */
+  hasUnrestrictedSchoolAccess: boolean;
   isFounder: boolean;
   isEnterpriseAdmin: boolean;
   impersonation: ImpersonationState | null;
@@ -61,7 +64,10 @@ export async function getIdentityContext(): Promise<IdentityContext | null> {
     loadPreferences(supabase, effectiveUserId),
   ]);
 
-  const accessibleSchoolIds = resolveAccessibleSchoolIds(sessionUser, orgAssignments);
+  const { accessibleSchoolIds, hasUnrestrictedSchoolAccess } = resolveSchoolAccess(
+    sessionUser,
+    orgAssignments
+  );
   const effectiveRoles = sessionUser.roles;
 
   return {
@@ -70,6 +76,7 @@ export async function getIdentityContext(): Promise<IdentityContext | null> {
     permissions,
     orgAssignments,
     accessibleSchoolIds,
+    hasUnrestrictedSchoolAccess,
     isFounder: effectiveRoles.includes("FOUNDER"),
     isEnterpriseAdmin: effectiveRoles.some((r) =>
       ["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR"].includes(r)
@@ -120,18 +127,21 @@ async function loadPreferences(
   return data as UserPreferences | null;
 }
 
-function resolveAccessibleSchoolIds(
+function resolveSchoolAccess(
   sessionUser: SessionUser,
   assignments: OrgAssignment[]
-): string[] {
+): { accessibleSchoolIds: string[]; hasUnrestrictedSchoolAccess: boolean } {
   if (
     sessionUser.roles.includes("CEO") ||
     sessionUser.roles.includes("FOUNDER") ||
     sessionUser.roles.includes("EXECUTIVE_DIRECTOR")
   ) {
-    return [];
+    return { accessibleSchoolIds: [], hasUnrestrictedSchoolAccess: true };
   }
-  return [...new Set(assignments.map((a) => a.school_id))];
+  return {
+    accessibleSchoolIds: [...new Set(assignments.map((a) => a.school_id))],
+    hasUnrestrictedSchoolAccess: false,
+  };
 }
 
 export function hasIdentityPermission(ctx: IdentityContext, key: string): boolean {

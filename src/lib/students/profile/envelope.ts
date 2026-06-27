@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { buildProfileEnvelopeBase } from "@/lib/platform/profile/envelope";
 import { extractSchoolOrganizationId } from "@/lib/platform/shared/context";
+import { canAccessSchool } from "@/lib/platform/identity/school-access";
 import type { IdentityContext } from "@/lib/platform/identity/context";
 import type { StudentProfileEnvelope } from "@/lib/students/profile/types";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
@@ -22,10 +23,7 @@ export async function buildStudentProfileEnvelope(
 
   if (!student) return null;
 
-  if (
-    !identity.isFounder &&
-    !identity.accessibleSchoolIds.includes(student.school_id)
-  ) {
+  if (!canAccessSchool(identity, student.school_id)) {
     notFound();
   }
 

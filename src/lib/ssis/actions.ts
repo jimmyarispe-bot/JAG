@@ -1,13 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAuthClient } from "@/lib/supabase/server-auth";
+import { assertAnyPermission, assertPermission } from "@/lib/platform/identity/action-guards";
 import { transitionStudentLifecycle, type LifecycleStage } from "@/lib/ssis/transitions";
 import { logStudentCommunicationEvent } from "@/lib/ssis/timeline";
 import { computeStudentSuccessScore } from "@/lib/ssis/score";
 
+async function requireStudentsEdit() {
+  return assertAnyPermission("students.edit", "students.view");
+}
+
 export async function recordStudentAttendance(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireStudentsEdit();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
+
   const studentId = formData.get("student_id") as string;
   const status = formData.get("status") as string;
   const context = (formData.get("attendance_context") as string) || "daily";
@@ -48,7 +55,10 @@ export async function recordStudentAttendance(formData: FormData) {
 }
 
 export async function recordBehaviorEvent(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireStudentsEdit();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
+
   const studentId = formData.get("student_id") as string;
   const eventType = formData.get("event_type") as string;
   const title = formData.get("title") as string;
@@ -81,7 +91,10 @@ export async function recordBehaviorEvent(formData: FormData) {
 }
 
 export async function transitionStudentStage(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertPermission("students.edit");
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
+
   const studentId = formData.get("student_id") as string;
   const toStage = formData.get("to_stage") as LifecycleStage;
   const notes = (formData.get("notes") as string) || undefined;
@@ -102,7 +115,10 @@ export async function transitionStudentStage(formData: FormData) {
 }
 
 export async function refreshStudentSuccessScore(studentId: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireStudentsEdit();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
+
   await computeStudentSuccessScore(supabase, studentId);
   revalidatePath(`/dashboard/students/${studentId}`);
   return { success: true };

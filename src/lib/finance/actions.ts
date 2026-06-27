@@ -1,15 +1,33 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAuthClient } from "@/lib/supabase/server-auth";
+import { assertAnyPermission, assertPermission } from "@/lib/platform/identity/action-guards";
 import { writePlatformAudit } from "@/lib/platform/automation/audit";
 import { generateTuitionInvoiceFromPlan } from "@/lib/finance/tuition-engine";
 import { recordFinancialTransaction } from "@/lib/finance/ledger";
 import { enqueueBillingReminder } from "@/lib/finance/automation";
 import { buildBudgetForecastSnapshot } from "@/lib/finance/forecasting";
 
+async function requireFinanceOrPortal() {
+  return assertAnyPermission("finance.billing", "finance.view", "portal.parent.access");
+}
+
+async function requireFinanceBilling() {
+  return assertAnyPermission("finance.billing", "finance.view");
+}
+
+async function requireFinanceApprove() {
+  return assertAnyPermission("finance.approve", "finance.billing", "finance.view");
+}
+
+async function requireFinanceView() {
+  return assertPermission("finance.view");
+}
+
 export async function createBillingAccount(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceBilling();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
 
   const { error } = await supabase.from("family_billing_accounts").insert({
     family_id: formData.get("family_id") as string,
@@ -23,7 +41,9 @@ export async function createBillingAccount(formData: FormData) {
 }
 
 export async function createInvoice(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceBilling();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
 
   const subtotal = Number(formData.get("subtotal")) || 0;
@@ -106,7 +126,9 @@ export async function createInvoice(formData: FormData) {
 }
 
 export async function createTuitionInvoiceFromPlanAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceBilling();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   try {
     await generateTuitionInvoiceFromPlan(supabase, {
       billingAccountId: formData.get("billing_account_id") as string,
@@ -124,7 +146,9 @@ export async function createTuitionInvoiceFromPlanAction(formData: FormData) {
 }
 
 export async function recordPayment(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceOrPortal();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
 
   const invoiceId = formData.get("invoice_id") as string;
@@ -201,7 +225,9 @@ export async function recordPayment(formData: FormData) {
 }
 
 export async function createTuitionPlan(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceBilling();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
 
   const { error } = await supabase.from("tuition_plans").insert({
     school_id: formData.get("school_id") as string,
@@ -222,7 +248,9 @@ export async function createTuitionPlan(formData: FormData) {
 }
 
 export async function addBillingPayerAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceBilling();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { error } = await supabase.from("family_billing_payers").insert({
     billing_account_id: formData.get("billing_account_id") as string,
     guardian_id: (formData.get("guardian_id") as string) || null,
@@ -238,7 +266,9 @@ export async function addBillingPayerAction(formData: FormData) {
 }
 
 export async function addPaymentMethodAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceOrPortal();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { error } = await supabase.from("family_payment_methods").insert({
     billing_account_id: formData.get("billing_account_id") as string,
     guardian_id: (formData.get("guardian_id") as string) || null,
@@ -254,7 +284,9 @@ export async function addPaymentMethodAction(formData: FormData) {
 }
 
 export async function createBillingCreditAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceBilling();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
   const amount = Number(formData.get("amount"));
 
@@ -276,7 +308,9 @@ export async function createBillingCreditAction(formData: FormData) {
 }
 
 export async function createBillingAdjustmentAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceBilling();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
 
   const { error } = await supabase.from("billing_adjustments").insert({
@@ -296,7 +330,9 @@ export async function createBillingAdjustmentAction(formData: FormData) {
 }
 
 export async function createPaymentPlanAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceBilling();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const billingAccountId = formData.get("billing_account_id") as string;
 
   const { data: plan, error } = await supabase
@@ -325,7 +361,9 @@ export async function createPaymentPlanAction(formData: FormData) {
 }
 
 export async function createScholarshipFundAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertAnyPermission("finance.scholarships", "finance.billing", "finance.view");
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const total = Number(formData.get("total_allocation"));
 
   const { error } = await supabase.from("scholarship_funds").insert({
@@ -344,14 +382,18 @@ export async function createScholarshipFundAction(formData: FormData) {
 }
 
 export async function buildForecastAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceView();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   await buildBudgetForecastSnapshot(supabase, formData.get("school_id") as string);
   revalidatePath("/dashboard/finance");
   return { success: true };
 }
 
 export async function applyLateFeeAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceBilling();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
   const invoiceId = formData.get("invoice_id") as string;
   const amount = Number(formData.get("amount"));
@@ -424,7 +466,9 @@ export async function applyLateFeeAction(formData: FormData) {
 }
 
 export async function applyWriteOffAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceApprove();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
   const invoiceId = formData.get("invoice_id") as string;
   const amount = Number(formData.get("amount"));
@@ -477,7 +521,9 @@ export async function applyWriteOffAction(formData: FormData) {
 }
 
 export async function processRefundAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceApprove();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
   const billingAccountId = formData.get("billing_account_id") as string;
   const amount = Number(formData.get("amount"));
@@ -509,7 +555,9 @@ export async function processRefundAction(formData: FormData) {
 }
 
 export async function enrollAutopayAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceOrPortal();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const billingAccountId = formData.get("billing_account_id") as string;
 
   const { error } = await supabase.from("family_autopay_enrollments").insert({
@@ -532,7 +580,9 @@ export async function enrollAutopayAction(formData: FormData) {
 }
 
 export async function registerFundingDocumentAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceOrPortal();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
   const studentId = formData.get("student_id") as string;
   const fileName = formData.get("file_name") as string;
@@ -553,7 +603,9 @@ export async function registerFundingDocumentAction(formData: FormData) {
 }
 
 export async function acknowledgeFinancialAgreementAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireFinanceOrPortal();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
   const billingAccountId = formData.get("billing_account_id") as string;
   const familyId = formData.get("family_id") as string;

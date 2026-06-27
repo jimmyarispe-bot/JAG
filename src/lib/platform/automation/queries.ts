@@ -37,10 +37,7 @@ export async function getMissionControlDashboard() {
 
   const allowedModules = await getMissionControlModulesForUser(supabase, ctx.effectiveUserId);
   const role = ctx.primaryRole ?? null;
-  const schoolFilter =
-    ctx.isEnterpriseAdmin || ctx.accessibleSchoolIds.length === 0
-      ? undefined
-      : ctx.accessibleSchoolIds;
+  const schoolFilter = ctx.hasUnrestrictedSchoolAccess ? undefined : ctx.accessibleSchoolIds;
 
   const [feed, queueMetrics, marketplace] = await Promise.all([
     getMissionControlFeed(supabase, {

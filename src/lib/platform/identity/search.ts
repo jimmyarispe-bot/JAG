@@ -1,5 +1,6 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { hasUnrestrictedSchoolAccess } from "@/lib/platform/identity/school-access";
 import { userHasPermission } from "@/lib/platform/identity/permissions";
 import type { GlobalSearchResult } from "@/lib/platform/identity/types";
 
@@ -33,7 +34,7 @@ export async function globalSearch(
       .or(`first_name.ilike.${pattern},last_name.ilike.${pattern}`)
       .limit(limit);
 
-    if (schoolFilter.length) studentQuery = studentQuery.in("school_id", schoolFilter);
+    if (!hasUnrestrictedSchoolAccess(ctx) && schoolFilter.length) studentQuery = studentQuery.in("school_id", schoolFilter);
 
     const { data: students } = await studentQuery;
     for (const s of students ?? []) {
@@ -57,7 +58,7 @@ export async function globalSearch(
       .or(`first_name.ilike.${pattern},last_name.ilike.${pattern},email.ilike.${pattern}`)
       .limit(limit);
 
-    if (schoolFilter.length) leadQuery = leadQuery.in("school_id", schoolFilter);
+    if (!hasUnrestrictedSchoolAccess(ctx) && schoolFilter.length) leadQuery = leadQuery.in("school_id", schoolFilter);
 
     const { data: leads } = await leadQuery;
     for (const l of leads ?? []) {
@@ -81,7 +82,7 @@ export async function globalSearch(
       .eq("employment_status", "active")
       .limit(limit);
 
-    if (schoolFilter.length) empQuery = empQuery.in("school_id", schoolFilter);
+    if (!hasUnrestrictedSchoolAccess(ctx) && schoolFilter.length) empQuery = empQuery.in("school_id", schoolFilter);
 
     const { data: employees } = await empQuery;
     for (const e of employees ?? []) {

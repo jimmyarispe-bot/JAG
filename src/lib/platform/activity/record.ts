@@ -27,6 +27,10 @@ export async function recordActivity(
   const summary = input.summary ?? input.title;
   const searchableText = buildSearchableText({ ...input, summary });
 
+  if (!input.schoolId && !input.organizationId) {
+    return { id: null, error: "Activity events require schoolId or organizationId" };
+  }
+
   const row = {
     organization_id: input.organizationId ?? null,
     school_id: input.schoolId ?? null,

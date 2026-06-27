@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { resolvePrimarySchoolId } from "@/lib/platform/identity/school-access";
 import { canImportFi, canManageFi, canRunScenarios } from "@/lib/financial-intelligence/access";
 import { createScenario } from "@/lib/financial-intelligence/scenarios";
 import { importCsvFinancialData } from "@/lib/financial-intelligence/csv-import";
@@ -11,11 +12,8 @@ import type { QuickBooksImportType } from "@/lib/financial-intelligence/quickboo
 import type { ScenarioInput } from "@/lib/financial-intelligence/types";
 
 function resolveSchoolId(ctx: NonNullable<Awaited<ReturnType<typeof getIdentityContext>>>, formSchoolId?: string | null) {
-  const schoolId =
-    formSchoolId ||
-    ctx.orgAssignments.find((a) => a.is_primary)?.school_id ||
-    ctx.accessibleSchoolIds[0];
-  if (!schoolId || !ctx.accessibleSchoolIds.includes(schoolId)) {
+  const schoolId = resolvePrimarySchoolId(ctx, formSchoolId);
+  if (!schoolId) {
     throw new Error("Invalid school");
   }
   return schoolId;
