@@ -1,7 +1,8 @@
-/** Side-effect: register platform profile kinds (Student, Employee, …). */
+/** Side-effect: register platform profile kinds (Student, Employee, Family, …). */
 import "@/lib/students/profile/register";
 import "@/lib/students/profile/contributions";
 import "@/lib/employees/profile/register";
+import "@/lib/families/profile/register";
 
 export {
   buildProfileEnvelopeBase,

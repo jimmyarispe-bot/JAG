@@ -136,3 +136,60 @@ export async function getStudentRelationships(
 ): Promise<PlatformRelationship[]> {
   return getRelationshipsFrom(supabase, "student", studentId, filters);
 }
+
+/** Students linked to a family via platform relationships (student.family). */
+export async function getFamilyStudentRelationships(
+  supabase: AuthClient,
+  familyId: string,
+  filters?: RelationshipQueryFilters
+): Promise<PlatformRelationship[]> {
+  return getRelationshipsTo(supabase, "family", familyId, {
+    ...filters,
+    relationshipType: filters?.relationshipType ?? "student.family",
+  });
+}
+
+/** Guardian links for all students in a family via platform relationships (student.guardian). */
+export async function getFamilyGuardianRelationships(
+  supabase: AuthClient,
+  familyId: string,
+  filters?: RelationshipQueryFilters
+): Promise<PlatformRelationship[]> {
+  const { data: students } = await supabase
+    .from("students")
+    .select("id")
+    .eq("family_id", familyId);
+
+  const studentIds = (students ?? []).map((row) => row.id);
+  if (!studentIds.length) return [];
+
+  let query = supabase
+    .from("platform_relationships")
+    .select("*")
+    .eq("from_entity_type", "student")
+    .in("from_entity_id", studentIds)
+    .eq("relationship_type", "student.guardian");
+
+  if (filters?.relationshipType) {
+    const types = Array.isArray(filters.relationshipType)
+      ? filters.relationshipType
+      : [filters.relationshipType];
+    query = query.in("relationship_type", types);
+  }
+
+  if (filters?.status) {
+    const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
+    query = query.in("status", statuses);
+  } else {
+    query = query.eq("status", "active");
+  }
+
+  if (filters?.isPrimary !== undefined) query = query.eq("is_primary", filters.isPrimary);
+
+  query = query
+    .order("is_primary", { ascending: false })
+    .order("effective_date", { ascending: false });
+
+  const { data } = await query;
+  return (data ?? []) as PlatformRelationship[];
+}

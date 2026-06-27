@@ -28,7 +28,7 @@ src/lib/students/profile/            # First implementation: Student
 |------|--------|-----------|
 | `student` | **Registered** | `/dashboard/students/{id}` |
 | `employee` | **Registered** | `/dashboard/hr/employees/{id}` |
-| `family` | Planned | TBD |
+| `family` | **Registered** | `/dashboard/families/{id}` |
 | `school` | Planned | TBD |
 | `organization` | Planned | TBD |
 | `scholarship` | Planned | TBD |
@@ -64,6 +64,10 @@ Overview (pinned) + grouped sections across Core, Learning, Student Life, Suppor
 ## Employee sections (28)
 
 Overview (pinned) + HR, employment, communication (notes, activity), and system sections.
+
+## Family sections (19)
+
+Overview (pinned) + relationships (household, parents/guardians, students), support, financial, communication, operations, student life, intelligence, and system sections. Resolves guardians and students through the Platform Relationship Engine.
 
 ## Build-time validation
 

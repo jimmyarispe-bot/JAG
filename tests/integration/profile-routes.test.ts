@@ -11,6 +11,7 @@ import {
 } from "@/lib/platform/profile/access";
 import { isRegisteredSection, resolveSectionKey } from "@/lib/platform/profile/registry";
 import { EMPLOYEE_PROFILE_LEGACY_REDIRECTS } from "@/lib/employees/profile/kind";
+import { FAMILY_PROFILE_LEGACY_REDIRECTS } from "@/lib/families/profile/kind";
 import { STUDENT_PROFILE_LEGACY_REDIRECTS } from "@/lib/students/profile/kind";
 import type { ProfileEnvelopeBase } from "@/lib/platform/profile/types";
 
@@ -46,6 +47,25 @@ function employeeEnvelope(overrides?: Partial<ProfileEnvelopeBase>): ProfileEnve
     permissions: ["hr.view"],
     enabledModules: ["platform", "hr"],
     basePath: "/dashboard/hr/employees",
+    sectionParam: "section",
+    defaultSection: "overview",
+    ...overrides,
+  };
+}
+
+function familyEnvelope(overrides?: Partial<ProfileEnvelopeBase>): ProfileEnvelopeBase {
+  return {
+    profileKind: "family",
+    entityType: "family",
+    entityId: "family-1",
+    organizationId: "org-1",
+    schoolId: "school-1",
+    campusId: null,
+    displayName: "Test Family",
+    subtitle: null,
+    permissions: ["students.view"],
+    enabledModules: ["platform", "sis", "ssis", "finance", "scholarships"],
+    basePath: "/dashboard/families",
     sectionParam: "section",
     defaultSection: "overview",
     ...overrides,
@@ -187,5 +207,78 @@ describe("Employee Profile routes", () => {
     const activityNav = buildProfileNavigation(employeeEnvelope(), "activity");
     expect(notesNav.activeSection).toBe("notes");
     expect(activityNav.activeSection).toBe("activity");
+  });
+});
+
+describe("Family Profile routes", () => {
+  it("loads overview by default", () => {
+    const navigation = buildProfileNavigation(familyEnvelope(), undefined);
+    expect(navigation.activeSection).toBe("overview");
+    expect(navigation.activeSectionDef?.key).toBe("overview");
+  });
+
+  it("supports deep links via ?section=", () => {
+    const navigation = buildProfileNavigation(familyEnvelope(), "parents-guardians");
+    expect(navigation.activeSection).toBe("parents-guardians");
+    expect(isRegisteredSection("family", "parents-guardians")).toBe(true);
+  });
+
+  it("maps legacy ?tab= keys to canonical sections", () => {
+    expect(
+      parseProfileSectionParam({ tab: "billing" }, FAMILY_PROFILE_LEGACY_REDIRECTS)
+    ).toBe("tuition");
+    expect(
+      parseProfileSectionParam({ tab: "timeline" }, FAMILY_PROFILE_LEGACY_REDIRECTS)
+    ).toBe("activity");
+  });
+
+  it("redirects legacy finance bookmarks to tuition section URLs", () => {
+    expect(
+      buildLegacyProfileSectionRedirectUrl(
+        "/dashboard/families",
+        "family-1",
+        { tab: "billing" },
+        FAMILY_PROFILE_LEGACY_REDIRECTS
+      )
+    ).toBe("/dashboard/families/family-1?section=tuition");
+  });
+
+  it("denies financial sections without finance permissions", () => {
+    const hidden = resolveSectionVisibility(
+      {
+        key: "tuition",
+        label: "Tuition",
+        group: "financial",
+        sortOrder: 70,
+        moduleKey: "finance",
+        permissions: ["finance.view", "portal.parent.access"],
+        status: "live",
+      },
+      familyEnvelope({ permissions: ["students.view"] })
+    );
+    expect(hidden.visible).toBe(false);
+    expect(hidden.hiddenReason).toBe("permission");
+  });
+
+  it("falls back unknown sections to overview", () => {
+    expect(resolveSectionKey("family", "unknown-section")).toBe("overview");
+    const navigation = buildProfileNavigation(familyEnvelope(), "unknown-section");
+    expect(navigation.activeSection).toBe("overview");
+  });
+
+  it("registers all 19 family sections", () => {
+    expect(isRegisteredSection("family", "household")).toBe(true);
+    expect(isRegisteredSection("family", "students")).toBe(true);
+    expect(isRegisteredSection("family", "notes")).toBe(true);
+    expect(isRegisteredSection("family", "activity")).toBe(true);
+    expect(isRegisteredSection("family", "audit")).toBe(true);
+  });
+
+  it("allows profile kind access with students.view or portal.parent.access", () => {
+    expect(canAccessProfileKind("family", ["students.view", "portal.parent.access"], ["students.view"])).toBe(true);
+    expect(
+      canAccessProfileKind("family", ["students.view", "portal.parent.access"], ["portal.parent.access"])
+    ).toBe(true);
+    expect(canAccessProfileKind("family", ["students.view", "portal.parent.access"], [])).toBe(false);
   });
 });

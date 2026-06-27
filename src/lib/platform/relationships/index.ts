@@ -6,6 +6,8 @@ export {
   getRelationshipsFrom,
   getRelationshipsTo,
   getStudentRelationships,
+  getFamilyStudentRelationships,
+  getFamilyGuardianRelationships,
   getEmployeeRelationships,
   getEmployeeDirectReports,
   getEmployeeAssignedStudents,

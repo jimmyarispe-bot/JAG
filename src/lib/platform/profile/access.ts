@@ -57,7 +57,7 @@ function getProfileKindViewPermissions(kind: ProfileKind): string[] {
   const defaults: Partial<Record<ProfileKind, string[]>> = {
     student: ["students.view"],
     employee: ["hr.view"],
-    family: ["students.view"],
+    family: ["students.view", "portal.parent.access"],
     school: ["org.view", "school.configure"],
     organization: ["org.view"],
     scholarship: ["scholarships.view"],
