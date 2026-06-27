@@ -52,7 +52,7 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
         title="Admissions CRM"
-        subtitle="Manage inquiries, tours, applications, and state funding"
+        subtitle="Admissions operating system — pipeline, applications, and enrollment"
         actions={
           <div className="flex flex-wrap gap-2">
             <Link

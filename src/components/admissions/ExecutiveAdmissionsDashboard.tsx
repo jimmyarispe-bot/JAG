@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { formatCount, formatCurrency } from "@/lib/format";
+import { getAdmissionsDashboardTiles } from "@/lib/admissions/registry";
 import type { ExecutiveAdmissionsMetrics, DrillDownLead } from "@/lib/admissions/executive-metrics";
 
 interface ExecutiveAdmissionsDashboardProps {
@@ -19,18 +20,12 @@ export function ExecutiveAdmissionsDashboard({
 }: ExecutiveAdmissionsDashboardProps) {
   const [activeFilter, setActiveFilter] = useState(drillFilter);
 
-  const kpiCards = [
-    { title: "New Inquiries", value: formatCount(metrics.newInquiries), filter: "new_inquiries", accent: "indigo" as const },
-    { title: "Active Leads", value: formatCount(metrics.activeLeads), filter: "active", accent: "sky" as const },
-    { title: "Apps Started", value: formatCount(metrics.applicationsStarted), filter: "stage:application_started", accent: "violet" as const },
-    { title: "Apps Submitted", value: formatCount(metrics.applicationsSubmitted), filter: "awaiting_decision", accent: "amber" as const },
-    { title: "Awaiting Documents", value: formatCount(metrics.awaitingDocuments), filter: "active", accent: "rose" as const },
-    { title: "Awaiting State Funding", value: formatCount(metrics.awaitingStateFunding), filter: "active", accent: "emerald" as const },
-    { title: "Awaiting Decision", value: formatCount(metrics.awaitingDecision), filter: "awaiting_decision", accent: "indigo" as const },
-    { title: "Accepted", value: formatCount(metrics.accepted), filter: "accepted", accent: "emerald" as const },
-    { title: "Waitlisted", value: formatCount(metrics.waitlisted), filter: "waitlisted", accent: "amber" as const },
-    { title: "Declined", value: formatCount(metrics.declined), filter: "declined", accent: "rose" as const },
-  ];
+  const kpiCards = getAdmissionsDashboardTiles().map((tile) => ({
+    title: tile.title,
+    value: formatCount(metrics[tile.metricKey] as number),
+    filter: tile.drillFilter,
+    accent: tile.accent,
+  }));
 
   return (
     <div className="space-y-6">
@@ -132,12 +127,14 @@ export function ExecutiveAdmissionsDashboard({
           <h3 className="text-sm font-semibold text-slate-900">Pipeline by Stage</h3>
           <ul className="mt-4 max-h-80 space-y-2 overflow-y-auto">
             {metrics.pipelineByStage.map((item) => (
-              <li key={item.value}>
+              <li key={item.pipelineKey ?? item.value}>
                 <Link
-                  href={`/dashboard/admissions?view=executive&drill=stage:${item.value}`}
+                  href={`/dashboard/admissions?view=executive&drill=${
+                    item.pipelineKey ? `pipeline:${item.pipelineKey}` : `stage:${item.value}`
+                  }`}
                   className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50"
                 >
-                  <span className="capitalize text-slate-600">{item.stage}</span>
+                  <span className="text-slate-600">{item.stage}</span>
                   <span className="font-medium text-slate-900">{item.count}</span>
                 </Link>
               </li>

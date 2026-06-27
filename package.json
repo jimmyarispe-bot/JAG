@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run validate:platform && next build",
+    "build": "npm run validate:platform && npm run validate:admissions && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "validate:platform": "tsx scripts/validate-platform-registry.mts",
+    "validate:admissions": "tsx scripts/validate-admissions-registry.mts",
     "test": "vitest run",
     "test:integration": "vitest run tests/integration",
     "test:smoke": "playwright test",

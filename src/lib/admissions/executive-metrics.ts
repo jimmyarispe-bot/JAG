@@ -1,5 +1,12 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { computePipelineVelocity } from "@/lib/admissions/workflow";
+import {
+  ACTIVE_PIPELINE_LEGACY_STAGES,
+  getAdmissionsFunnelSteps,
+  groupLeadCountsByPipelineStage,
+  resolveLegacyLeadStagesForPipelineStage,
+  type AdmissionsPipelineStageKey,
+} from "@/lib/admissions/registry";
 import type { StageHistoryEntry } from "@/lib/admissions/queries";
 
 export interface ExecutiveAdmissionsMetrics {
@@ -19,21 +26,17 @@ export interface ExecutiveAdmissionsMetrics {
   forecastedTuition: number;
   forecastedScholarshipObligations: number;
   forecastedStateFundingRevenue: number;
-  pipelineByStage: { stage: string; value: string; count: number }[];
-  funnel: { label: string; count: number }[];
+  pipelineByStage: {
+    stage: string;
+    value: string;
+    count: number;
+    pipelineKey?: string;
+    legacyValues?: string[];
+  }[];
+  funnel: { label: string; count: number; stepId: string }[];
 }
 
-const ACTIVE_STAGES = [
-  "new_inquiry",
-  "information_sent",
-  "tour_scheduled",
-  "tour_completed",
-  "application_started",
-  "application_submitted",
-  "records_requested",
-  "admissions_review",
-  "waitlisted",
-];
+const ACTIVE_STAGES = ACTIVE_PIPELINE_LEGACY_STAGES;
 
 export async function getExecutiveAdmissionsMetrics(): Promise<ExecutiveAdmissionsMetrics> {
   const supabase = await createAuthClient();
@@ -156,18 +159,33 @@ export async function getExecutiveAdmissionsMetrics(): Promise<ExecutiveAdmissio
     stageCounts[l.lead_stage] = (stageCounts[l.lead_stage] ?? 0) + 1;
   }
 
-  const pipelineByStage = Object.entries(stageCounts)
-    .map(([value, count]) => ({ stage: value.replace(/_/g, " "), value, count }))
+  const pipelineByStage = groupLeadCountsByPipelineStage(stageCounts)
+    .map((item) => ({
+      stage: item.label,
+      value: item.legacyValues[0] ?? item.key,
+      count: item.count,
+      pipelineKey: item.key,
+      legacyValues: item.legacyValues,
+    }))
     .sort((a, b) => b.count - a.count);
 
-  const funnel = [
-    { label: "Inquiries", count: leads.length },
-    { label: "Tours", count: leads.filter((l) => ["tour_scheduled", "tour_completed"].includes(l.lead_stage) || ["application_started", "application_submitted", "records_requested", "admissions_review", "accepted", "waitlisted", "enrolled"].includes(l.lead_stage)).length },
-    { label: "Applications", count: applications.length },
-    { label: "Submitted", count: submittedOrBeyond },
-    { label: "Accepted", count: accepted },
-    { label: "Enrolled", count: enrolled },
-  ];
+  const funnelSteps = getAdmissionsFunnelSteps();
+  const informationStages = resolveLegacyLeadStagesForPipelineStage("information_requested");
+  const reviewStages = resolveLegacyLeadStagesForPipelineStage("committee_review");
+  const funnelCounts: Record<string, number> = {
+    inquiries: leads.length,
+    information: leads.filter((l) => informationStages.includes(l.lead_stage)).length,
+    applications: applications.length,
+    submitted: submittedOrBeyond,
+    review: leads.filter((l) => reviewStages.includes(l.lead_stage)).length,
+    accepted,
+    enrolled,
+  };
+  const funnel = funnelSteps.map((step) => ({
+    label: step.label,
+    count: funnelCounts[step.id] ?? 0,
+    stepId: step.id,
+  }));
 
   return {
     newInquiries,
@@ -234,7 +252,15 @@ export async function getLeadsDrillDown(filter: string): Promise<DrillDownLead[]
       ]);
       break;
     default:
-      if (filter.startsWith("stage:")) {
+      if (filter.startsWith("pipeline:")) {
+        const pipelineKey = filter.replace("pipeline:", "");
+        const legacyStages = resolveLegacyLeadStagesForPipelineStage(
+          pipelineKey as AdmissionsPipelineStageKey
+        );
+        if (legacyStages.length) {
+          query = query.in("lead_stage", legacyStages);
+        }
+      } else if (filter.startsWith("stage:")) {
         query = query.eq("lead_stage", filter.replace("stage:", ""));
       }
   }

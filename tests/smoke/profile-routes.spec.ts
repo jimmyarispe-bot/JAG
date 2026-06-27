@@ -45,4 +45,9 @@ test.describe("Profile route smoke tests", () => {
     await page.goto("/dashboard/platform/diagnostics");
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test("admissions dashboard redirects to login when unauthenticated", async ({ page }) => {
+    await page.goto("/dashboard/admissions?view=executive");
+    await expect(page).toHaveURL(/\/login/);
+  });
 });
