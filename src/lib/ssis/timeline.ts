@@ -40,7 +40,7 @@ export async function getStudentCommunicationTimeline(
   studentId: string,
   options?: { query?: string; limit?: number }
 ) {
-  let q = supabase
+  const q = supabase
     .from("ssis_communication_events")
     .select("*")
     .eq("student_id", studentId)
@@ -60,44 +60,4 @@ export async function getStudentCommunicationTimeline(
   }
 
   return events;
-}
-
-export async function aggregateStudentTimeline(
-  supabase: AuthClient,
-  studentId: string,
-  admissionsLeadId?: string | null
-) {
-  const [communications, platformTimeline, missionControl] = await Promise.all([
-    getStudentCommunicationTimeline(supabase, studentId, { limit: 50 }),
-    supabase
-      .from("platform_timeline_events")
-      .select("*")
-      .eq("entity_type", "student")
-      .eq("entity_id", studentId)
-      .order("occurred_at", { ascending: false })
-      .limit(30),
-    supabase
-      .from("platform_mission_control_items")
-      .select("id, title, body, severity, created_at, is_resolved")
-      .eq("entity_type", "student")
-      .eq("entity_id", studentId)
-      .order("created_at", { ascending: false })
-      .limit(10),
-  ]);
-
-  const admissionsComms = admissionsLeadId
-    ? await supabase
-        .from("admissions_communications")
-        .select("id, communication_type, subject, body, sent_at, delivery_status")
-        .eq("lead_id", admissionsLeadId)
-        .order("sent_at", { ascending: false })
-        .limit(20)
-    : { data: [] };
-
-  return {
-    communications,
-    platformEvents: platformTimeline.data ?? [],
-    missionControlAlerts: missionControl.data ?? [],
-    admissionsCommunications: admissionsComms.data ?? [],
-  };
 }

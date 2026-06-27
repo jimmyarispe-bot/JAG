@@ -1,10 +1,8 @@
 import { getStudentActivityFeed, getAuditActivity } from "@/lib/platform/activity";
 import type { ProfileEnvelopeBase, ProfileSectionDefinition } from "@/lib/platform/profile/types";
+import { studentFromContext, summaryFromContext } from "@/lib/students/profile/section-context";
 import type { StudentProfileEnvelope } from "@/lib/students/profile/types";
 import { isStudentProfileEnvelope } from "@/lib/students/profile/types";
-import type { createAuthClient } from "@/lib/supabase/server-auth";
-
-type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
 function studentEnvelope(envelope: ProfileEnvelopeBase): StudentProfileEnvelope | null {
   return isStudentProfileEnvelope(envelope) ? envelope : null;
@@ -14,7 +12,7 @@ function section(partial: ProfileSectionDefinition): ProfileSectionDefinition {
   return partial;
 }
 
-/** All student profile sections — registered against the platform profile registry. */
+/** Student profile section definitions (loaders + metadata). Components registered via register-modules. */
 export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
   section({
     key: "overview",
@@ -25,18 +23,23 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     moduleKey: "platform",
     permissions: ["students.view"],
     status: "live",
-    loadData: async (supabase, envelope) => {
+    loadData: async (supabase, envelope, ctx) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
-      const { getStudentById } = await import("@/lib/students/queries");
+      const { getStudentById, getEnrollmentsByStudent } = await import("@/lib/students/queries");
       const { getStudentExecutiveSummary } = await import("@/lib/ssis/queries");
-      const student = await getStudentById(env.studentId);
+      const { getStudentConversion } = await import("@/lib/sis/queries");
+      const student =
+        studentFromContext(ctx) ?? (await getStudentById(env.studentId));
       if (!student) return null;
-      const summary = await getStudentExecutiveSummary(
-        env.studentId,
-        student.admissions_lead_id
-      );
-      return { student, summary };
+      const summary =
+        summaryFromContext(ctx) ??
+        (await getStudentExecutiveSummary(env.studentId));
+      const [enrollments, conversion] = await Promise.all([
+        getEnrollmentsByStudent(env.studentId),
+        getStudentConversion(env.studentId),
+      ]);
+      return { student, summary, enrollments, conversion };
     },
   }),
   section({
@@ -85,15 +88,16 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     loadData: async (supabase, envelope) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
-      const { getEnrollmentsByStudent } = await import("@/lib/students/queries");
+      const { getEnrollmentsByStudent, getStudentById } = await import("@/lib/students/queries");
       const { getStudentLifecycleHistory } = await import("@/lib/ssis/transitions");
       const { getStudentConversion } = await import("@/lib/sis/queries");
-      const [enrollments, conversion] = await Promise.all([
+      const [student, enrollments, conversion] = await Promise.all([
+        getStudentById(env.studentId),
         getEnrollmentsByStudent(env.studentId),
         getStudentConversion(env.studentId),
       ]);
       const lifecycleHistory = await getStudentLifecycleHistory(supabase, env.studentId);
-      return { enrollments, conversion, lifecycleHistory };
+      return { student, enrollments, conversion, lifecycleHistory };
     },
   }),
   section({
@@ -153,18 +157,19 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     moduleKey: "ssis",
     permissions: ["students.view"],
     status: "live",
-    loadData: async (supabase, envelope) => {
+    loadData: async (supabase, envelope, ctx) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
       const { getStudentAttendance } = await import("@/lib/sis/queries");
       const { getStudentExecutiveSummary } = await import("@/lib/ssis/queries");
       const { getStudentById } = await import("@/lib/students/queries");
-      const student = await getStudentById(env.studentId);
+      const student = studentFromContext(ctx) ?? (await getStudentById(env.studentId));
       const [records, summary] = await Promise.all([
         getStudentAttendance(env.studentId),
-        student
-          ? getStudentExecutiveSummary(env.studentId, student.admissions_lead_id)
-          : Promise.resolve(null),
+        summaryFromContext(ctx) ??
+          (student
+            ? getStudentExecutiveSummary(env.studentId)
+            : Promise.resolve(null)),
       ]);
       return { records, summary };
     },
@@ -177,18 +182,19 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     moduleKey: "ssis",
     permissions: ["students.view"],
     status: "live",
-    loadData: async (supabase, envelope) => {
+    loadData: async (supabase, envelope, ctx) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
       const { getStudentBehavior } = await import("@/lib/sis/queries");
       const { getStudentExecutiveSummary } = await import("@/lib/ssis/queries");
       const { getStudentById } = await import("@/lib/students/queries");
-      const student = await getStudentById(env.studentId);
+      const student = studentFromContext(ctx) ?? (await getStudentById(env.studentId));
       const [events, summary] = await Promise.all([
         getStudentBehavior(env.studentId),
-        student
-          ? getStudentExecutiveSummary(env.studentId, student.admissions_lead_id)
-          : Promise.resolve(null),
+        summaryFromContext(ctx) ??
+          (student
+            ? getStudentExecutiveSummary(env.studentId)
+            : Promise.resolve(null)),
       ]);
       return { events, summary };
     },
@@ -216,11 +222,21 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     moduleKey: "ssis",
     permissions: ["students.view"],
     status: "live",
-    loadData: async (supabase, envelope) => {
+    loadData: async (supabase, envelope, ctx) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
       const { getStudentSpedPlans } = await import("@/lib/sis/queries");
-      return getStudentSpedPlans(env.studentId);
+      const { getStudentExecutiveSummary } = await import("@/lib/ssis/queries");
+      const { getStudentById } = await import("@/lib/students/queries");
+      const student = studentFromContext(ctx) ?? (await getStudentById(env.studentId));
+      const [plans, summary] = await Promise.all([
+        getStudentSpedPlans(env.studentId),
+        summaryFromContext(ctx) ??
+          (student
+            ? getStudentExecutiveSummary(env.studentId)
+            : Promise.resolve(null)),
+      ]);
+      return { plans, reviewDue: summary?.spedReviewDue ?? false };
     },
   }),
   section({
@@ -246,11 +262,21 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     moduleKey: "ssis",
     permissions: ["students.view"],
     status: "live",
-    loadData: async (supabase, envelope) => {
+    loadData: async (supabase, envelope, ctx) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
       const { getStudentMedicalProfile } = await import("@/lib/sis/queries");
-      return getStudentMedicalProfile(env.studentId);
+      const { getStudentExecutiveSummary } = await import("@/lib/ssis/queries");
+      const { getStudentById } = await import("@/lib/students/queries");
+      const student = studentFromContext(ctx) ?? (await getStudentById(env.studentId));
+      const [medical, summary] = await Promise.all([
+        getStudentMedicalProfile(env.studentId),
+        summaryFromContext(ctx) ??
+          (student
+            ? getStudentExecutiveSummary(env.studentId)
+            : Promise.resolve(null)),
+      ]);
+      return { medical, alertCount: summary?.medicalAlertCount ?? 0 };
     },
   }),
   section({
@@ -264,22 +290,23 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     loadData: async (supabase, envelope) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
-      const { getGuardiansByFamily } = await import("@/lib/students/queries");
+      const { getGuardiansByFamily, getStudentById } = await import("@/lib/students/queries");
       const {
         getStudentAuthorizedContacts,
       } = await import("@/lib/sis/queries");
       const { getFamilyHouseholds, getStudentSiblings } = await import("@/lib/ssis/family");
       const { getStudentRelationships } = await import("@/lib/platform/relationships");
       const familyId = env.familyId;
-      const [guardians, authorizedContacts, siblings, households, relationships] =
+      const [student, guardians, authorizedContacts, siblings, households, relationships] =
         await Promise.all([
+          getStudentById(env.studentId),
           familyId ? getGuardiansByFamily(familyId) : Promise.resolve([]),
           getStudentAuthorizedContacts(env.studentId),
           getStudentSiblings(env.studentId),
           familyId ? getFamilyHouseholds(familyId) : Promise.resolve([]),
           getStudentRelationships(supabase, env.studentId),
         ]);
-      return { guardians, authorizedContacts, siblings, households, relationships };
+      return { student, guardians, authorizedContacts, siblings, households, relationships };
     },
   }),
   section({
@@ -382,6 +409,21 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
       return getStudentActivityFeed(supabase, env.studentId, {
         classification: "communication",
       });
+    },
+  }),
+  section({
+    key: "parent-engagement",
+    label: "Parent Engagement",
+    group: "intelligence",
+    sortOrder: 195,
+    moduleKey: "ssis",
+    permissions: ["students.view"],
+    status: "live",
+    loadData: async (supabase, envelope) => {
+      const env = studentEnvelope(envelope);
+      if (!env) return null;
+      const { getParentEngagementSummary } = await import("@/lib/ssis/engagement");
+      return getParentEngagementSummary(supabase, env.studentId);
     },
   }),
   section({

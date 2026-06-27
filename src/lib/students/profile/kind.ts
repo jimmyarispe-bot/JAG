@@ -3,11 +3,12 @@ import { buildStudentProfileEnvelope } from "@/lib/students/profile/envelope";
 
 /** Legacy ?tab= keys from SSIS-era student detail → canonical ?section= keys. */
 export const STUDENT_PROFILE_LEGACY_REDIRECTS: Record<string, string> = {
-  tab: "overview",
+  overview: "overview",
   profile: "identity",
   family: "family",
   medical: "medical",
   "special-ed": "special-ed",
+  sped: "special-ed",
   academic: "academics",
   attendance: "attendance",
   behavior: "behavior",
@@ -15,7 +16,7 @@ export const STUDENT_PROFILE_LEGACY_REDIRECTS: Record<string, string> = {
   funding: "scholarships",
   documents: "documents",
   communication: "timeline",
-  engagement: "communications",
+  engagement: "parent-engagement",
 };
 
 export const STUDENT_PROFILE_KIND: ProfileKindDefinition = {

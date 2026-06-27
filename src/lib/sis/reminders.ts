@@ -1,5 +1,6 @@
-import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { buildStudentProfileSectionHref } from "@/lib/students/profile/href";
 import { createMissionControlItem } from "@/lib/platform/automation/mission-control";
+import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -40,7 +41,7 @@ export async function processSpedReviewReminders(supabase: AuthClient) {
       body: `${plan?.plan_type?.toUpperCase() ?? "SPED"} review due ${reminder.due_date}`,
       entityType: "student",
       entityId: reminder.student_id,
-      href: `/dashboard/students/${reminder.student_id}?tab=special-ed`,
+      href: buildStudentProfileSectionHref(reminder.student_id, "special-ed"),
       assignedRole: "REGISTRAR",
       severity: "high",
     });

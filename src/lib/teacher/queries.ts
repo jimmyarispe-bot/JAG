@@ -1,5 +1,6 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { formatAcademyTime } from "@/lib/scheduling/academy-way";
+import { buildStudentProfileSectionHref } from "@/lib/students/profile/href";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -422,7 +423,7 @@ export async function getTeacherComplianceItems(supabase: AuthClient, employeeId
           type: "iep",
           severity: "high",
           title: `IEP review approaching — ${(st as { first_name?: string })?.first_name ?? "student"} (${plan.plan_type})`,
-          href: `/dashboard/students/${plan.student_id}?tab=sped`,
+          href: buildStudentProfileSectionHref(plan.student_id, "special-ed"),
         });
       }
 
@@ -438,7 +439,7 @@ export async function getTeacherComplianceItems(supabase: AuthClient, employeeId
             type: "medical",
             severity: "medium",
             title: `Medical alert — ${(st as { first_name?: string })?.first_name ?? "student"}`,
-            href: `/dashboard/students/${m.student_id}?tab=medical`,
+            href: buildStudentProfileSectionHref(m.student_id, "medical"),
           });
         }
       }

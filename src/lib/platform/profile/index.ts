@@ -37,6 +37,7 @@ export {
   loadActiveSectionData,
   listRegisteredSectionKeys,
 } from "@/lib/platform/profile/resolver";
+export * from "@/lib/platform/profile/sections";
 export * from "@/lib/platform/profile/workspace";
 export type {
   ProfileKind,

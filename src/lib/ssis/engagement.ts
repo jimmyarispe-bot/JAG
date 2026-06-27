@@ -1,5 +1,6 @@
-import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { buildStudentProfileSectionHref } from "@/lib/students/profile/href";
 import { createMissionControlItem } from "@/lib/platform/automation/mission-control";
+import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -73,7 +74,7 @@ export async function processDisengagedFamilies(supabase: AuthClient) {
       body: "No portal activity or messages in the last 30 days.",
       entityType: "student",
       entityId: student.id,
-      href: `/dashboard/students/${student.id}?tab=engagement`,
+      href: buildStudentProfileSectionHref(student.id, "parent-engagement"),
       assignedRole: "SCHOOL_LEADER",
       severity: "normal",
     });

@@ -83,6 +83,10 @@ export interface ProfileSectionDefinition {
   /** User must hold any of these permissions (empty = inherit kind permissions) */
   permissions: string[];
   status: ProfileSectionStatus;
+  /** Semantic version when registered as a section module */
+  version?: string;
+  /** Stable component identifier for lazy module resolution */
+  componentId?: string;
   /** When true, section is pinned outside groups (e.g. Overview) */
   pinned?: boolean;
   /** Optional activity classification filter for timeline-derived sections */

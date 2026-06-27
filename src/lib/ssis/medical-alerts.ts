@@ -1,6 +1,7 @@
-import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { buildStudentProfileSectionHref } from "@/lib/students/profile/href";
 import { createMissionControlItem } from "@/lib/platform/automation/mission-control";
 import { logStudentCommunicationEvent } from "@/lib/ssis/timeline";
+import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -33,7 +34,7 @@ export async function processMedicalDocumentExpiryAlerts(supabase: AuthClient) {
       body: `${doc?.file_name ?? "Document"} expires ${alert.expires_on}`,
       entityType: "student",
       entityId: alert.student_id,
-      href: `/dashboard/students/${alert.student_id}?tab=medical`,
+      href: buildStudentProfileSectionHref(alert.student_id, "medical"),
       assignedRole: "REGISTRAR",
       severity: "high",
     });

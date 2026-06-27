@@ -1,13 +1,11 @@
-import { registerProfileKind, registerProfileSection } from "@/lib/platform/profile/registry";
+import { registerProfileKind } from "@/lib/platform/profile/registry";
 import { STUDENT_PROFILE_KIND } from "@/lib/students/profile/kind";
-import { STUDENT_PROFILE_SECTIONS } from "@/lib/students/profile/sections";
+import { registerStudentProfileSectionModules } from "@/lib/students/profile/sections/register-modules";
 
-/** Register the Student profile kind — first implementation of the platform profile framework. */
+/** Register the Student profile kind and all section modules. */
 export function registerStudentProfile(): void {
   registerProfileKind(STUDENT_PROFILE_KIND);
-  for (const section of STUDENT_PROFILE_SECTIONS) {
-    registerProfileSection("student", section);
-  }
+  registerStudentProfileSectionModules();
 }
 
 registerStudentProfile();

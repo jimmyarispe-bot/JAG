@@ -2,7 +2,6 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getStudentDashboardSummary } from "@/lib/sis/queries";
 import { getLatestStudentSuccessScore } from "@/lib/ssis/score";
 import { getStudentFundingCenter } from "@/lib/ssis/funding";
-import { aggregateStudentTimeline } from "@/lib/ssis/timeline";
 import { getParentEngagementSummary } from "@/lib/ssis/engagement";
 import type { SuccessScoreResult } from "@/lib/ssis/score";
 
@@ -18,27 +17,22 @@ export interface ExecutiveSummary extends Awaited<ReturnType<typeof getStudentDa
   outstandingTasks: number;
 }
 
-export async function getStudentExecutiveSummary(
-  studentId: string,
-  admissionsLeadId?: string | null
-): Promise<ExecutiveSummary> {
+export async function getStudentExecutiveSummary(studentId: string): Promise<ExecutiveSummary> {
   const supabase = await createAuthClient();
 
-  const [base, successScore, funding, engagement, timeline, studentRes, missionRes] =
-    await Promise.all([
-      getStudentDashboardSummary(studentId),
-      getLatestStudentSuccessScore(supabase, studentId),
-      getStudentFundingCenter(supabase, studentId),
-      getParentEngagementSummary(supabase, studentId),
-      aggregateStudentTimeline(supabase, studentId, admissionsLeadId),
-      supabase.from("students").select("lifecycle_stage").eq("id", studentId).single(),
-      supabase
-        .from("platform_mission_control_items")
-        .select("id")
-        .eq("entity_type", "student")
-        .eq("entity_id", studentId)
-        .eq("is_resolved", false),
-    ]);
+  const [base, successScore, funding, engagement, studentRes, missionRes] = await Promise.all([
+    getStudentDashboardSummary(studentId),
+    getLatestStudentSuccessScore(supabase, studentId),
+    getStudentFundingCenter(supabase, studentId),
+    getParentEngagementSummary(supabase, studentId),
+    supabase.from("students").select("lifecycle_stage").eq("id", studentId).single(),
+    supabase
+      .from("platform_mission_control_items")
+      .select("id")
+      .eq("entity_type", "student")
+      .eq("entity_id", studentId)
+      .eq("is_resolved", false),
+  ]);
 
   const scholarships = funding.filter((f) =>
     ["school_scholarship", "outside_scholarship"].includes(f.funding_category as string)
@@ -59,5 +53,5 @@ export async function getStudentExecutiveSummary(
   };
 }
 
-export { aggregateStudentTimeline, getStudentFundingCenter, getParentEngagementSummary };
+export { getStudentFundingCenter, getParentEngagementSummary };
 export type { SuccessScoreResult };

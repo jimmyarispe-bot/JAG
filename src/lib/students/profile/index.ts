@@ -6,6 +6,7 @@ import {
 import { getProfileKindDefinition } from "@/lib/platform/profile/registry";
 import { buildStudentProfileEnvelope } from "@/lib/students/profile/envelope";
 import { STUDENT_PROFILE_LEGACY_REDIRECTS } from "@/lib/students/profile/kind";
+import type { StudentSectionLoadContext } from "@/lib/students/profile/section-context";
 import type { StudentProfileEnvelope } from "@/lib/students/profile/types";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
@@ -49,12 +50,14 @@ export async function loadStudentSectionData(
   supabase: AuthClient,
   envelope: StudentProfileEnvelope,
   sectionKey: string,
-  ctx: Record<string, unknown> = {}
+  ctx: StudentSectionLoadContext = {}
 ) {
   return loadActiveSectionData("student", envelope, sectionKey, supabase, ctx);
 }
 
 export type { StudentProfileEnvelope };
 export { buildStudentProfileEnvelope } from "@/lib/students/profile/envelope";
+export { buildStudentProfileSectionHref } from "@/lib/students/profile/href";
 export { STUDENT_PROFILE_KIND, STUDENT_PROFILE_LEGACY_REDIRECTS } from "@/lib/students/profile/kind";
 export { STUDENT_PROFILE_SECTIONS } from "@/lib/students/profile/sections";
+export type { StudentSectionLoadContext } from "@/lib/students/profile/section-context";
