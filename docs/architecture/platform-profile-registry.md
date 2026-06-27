@@ -27,7 +27,7 @@ src/lib/students/profile/            # First implementation: Student
 | Kind | Status | Base path |
 |------|--------|-----------|
 | `student` | **Registered** | `/dashboard/students/{id}` |
-| `employee` | Planned | `/dashboard/hr/employees/{id}` |
+| `employee` | **Registered** | `/dashboard/hr/employees/{id}` |
 | `family` | Planned | TBD |
 | `school` | Planned | TBD |
 | `organization` | Planned | TBD |
@@ -57,9 +57,30 @@ Each section declares:
 - `permissions` — user must hold **any** listed permission
 - `status` — `live` | `partial` | `placeholder`
 
-## Student sections (23)
+## Student sections (24)
 
-Overview (pinned) + 22 grouped sections across Core, Learning, Student Life, Support, Financial, Operations, Intelligence, and System.
+Overview (pinned) + grouped sections across Core, Learning, Student Life, Support, Financial, Operations, Intelligence, and System.
+
+## Employee sections (28)
+
+Overview (pinned) + HR, employment, communication (notes, activity), and system sections.
+
+## Build-time validation
+
+Registry integrity is validated during `npm run build` via `validatePlatformRegistry()`:
+
+- Duplicate section keys (tracked at registration time)
+- Missing section module registrations
+- Orphaned section modules
+- Invalid navigation groups
+
+See `docs/architecture/platform-testing-strategy.md` for the full testing approach.
+
+## Developer diagnostics
+
+Read-only registry audit at `/dashboard/platform/diagnostics` (requires `configuration.admin`, `configuration.manage`, or `certification.admin`).
+
+Displays registered kinds, sections, section modules, validation findings, activity catalog, relationship types, service health, and installed modules.
 
 ## API usage (Phase 3+)
 

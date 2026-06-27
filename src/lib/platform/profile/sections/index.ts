@@ -12,4 +12,6 @@ export {
   loadProfileSectionComponent,
   loadProfileSectionContributions,
   isProfileSectionModuleRegistered,
+  getRegisteredSectionModuleIds,
+  parseSectionModuleId,
 } from "@/lib/platform/profile/sections/register-module";

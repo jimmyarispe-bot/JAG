@@ -99,3 +99,22 @@ export function isProfileSectionModuleRegistered(
   const id = componentId(kind, sectionKey);
   return SECTION_COMPONENT_REGISTRY.has(id) || SECTION_COMPONENT_LOADER_REGISTRY.has(id);
 }
+
+/** All registered section module component IDs (e.g. `student:overview`). */
+export function getRegisteredSectionModuleIds(): string[] {
+  const ids = new Set<string>();
+  for (const id of SECTION_COMPONENT_REGISTRY.keys()) ids.add(id);
+  for (const id of SECTION_COMPONENT_LOADER_REGISTRY.keys()) ids.add(id);
+  return [...ids].sort();
+}
+
+export function parseSectionModuleId(
+  id: string
+): { kind: ProfileKind; sectionKey: string } | null {
+  const separator = id.indexOf(":");
+  if (separator <= 0) return null;
+  return {
+    kind: id.slice(0, separator) as ProfileKind,
+    sectionKey: id.slice(separator + 1),
+  };
+}

@@ -99,3 +99,11 @@ Every server action that mutates entity state must:
 
 - `writeTimelineEvent()` delegates to `recordActivity()`
 - `aggregateStudentTimeline()` will migrate to Activity Engine in B-01c
+
+## Testing
+
+Automated integration tests in `tests/integration/platform-services.test.ts` verify CRUD paths, permission checks, duplicate prevention, and audit activity creation using mocked Supabase clients.
+
+Service health probes used by `/dashboard/platform/diagnostics` check catalog registration and table reachability.
+
+See `docs/architecture/platform-testing-strategy.md` for the full platform test strategy.

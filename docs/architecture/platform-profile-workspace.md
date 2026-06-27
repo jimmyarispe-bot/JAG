@@ -55,7 +55,17 @@ The shell accepts resolved `ProfileWorkspaceContributions` — it never imports 
 - Workspace: section nav + `StudentProfileSectionBridge` (legacy content bridge until Phase 4)
 - Context: quick actions, AI placeholder, notifications
 
-Route: `/dashboard/students/{id}?section=overview` (legacy `?tab=` still supported)
+Route: `/dashboard/students/{id}?section=overview` (legacy `?tab=` still supported via inline remap)
+
+Employee route: `/dashboard/hr/employees/{id}?section=overview` (legacy `?tab=` issues HTTP redirect to `?section=`)
+
+## Developer diagnostics
+
+Platform engineers can inspect registry and service health at `/dashboard/platform/diagnostics`. The page is read-only and mirrors build-time registry validation output.
+
+## Testing
+
+Profile workspace behavior is covered by integration tests (`tests/integration/profile-routes.test.ts`) and smoke tests (`tests/smoke/profile-routes.spec.ts`). See `docs/architecture/platform-testing-strategy.md`.
 
 ## Adding a new profile workspace
 

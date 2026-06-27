@@ -6,6 +6,7 @@ import type {
 
 const PROFILE_KIND_REGISTRY = new Map<ProfileKind, ProfileKindDefinition>();
 const SECTION_REGISTRY = new Map<ProfileKind, ProfileSectionDefinition[]>();
+const DUPLICATE_SECTION_KEYS: { kind: ProfileKind; key: string }[] = [];
 
 /** Register a profile kind (Student, Employee, Family, …). */
 export function registerProfileKind(definition: ProfileKindDefinition): void {
@@ -27,6 +28,7 @@ export function registerProfileSection(
 
   const sections = SECTION_REGISTRY.get(kind) ?? [];
   if (sections.some((s) => s.key === section.key)) {
+    DUPLICATE_SECTION_KEYS.push({ kind, key: section.key });
     return;
   }
 
@@ -86,4 +88,9 @@ export function buildSectionHref(
   sectionKey: string
 ): string {
   return `${envelope.basePath}/${envelope.entityId}?${envelope.sectionParam}=${sectionKey}`;
+}
+
+/** Duplicate section keys detected during registration (build-time validation). */
+export function getDuplicateSectionRegistrations(): { kind: ProfileKind; key: string }[] {
+  return [...DUPLICATE_SECTION_KEYS];
 }

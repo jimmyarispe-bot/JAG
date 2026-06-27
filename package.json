@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run validate:platform && next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "validate:platform": "tsx scripts/validate-platform-registry.mts",
+    "test": "vitest run",
+    "test:integration": "vitest run tests/integration",
     "test:smoke": "playwright test",
     "cert:instructions": "node scripts/certification-run-instructions.mjs"
   },
@@ -27,6 +30,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.19.4",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

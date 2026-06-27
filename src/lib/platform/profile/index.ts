@@ -18,6 +18,7 @@ export {
   isRegisteredSection,
   resolveSectionKey,
   buildSectionHref,
+  getDuplicateSectionRegistrations,
 } from "@/lib/platform/profile/registry";
 export {
   userHasAnyPermission,
