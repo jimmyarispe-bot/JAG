@@ -1,3 +1,4 @@
+import { recordActivity } from "@/lib/platform/activity";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import type { PlatformModule, TimelineEventType } from "@/lib/platform/automation/types";
 
@@ -16,25 +17,35 @@ export interface WriteTimelineEventInput {
   relatedEntityId?: string | null;
   metadata?: Record<string, unknown>;
   occurredAt?: string;
+  organizationId?: string | null;
+  studentId?: string | null;
+  familyId?: string | null;
 }
 
+/**
+ * Legacy timeline writer — delegates to Global Activity Engine.
+ * Dual-writes to platform_timeline_events via recordActivity for backward compatibility.
+ */
 export async function writeTimelineEvent(
   supabase: AuthClient,
   input: WriteTimelineEventInput
 ) {
-  await supabase.from("platform_timeline_events").insert({
-    school_id: input.schoolId ?? null,
-    module: input.module,
-    entity_type: input.entityType,
-    entity_id: input.entityId,
-    event_type: input.eventType,
+  await recordActivity(supabase, {
+    eventType: input.eventType,
+    moduleKey: input.module,
+    entityType: input.entityType,
+    entityId: input.entityId,
     title: input.title,
-    body: input.body ?? "",
-    actor_user_id: input.actorUserId ?? null,
-    related_entity_type: input.relatedEntityType ?? null,
-    related_entity_id: input.relatedEntityId ?? null,
-    metadata: input.metadata ?? {},
-    occurred_at: input.occurredAt ?? new Date().toISOString(),
+    body: input.body,
+    organizationId: input.organizationId,
+    schoolId: input.schoolId,
+    studentId: input.studentId,
+    familyId: input.familyId,
+    actorUserId: input.actorUserId,
+    relatedEntityType: input.relatedEntityType,
+    relatedEntityId: input.relatedEntityId,
+    payload: input.metadata,
+    occurredAt: input.occurredAt,
   });
 }
 
@@ -45,25 +56,36 @@ export async function getEntityTimeline(
   entityId: string,
   searchQuery?: string
 ) {
-  const { data } = await supabase
-    .from("platform_timeline_events")
-    .select("*, users(full_name)")
-    .eq("module", module)
-    .eq("entity_type", entityType)
-    .eq("entity_id", entityId)
-    .order("occurred_at", { ascending: false });
+  const { getEntityActivity } = await import("@/lib/platform/activity/query");
+  const events = await getEntityActivity(supabase, entityType, entityId, { limit: 100 });
 
-  let events = data ?? [];
+  let filtered = events.filter((e) => e.module_key === module);
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
-    events = events.filter(
+    filtered = filtered.filter(
       (e) =>
         e.title.toLowerCase().includes(q) ||
         e.body.toLowerCase().includes(q) ||
         e.event_type.toLowerCase().includes(q)
     );
   }
-  return events;
+
+  return filtered.map((e) => ({
+    id: e.id,
+    school_id: e.school_id,
+    module: e.module_key,
+    entity_type: e.entity_type,
+    entity_id: e.entity_id,
+    event_type: e.event_type,
+    title: e.title,
+    body: e.body,
+    actor_user_id: e.actor_user_id,
+    related_entity_type: e.related_entity_type,
+    related_entity_id: e.related_entity_id,
+    metadata: e.payload,
+    occurred_at: e.occurred_at,
+    created_at: e.created_at,
+  }));
 }
 
 export async function searchTimelines(
@@ -75,21 +97,39 @@ export async function searchTimelines(
     limit?: number;
   }
 ) {
-  let q = supabase
-    .from("platform_timeline_events")
-    .select("*")
-    .order("occurred_at", { ascending: false })
-    .limit(filters.limit ?? 100);
+  const { getActivityFeed } = await import("@/lib/platform/activity/query");
+  const events = await getActivityFeed(supabase, {
+    moduleKey: filters.module,
+    limit: filters.limit ?? 100,
+  });
 
-  if (filters.module) q = q.eq("module", filters.module);
-  if (filters.schoolId) q = q.eq("school_id", filters.schoolId);
+  let results = events;
+  if (filters.schoolId) {
+    results = results.filter((e) => e.school_id === filters.schoolId);
+  }
+  if (filters.query) {
+    const needle = filters.query.toLowerCase();
+    results = results.filter(
+      (e) =>
+        e.title.toLowerCase().includes(needle) ||
+        e.body.toLowerCase().includes(needle)
+    );
+  }
 
-  const { data } = await q;
-  if (!filters.query) return data ?? [];
-
-  const needle = filters.query.toLowerCase();
-  return (data ?? []).filter(
-    (e) =>
-      e.title.toLowerCase().includes(needle) || e.body.toLowerCase().includes(needle)
-  );
+  return results.map((e) => ({
+    id: e.id,
+    school_id: e.school_id,
+    module: e.module_key,
+    entity_type: e.entity_type,
+    entity_id: e.entity_id,
+    event_type: e.event_type,
+    title: e.title,
+    body: e.body,
+    actor_user_id: e.actor_user_id,
+    related_entity_type: e.related_entity_type,
+    related_entity_id: e.related_entity_id,
+    metadata: e.payload,
+    occurred_at: e.occurred_at,
+    created_at: e.created_at,
+  }));
 }
