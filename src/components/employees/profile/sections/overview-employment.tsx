@@ -15,25 +15,22 @@ import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/ty
 import type { PlatformEntityTag } from "@/lib/platform/tags/types";
 
 type OverviewData = {
-  profile: {
-    employee: Record<string, unknown>;
-    certifications: Record<string, unknown>[];
-    onboarding: Record<string, unknown>[];
-    documents: Record<string, unknown>[];
-    payroll: Record<string, unknown>[];
-  } | null;
+  employee: Record<string, unknown>;
+  certifications: Record<string, unknown>[];
+  onboarding: Record<string, unknown>[];
+  documents: Record<string, unknown>[];
   tags: PlatformEntityTag[];
 };
 
 export function OverviewSection(props: ProfileSectionViewProps) {
   const data = props.data as OverviewData | null;
-  if (!data?.profile?.employee) {
+  if (!data?.employee) {
     return missingSection("Overview");
   }
 
-  const emp = data.profile.employee;
+  const emp = data.employee;
   const ep = pickEmployeeProfile(emp);
-  const pendingOnboarding = data.profile.onboarding.filter((t) => t.status !== "completed");
+  const pendingOnboarding = data.onboarding.filter((t) => t.status !== "completed");
 
   return (
     <div className="space-y-6">
@@ -42,7 +39,7 @@ export function OverviewSection(props: ProfileSectionViewProps) {
           { label: "Type", value: formatLabel(emp.employee_type) },
           { label: "Hire date", value: formatLabel(emp.hire_date) },
           { label: "Department", value: formatLabel(emp.department) },
-          { label: "Certifications", value: String(data.profile.certifications.length) },
+          { label: "Certifications", value: String(data.certifications.length) },
         ]}
       />
 
@@ -79,11 +76,11 @@ export function OverviewSection(props: ProfileSectionViewProps) {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ProfileCard title="Recent Documents">
-          {data.profile.documents.length === 0 ? (
+          {data.documents.length === 0 ? (
             <ProfileEmpty>No documents on file</ProfileEmpty>
           ) : (
             <ul className="space-y-2 text-sm">
-              {data.profile.documents.slice(0, 5).map((doc) => (
+              {data.documents.map((doc) => (
                 <li key={String(doc.id)} className="rounded-lg bg-slate-50 px-3 py-2 capitalize">
                   {formatLabel(doc.document_type)} — {String(doc.file_name ?? "Document")}
                 </li>
@@ -93,7 +90,7 @@ export function OverviewSection(props: ProfileSectionViewProps) {
         </ProfileCard>
         <ProfileCard title="Credentials">
           <p className="text-sm text-slate-600">
-            {data.profile.certifications.length} certification(s) on file. Open the Certifications
+            {data.certifications.length} certification(s) on file. Open the Certifications
             section for full detail.
           </p>
         </ProfileCard>

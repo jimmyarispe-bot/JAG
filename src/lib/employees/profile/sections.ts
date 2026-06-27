@@ -47,12 +47,34 @@ export const EMPLOYEE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     loadData: async (supabase, envelope) => {
       const env = employeeEnvelope(envelope);
       if (!env) return null;
-      const { getEmployeeProfile } = await import("@/lib/hr/employee-profile");
-      const profile = await getEmployeeProfile(supabase, env.employeeId);
-      const tags = env.organizationId
-        ? await getEntityTags(supabase, "employee", env.employeeId)
-        : [];
-      return { profile, tags };
+      const employee = await loadEmployeeRecord(supabase, env.employeeId);
+      if (!employee) return null;
+
+      const [certifications, onboarding, documents, tags] = await Promise.all([
+        supabase
+          .from("employee_certifications")
+          .select("*")
+          .eq("employee_id", env.employeeId)
+          .order("expiration_date"),
+        supabase.from("hr_onboarding_tasks").select("*").eq("employee_id", env.employeeId),
+        supabase
+          .from("employee_documents")
+          .select("*")
+          .eq("employee_id", env.employeeId)
+          .order("created_at", { ascending: false })
+          .limit(5),
+        env.organizationId
+          ? getEntityTags(supabase, "employee", env.employeeId)
+          : Promise.resolve([]),
+      ]);
+
+      return {
+        employee,
+        certifications: certifications.data ?? [],
+        onboarding: onboarding.data ?? [],
+        documents: documents.data ?? [],
+        tags,
+      };
     },
   }),
   section({

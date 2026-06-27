@@ -3,15 +3,17 @@ import { notFound, redirect } from "next/navigation";
 import "@/lib/platform/profile";
 
 import { EmployeeProfileWorkspace } from "@/components/employees/profile/EmployeeProfileWorkspace";
-import { loadProfileContextData } from "@/lib/platform/profile/page-context";
-import { loadProfileSectionContributions } from "@/lib/platform/profile/sections";
 import {
+  EMPLOYEE_PROFILE_LEGACY_REDIRECTS,
   loadEmployeeSectionData,
   resolveEmployeeProfile,
 } from "@/lib/employees/profile";
 import { isEmployeeProfileEnvelope } from "@/lib/employees/profile/types";
 import { canAccessHrAdmin } from "@/lib/hr/access";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { loadProfileContextData } from "@/lib/platform/profile/page-context";
+import { buildLegacyProfileSectionRedirectUrl } from "@/lib/platform/profile/params";
+import { loadProfileSectionContributions } from "@/lib/platform/profile/sections";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 
 interface EmployeeDetailPageProps {
@@ -28,6 +30,14 @@ export default async function EmployeeDetailPage({
 
   const { employeeId } = await params;
   const { section, tab } = await searchParams;
+
+  const legacyRedirect = buildLegacyProfileSectionRedirectUrl(
+    "/dashboard/hr/employees",
+    employeeId,
+    { section, tab },
+    EMPLOYEE_PROFILE_LEGACY_REDIRECTS
+  );
+  if (legacyRedirect) redirect(legacyRedirect);
 
   const supabase = await createAuthClient();
   const profile = await resolveEmployeeProfile(supabase, employeeId, { section, tab });

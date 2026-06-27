@@ -22,11 +22,14 @@ export async function loadOverviewContributions(
   data: unknown
 ): Promise<ProfileSectionContributions | null> {
   if (!isEmployeeProfileEnvelope(envelope)) return null;
-  const profile = (data as { profile?: { onboarding?: Record<string, unknown>[]; certifications?: Record<string, unknown>[] } })?.profile;
-  if (!profile) return null;
+  const overview = data as {
+    onboarding?: Record<string, unknown>[];
+    certifications?: Record<string, unknown>[];
+  } | null;
+  if (!overview) return null;
 
-  const pending = (profile.onboarding ?? []).filter((t) => t.status !== "completed");
-  const expiring = expiringCertCount(profile.certifications ?? []);
+  const pending = (overview.onboarding ?? []).filter((t) => t.status !== "completed");
+  const expiring = expiringCertCount(overview.certifications ?? []);
 
   const alerts: ReactNode[] = [];
   if (pending.length > 0) {
@@ -56,7 +59,7 @@ export async function loadOverviewContributions(
       widgets: (
         <ProfileCard title="At a Glance">
           <ul className="space-y-1 text-sm text-slate-600">
-            <li>{profile.certifications?.length ?? 0} certification(s)</li>
+            <li>{overview.certifications?.length ?? 0} certification(s)</li>
             <li>{pending.length} open onboarding task(s)</li>
           </ul>
         </ProfileCard>
