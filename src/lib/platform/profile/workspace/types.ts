@@ -1,5 +1,9 @@
 import type { ProfileKind } from "@/lib/platform/profile/types";
 import type { ReactNode } from "react";
+import type { PlatformEntityTag } from "@/lib/platform/tags/types";
+import type { PlatformNote } from "@/lib/platform/notes/types";
+import type { ProfileNavigationModel, ProfileEnvelopeBase } from "@/lib/platform/profile/types";
+import type { ProfileSectionContributions } from "@/lib/platform/profile/sections/types";
 
 /** Slots where modules contribute UI without modifying the workspace shell. */
 export const PROFILE_CONTRIBUTION_SLOTS = [
@@ -66,6 +70,22 @@ export interface ProfileWorkspaceShellProps {
   workspace: ReactNode;
   context?: ProfileWorkspaceContributions["context"];
   contextTitle?: string;
+}
+
+/** Configuration supplied by each profile kind workspace wrapper. */
+export interface PlatformProfileWorkspaceConfig {
+  profileKind: ProfileKind;
+  envelope: ProfileEnvelopeBase;
+  navigation: ProfileNavigationModel;
+  activeSection: string;
+  activeSectionData: unknown;
+  pinnedNotes: PlatformNote[];
+  entityTags: PlatformEntityTag[];
+  sectionContributions?: ProfileSectionContributions | null;
+  header: ProfileWorkspaceHeaderProps;
+  contextTitle: string;
+  contextDefaults?: ProfileWorkspaceContributions["context"];
+  workspaceAlerts?: ReactNode;
 }
 
 export const PROFILE_CONTEXT_PANEL_SECTIONS = [

@@ -1,67 +1,113 @@
 import { registerProfileSectionModule } from "@/lib/platform/profile/sections";
 import type { ProfileSectionComponent } from "@/lib/platform/profile/sections/types";
-import {
-  AdmissionsSection,
-  AcademicsSection,
-  AiInsightsSection,
-  AttendanceSection,
-  AuditSection,
-  BehaviorSection,
-  BillingSection,
-  CommunicationsSection,
-  ComplianceSection,
-  DocumentsSection,
-  EnrollmentSection,
-  FamilySection,
-  IdentitySection,
-  MapNweaSection,
-  MedicalSection,
-  OverviewSection,
-  ParentEngagementSection,
-  ProgressSection,
-  SchedulingSection,
-  ScholarshipsSection,
-  SpecialEdSection,
-  TherapySection,
-  TimelineSection,
-  TransportationSection,
-} from "@/components/students/profile/sections/StudentSectionViews";
 import { STUDENT_PROFILE_SECTIONS } from "@/lib/students/profile/sections";
 
 const SECTION_VERSION = "1.0.0";
 
-const SECTION_COMPONENTS: Record<string, ProfileSectionComponent> = {
-  overview: OverviewSection,
-  identity: IdentitySection,
-  admissions: AdmissionsSection,
-  enrollment: EnrollmentSection,
-  academics: AcademicsSection,
-  progress: ProgressSection,
-  "map-nwea": MapNweaSection,
-  attendance: AttendanceSection,
-  behavior: BehaviorSection,
-  scheduling: SchedulingSection,
-  "special-ed": SpecialEdSection,
-  therapy: TherapySection,
-  medical: MedicalSection,
-  family: FamilySection,
-  billing: BillingSection,
-  scholarships: ScholarshipsSection,
-  transportation: TransportationSection,
-  documents: DocumentsSection,
-  compliance: ComplianceSection,
-  communications: CommunicationsSection,
-  "parent-engagement": ParentEngagementSection,
-  "ai-insights": AiInsightsSection,
-  timeline: TimelineSection,
-  audit: AuditSection,
+const SECTION_COMPONENT_LOADERS: Record<string, () => Promise<ProfileSectionComponent>> = {
+  overview: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.OverviewSection
+    ),
+  identity: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.IdentitySection
+    ),
+  admissions: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.AdmissionsSection
+    ),
+  enrollment: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.EnrollmentSection
+    ),
+  academics: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.AcademicsSection
+    ),
+  progress: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.ProgressSection
+    ),
+  "map-nwea": () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.MapNweaSection
+    ),
+  attendance: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.AttendanceSection
+    ),
+  behavior: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.BehaviorSection
+    ),
+  scheduling: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.SchedulingSection
+    ),
+  "special-ed": () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.SpecialEdSection
+    ),
+  therapy: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.TherapySection
+    ),
+  medical: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.MedicalSection
+    ),
+  family: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.FamilySection
+    ),
+  billing: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.BillingSection
+    ),
+  scholarships: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.ScholarshipsSection
+    ),
+  transportation: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.TransportationSection
+    ),
+  documents: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.DocumentsSection
+    ),
+  compliance: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.ComplianceSection
+    ),
+  communications: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.CommunicationsSection
+    ),
+  "parent-engagement": () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.ParentEngagementSection
+    ),
+  "ai-insights": () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.AiInsightsSection
+    ),
+  timeline: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.TimelineSection
+    ),
+  audit: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.AuditSection
+    ),
 };
 
 /** Register all student profile section modules (metadata + loader + component). */
 export function registerStudentProfileSectionModules(): void {
   for (const def of STUDENT_PROFILE_SECTIONS) {
-    const component = SECTION_COMPONENTS[def.key];
-    if (!component) continue;
+    const componentLoader = SECTION_COMPONENT_LOADERS[def.key];
+    if (!componentLoader) continue;
 
     registerProfileSectionModule({
       kind: "student",
@@ -70,7 +116,7 @@ export function registerStudentProfileSectionModules(): void {
         version: SECTION_VERSION,
         componentId: `student:${def.key}`,
       },
-      component,
+      componentLoader,
     });
   }
 }

@@ -8,6 +8,10 @@ import type {
 } from "@/lib/platform/profile/sections/types";
 
 const SECTION_COMPONENT_REGISTRY = new Map<string, ProfileSectionComponent>();
+const SECTION_COMPONENT_LOADER_REGISTRY = new Map<
+  string,
+  () => Promise<ProfileSectionComponent>
+>();
 const SECTION_CONTRIBUTIONS_REGISTRY = new Map<
   string,
   ProfileSectionModuleDefinition["loadContributions"]
@@ -26,7 +30,12 @@ export function registerProfileSectionModule(input: RegisterProfileSectionModule
   };
 
   registerProfileSection(input.kind, definition);
-  SECTION_COMPONENT_REGISTRY.set(id, input.component);
+
+  if (input.componentLoader) {
+    SECTION_COMPONENT_LOADER_REGISTRY.set(id, input.componentLoader);
+  } else if (input.component) {
+    SECTION_COMPONENT_REGISTRY.set(id, input.component);
+  }
 
   if (definition.loadContributions) {
     SECTION_CONTRIBUTIONS_REGISTRY.set(id, definition.loadContributions);
@@ -38,6 +47,30 @@ export function getProfileSectionComponent(
   sectionKey: string
 ): ProfileSectionComponent | undefined {
   return SECTION_COMPONENT_REGISTRY.get(componentId(kind, sectionKey));
+}
+
+export function getProfileSectionComponentLoader(
+  kind: ProfileKind,
+  sectionKey: string
+): (() => Promise<ProfileSectionComponent>) | undefined {
+  return SECTION_COMPONENT_LOADER_REGISTRY.get(componentId(kind, sectionKey));
+}
+
+/** Load the active section component on demand (code-split via dynamic import). */
+export async function loadProfileSectionComponent(
+  kind: ProfileKind,
+  sectionKey: string
+): Promise<ProfileSectionComponent | undefined> {
+  const id = componentId(kind, sectionKey);
+  const cached = SECTION_COMPONENT_REGISTRY.get(id);
+  if (cached) return cached;
+
+  const loader = SECTION_COMPONENT_LOADER_REGISTRY.get(id);
+  if (!loader) return undefined;
+
+  const component = await loader();
+  SECTION_COMPONENT_REGISTRY.set(id, component);
+  return component;
 }
 
 export function getProfileSectionContributionsLoader(
@@ -63,5 +96,6 @@ export function isProfileSectionModuleRegistered(
   kind: ProfileKind,
   sectionKey: string
 ): boolean {
-  return SECTION_COMPONENT_REGISTRY.has(componentId(kind, sectionKey));
+  const id = componentId(kind, sectionKey);
+  return SECTION_COMPONENT_REGISTRY.has(id) || SECTION_COMPONENT_LOADER_REGISTRY.has(id);
 }

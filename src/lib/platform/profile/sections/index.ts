@@ -8,6 +8,8 @@ export type {
 export {
   registerProfileSectionModule,
   getProfileSectionComponent,
+  getProfileSectionComponentLoader,
+  loadProfileSectionComponent,
   loadProfileSectionContributions,
   isProfileSectionModuleRegistered,
 } from "@/lib/platform/profile/sections/register-module";

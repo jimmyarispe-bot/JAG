@@ -38,5 +38,8 @@ export interface ProfileSectionModuleDefinition extends ProfileSectionDefinition
 export interface RegisterProfileSectionModuleInput {
   kind: import("@/lib/platform/profile/types").ProfileKind;
   definition: ProfileSectionModuleDefinition;
-  component: ProfileSectionComponent;
+  /** Eager component reference (legacy — prefer componentLoader) */
+  component?: ProfileSectionComponent;
+  /** Lazy loader for code-split section UI */
+  componentLoader?: () => Promise<ProfileSectionComponent>;
 }

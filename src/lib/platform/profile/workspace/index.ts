@@ -4,6 +4,7 @@ export type {
   ProfileWorkspaceContributions,
   ProfileWorkspaceHeaderProps,
   ProfileWorkspaceShellProps,
+  PlatformProfileWorkspaceConfig,
 } from "@/lib/platform/profile/workspace/types";
 export {
   PROFILE_CONTRIBUTION_SLOTS,

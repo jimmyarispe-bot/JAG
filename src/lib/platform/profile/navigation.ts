@@ -47,16 +47,24 @@ export function buildProfileNavigation(
   const flatGrouped = groups.flatMap((g) => g.sections);
   const overflow =
     flatGrouped.length > OVERFLOW_THRESHOLD ? flatGrouped.slice(OVERFLOW_THRESHOLD) : [];
+  const overflowKeys = new Set(overflow.map((s) => s.key));
+
+  const overflowGroups: ProfileNavigationGroup[] = PROFILE_SECTION_GROUPS.map((group) => ({
+    group,
+    label: PROFILE_SECTION_GROUP_LABELS[group],
+    sections: overflow.filter((s) => s.group === group),
+  })).filter((g) => g.sections.length > 0);
 
   return {
     pinned,
     groups: overflow.length
       ? groups.map((g) => ({
           ...g,
-          sections: g.sections.filter((s) => !overflow.some((o) => o.key === s.key)),
+          sections: g.sections.filter((s) => !overflowKeys.has(s.key)),
         }))
       : groups,
     overflow,
+    overflowGroups,
     activeSection: activeSectionDef?.key ?? envelope.defaultSection,
     activeSectionDef,
   };
@@ -65,11 +73,11 @@ export function buildProfileNavigation(
 export function sectionsForViewTabs(
   navigation: ProfileNavigationModel
 ): ResolvedProfileSection[] {
-  const primary = [
+  return [
     ...navigation.pinned,
     ...navigation.groups.flatMap((g) => g.sections),
+    ...navigation.overflow,
   ];
-  return primary;
 }
 
 export function groupForSection(
@@ -77,6 +85,9 @@ export function groupForSection(
   navigation: ProfileNavigationModel
 ): ProfileSectionGroup | null {
   for (const g of navigation.groups) {
+    if (g.sections.some((s) => s.key === sectionKey)) return g.group;
+  }
+  for (const g of navigation.overflowGroups) {
     if (g.sections.some((s) => s.key === sectionKey)) return g.group;
   }
   return null;
@@ -92,6 +103,7 @@ export function findActiveSectionDef(
     navigation.groups
       .flatMap((g) => g.sections)
       .find((s) => s.key === navigation.activeSection) ??
+    navigation.overflow.find((s) => s.key === navigation.activeSection) ??
     null
   );
 }

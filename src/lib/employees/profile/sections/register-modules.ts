@@ -1,42 +1,6 @@
 import { registerProfileSectionModule } from "@/lib/platform/profile/sections";
 import type { ProfileSectionComponent } from "@/lib/platform/profile/sections/types";
 import {
-  CompensationSection,
-  EmploymentInformationSection,
-  BenefitsSection,
-  NotesSection,
-  OverviewSection,
-} from "@/components/employees/profile/sections/overview-employment";
-import {
-  DepartmentSection,
-  PositionSection,
-  ScheduleSection,
-  SchoolsSection,
-  SupervisorSection,
-  WorkAssignmentsSection,
-} from "@/components/employees/profile/sections/employment-placement";
-import {
-  AiInsightsSection,
-  CertificationsSection,
-  LicensesSection,
-  PayrollSection,
-  PerformanceReviewsSection,
-  ProfessionalDevelopmentSection,
-  PtoSection,
-} from "@/components/employees/profile/sections/hr-intelligence";
-import {
-  ActivitySection,
-  AuditSection,
-  ClassesSection,
-  CommunicationsSection,
-  ComplianceSection,
-  DirectReportsSection,
-  DocumentsSection,
-  StudentsSection,
-  TeamsSection,
-  TimesheetsSection,
-} from "@/components/employees/profile/sections/operations-relationships";
-import {
   loadActivityContributions,
   loadCertificationsContributions,
   loadComplianceContributions,
@@ -48,35 +12,119 @@ import type { ProfileSectionModuleDefinition } from "@/lib/platform/profile/sect
 
 const SECTION_VERSION = "1.0.0";
 
-const SECTION_COMPONENTS: Record<string, ProfileSectionComponent> = {
-  overview: OverviewSection,
-  "employment-information": EmploymentInformationSection,
-  position: PositionSection,
-  department: DepartmentSection,
-  supervisor: SupervisorSection,
-  schools: SchoolsSection,
-  schedule: ScheduleSection,
-  "work-assignments": WorkAssignmentsSection,
-  compensation: CompensationSection,
-  payroll: PayrollSection,
-  pto: PtoSection,
-  benefits: BenefitsSection,
-  "performance-reviews": PerformanceReviewsSection,
-  certifications: CertificationsSection,
-  licenses: LicensesSection,
-  "professional-development": ProfessionalDevelopmentSection,
-  timesheets: TimesheetsSection,
-  documents: DocumentsSection,
-  compliance: ComplianceSection,
-  notes: NotesSection,
-  activity: ActivitySection,
-  communications: CommunicationsSection,
-  "direct-reports": DirectReportsSection,
-  teams: TeamsSection,
-  classes: ClassesSection,
-  students: StudentsSection,
-  "ai-insights": AiInsightsSection,
-  audit: AuditSection,
+const SECTION_COMPONENT_LOADERS: Record<string, () => Promise<ProfileSectionComponent>> = {
+  overview: () =>
+    import("@/components/employees/profile/sections/overview-employment").then(
+      (module) => module.OverviewSection
+    ),
+  "employment-information": () =>
+    import("@/components/employees/profile/sections/overview-employment").then(
+      (module) => module.EmploymentInformationSection
+    ),
+  compensation: () =>
+    import("@/components/employees/profile/sections/overview-employment").then(
+      (module) => module.CompensationSection
+    ),
+  benefits: () =>
+    import("@/components/employees/profile/sections/overview-employment").then(
+      (module) => module.BenefitsSection
+    ),
+  notes: () =>
+    import("@/components/employees/profile/sections/overview-employment").then(
+      (module) => module.NotesSection
+    ),
+  position: () =>
+    import("@/components/employees/profile/sections/employment-placement").then(
+      (module) => module.PositionSection
+    ),
+  department: () =>
+    import("@/components/employees/profile/sections/employment-placement").then(
+      (module) => module.DepartmentSection
+    ),
+  supervisor: () =>
+    import("@/components/employees/profile/sections/employment-placement").then(
+      (module) => module.SupervisorSection
+    ),
+  schools: () =>
+    import("@/components/employees/profile/sections/employment-placement").then(
+      (module) => module.SchoolsSection
+    ),
+  schedule: () =>
+    import("@/components/employees/profile/sections/employment-placement").then(
+      (module) => module.ScheduleSection
+    ),
+  "work-assignments": () =>
+    import("@/components/employees/profile/sections/employment-placement").then(
+      (module) => module.WorkAssignmentsSection
+    ),
+  payroll: () =>
+    import("@/components/employees/profile/sections/hr-intelligence").then(
+      (module) => module.PayrollSection
+    ),
+  pto: () =>
+    import("@/components/employees/profile/sections/hr-intelligence").then(
+      (module) => module.PtoSection
+    ),
+  "performance-reviews": () =>
+    import("@/components/employees/profile/sections/hr-intelligence").then(
+      (module) => module.PerformanceReviewsSection
+    ),
+  certifications: () =>
+    import("@/components/employees/profile/sections/hr-intelligence").then(
+      (module) => module.CertificationsSection
+    ),
+  licenses: () =>
+    import("@/components/employees/profile/sections/hr-intelligence").then(
+      (module) => module.LicensesSection
+    ),
+  "professional-development": () =>
+    import("@/components/employees/profile/sections/hr-intelligence").then(
+      (module) => module.ProfessionalDevelopmentSection
+    ),
+  "ai-insights": () =>
+    import("@/components/employees/profile/sections/hr-intelligence").then(
+      (module) => module.AiInsightsSection
+    ),
+  timesheets: () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.TimesheetsSection
+    ),
+  documents: () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.DocumentsSection
+    ),
+  compliance: () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.ComplianceSection
+    ),
+  activity: () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.ActivitySection
+    ),
+  communications: () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.CommunicationsSection
+    ),
+  "direct-reports": () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.DirectReportsSection
+    ),
+  teams: () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.TeamsSection
+    ),
+  classes: () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.ClassesSection
+    ),
+  students: () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.StudentsSection
+    ),
+  audit: () =>
+    import("@/components/employees/profile/sections/operations-relationships").then(
+      (module) => module.AuditSection
+    ),
 };
 
 const SECTION_CONTRIBUTIONS: Partial<
@@ -92,8 +140,8 @@ const SECTION_CONTRIBUTIONS: Partial<
 /** Register all employee profile section modules (metadata + loader + component). */
 export function registerEmployeeProfileSectionModules(): void {
   for (const def of EMPLOYEE_PROFILE_SECTIONS) {
-    const component = SECTION_COMPONENTS[def.key];
-    if (!component) continue;
+    const componentLoader = SECTION_COMPONENT_LOADERS[def.key];
+    if (!componentLoader) continue;
 
     registerProfileSectionModule({
       kind: "employee",
@@ -103,7 +151,7 @@ export function registerEmployeeProfileSectionModules(): void {
         componentId: `employee:${def.key}`,
         loadContributions: SECTION_CONTRIBUTIONS[def.key],
       },
-      component,
+      componentLoader,
     });
   }
 }

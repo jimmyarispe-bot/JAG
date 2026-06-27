@@ -1,6 +1,6 @@
 import { ProfileSectionPlaceholder } from "@/components/platform/profile-workspace/ProfileSectionPlaceholder";
 import { getProfileSection } from "@/lib/platform/profile/registry";
-import { getProfileSectionComponent } from "@/lib/platform/profile/sections/register-module";
+import { loadProfileSectionComponent } from "@/lib/platform/profile/sections/register-module";
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import type { ProfileEnvelopeBase } from "@/lib/platform/profile/types";
 
@@ -19,7 +19,7 @@ export async function ProfileSectionRenderer({
   data,
 }: ProfileSectionRendererProps) {
   const section = getProfileSection(profileKind, sectionKey);
-  const Component = getProfileSectionComponent(profileKind, sectionKey);
+  const Component = await loadProfileSectionComponent(profileKind, sectionKey);
 
   if (!section || !Component) {
     return (

@@ -140,6 +140,8 @@ export interface ProfileNavigationModel {
   pinned: ResolvedProfileSection[];
   groups: ProfileNavigationGroup[];
   overflow: ResolvedProfileSection[];
+  /** Overflow sections regrouped for the "More" menu */
+  overflowGroups: ProfileNavigationGroup[];
   activeSection: string;
   activeSectionDef: ResolvedProfileSection | null;
 }

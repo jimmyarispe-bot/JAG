@@ -1,5 +1,16 @@
+"use client";
+
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { ProfileNavigationModel } from "@/lib/platform/profile/types";
+
+const ProfileSectionNavOverflow = dynamic(
+  () =>
+    import("@/components/platform/profile-workspace/ProfileSectionNavOverflow").then(
+      (module) => ({ default: module.ProfileSectionNavOverflow })
+    ),
+  { ssr: true }
+);
 
 interface ProfileWorkspaceSectionNavProps {
   navigation: ProfileNavigationModel;
@@ -16,13 +27,10 @@ export function ProfileWorkspaceSectionNav({
     ...navigation.groups.flatMap((g) => g.sections),
   ].filter((s) => s.visible);
 
-  if (!primary.length) return null;
+  if (!primary.length && !navigation.overflow.length) return null;
 
   return (
-    <nav
-      className="space-y-3"
-      aria-label="Profile sections"
-    >
+    <nav className="space-y-3" aria-label="Profile sections">
       <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200/80 bg-slate-50 p-1">
         {primary.map((section) => {
           const active = navigation.activeSection === section.key;
@@ -43,6 +51,11 @@ export function ProfileWorkspaceSectionNav({
             </Link>
           );
         })}
+
+        <ProfileSectionNavOverflow
+          overflowGroups={navigation.overflowGroups}
+          activeSection={navigation.activeSection}
+        />
       </div>
 
       {!compact && navigation.groups.length > 0 && (
