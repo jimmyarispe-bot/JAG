@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import "@/lib/platform/profile";
 
 import { StudentProfileWorkspace } from "@/components/students/profile/StudentProfileWorkspace";
-import { getEntityTags } from "@/lib/platform/tags";
-import { getPinnedNotes, getStudentNotes } from "@/lib/platform/notes";
+import { loadProfileContextData } from "@/lib/platform/profile/page-context";
+import { getStudentNotes } from "@/lib/platform/notes";
 import { loadProfileSectionContributions } from "@/lib/platform/profile/sections";
 import {
   loadStudentSectionData,
@@ -39,13 +39,11 @@ export default async function StudentDetailPage({ params, searchParams }: Studen
 
   const summary = await getStudentExecutiveSummary(id);
 
-  const [activeSectionData, pinnedNotes, recentNotes, entityTags] = await Promise.all([
+  const [activeSectionData, contextData] = await Promise.all([
     loadStudentSectionData(supabase, envelope, activeSection, { student, summary }),
-    getPinnedNotes(supabase, "student", id),
-    getStudentNotes(supabase, id, { limit: 10 }),
-    envelope.organizationId
-      ? getEntityTags(supabase, "student", id)
-      : Promise.resolve([]),
+    loadProfileContextData(supabase, "student", id, envelope.organizationId, {
+      loadRecentNotes: () => getStudentNotes(supabase, id, { limit: 10 }),
+    }),
   ]);
 
   const sectionContributions = await loadProfileSectionContributions(
@@ -56,7 +54,7 @@ export default async function StudentDetailPage({ params, searchParams }: Studen
     activeSectionData
   );
 
-  const notesForContext = pinnedNotes.length > 0 ? pinnedNotes : recentNotes;
+  const notesForContext = contextData.notesForContext;
 
   return (
     <StudentProfileWorkspace
@@ -67,7 +65,7 @@ export default async function StudentDetailPage({ params, searchParams }: Studen
       activeSection={activeSection}
       activeSectionData={activeSectionData}
       pinnedNotes={notesForContext}
-      entityTags={entityTags}
+      entityTags={contextData.entityTags}
       sectionContributions={sectionContributions}
     />
   );

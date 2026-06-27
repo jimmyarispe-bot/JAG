@@ -81,3 +81,17 @@ export function groupForSection(
   }
   return null;
 }
+
+/** Resolve the active section definition from a navigation model. */
+export function findActiveSectionDef(
+  navigation: ProfileNavigationModel
+): ResolvedProfileSection | null {
+  return (
+    navigation.activeSectionDef ??
+    navigation.pinned.find((s) => s.key === navigation.activeSection) ??
+    navigation.groups
+      .flatMap((g) => g.sections)
+      .find((s) => s.key === navigation.activeSection) ??
+    null
+  );
+}

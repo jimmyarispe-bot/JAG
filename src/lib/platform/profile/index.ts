@@ -32,7 +32,11 @@ export {
   buildProfileNavigation,
   sectionsForViewTabs,
   groupForSection,
+  findActiveSectionDef,
 } from "@/lib/platform/profile/navigation";
+export { parseProfileSectionParam } from "@/lib/platform/profile/params";
+export { loadProfileContextData } from "@/lib/platform/profile/page-context";
+export type { ProfileContextData } from "@/lib/platform/profile/page-context";
 export {
   resolveProfile,
   loadActiveSectionData,

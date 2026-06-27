@@ -3,6 +3,8 @@ import {
   loadActiveSectionData,
   resolveProfile,
 } from "@/lib/platform/profile/resolver";
+import { getProfileKindDefinition } from "@/lib/platform/profile/registry";
+import { parseProfileSectionParam } from "@/lib/platform/profile/params";
 import { buildEmployeeProfileEnvelope } from "@/lib/employees/profile/envelope";
 import { EMPLOYEE_PROFILE_LEGACY_REDIRECTS } from "@/lib/employees/profile/kind";
 import type { EmployeeProfileEnvelope } from "@/lib/employees/profile/types";
@@ -10,20 +12,6 @@ import type { ProfileSectionContext } from "@/lib/platform/profile/types";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
-
-/** Parse section from URL — supports canonical `section` and legacy `tab`. */
-export function parseEmployeeProfileSectionParam(searchParams: {
-  section?: string;
-  tab?: string;
-}): string | undefined {
-  if (searchParams.section) return searchParams.section;
-  if (searchParams.tab) {
-    return (
-      EMPLOYEE_PROFILE_LEGACY_REDIRECTS[searchParams.tab] ?? searchParams.tab
-    );
-  }
-  return undefined;
-}
 
 /** Resolve an employee profile using the platform profile registry. */
 export async function resolveEmployeeProfile(
@@ -34,10 +22,11 @@ export async function resolveEmployeeProfile(
   const identity = await getIdentityContext();
   if (!identity) return null;
 
-  const section = parseEmployeeProfileSectionParam({
-    section: options?.section,
-    tab: options?.tab,
-  });
+  const section = parseProfileSectionParam(
+    { section: options?.section, tab: options?.tab },
+    getProfileKindDefinition("employee")?.legacySectionRedirects ??
+      EMPLOYEE_PROFILE_LEGACY_REDIRECTS
+  );
 
   return resolveProfile("employee", employeeId, {
     section,

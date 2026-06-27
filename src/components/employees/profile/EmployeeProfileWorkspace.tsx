@@ -4,26 +4,20 @@ import { ProfileTagsList } from "@/components/platform/profile-sections/ProfileT
 import { ProfileWorkspaceSectionNav } from "@/components/platform/profile-workspace/ProfileWorkspaceSectionNav";
 import { ProfileWorkspaceShell } from "@/components/platform/profile-workspace/ProfileWorkspaceShell";
 import {
-  StudentProfileAvatar,
-  StudentProfileBadges,
-  StudentProfileHeaderActions,
-  StudentProfileHeaderAlerts,
-} from "@/components/students/profile/StudentProfileHeaderExtras";
-import { StudentSuccessQuickActions } from "@/components/students/StudentSuccessQuickActions";
+  EmployeeProfileAvatar,
+  EmployeeProfileBadges,
+  EmployeeProfileHeaderActions,
+} from "@/components/employees/profile/EmployeeProfileHeaderExtras";
 import { findActiveSectionDef } from "@/lib/platform/profile/navigation";
 import type { ProfileSectionContributions } from "@/lib/platform/profile/sections/types";
 import type { ProfileNavigationModel } from "@/lib/platform/profile/types";
 import type { PlatformNote } from "@/lib/platform/notes/types";
 import type { PlatformEntityTag } from "@/lib/platform/tags/types";
-import type { StudentRecord } from "@/lib/students/queries";
-import type { StudentProfileEnvelope } from "@/lib/students/profile/types";
-import type { ExecutiveSummary } from "@/lib/ssis/queries";
+import type { EmployeeProfileEnvelope } from "@/lib/employees/profile/types";
 
-interface StudentProfileWorkspaceProps {
-  envelope: StudentProfileEnvelope;
+interface EmployeeProfileWorkspaceProps {
+  envelope: EmployeeProfileEnvelope;
   navigation: ProfileNavigationModel;
-  student: StudentRecord;
-  summary: ExecutiveSummary;
   activeSection: string;
   activeSectionData: unknown;
   pinnedNotes: PlatformNote[];
@@ -31,17 +25,15 @@ interface StudentProfileWorkspaceProps {
   sectionContributions?: ProfileSectionContributions | null;
 }
 
-export function StudentProfileWorkspace({
+export function EmployeeProfileWorkspace({
   envelope,
   navigation,
-  student,
-  summary,
   activeSection,
   activeSectionData,
   pinnedNotes,
   entityTags,
   sectionContributions,
-}: StudentProfileWorkspaceProps) {
+}: EmployeeProfileWorkspaceProps) {
   const activeSectionDef = findActiveSectionDef(navigation);
 
   if (!activeSectionDef) {
@@ -51,14 +43,14 @@ export function StudentProfileWorkspace({
   return (
     <ProfileWorkspaceShell
       header={{
-        backHref: "/dashboard/students",
-        backLabel: "Students",
+        backHref: "/dashboard/hr",
+        backLabel: "HR",
         title: envelope.displayName,
         subtitle: envelope.subtitle,
-        avatar: <StudentProfileAvatar student={student} />,
+        avatar: <EmployeeProfileAvatar envelope={envelope} />,
         badges: (
           <>
-            <StudentProfileBadges student={student} summary={summary} />
+            <EmployeeProfileBadges envelope={envelope} />
             {entityTags.length > 0 && (
               <div className="mt-2 w-full">
                 <ProfileTagsList tags={entityTags} title="" />
@@ -66,23 +58,17 @@ export function StudentProfileWorkspace({
             )}
           </>
         ),
-        actions: (
-          <StudentProfileHeaderActions
-            studentId={student.id}
-            admissionsLeadId={student.admissions_lead_id}
-          />
+        actions: sectionContributions?.header?.actions ?? (
+          <EmployeeProfileHeaderActions envelope={envelope} />
         ),
-        alerts: sectionContributions?.header?.alerts ?? (
-          <StudentProfileHeaderAlerts summary={summary} />
-        ),
+        alerts: sectionContributions?.header?.alerts,
       }}
       sectionNav={<ProfileWorkspaceSectionNav navigation={navigation} />}
       context={{
         quickActions: sectionContributions?.context?.quickActions ?? (
-          <StudentSuccessQuickActions
-            studentId={student.id}
-            lifecycleStage={summary.lifecycleStage}
-          />
+          <p className="text-sm text-slate-500">
+            HR quick actions will appear here when configured.
+          </p>
         ),
         widgets: (
           <>
@@ -98,21 +84,15 @@ export function StudentProfileWorkspace({
           </p>
         ),
         notifications: sectionContributions?.context?.notifications ?? (
-          summary.outstandingTasks > 0 ? (
-            <p className="text-sm text-slate-700">
-              {summary.outstandingTasks} open Mission Control task(s) for this student.
-            </p>
-          ) : (
-            <p className="text-sm text-slate-500">No new notifications.</p>
-          )
+          <p className="text-sm text-slate-500">No new notifications.</p>
         ),
         tasks: sectionContributions?.context?.tasks,
         approvals: sectionContributions?.context?.approvals,
       }}
-      contextTitle="Student Context"
+      contextTitle="Employee Context"
       workspace={
         <ProfileSectionRenderer
-          profileKind="student"
+          profileKind="employee"
           sectionKey={activeSection}
           envelope={envelope}
           data={activeSectionData}
