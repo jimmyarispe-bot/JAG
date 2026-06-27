@@ -10,6 +10,7 @@ import {
   resolveSectionVisibility,
 } from "@/lib/platform/profile/access";
 import { isRegisteredSection, resolveSectionKey } from "@/lib/platform/profile/registry";
+import { isProfileSectionModuleRegistered } from "@/lib/platform/profile/sections";
 import { EMPLOYEE_PROFILE_LEGACY_REDIRECTS } from "@/lib/employees/profile/kind";
 import { FAMILY_PROFILE_LEGACY_REDIRECTS } from "@/lib/families/profile/kind";
 import { STUDENT_PROFILE_LEGACY_REDIRECTS } from "@/lib/students/profile/kind";
@@ -272,6 +273,36 @@ describe("Family Profile routes", () => {
     expect(isRegisteredSection("family", "notes")).toBe(true);
     expect(isRegisteredSection("family", "activity")).toBe(true);
     expect(isRegisteredSection("family", "audit")).toBe(true);
+    expect(isRegisteredSection("family", "medical")).toBe(true);
+    expect(isRegisteredSection("family", "tuition")).toBe(true);
+  });
+
+  it("registers native section modules for all family sections", () => {
+    const keys = [
+      "overview",
+      "household",
+      "parents-guardians",
+      "students",
+      "emergency-contacts",
+      "authorized-pickup",
+      "financial-responsibility",
+      "tuition",
+      "scholarships",
+      "communications",
+      "documents",
+      "forms",
+      "calendar",
+      "transportation",
+      "medical",
+      "notes",
+      "activity",
+      "ai-insights",
+      "audit",
+    ];
+    for (const key of keys) {
+      expect(isRegisteredSection("family", key)).toBe(true);
+      expect(isProfileSectionModuleRegistered("family", key)).toBe(true);
+    }
   });
 
   it("allows profile kind access with students.view or portal.parent.access", () => {

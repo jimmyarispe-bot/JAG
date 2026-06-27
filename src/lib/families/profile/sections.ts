@@ -35,7 +35,9 @@ async function loadFamilyRecord(supabase: AuthClient, familyId: string) {
 async function loadFamilyStudents(supabase: AuthClient, familyId: string) {
   const { data } = await supabase
     .from("students")
-    .select("id, first_name, last_name, preferred_name, grade_level, program, enrollment_status, lifecycle_stage, student_number")
+    .select(
+      "id, first_name, last_name, preferred_name, grade_level, program, enrollment_status, lifecycle_stage, student_number, campus_id, campuses(name), sis_enrollments(enrollment_status, program, school_years(name))"
+    )
     .eq("family_id", familyId)
     .order("last_name");
   return data ?? [];
@@ -254,12 +256,13 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     loadData: async (supabase, envelope) => {
       const env = familyEnvelope(envelope);
       if (!env) return null;
-      const { getGuardiansByFamily } = await import("@/lib/students/queries");
-      const [guardians, relationships] = await Promise.all([
-        getGuardiansByFamily(env.familyId),
-        getFamilyGuardianRelationships(supabase, env.familyId),
-      ]);
-      return { guardians, relationships };
+      const { data: guardians } = await supabase
+        .from("guardians")
+        .select("*")
+        .eq("family_id", env.familyId)
+        .order("is_primary", { ascending: false });
+      const relationships = await getFamilyGuardianRelationships(supabase, env.familyId);
+      return { guardians: guardians ?? [], relationships };
     },
   }),
   section({
@@ -387,13 +390,42 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     moduleKey: "platform",
     permissions: ["students.view", "portal.parent.access"],
     status: "partial",
-    activityClassification: "communication",
     loadData: async (supabase, envelope) => {
       const env = familyEnvelope(envelope);
       if (!env) return null;
-      return getEntityActivity(supabase, "family", env.familyId, {
-        classification: "communication",
-      });
+      const studentIds = await loadFamilyStudentIds(supabase, env.familyId);
+
+      const [activityRes, meetingsRes, conversationsRes] = await Promise.all([
+        getEntityActivity(supabase, "family", env.familyId, {
+          classification: "communication",
+          limit: 30,
+        }),
+        studentIds.length
+          ? supabase
+              .from("student_instructional_meetings")
+              .select("*, students(first_name, last_name)")
+              .in("student_id", studentIds)
+              .order("scheduled_at", { ascending: false })
+              .limit(20)
+          : Promise.resolve({ data: [] }),
+        studentIds.length
+          ? supabase
+              .from("portal_conversations")
+              .select("*, students(first_name, last_name)")
+              .in("student_id", studentIds)
+              .order("last_message_at", { ascending: false, nullsFirst: false })
+              .limit(15)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const unreadCount = (conversationsRes.data ?? []).filter((row) => row.status === "open").length;
+
+      return {
+        activity: activityRes,
+        meetings: meetingsRes.data ?? [],
+        conversations: conversationsRes.data ?? [],
+        unreadCount,
+      };
     },
   }),
   section({
@@ -403,19 +435,59 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     sortOrder: 100,
     moduleKey: "ssis",
     permissions: ["students.view", "portal.parent.access"],
-    status: "partial",
+    status: "live",
     loadData: async (supabase, envelope) => {
       const env = familyEnvelope(envelope);
       if (!env) return null;
       const studentIds = await loadFamilyStudentIds(supabase, env.familyId);
-      if (!studentIds.length) return { documents: [] };
-      const { data } = await supabase
+      const today = new Date().toISOString().split("T")[0];
+      const in30 = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
+
+      if (!studentIds.length) {
+        return { uploaded: [], expiring: [], expired: [], missingChecklist: [] };
+      }
+
+      const { data: documents } = await supabase
         .from("student_documents")
         .select("*, students(first_name, last_name)")
         .in("student_id", studentIds)
+        .eq("status", "active")
         .order("created_at", { ascending: false })
-        .limit(50);
-      return { documents: data ?? [] };
+        .limit(100);
+
+      const uploaded = documents ?? [];
+      const expiring = uploaded.filter(
+        (doc) => doc.expires_at && doc.expires_at >= today && doc.expires_at <= in30
+      );
+      const expired = uploaded.filter((doc) => doc.expires_at && doc.expires_at < today);
+
+      const { data: studentsWithLeads } = await supabase
+        .from("students")
+        .select("admissions_lead_id")
+        .eq("family_id", env.familyId)
+        .not("admissions_lead_id", "is", null);
+      const leadIds = [
+        ...new Set(studentsWithLeads?.map((row) => row.admissions_lead_id).filter(Boolean) ?? []),
+      ];
+
+      let missingChecklist: Record<string, unknown>[] = [];
+      if (leadIds.length) {
+        const { data: apps } = await supabase
+          .from("admissions_applications")
+          .select("id")
+          .in("lead_id", leadIds);
+        const appIds = apps?.map((app) => app.id) ?? [];
+        if (appIds.length) {
+          const { data: checklist } = await supabase
+            .from("admissions_application_checklist_items")
+            .select("*, admissions_checklist_template_items(label, category)")
+            .in("application_id", appIds)
+            .neq("status", "complete");
+          missingChecklist = checklist ?? [];
+        }
+      }
+
+      return { uploaded, expiring, expired, missingChecklist };
     },
   }),
   section({
@@ -425,11 +497,50 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     sortOrder: 110,
     moduleKey: "ssis",
     permissions: ["students.view", "portal.parent.access"],
-    status: "placeholder",
-    loadData: async () => ({
-      forms: [],
-      message: "Family form submissions will appear here.",
-    }),
+    status: "partial",
+    loadData: async (supabase, envelope) => {
+      const env = familyEnvelope(envelope);
+      if (!env) return null;
+      const [submissionsRes, pendingChecklistRes] = await Promise.all([
+        supabase
+          .from("portal_form_submissions")
+          .select("*, portal_form_templates(title), students(first_name, last_name)")
+          .eq("family_id", env.familyId)
+          .order("submitted_at", { ascending: false })
+          .limit(30),
+        (async () => {
+          const studentIds = await loadFamilyStudentIds(supabase, env.familyId);
+          if (!studentIds.length) return [];
+          const { data: studentsWithLeads } = await supabase
+            .from("students")
+            .select("admissions_lead_id")
+            .in("id", studentIds)
+            .not("admissions_lead_id", "is", null);
+          const leadIds = [
+            ...new Set(
+              studentsWithLeads?.map((row) => row.admissions_lead_id).filter(Boolean) ?? []
+            ),
+          ];
+          if (!leadIds.length) return [];
+          const { data: apps } = await supabase
+            .from("admissions_applications")
+            .select("id")
+            .in("lead_id", leadIds);
+          const appIds = apps?.map((app) => app.id) ?? [];
+          if (!appIds.length) return [];
+          const { data } = await supabase
+            .from("admissions_application_checklist_items")
+            .select("*, admissions_checklist_template_items(label)")
+            .in("application_id", appIds)
+            .neq("status", "complete");
+          return data ?? [];
+        })(),
+      ]);
+      return {
+        submissions: submissionsRes.data ?? [],
+        pendingChecklist: pendingChecklistRes,
+      };
+    },
   }),
   section({
     key: "calendar",
@@ -438,11 +549,18 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     sortOrder: 120,
     moduleKey: "scheduling",
     permissions: ["students.view", "portal.parent.access"],
-    status: "placeholder",
-    loadData: async () => ({
-      events: [],
-      message: "Family calendar integration ships in a future release.",
-    }),
+    status: "partial",
+    loadData: async (supabase, envelope) => {
+      const env = familyEnvelope(envelope);
+      if (!env) return null;
+      const studentIds = await loadFamilyStudentIds(supabase, env.familyId);
+      if (!studentIds.length) return { events: [] };
+      const from = new Date().toISOString().split("T")[0];
+      const to = new Date(Date.now() + 90 * 86400000).toISOString().split("T")[0];
+      const { getFamilyCalendarEvents } = await import("@/lib/portal/calendar");
+      const events = await getFamilyCalendarEvents(supabase, studentIds, from, to);
+      return { events };
+    },
   }),
   section({
     key: "transportation",
@@ -451,20 +569,40 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     sortOrder: 130,
     moduleKey: "ssis",
     permissions: ["students.view", "portal.parent.access"],
-    status: "partial",
+    status: "live",
     loadData: async (supabase, envelope) => {
       const env = familyEnvelope(envelope);
       if (!env) return null;
       const studentIds = await loadFamilyStudentIds(supabase, env.familyId);
-      if (!studentIds.length) return { routes: [] };
-      const { data } = await supabase
-        .from("platform_relationships")
-        .select("*")
-        .eq("from_entity_type", "student")
-        .in("from_entity_id", studentIds)
-        .eq("relationship_type", "student.transportation_route")
-        .eq("status", "active");
-      return { routes: data ?? [] };
+      if (!studentIds.length) {
+        return { routes: [], pickupContacts: [], emergencyContacts: [] };
+      }
+      const [routesRes, pickupRes, emergencyRes] = await Promise.all([
+        supabase
+          .from("platform_relationships")
+          .select("*")
+          .eq("from_entity_type", "student")
+          .in("from_entity_id", studentIds)
+          .eq("relationship_type", "student.transportation_route")
+          .eq("status", "active"),
+        supabase
+          .from("student_authorized_contacts")
+          .select("*, students(first_name, last_name)")
+          .in("student_id", studentIds)
+          .eq("can_pick_up", true)
+          .eq("is_active", true),
+        supabase
+          .from("student_authorized_contacts")
+          .select("*, students(first_name, last_name)")
+          .in("student_id", studentIds)
+          .eq("is_active", true)
+          .or("is_emergency_contact.eq.true,contact_type.eq.emergency"),
+      ]);
+      return {
+        routes: routesRes.data ?? [],
+        pickupContacts: pickupRes.data ?? [],
+        emergencyContacts: emergencyRes.data ?? [],
+      };
     },
   }),
   section({
@@ -474,15 +612,20 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     sortOrder: 140,
     moduleKey: "ssis",
     permissions: ["students.view", "ferpa.view_medical", "portal.parent.access"],
-    status: "partial",
+    status: "live",
     loadData: async (supabase, envelope) => {
       const env = familyEnvelope(envelope);
       if (!env) return null;
-      const studentIds = await loadFamilyStudentIds(supabase, env.familyId);
-      if (!studentIds.length) return { profiles: [] };
+      const students = await loadFamilyStudents(supabase, env.familyId);
+      if (!students.length) return { profiles: [] };
       const { getStudentMedicalProfile } = await import("@/lib/sis/queries");
-      const profiles = await Promise.all(studentIds.map((id) => getStudentMedicalProfile(id)));
-      return { profiles: profiles.filter(Boolean) };
+      const profiles = await Promise.all(
+        students.map(async (student) => ({
+          student,
+          medical: await getStudentMedicalProfile(student.id as string),
+        }))
+      );
+      return { profiles: profiles.filter((row) => row.medical) };
     },
   }),
   section({

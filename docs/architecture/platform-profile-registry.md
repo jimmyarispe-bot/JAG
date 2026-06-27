@@ -67,7 +67,7 @@ Overview (pinned) + HR, employment, communication (notes, activity), and system 
 
 ## Family sections (19)
 
-Overview (pinned) + relationships (household, parents/guardians, students), support, financial, communication, operations, student life, intelligence, and system sections. Resolves guardians and students through the Platform Relationship Engine.
+Overview (pinned) + relationships, support, financial, communication, operations, student life, intelligence, and system sections. All 19 sections ship with native lazy-loaded modules. Resolves guardians and students through the Platform Relationship Engine.
 
 ## Build-time validation
 
