@@ -29,6 +29,8 @@ export const STUDENT_DETAIL_TABS = [
 interface StudentDetailContentProps {
   student: StudentRecord;
   tab: string;
+  hideTabs?: boolean;
+  suppressOverviewQuickActions?: boolean;
   summary: ExecutiveSummary;
   conversion: StudentConversionLink | null;
   enrollments: SisEnrollment[];
@@ -66,9 +68,13 @@ interface StudentDetailContentProps {
   lifecycleHistory: Record<string, unknown>[];
 }
 
+export type { StudentDetailContentProps };
+
 export function StudentDetailContent({
   student,
   tab,
+  hideTabs = false,
+  suppressOverviewQuickActions = false,
   summary,
   conversion,
   enrollments,
@@ -95,13 +101,15 @@ export function StudentDetailContent({
 
   return (
     <div className="space-y-6">
-      <ViewTabs
-        tabs={STUDENT_DETAIL_TABS.map((t) => ({
-          ...t,
-          href: `/dashboard/students/${student.id}${t.href}`,
-        }))}
-        activeView={activeTab}
-      />
+      {!hideTabs && (
+        <ViewTabs
+          tabs={STUDENT_DETAIL_TABS.map((t) => ({
+            ...t,
+            href: `/dashboard/students/${student.id}${t.href}`,
+          }))}
+          activeView={activeTab}
+        />
+      )}
 
       {activeTab === "overview" && (
         <>
@@ -112,10 +120,12 @@ export function StudentDetailContent({
             enrollments={enrollments}
             displayName={displayName}
           />
-          <StudentSuccessQuickActions
-            studentId={student.id}
-            lifecycleStage={summary.lifecycleStage}
-          />
+          {!suppressOverviewQuickActions && (
+            <StudentSuccessQuickActions
+              studentId={student.id}
+              lifecycleStage={summary.lifecycleStage}
+            />
+          )}
         </>
       )}
       {activeTab === "profile" && (

@@ -1,5 +1,6 @@
 /** Side-effect: registers the Student profile (first platform profile implementation). */
 import "@/lib/students/profile/register";
+import "@/lib/students/profile/contributions";
 
 export {
   buildProfileEnvelopeBase,
@@ -36,6 +37,7 @@ export {
   loadActiveSectionData,
   listRegisteredSectionKeys,
 } from "@/lib/platform/profile/resolver";
+export * from "@/lib/platform/profile/workspace";
 export type {
   ProfileKind,
   ProfileSectionGroup,
