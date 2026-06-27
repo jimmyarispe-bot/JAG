@@ -1,6 +1,8 @@
 import { ACTIVITY_EVENT_CATALOG } from "@/lib/platform/activity/catalog";
 import { RELATIONSHIP_TYPE_KEYS } from "@/lib/platform/relationships/catalog";
 import { SYSTEM_TAG_SLUGS } from "@/lib/platform/tags/catalog";
+import { getAllWorkflowDefinitions } from "@/lib/platform/workflow/registry/registry";
+import "@/lib/platform/workflow/registry/register";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -53,6 +55,11 @@ export function getStaticPlatformServiceHealth(): PlatformServiceHealthCheck[] {
       status: "healthy",
       detail: "Visibility model and attachment validation available",
     },
+    catalogHealth(
+      "Workflow Engine (catalog)",
+      getAllWorkflowDefinitions().length,
+      `${getAllWorkflowDefinitions().length} workflow definitions registered`
+    ),
   ];
 }
 
