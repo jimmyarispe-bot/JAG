@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run validate:platform && npm run validate:admissions && npm run validate:workflow && npm run validate:decision && next build",
+    "build": "npm run validate:platform && npm run validate:admissions && npm run validate:workflow && npm run validate:decision && npm run validate:events && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
@@ -12,6 +12,7 @@
     "validate:admissions": "tsx scripts/validate-admissions-registry.mts",
     "validate:workflow": "tsx scripts/validate-platform-workflow-registry.mts",
     "validate:decision": "tsx scripts/validate-platform-decision-registry.mts",
+    "validate:events": "tsx scripts/validate-platform-event-registry.mts",
     "test": "vitest run",
     "test:integration": "vitest run tests/integration",
     "test:smoke": "playwright test",
