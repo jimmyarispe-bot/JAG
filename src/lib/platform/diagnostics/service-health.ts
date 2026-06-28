@@ -1,4 +1,9 @@
 import { ACTIVITY_EVENT_CATALOG } from "@/lib/platform/activity/catalog";
+import {
+  getActiveGraphRegistrySnapshot,
+  isGraphRegistryRegistered,
+} from "@/lib/platform/intelligence-graph/registry/registry";
+import "@/lib/platform/intelligence-graph/registry/register";
 import { RELATIONSHIP_TYPE_KEYS } from "@/lib/platform/relationships/catalog";
 import { SYSTEM_TAG_SLUGS } from "@/lib/platform/tags/catalog";
 import { getAllWorkflowDefinitions } from "@/lib/platform/workflow/registry/registry";
@@ -60,6 +65,13 @@ export function getStaticPlatformServiceHealth(): PlatformServiceHealthCheck[] {
       getAllWorkflowDefinitions().length,
       `${getAllWorkflowDefinitions().length} workflow definitions registered`
     ),
+    {
+      service: "Intelligence Graph (registry)",
+      status: isGraphRegistryRegistered() ? "healthy" : "degraded",
+      detail: isGraphRegistryRegistered()
+        ? `${getActiveGraphRegistrySnapshot().nodeDefinitions.length} node types, ${getActiveGraphRegistrySnapshot().edgeDefinitions.length} edge types, ${getActiveGraphRegistrySnapshot().providers.length} providers`
+        : "Graph registry not initialized",
+    },
   ];
 }
 
