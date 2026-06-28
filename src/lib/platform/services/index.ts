@@ -8,6 +8,7 @@ export * from "@/lib/platform/workflow";
 export * from "@/lib/platform/decision";
 export * from "@/lib/platform/events";
 export * from "@/lib/platform/intelligence-graph";
+export * from "@/lib/platform/automation";
 export * from "@/lib/platform/shared/entity-types";
 export { extractSchoolOrganizationId, resolveActorUserId, resolveSchoolContext, resolveStudentContext } from "@/lib/platform/shared/context";
 export {

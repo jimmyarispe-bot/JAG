@@ -1,5 +1,11 @@
 import { ACTIVITY_EVENT_CATALOG } from "@/lib/platform/activity/catalog";
 import {
+  getAutomationEngineHealth,
+  getAutomationRegistrySnapshot,
+  isAutomationRegistryRegistered,
+} from "@/lib/platform/automation/registry/registry";
+import "@/lib/platform/automation/registry/register";
+import {
   getActiveGraphRegistrySnapshot,
   isGraphRegistryRegistered,
 } from "@/lib/platform/intelligence-graph/registry/registry";
@@ -71,6 +77,13 @@ export function getStaticPlatformServiceHealth(): PlatformServiceHealthCheck[] {
       detail: isGraphRegistryRegistered()
         ? `${getActiveGraphRegistrySnapshot().nodeDefinitions.length} node types, ${getActiveGraphRegistrySnapshot().edgeDefinitions.length} edge types, ${getActiveGraphRegistrySnapshot().providers.length} providers`
         : "Graph registry not initialized",
+    },
+    {
+      service: "Automation Engine (registry)",
+      status: isAutomationRegistryRegistered() ? "healthy" : "degraded",
+      detail: isAutomationRegistryRegistered()
+        ? `${getAutomationRegistrySnapshot().automations.length} automations, ${getAutomationEngineHealth().actionHandlers} action handlers, ${getAutomationEngineHealth().triggerHandlers} trigger handlers`
+        : "Automation registry not initialized",
     },
   ];
 }
