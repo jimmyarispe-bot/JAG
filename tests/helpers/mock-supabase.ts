@@ -41,6 +41,11 @@ function createFilterChain(
       filters[column] = value;
       return chain;
     },
+    is: (column: string, value: unknown) => {
+      filters[`is:${column}`] = value;
+      return chain;
+    },
+    or: (_expression: string) => chain,
     neq: (column: string, value: unknown) => {
       filters[`neq:${column}`] = value;
       return chain;
@@ -50,6 +55,7 @@ function createFilterChain(
       return chain;
     },
     order: () => chain,
+    limit: () => chain,
     maybeSingle: async () => handler({ table, operation: "maybeSingle", filters, payload }),
     single: async () => handler({ table, operation: "single", filters, payload }),
     then: (

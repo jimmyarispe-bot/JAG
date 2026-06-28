@@ -11,4 +11,35 @@ export * from "@/lib/platform/workflow/registry/validate";
 export * from "@/lib/platform/workflow/engine/context";
 export * from "@/lib/platform/workflow/engine/audit";
 export * from "@/lib/platform/workflow/engine/skeleton";
+export * from "@/lib/platform/workflow/engine/execute";
+export * from "@/lib/platform/workflow/persistence/types";
+export {
+  getPublishedWorkflowVersion,
+  getWorkflowVersionById,
+  listWorkflowVersions,
+} from "@/lib/platform/workflow/persistence/definitions";
+export {
+  getActiveWorkflowInstance,
+  getOrCreateWorkflowInstance,
+  updateWorkflowInstanceState,
+  getWorkflowInstanceById,
+} from "@/lib/platform/workflow/persistence/instances";
+export {
+  persistWorkflowStateChange,
+  listWorkflowStateHistory,
+} from "@/lib/platform/workflow/persistence/history";
+export {
+  createWorkflowTask,
+  listWorkflowTasks,
+} from "@/lib/platform/workflow/persistence/tasks";
+export {
+  createPersistedWorkflowApproval,
+  decidePersistedWorkflowApproval,
+  listPendingWorkflowApprovals,
+} from "@/lib/platform/workflow/persistence/approvals";
+export {
+  createWorkflowTimer,
+  listPendingWorkflowTimers,
+  cancelWorkflowTimers,
+} from "@/lib/platform/workflow/persistence/timers";
 export * from "@/lib/platform/workflow/approval/framework";

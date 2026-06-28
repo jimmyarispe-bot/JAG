@@ -1,10 +1,14 @@
 import type { NotificationChannel } from "@/lib/platform/automation/types";
 
+export const WORKFLOW_VERSION_STATUSES = ["draft", "published", "archived"] as const;
+export type WorkflowVersionStatus = (typeof WORKFLOW_VERSION_STATUSES)[number];
+
 /** Lifecycle status for a registered workflow definition. */
 export const WORKFLOW_DEFINITION_STATUSES = [
   "draft",
   "testing",
   "active",
+  "published",
   "archived",
 ] as const;
 

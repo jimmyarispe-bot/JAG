@@ -1,11 +1,21 @@
-import type { AdmissionsPipelineStageKey } from "@/lib/admissions/registry";
 import {
   getAllowedPipelineTransitions,
+  getPipelineStageAutomatedTask,
   pipelineStageLabel,
   resolveLegacyLeadStagesForPipelineStage,
   resolvePipelineStageFromLeadStage,
 } from "@/lib/admissions/registry";
+import type { AdmissionsPipelineStageKey } from "@/lib/admissions/registry/types";
+import {
+  ADMISSIONS_CASE_DOMAIN,
+  ADMISSIONS_CASE_ENTITY_TYPE,
+  ADMISSIONS_CASE_WORKFLOW_KEY,
+  resolveAdmissionsPipelineTransitionKey,
+} from "@/lib/admissions/workflow/platform-definition";
 import { recordActivity } from "@/lib/platform/activity";
+import { recordEntityWorkflowStateChange } from "@/lib/platform/workflow/engine/execute";
+import { getOrCreateWorkflowInstance } from "@/lib/platform/workflow/persistence/instances";
+import { createWorkflowTask } from "@/lib/platform/workflow/persistence/tasks";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { transitionLeadStage } from "@/lib/admissions/workflow";
 import type { LeadStageValue } from "@/lib/constants/admissions";
@@ -13,12 +23,20 @@ import { leadStageLabel } from "@/lib/constants/admissions";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
+const TERMINAL_PIPELINE_STAGES: AdmissionsPipelineStageKey[] = [
+  "accepted",
+  "waitlisted",
+  "declined",
+  "enrollment_complete",
+];
+
 export interface CaseWorkflowState {
   leadStage: string;
   pipelineStage: AdmissionsPipelineStageKey | null;
   pipelineStageLabel: string;
   allowedPipelineTransitions: AdmissionsPipelineStageKey[];
   legacyStageOptions: { value: string; label: string }[];
+  workflowInstanceId?: string | null;
 }
 
 export interface CaseDerivedLink {
@@ -62,6 +80,7 @@ export async function recordCaseStageActivity(
     previousStage: string;
     newStage: string;
     actorUserId: string | null;
+    workflowInstanceId?: string | null;
   }
 ) {
   const fromPipeline = resolvePipelineStageFromLeadStage(input.previousStage);
@@ -81,6 +100,7 @@ export async function recordCaseStageActivity(
       new_stage: input.newStage,
       previous_pipeline_stage: fromPipeline,
       new_pipeline_stage: toPipeline,
+      workflow_instance_id: input.workflowInstanceId ?? null,
     },
     sourceTable: "admissions_lead_stage_history",
     sourceId: input.leadId,
@@ -88,7 +108,92 @@ export async function recordCaseStageActivity(
   });
 }
 
-/** Orchestrated case stage transition — legacy DB stage + platform activity. */
+/** Persist admissions automated task to platform workflow tasks. */
+async function persistCaseWorkflowTask(
+  supabase: AuthClient,
+  input: {
+    leadId: string;
+    schoolId: string;
+    organizationId: string | null;
+    pipelineStage: AdmissionsPipelineStageKey | null;
+    taskName: string;
+    dueAt?: string | null;
+    actorUserId?: string | null;
+  }
+) {
+  if (!input.pipelineStage) return;
+
+  const { instance } = await getOrCreateWorkflowInstance(supabase, {
+    workflowKey: ADMISSIONS_CASE_WORKFLOW_KEY,
+    domain: ADMISSIONS_CASE_DOMAIN,
+    entityType: ADMISSIONS_CASE_ENTITY_TYPE,
+    entityId: input.leadId,
+    schoolId: input.schoolId,
+    organizationId: input.organizationId,
+    currentStateKey: input.pipelineStage,
+    startedBy: input.actorUserId,
+  });
+
+  if (!instance) return;
+
+  await createWorkflowTask(supabase, {
+    instanceId: instance.id,
+    taskName: input.taskName,
+    stateKey: input.pipelineStage,
+    dueAt: input.dueAt ?? null,
+    metadata: { source: "admissions_automation" },
+  });
+}
+
+/** Sync platform workflow engine after legacy stage change. */
+async function syncCaseToPlatformWorkflow(
+  supabase: AuthClient,
+  input: {
+    leadId: string;
+    schoolId: string;
+    organizationId: string | null;
+    previousStage: string;
+    newStage: string;
+    actorUserId: string | null;
+  }
+): Promise<{ instanceId?: string; error?: string }> {
+  const fromPipeline = resolvePipelineStageFromLeadStage(input.previousStage);
+  const toPipeline = resolvePipelineStageFromLeadStage(input.newStage);
+
+  if (!toPipeline) {
+    return {};
+  }
+
+  const transitionKey = resolveAdmissionsPipelineTransitionKey(fromPipeline, toPipeline);
+
+  return recordEntityWorkflowStateChange(supabase, {
+    workflowKey: ADMISSIONS_CASE_WORKFLOW_KEY,
+    domain: ADMISSIONS_CASE_DOMAIN,
+    entityType: ADMISSIONS_CASE_ENTITY_TYPE,
+    entityId: input.leadId,
+    schoolId: input.schoolId,
+    organizationId: input.organizationId,
+    fromStateKey: fromPipeline,
+    toStateKey: toPipeline,
+    transitionKey,
+    actorUserId: input.actorUserId,
+    summary: `${fromPipeline ? pipelineStageLabel(fromPipeline) : "Unknown"} → ${pipelineStageLabel(toPipeline)}`,
+    facts: {
+      leadStage: input.newStage,
+      previousLeadStage: input.previousStage,
+      pipelineStage: toPipeline,
+    },
+    metadata: {
+      previous_stage: input.previousStage,
+      new_stage: input.newStage,
+      previous_pipeline_stage: fromPipeline,
+      new_pipeline_stage: toPipeline,
+    },
+    markCompleted: TERMINAL_PIPELINE_STAGES.includes(toPipeline),
+  });
+}
+
+/** Orchestrated case stage transition — legacy DB + platform workflow engine. */
 export async function transitionCaseStage(
   supabase: AuthClient,
   leadId: string,
@@ -116,15 +221,48 @@ export async function transitionCaseStage(
     context?.organizationId ??
     (Array.isArray(schools) ? schools[0]?.organization_id : schools?.organization_id) ??
     null;
+  const schoolId = context?.schoolId ?? lead.school_id;
 
-  await recordCaseStageActivity(supabase, {
+  const workflowResult = await syncCaseToPlatformWorkflow(supabase, {
     leadId,
-    schoolId: context?.schoolId ?? lead.school_id,
+    schoolId,
     organizationId: orgId,
     previousStage,
     newStage,
     actorUserId: changedBy,
   });
+
+  if (workflowResult.error) {
+    return { error: workflowResult.error };
+  }
+
+  await recordCaseStageActivity(supabase, {
+    leadId,
+    schoolId,
+    organizationId: orgId,
+    previousStage,
+    newStage,
+    actorUserId: changedBy,
+    workflowInstanceId: workflowResult.instanceId,
+  });
+
+  const toPipeline = resolvePipelineStageFromLeadStage(newStage);
+  if (toPipeline) {
+    const registryTask = getPipelineStageAutomatedTask(toPipeline);
+    if (registryTask) {
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + registryTask.dueDays);
+      await persistCaseWorkflowTask(supabase, {
+        leadId,
+        schoolId,
+        organizationId: orgId,
+        pipelineStage: toPipeline,
+        taskName: registryTask.taskName,
+        dueAt: dueDate.toISOString(),
+        actorUserId: changedBy,
+      });
+    }
+  }
 
   return result;
 }
