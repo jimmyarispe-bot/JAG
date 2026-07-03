@@ -10,8 +10,10 @@ export default async function PortalCalendarPage() {
 
   const supabase = await createAuthClient();
   const studentIds = await getParentLinkedStudentIds(supabase, sessionUser.id);
-  const from = new Date().toISOString().split("T")[0];
-  const toDate = new Date(Date.now() + 60 * 86400000);
+  const now = new Date();
+  const from = now.toISOString().split("T")[0];
+  const toDate = new Date(now);
+  toDate.setUTCDate(toDate.getUTCDate() + 60);
   const to = toDate.toISOString().split("T")[0];
   const events = await getFamilyCalendarEvents(supabase, studentIds, from, to);
 

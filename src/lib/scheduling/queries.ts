@@ -3,7 +3,7 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 export async function getSchedulingExecutiveStats(schoolId?: string) {
   const supabase = await createAuthClient();
 
-  let sessionsQuery = supabase
+  const sessionsQuery = supabase
     .from("instructional_sessions")
     .select("id, session_status, scheduled_start, course_sections(max_capacity, courses(school_id))")
     .gte("scheduled_start", new Date(Date.now() - 7 * 86400000).toISOString());

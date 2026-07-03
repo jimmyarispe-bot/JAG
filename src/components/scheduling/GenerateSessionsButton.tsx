@@ -26,8 +26,11 @@ export function GenerateSessionsButton({ sectionId, sectionCode }: GenerateSessi
     }
   }
 
-  const today = new Date().toISOString().split("T")[0];
-  const in30 = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+  const in30Date = new Date(now);
+  in30Date.setUTCDate(in30Date.getUTCDate() + 30);
+  const in30 = in30Date.toISOString().split("T")[0];
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">

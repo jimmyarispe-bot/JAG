@@ -40,7 +40,7 @@ export async function getStudentCommunicationTimeline(
   studentId: string,
   options?: { query?: string; limit?: number }
 ) {
-  let q = supabase
+  const q = supabase
     .from("ssis_communication_events")
     .select("*")
     .eq("student_id", studentId)

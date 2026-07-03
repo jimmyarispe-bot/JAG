@@ -20,7 +20,7 @@ export async function getRiskRegister(supabase: AuthClient, schoolId?: string): 
 export async function detectOperationalRisks(supabase: AuthClient, schoolId?: string) {
   const risks: Omit<RiskItem, "id">[] = [];
 
-  let atRiskQuery = supabase
+  const atRiskQuery = supabase
     .from("student_growth_goals")
     .select("id, student_id, students(first_name, last_name, school_id)")
     .eq("status", "at_risk")
