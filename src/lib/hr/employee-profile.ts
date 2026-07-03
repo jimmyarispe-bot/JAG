@@ -77,7 +77,7 @@ export async function getRecruitingPipeline(supabase: AuthClient, schoolId?: str
 export async function getComplianceCenter(supabase: AuthClient, schoolId?: string) {
   const in90 = new Date(Date.now() + 90 * 86400000).toISOString().split("T")[0];
 
-  let certQuery = supabase
+  const certQuery = supabase
     .from("employee_certifications")
     .select("*, employees(school_id, employee_profiles(first_name, last_name))")
     .eq("status", "active")
@@ -89,7 +89,7 @@ export async function getComplianceCenter(supabase: AuthClient, schoolId?: strin
     ? (expiringCerts ?? []).filter((c) => (c.employees as { school_id?: string })?.school_id === schoolId)
     : expiringCerts ?? [];
 
-  let onboardingQuery = supabase.from("hr_onboarding_tasks").select("*, employees(school_id)").neq("status", "completed");
+  const onboardingQuery = supabase.from("hr_onboarding_tasks").select("*, employees(school_id)").neq("status", "completed");
   const { data: pendingOnboarding } = await onboardingQuery;
   const filteredOnboarding = schoolId
     ? (pendingOnboarding ?? []).filter((t) => (t.employees as { school_id?: string })?.school_id === schoolId)

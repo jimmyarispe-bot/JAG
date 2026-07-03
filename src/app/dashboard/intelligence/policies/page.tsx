@@ -23,7 +23,6 @@ export default async function PoliciesPage() {
             Policy name
             <input name="policy_name" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2" defaultValue="FERPA Masking Policy" />
           </label>
-          <input type="hidden" name="policy_key" value={`policy-${Date.now()}`} />
           <input type="hidden" name="policy_type" value="ferpa" />
           <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
             Create policy
@@ -37,7 +36,6 @@ export default async function PoliciesPage() {
             Source name
             <input name="source_name" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2" defaultValue="Employee Handbook" />
           </label>
-          <input type="hidden" name="source_key" value={`source-${Date.now()}`} />
           <input type="hidden" name="source_type" value="hr_manual" />
           <button type="submit" className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50">
             Register source

@@ -67,7 +67,7 @@ export async function getOrganizationInterventionEffectiveness(
   supabase: AuthClient,
   schoolId?: string
 ) {
-  let q = supabase
+  const q = supabase
     .from("intervention_effectiveness_records")
     .select("effectiveness_rating, progress_trend, minutes_delivered, students(school_id)")
     .order("recorded_at", { ascending: false })

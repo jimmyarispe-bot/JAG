@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PortalAccessibilityBar } from "./PortalAccessibilityBar";
 
 const PARENT_NAV = [
@@ -61,7 +61,12 @@ export function PortalShell({
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             {mode === "parent" && students.length > 1 && (
-              <StudentSwitcher students={students} selectedStudentId={selectedStudentId} pathname={pathname} />
+              <StudentSwitcher
+                key={selectedStudentId ?? "all"}
+                students={students}
+                selectedStudentId={selectedStudentId}
+                pathname={pathname}
+              />
             )}
             <Link href="/apply/portal" className="text-slate-500 hover:text-brand-600">Admissions</Link>
             {userEmail && (
@@ -115,10 +120,6 @@ function StudentSwitcher({
   pathname: string;
 }) {
   const [value, setValue] = useState(selectedStudentId ?? students[0]?.id ?? "");
-
-  useEffect(() => {
-    if (selectedStudentId) setValue(selectedStudentId);
-  }, [selectedStudentId]);
 
   return (
     <label className="flex items-center gap-2 text-xs text-slate-600">

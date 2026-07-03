@@ -32,7 +32,6 @@ export default async function PromptsPage() {
               </select>
             </label>
           </div>
-          <input type="hidden" name="prompt_key" value={`prompt-${Date.now()}`} />
           <input type="hidden" name="module" value="general" />
           <label className="block text-sm">
             Template

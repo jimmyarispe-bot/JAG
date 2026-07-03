@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getParentDashboardData, getLinkedStudentsForPortal } from "@/lib/portal/dashboard";
@@ -21,7 +22,7 @@ export default async function PortalHomePage() {
         <p className="mt-2 text-slate-600">
           Your enrolled students are not linked yet. Continue admissions or contact the registrar.
         </p>
-        <a href="/apply/portal" className="mt-4 inline-block text-brand-600 hover:underline">Go to admissions portal →</a>
+        <Link href="/apply/portal" className="mt-4 inline-block text-brand-600 hover:underline">Go to admissions portal →</Link>
       </div>
     );
   }

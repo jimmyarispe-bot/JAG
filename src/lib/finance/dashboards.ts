@@ -7,7 +7,7 @@ export async function getFinanceExecutiveDashboard(supabase: AuthClient, schoolI
   monthStart.setDate(1);
   const monthStartIso = monthStart.toISOString().split("T")[0];
 
-  let invoicesQuery = supabase.from("invoices").select(`
+  const invoicesQuery = supabase.from("invoices").select(`
     total_amount, amount_paid, invoice_status, sibling_discount_amount,
     scholarship_credit, state_funding_credit, family_responsibility, due_date, program,
     family_billing_accounts(school_id, families(id))

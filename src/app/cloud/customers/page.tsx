@@ -25,7 +25,6 @@ export default async function CloudCustomersPage() {
               {plans.map((p) => <option key={p.plan_key} value={p.plan_key}>{p.display_name}</option>)}
             </select>
           </label>
-          <input type="hidden" name="customer_slug" value={`cust-${Date.now()}`} />
           <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white">Add customer</button>
         </form>
       </section>

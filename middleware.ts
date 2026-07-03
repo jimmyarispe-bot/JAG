@@ -12,6 +12,7 @@ import {
 function isProtectedPage(pathname: string): boolean {
   return (
     pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/founder") ||
     pathname.startsWith("/cloud") ||
     pathname.startsWith("/operations") ||
     pathname.startsWith("/admin") ||
@@ -79,6 +80,8 @@ export const config = {
   matcher: [
     "/dashboard",
     "/dashboard/:path*",
+    "/founder",
+    "/founder/:path*",
     "/cloud",
     "/cloud/:path*",
     "/operations",

@@ -45,8 +45,10 @@ export async function SchedulingPageContent({ searchParams }: SchedulingPageCont
     ctx?.accessibleSchoolIds[0] ||
     ctx?.orgAssignments[0]?.school_id;
 
-  const from = new Date().toISOString().split("T")[0];
-  const toDate = new Date(Date.now() + 90 * 86400000);
+  const now = new Date();
+  const from = now.toISOString().split("T")[0];
+  const toDate = new Date(now);
+  toDate.setUTCDate(toDate.getUTCDate() + 90);
   const to = toDate.toISOString().split("T")[0];
 
   const [stats, sections, sessions, rooms, conflicts, calendarEvents, workload] = await Promise.all([
