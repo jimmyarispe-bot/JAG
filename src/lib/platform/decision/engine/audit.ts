@@ -29,7 +29,7 @@ export function buildDecisionAuditEntry(
   };
 }
 
-/** In-memory audit buffer for skeleton execution — replaced by DB persistence in Phase 2+. */
+/** In-memory audit buffer — canonical persistence via platform_decision_records (Wave 1). */
 const DECISION_AUDIT_BUFFER: DecisionAuditEntry[] = [];
 
 export function recordDecisionAuditEntry(entry: DecisionAuditEntry): void {

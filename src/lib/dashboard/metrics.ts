@@ -1,4 +1,5 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import type { MorningBriefMetricKey } from "@/lib/dashboard/morning-brief-access";
 
 export { formatCount, formatCurrency } from "@/lib/format";
 
@@ -11,7 +12,7 @@ export interface DashboardMetrics {
   revenue: number;
 }
 
-const PIPELINE_STATUSES = [
+export const PIPELINE_STATUSES = [
   "new_inquiry",
   "information_sent",
   "tour_scheduled",
@@ -24,53 +25,91 @@ const PIPELINE_STATUSES = [
 ] as const;
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  const supabase = await createAuthClient();
-
-  const [
-    enrollmentResult,
-    pipelineResult,
-    scholarshipsResult,
-    studentsResult,
-    staffResult,
-    revenueResult,
-  ] = await Promise.all([
-    supabase
-      .from("student_enrollments")
-      .select("*", { count: "exact", head: true })
-      .eq("enrollment_status", "enrolled"),
-    supabase
-      .from("admissions_leads")
-      .select("*", { count: "exact", head: true })
-      .in("lead_stage", [...PIPELINE_STATUSES]),
-    supabase
-      .from("scholarship_applications")
-      .select("*", { count: "exact", head: true })
-      .eq("scholarship_status", "approved"),
-    supabase
-      .from("students")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "active"),
-    supabase
-      .from("employees")
-      .select("*", { count: "exact", head: true })
-      .eq("employment_status", "active"),
-    supabase
-      .from("payments")
-      .select("amount"),
+  const metrics = await getDashboardMetricsForKeys([
+    "enrollment",
+    "activeStudents",
+    "admissionsPipeline",
+    "scholarshipsAwarded",
+    "employees",
+    "revenue",
   ]);
 
-  const revenueRows = revenueResult.data ?? [];
-  const revenue = revenueRows.reduce(
-    (sum, row) => sum + Number(row.amount ?? 0),
-    0
+  return {
+    enrollment: metrics.enrollment ?? 0,
+    activeStudents: metrics.activeStudents ?? 0,
+    admissionsPipeline: metrics.admissionsPipeline ?? 0,
+    scholarshipsAwarded: metrics.scholarshipsAwarded ?? 0,
+    employees: metrics.employees ?? 0,
+    revenue: metrics.revenue ?? 0,
+  };
+}
+
+/** Load only metrics the caller is allowed to see (permission checks happen upstream). */
+export async function getDashboardMetricsForKeys(
+  keys: MorningBriefMetricKey[]
+): Promise<Partial<DashboardMetrics>> {
+  if (!keys.length) return {};
+
+  const supabase = await createAuthClient();
+  const metrics: Partial<DashboardMetrics> = {};
+
+  await Promise.all(
+    keys.map(async (key) => {
+      switch (key) {
+        case "enrollment": {
+          const { count } = await supabase
+            .from("student_enrollments")
+            .select("*", { count: "exact", head: true })
+            .eq("enrollment_status", "enrolled");
+          metrics.enrollment = count ?? 0;
+          break;
+        }
+        case "admissionsPipeline": {
+          const { count } = await supabase
+            .from("admissions_leads")
+            .select("*", { count: "exact", head: true })
+            .in("lead_stage", [...PIPELINE_STATUSES]);
+          metrics.admissionsPipeline = count ?? 0;
+          break;
+        }
+        case "scholarshipsAwarded": {
+          const { count } = await supabase
+            .from("scholarship_applications")
+            .select("*", { count: "exact", head: true })
+            .eq("scholarship_status", "approved");
+          metrics.scholarshipsAwarded = count ?? 0;
+          break;
+        }
+        case "activeStudents": {
+          const { count } = await supabase
+            .from("students")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "active");
+          metrics.activeStudents = count ?? 0;
+          break;
+        }
+        case "employees": {
+          const { count } = await supabase
+            .from("employees")
+            .select("*", { count: "exact", head: true })
+            .eq("employment_status", "active");
+          metrics.employees = count ?? 0;
+          break;
+        }
+        case "revenue": {
+          const { data } = await supabase.from("payments").select("amount");
+          const revenueRows = data ?? [];
+          metrics.revenue = revenueRows.reduce(
+            (sum, row) => sum + Number(row.amount ?? 0),
+            0
+          );
+          break;
+        }
+        default:
+          break;
+      }
+    })
   );
 
-  return {
-    enrollment: enrollmentResult.count ?? 0,
-    activeStudents: studentsResult.count ?? 0,
-    admissionsPipeline: pipelineResult.count ?? 0,
-    scholarshipsAwarded: scholarshipsResult.count ?? 0,
-    employees: staffResult.count ?? 0,
-    revenue,
-  };
+  return metrics;
 }

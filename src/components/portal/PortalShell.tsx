@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PortalAccessibilityBar } from "./PortalAccessibilityBar";
 
 const PARENT_NAV = [
@@ -26,6 +26,7 @@ interface PortalShellProps {
   students?: { id: string; first_name: string; last_name: string }[];
   selectedStudentId?: string;
   unreadNotifications?: number;
+  productName: string;
 }
 
 export function PortalShell({
@@ -35,6 +36,7 @@ export function PortalShell({
   students = [],
   selectedStudentId,
   unreadNotifications = 0,
+  productName,
 }: PortalShellProps) {
   const pathname = usePathname();
   const nav = mode === "student"
@@ -53,7 +55,7 @@ export function PortalShell({
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div>
             <Link href={mode === "student" ? "/portal/student" : "/portal"} className="text-lg font-bold text-brand-700">
-              AcademyOS Family Portal
+              {productName} Family Portal
             </Link>
             <p className="text-xs text-slate-500">
               {mode === "student" ? "Student experience" : "Parent & family experience"}
@@ -114,11 +116,7 @@ function StudentSwitcher({
   selectedStudentId?: string;
   pathname: string;
 }) {
-  const [value, setValue] = useState(selectedStudentId ?? students[0]?.id ?? "");
-
-  useEffect(() => {
-    if (selectedStudentId) setValue(selectedStudentId);
-  }, [selectedStudentId]);
+  const value = selectedStudentId ?? students[0]?.id ?? "";
 
   return (
     <label className="flex items-center gap-2 text-xs text-slate-600">
@@ -126,7 +124,6 @@ function StudentSwitcher({
       <select
         value={value}
         onChange={(e) => {
-          setValue(e.target.value);
           if (pathname.startsWith("/portal/students/")) {
             window.location.href = `/portal/students/${e.target.value}`;
           }

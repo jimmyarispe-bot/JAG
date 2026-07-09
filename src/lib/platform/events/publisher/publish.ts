@@ -1,17 +1,62 @@
 import { dispatchEvent, flushAsyncEventQueue } from "@/lib/platform/events/dispatch/dispatcher";
-import { buildEventAuditEntry, recordEventAuditEntry } from "@/lib/platform/events/audit/audit";
+import {
+  buildEventAuditEntry,
+  getEventAuditEntries,
+  recordEventAuditEntry,
+} from "@/lib/platform/events/audit/audit";
 import { buildEventEnvelope } from "@/lib/platform/events/envelope";
+import { persistEventAuditEntry } from "@/lib/platform/events/persistence/records";
+import { syncEventGraphEdges } from "@/lib/platform/intelligence-graph/integration/events";
 import { getEventDefinition } from "@/lib/platform/events/registry/registry";
+import type { createAuthClient } from "@/lib/supabase/server-auth";
 import type {
+  EventAuditEntry,
   EventDispatchResult,
   EventScope,
   PublishEventInput,
 } from "@/lib/platform/events/types";
 
+type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
+
 export interface PublishEventOptions {
   dispatcherKey?: string;
   recordAudit?: boolean;
   subscriberKeys?: string[];
+  /** Wave 1 — persist audit entry to platform_event_records when provided. */
+  persist?: {
+    supabase: AuthClient;
+  };
+}
+
+async function recordAndPersistAudit(
+  entry: EventAuditEntry,
+  options: PublishEventOptions
+): Promise<void> {
+  if (options.recordAudit === false) return;
+
+  recordEventAuditEntry(entry);
+
+  if (options.persist?.supabase) {
+    const { error } = await persistEventAuditEntry(options.persist.supabase, entry);
+    if (error) {
+      throw new Error(`Failed to persist platform event "${entry.eventId}": ${error}`);
+    }
+    await syncEventGraphEdges(options.persist.supabase, entry);
+  }
+}
+
+async function persistBufferedAuditEntry(
+  eventId: string,
+  options: PublishEventOptions
+): Promise<void> {
+  if (!options.persist?.supabase || options.recordAudit === false) return;
+  const entry = getEventAuditEntries({ eventId })[0];
+  if (!entry) return;
+  const { error } = await persistEventAuditEntry(options.persist.supabase, entry);
+  if (error) {
+    throw new Error(`Failed to persist platform event "${eventId}": ${error}`);
+  }
+  await syncEventGraphEdges(options.persist.supabase, entry);
 }
 
 function resolveDispatchMode(
@@ -81,23 +126,24 @@ export async function publishEvent(
 
   if (dispatchMode === "async") {
     const asyncResults = await flushAsyncEventQueue(options.dispatcherKey);
-    if (options.recordAudit !== false) {
-      recordEventAuditEntry(
-        buildEventAuditEntry(envelope, {
-          domain: definition.domain,
-          dispatchMode: "async",
-          scope,
-          subscriberResults: asyncResults,
-          summary: `Async dispatch for ${envelope.eventType}`,
-          metadata: envelope.metadata,
-        })
-      );
-    }
+    await recordAndPersistAudit(
+      buildEventAuditEntry(envelope, {
+        domain: definition.domain,
+        dispatchMode: "async",
+        scope,
+        subscriberResults: asyncResults,
+        summary: `Async dispatch for ${envelope.eventType}`,
+        metadata: envelope.metadata,
+      }),
+      options
+    );
     return {
       ...dispatchResult,
       syncResults: asyncResults,
     };
   }
+
+  await persistBufferedAuditEntry(dispatchResult.eventId, options);
 
   return dispatchResult;
 }

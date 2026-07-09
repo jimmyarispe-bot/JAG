@@ -17,7 +17,7 @@ export default async function DataHubPage() {
   return (
     <EdpShell
       title="Enterprise Data Platform"
-      subtitle="Central data exchange — import, export, sync, validate, archive, and analyze across every AcademyOS module"
+      subtitle="Central data exchange — import, export, sync, validate, archive, and analyze across every module"
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-3 text-sm">

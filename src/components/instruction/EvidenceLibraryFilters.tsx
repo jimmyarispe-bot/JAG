@@ -29,9 +29,13 @@ export function EvidenceLibraryFilters({ basePath, goals = [] }: EvidenceLibrary
   const apply = (form: HTMLFormElement) => {
     const fd = new FormData(form);
     const params = new URLSearchParams(searchParams.toString());
+    const currentWorkflow = searchParams.get("workflow");
+    const currentTask = searchParams.get("task");
     const currentView = searchParams.get("view");
-    if (currentView) params.set("view", currentView);
-    else params.set("view", "evidence");
+    if (currentWorkflow) params.set("workflow", currentWorkflow);
+    else if (currentTask) params.set("task", currentTask);
+    else if (currentView) params.set("view", currentView);
+    else params.set("workflow", "evidence");
 
     for (const key of ["q", "artifact_type", "subject_domain", "goal_id", "date_from", "date_to"]) {
       const val = fd.get(key)?.toString().trim();

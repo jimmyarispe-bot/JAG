@@ -66,4 +66,15 @@ export async function processAllPlatformQueues(supabase: AuthClient) {
   if (!schools?.length) {
     await generateExecutiveInsights(supabase);
   }
+
+  // Sprint 002 Task 2 — daily executive KPI snapshots (aggregation layer only).
+  // Duplicate period keys are skipped; safe to run on the existing process-queues cron.
+  const { captureDailyExecutiveSnapshot } = await import("@/lib/platform/kpi-snapshots");
+  await captureDailyExecutiveSnapshot(supabase, { recordActivityEvent: true });
+  for (const school of schools ?? []) {
+    await captureDailyExecutiveSnapshot(supabase, {
+      filters: { schoolId: school.id },
+      recordActivityEvent: false,
+    });
+  }
 }

@@ -1,4 +1,5 @@
 import { getEventAuditEntries } from "@/lib/platform/events/audit/audit";
+import { loadPersistedEventAuditEntries } from "@/lib/platform/events/persistence/records";
 import type {
   EdgeResolveOptions,
   GraphEdge,
@@ -8,42 +9,74 @@ import type {
   GraphSearchQuery,
 } from "@/lib/platform/intelligence-graph/types";
 import { buildGraphNodeId } from "@/lib/platform/intelligence-graph/utils";
+import { loadPersistedGraphEdges } from "@/lib/platform/intelligence-graph/persistence/records";
+
+async function loadEventEntriesForEntity(
+  ctx: GraphProviderContext,
+  entityType: string,
+  entityId: string
+) {
+  const persisted = await loadPersistedEventAuditEntries(ctx.supabase, {
+    entityType,
+    entityId,
+    limit: 100,
+  });
+  if (persisted.length > 0) return persisted;
+
+  return getEventAuditEntries().filter(
+    (entry) =>
+      entry.envelope.entityType === entityType && entry.envelope.entityId === entityId
+  );
+}
 
 /** Graph provider backed by the Event Engine — links platform events to referenced entities. */
 export const eventGraphProvider: GraphProvider = {
   providerKey: "event",
 
   async resolveNode(
-    _ctx: GraphProviderContext,
+    ctx: GraphProviderContext,
     entityType: string,
     entityId: string
   ): Promise<GraphNode | null> {
     if (entityType !== "platform_event" || !entityId) return null;
+
+    const persisted = await loadPersistedEventAuditEntries(ctx.supabase, {
+      eventId: entityId,
+      limit: 1,
+    });
+    const entry = persisted[0] ?? getEventAuditEntries({ eventId: entityId })[0];
 
     return {
       nodeId: buildGraphNodeId("platform_event", entityType, entityId),
       nodeType: "platform_event",
       entityType,
       entityId,
-      organizationId: null,
-      schoolId: null,
-      metadata: { providerKey: "event" },
+      organizationId: entry?.envelope.organizationId ?? ctx.organizationId ?? null,
+      schoolId: entry?.envelope.schoolId ?? ctx.schoolId ?? null,
+      metadata: {
+        providerKey: "event",
+        eventType: entry?.eventType,
+        summary: entry?.summary,
+      },
     };
   },
 
   async resolveEdges(
     ctx: GraphProviderContext,
     node: GraphNode,
-    _options?: EdgeResolveOptions
+    options?: EdgeResolveOptions
   ): Promise<GraphEdge[]> {
-    if (node.nodeType === "entity") {
-      const entries = getEventAuditEntries().filter(
-        (entry) =>
-          entry.envelope.entityType === node.entityType &&
-          entry.envelope.entityId === node.entityId
-      );
+    const persistedEdges = await loadPersistedGraphEdges(ctx.supabase, {
+      nodeId: node.nodeId,
+      direction: options?.direction ?? "both",
+      providerKey: "event",
+      limit: 200,
+    });
 
-      return entries.map((entry) => ({
+    if (node.nodeType === "entity") {
+      const entries = await loadEventEntriesForEntity(ctx, node.entityType, node.entityId);
+
+      const derived = entries.map((entry) => ({
         edgeType: "event.references",
         sourceNode: buildGraphNodeId("platform_event", "platform_event", entry.eventId),
         targetNode: node.nodeId,
@@ -58,13 +91,20 @@ export const eventGraphProvider: GraphProvider = {
           domain: entry.domain,
         },
       }));
+
+      return [...persistedEdges, ...derived];
     }
 
     if (node.nodeType === "platform_event") {
-      const entry = getEventAuditEntries().find((e) => e.eventId === node.entityId);
-      if (!entry) return [];
+      const persisted = await loadPersistedEventAuditEntries(ctx.supabase, {
+        eventId: node.entityId,
+        limit: 1,
+      });
+      const entry = persisted[0] ?? getEventAuditEntries({ eventId: node.entityId })[0];
+      if (!entry) return persistedEdges;
 
       return [
+        ...persistedEdges,
         {
           edgeType: "event.references",
           sourceNode: node.nodeId,
@@ -73,7 +113,7 @@ export const eventGraphProvider: GraphProvider = {
             entry.envelope.entityType,
             entry.envelope.entityId
           ),
-          direction: "directed",
+          direction: "directed" as const,
           weight: 0.5,
           effectiveDate: entry.recordedAt,
           endDate: null,
@@ -87,20 +127,25 @@ export const eventGraphProvider: GraphProvider = {
       ];
     }
 
-    return [];
+    return persistedEdges;
   },
 
-  async searchNodes(_ctx: GraphProviderContext, query: GraphSearchQuery): Promise<GraphNode[]> {
+  async searchNodes(ctx: GraphProviderContext, query: GraphSearchQuery): Promise<GraphNode[]> {
     const needle = query.query.toLowerCase();
     if (!needle) return [];
 
-    return getEventAuditEntries()
+    const persisted = await loadPersistedEventAuditEntries(ctx.supabase, { limit: query.limit ?? 20 });
+    const entries =
+      persisted.length > 0 ?
+        persisted
+      : getEventAuditEntries().slice(0, query.limit ?? 20);
+
+    return entries
       .filter(
         (entry) =>
           entry.eventType.toLowerCase().includes(needle) ||
           entry.summary.toLowerCase().includes(needle)
       )
-      .slice(0, query.limit ?? 20)
       .map((entry) => ({
         nodeId: buildGraphNodeId("platform_event", "platform_event", entry.eventId),
         nodeType: "platform_event",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { parseImprovementAttachmentRefs } from "@/lib/instruction/continuous-improvement-parse";
 import { completeSessionAction, updateSessionDeliveryAction } from "@/lib/teacher/actions";
 
 function jsonArrayToLines(value: unknown): string {
@@ -17,11 +18,13 @@ interface SessionWorkspaceFormProps {
     standards?: string[] | null;
     learning_targets?: unknown;
     activities?: unknown;
+    attachment_refs?: unknown;
   } | null;
 }
 
 export function SessionWorkspaceForm({ sessionId, delivery }: SessionWorkspaceFormProps) {
   const [pending, startTransition] = useTransition();
+  const improvementMeta = parseImprovementAttachmentRefs(delivery?.attachment_refs);
 
   return (
     <form
@@ -96,6 +99,29 @@ export function SessionWorkspaceForm({ sessionId, delivery }: SessionWorkspaceFo
           className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
         />
       </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700">Teacher reflection</label>
+        <p className="text-xs text-slate-500">What worked, what to adjust — feeds The JAG™ Continuous Improvement Loop.</p>
+        <textarea
+          name="teacher_reflection"
+          defaultValue={improvementMeta.teacherReflection ?? ""}
+          rows={3}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700">Learner engagement</label>
+        <select
+          name="learner_engagement"
+          defaultValue={improvementMeta.learnerEngagement}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+        >
+          <option value="unknown">Not recorded</option>
+          <option value="active">Active — fully engaged</option>
+          <option value="moderate">Moderate — participated with prompts</option>
+          <option value="minimal">Minimal — disengaged or distracted</option>
+        </select>
+      </div>
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={pending} className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
           {pending ? "Saving…" : "Save lesson plan"}
@@ -108,10 +134,16 @@ export function SessionWorkspaceForm({ sessionId, delivery }: SessionWorkspaceFo
               const form = document.getElementById("session-workspace-form") as HTMLFormElement | null;
               const notes = (form?.querySelector('[name="session_notes"]') as HTMLTextAreaElement)?.value ?? "";
               const hw = (form?.querySelector('[name="homework"]') as HTMLTextAreaElement)?.value ?? "";
+              const reflection =
+                (form?.querySelector('[name="teacher_reflection"]') as HTMLTextAreaElement)?.value ?? "";
+              const engagement =
+                (form?.querySelector('[name="learner_engagement"]') as HTMLSelectElement)?.value ?? "unknown";
               const fd = new FormData();
               fd.set("session_id", sessionId);
               fd.set("session_notes", notes);
               fd.set("homework", hw);
+              fd.set("teacher_reflection", reflection);
+              fd.set("learner_engagement", engagement);
               await completeSessionAction(fd);
             });
           }}

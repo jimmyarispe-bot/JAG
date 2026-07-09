@@ -10,7 +10,7 @@ export async function handleWorkflowTrigger(
   const workflowKey = String(input.payload?.workflowKey ?? input.facts?.workflowKey ?? "");
   const transitionKey = String(input.payload?.transitionKey ?? input.facts?.transitionKey ?? "");
 
-  let automations = getAutomationsByTriggerKey(input.triggerKey);
+  const automations = getAutomationsByTriggerKey(input.triggerKey);
 
   if (trigger?.workflowKey && workflowKey && trigger.workflowKey !== workflowKey) {
     return { matchedAutomationKeys: [] };

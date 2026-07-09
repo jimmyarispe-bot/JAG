@@ -137,6 +137,26 @@ export async function generateSectionSessions(
 
   await writeGenerationAudit(supabase, schoolId, input.sectionId, run.id, created);
 
+  if (created > 0) {
+    const { data: enrollments } = await supabase
+      .from("student_enrollments")
+      .select("student_id")
+      .eq("course_section_id", input.sectionId)
+      .eq("enrollment_status", "enrolled");
+
+    const { fireOperationalLoopTransition } = await import("@/lib/platform/operational-loop");
+    for (const enrollment of enrollments ?? []) {
+      await fireOperationalLoopTransition(supabase, {
+        studentId: enrollment.student_id,
+        schoolId,
+        transitionKey: "scheduling_to_instruction",
+        relatedEntityType: "course_sections",
+        relatedEntityId: input.sectionId,
+        facts: { sessionsCreated: created, generationRunId: run.id },
+      });
+    }
+  }
+
   return { created, skipped, runId: run.id };
 }
 

@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
-export async function createAuthClient() {
+/** One cookie-bound server client per React request (dedupes layout + page auth calls). */
+export const createAuthClient = cache(async () => {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -24,4 +26,4 @@ export async function createAuthClient() {
       },
     }
   );
-}
+});

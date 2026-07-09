@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import type { GradeValue } from "@/lib/constants/grades";
 import type { ProgramValue } from "@/lib/constants/programs";
 import { parseFundingSourcesFromForm } from "@/lib/funding/helpers";
-import { transitionLeadStage } from "@/lib/admissions/workflow";
+import { recordInitialStage } from "@/lib/admissions/workflow";
+import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import {
   getApplicationDocuments,
   getPortalApplication,
@@ -46,7 +48,9 @@ export async function submitPublicInquiry(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  await onInquirySubmitted(supabase, data as string);
+  const leadId = data as string;
+  await recordInitialStage(supabase, leadId, null);
+  await onInquirySubmitted(supabase, leadId);
 
   revalidatePath("/apply");
   return { leadId: data as string };
@@ -74,7 +78,7 @@ export async function startApplication(leadId: string, schoolYearId: string) {
     p_application_id: data.id,
   });
 
-  await transitionLeadStage(supabase, leadId, "application_started", user?.id ?? null);
+  await transitionCaseStage(supabase, leadId, "application_started", user?.id ?? null);
 
   await onApplicationStarted(supabase, leadId, data.id, user?.id ?? null);
 
@@ -181,7 +185,10 @@ export async function updateStateFundingVerification(formData: FormData) {
 }
 
 export async function verifyStateFundingStaff(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertAnyPermission("admissions.manage", "admissions.accept");
+  if ("error" in auth) return { error: auth.error };
+
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -322,7 +329,7 @@ export async function submitApplication(applicationId: string) {
 
   if (error) return { error: error.message };
 
-  await transitionLeadStage(
+  await transitionCaseStage(
     supabase,
     portalData.application.lead_id,
     "application_submitted",

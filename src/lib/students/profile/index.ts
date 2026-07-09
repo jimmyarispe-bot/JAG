@@ -45,6 +45,13 @@ export async function loadStudentSectionData(
 }
 
 export type { StudentProfileEnvelope };
+export {
+  loadStudentBillingSnapshot,
+  loadStudentGradeHistory,
+  loadStudentGraduationReadiness,
+  loadStudentInstructionalTeam,
+  loadStudentLearningJourney,
+} from "@/lib/students/profile/queries";
 export { buildStudentProfileEnvelope } from "@/lib/students/profile/envelope";
 export { buildStudentProfileSectionHref } from "@/lib/students/profile/href";
 export { STUDENT_PROFILE_KIND, STUDENT_PROFILE_LEGACY_REDIRECTS } from "@/lib/students/profile/kind";

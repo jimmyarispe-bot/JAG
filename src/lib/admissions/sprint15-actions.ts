@@ -1,11 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { signEnrollmentDocument as signPacketDocument } from "@/lib/admissions/enrollment-packets";
 
+async function requireAdmissionsManage() {
+  return assertAnyPermission("admissions.manage", "admissions.accept");
+}
+
 export async function updateChecklistTemplateItem(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const id = formData.get("id") as string;
   const schoolId = formData.get("school_id") as string;
 
@@ -25,7 +32,9 @@ export async function updateChecklistTemplateItem(formData: FormData) {
 }
 
 export async function updateChecklistItemStatus(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -49,7 +58,9 @@ export async function updateChecklistItemStatus(formData: FormData) {
 }
 
 export async function saveStateFundingAward(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const id = formData.get("id") as string;
 
   const { error } = await supabase
@@ -72,7 +83,9 @@ export async function saveStateFundingAward(formData: FormData) {
 }
 
 export async function recordExpectedFundingPayment(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { error } = await supabase.from("state_funding_expected_payments").insert({
     state_funding_verification_id: formData.get("verification_id") as string,
     school_id: formData.get("school_id") as string,
@@ -87,7 +100,9 @@ export async function recordExpectedFundingPayment(formData: FormData) {
 }
 
 export async function recordReceivedFundingPayment(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -107,7 +122,9 @@ export async function recordReceivedFundingPayment(formData: FormData) {
 }
 
 export async function saveFundingProgram(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const id = formData.get("id") as string | null;
 
   const payload = {

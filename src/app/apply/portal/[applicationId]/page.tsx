@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ApplyShell } from "@/components/admissions/portal/ApplyShell";
 import { AdmissionsProgressMeter } from "@/components/admissions/portal/AdmissionsProgressMeter";
@@ -69,9 +70,9 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
       <div className="space-y-6">
         <div>
           <p className="text-sm text-brand-600">
-            <a href="/apply/portal" className="hover:underline">
+            <Link href="/apply/portal" className="hover:underline">
               ← Back to applications
-            </a>
+            </Link>
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
             {lead ? `${lead.first_name} ${lead.last_name}` : "Application"}

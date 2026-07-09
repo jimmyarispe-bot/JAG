@@ -8,7 +8,7 @@ export default async function ModulesPage() {
   const modules = await getModuleMarketplace(supabase, organizationId);
 
   return (
-    <ConfigStudioShell title="Module Marketplace" subtitle="Enable, disable, and manage AcademyOS modules">
+    <ConfigStudioShell title="Module Marketplace" subtitle="Enable, disable, and manage platform modules">
       <ModuleMarketplacePanel organizationId={organizationId} modules={modules} />
     </ConfigStudioShell>
   );

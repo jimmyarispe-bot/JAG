@@ -7,10 +7,13 @@ import {
 import { buildDecisionExplanation } from "@/lib/platform/decision/engine/explanation";
 import { evaluateDecisionRules } from "@/lib/platform/decision/engine/rule-engine";
 import { collectDecisionEvidence } from "@/lib/platform/decision/evidence/collector";
+import { persistDecisionAuditEntry } from "@/lib/platform/decision/persistence/records";
+import { syncDecisionGraphEdges } from "@/lib/platform/intelligence-graph/integration/decisions";
 import { getDecisionDefinition } from "@/lib/platform/decision/registry/registry";
 import { computeDecisionConfidence } from "@/lib/platform/decision/scoring/confidence";
 import { scoreDecisionOutcomes } from "@/lib/platform/decision/scoring/framework";
 import { DECISION_ENGINE_VERSION } from "@/lib/platform/decision/version";
+import type { createAuthClient } from "@/lib/supabase/server-auth";
 import type {
   AlternativeRecommendation,
   DecisionResult,
@@ -18,10 +21,16 @@ import type {
   Recommendation,
 } from "@/lib/platform/decision/types";
 
+type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
+
 export interface ExecuteDecisionOptions {
   ruleEngineKey?: string;
   aiAssistEngineKey?: string;
   recordAudit?: boolean;
+  /** Wave 1 — persist audit entry to platform_decision_records when provided. */
+  persist?: {
+    supabase: AuthClient;
+  };
 }
 
 function buildRecommendation(
@@ -186,6 +195,16 @@ export async function executeDecision(
       explanation.summary
     );
     recordDecisionAuditEntry(auditEntry);
+
+    if (options.persist?.supabase) {
+      const { error } = await persistDecisionAuditEntry(options.persist.supabase, auditEntry);
+      if (error) {
+        throw new Error(
+          `Failed to persist platform decision "${auditEntry.executionId}": ${error}`
+        );
+      }
+      await syncDecisionGraphEdges(options.persist.supabase, auditEntry);
+    }
   }
 
   return result;

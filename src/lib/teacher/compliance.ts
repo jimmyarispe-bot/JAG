@@ -25,7 +25,7 @@ export async function syncTeacherComplianceToMissionControl(supabase: AuthClient
         severity: "high",
         entityType: "employees",
         entityId: emp.id,
-        href: item.href ?? "/dashboard/teacher?view=compliance",
+        href: item.href ?? "/dashboard/teacher?work=today",
       });
     }
   }

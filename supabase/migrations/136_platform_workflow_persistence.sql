@@ -32,7 +32,7 @@ create index if not exists idx_platform_workflow_definitions_domain
 drop trigger if exists platform_workflow_definitions_set_updated_at on public.platform_workflow_definitions;
 create trigger platform_workflow_definitions_set_updated_at
   before update on public.platform_workflow_definitions
-  for each row execute function public.set_updated_at();
+  for each row execute function public.trigger_set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- 2. WORKFLOW VERSIONS
@@ -95,7 +95,7 @@ create unique index if not exists idx_platform_workflow_instances_active_entity
 drop trigger if exists platform_workflow_instances_set_updated_at on public.platform_workflow_instances;
 create trigger platform_workflow_instances_set_updated_at
   before update on public.platform_workflow_instances
-  for each row execute function public.set_updated_at();
+  for each row execute function public.trigger_set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- 4. STATE HISTORY (includes audit trail)

@@ -1,27 +1,29 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/platform/activity";
 import { assertAnyPermission, assertPermission } from "@/lib/platform/identity/action-guards";
 import { writePlatformAudit } from "@/lib/platform/automation/audit";
+import { resolveSchoolContext } from "@/lib/platform/shared/context";
 import { generateTuitionInvoiceFromPlan } from "@/lib/finance/tuition-engine";
 import { recordFinancialTransaction } from "@/lib/finance/ledger";
 import { enqueueBillingReminder } from "@/lib/finance/automation";
 import { buildBudgetForecastSnapshot } from "@/lib/finance/forecasting";
 
 async function requireFinanceOrPortal() {
-  return assertAnyPermission("finance.billing", "finance.view", "portal.parent.access");
+  return assertAnyPermission("finance.billing", "portal.parent.access");
 }
 
 async function requireFinanceBilling() {
-  return assertAnyPermission("finance.billing", "finance.view");
+  return assertPermission("finance.billing");
 }
 
 async function requireFinanceApprove() {
-  return assertAnyPermission("finance.approve", "finance.billing", "finance.view");
+  return assertAnyPermission("finance.approve", "finance.billing");
 }
 
-async function requireFinanceView() {
-  return assertPermission("finance.view");
+async function requireFinanceForecastWrite() {
+  return assertAnyPermission("finance.billing", "finance.forecast");
 }
 
 export async function createBillingAccount(formData: FormData) {
@@ -119,6 +121,29 @@ export async function createInvoice(formData: FormData) {
       invoiceId: invoice.id,
       dueDate: formData.get("due_date") as string,
     });
+
+    const schoolCtx = await resolveSchoolContext(supabase, account.school_id);
+    await recordActivity(supabase, {
+      eventType: "invoice.created",
+      moduleKey: "finance",
+      entityType: "invoice",
+      entityId: invoice.id,
+      title: "Invoice created",
+      summary: formData.get("invoice_number") as string,
+      organizationId: schoolCtx?.organizationId,
+      schoolId: account.school_id,
+      studentId,
+      familyId: account.family_id,
+      actorUserId: user?.id ?? null,
+      payload: {
+        billing_account_id: billingAccountId,
+        total_amount: totalAmount,
+        family_responsibility: familyResponsibility,
+        invoice_status: "sent",
+      },
+      sourceTable: "invoices",
+      sourceId: invoice.id,
+    });
   }
 
   revalidatePath("/dashboard/finance");
@@ -215,6 +240,49 @@ export async function recordPayment(formData: FormData) {
 
       await supabase.rpc("sync_billing_account_balance", {
         p_account_id: invoiceRow.billing_account_id,
+      });
+
+      if (status === "paid" && invoiceRow.student_id) {
+        const { fireOperationalLoopTransition } = await import("@/lib/platform/operational-loop");
+        await fireOperationalLoopTransition(supabase, {
+          transitionKey: "billing_to_scheduling_cycle",
+          studentId: invoiceRow.student_id as string,
+          schoolId: (acct as { school_id: string }).school_id,
+          actorUserId: user?.id ?? null,
+          relatedEntityType: "invoices",
+          relatedEntityId: invoiceId,
+          facts: { paymentId: payment?.id, amount, receiptNumber },
+        });
+      }
+
+      const schoolId = (acct as { school_id: string }).school_id;
+      const familyId = (acct as { family_id: string }).family_id;
+      const schoolCtx = await resolveSchoolContext(supabase, schoolId);
+      const paymentEventType = status === "paid" ? "invoice.paid" : "invoice.payment_recorded";
+      await recordActivity(supabase, {
+        eventType: paymentEventType,
+        moduleKey: "finance",
+        entityType: "invoice",
+        entityId: invoiceId,
+        title: status === "paid" ? "Invoice paid" : "Payment recorded",
+        summary: `Payment ${receiptNumber} · ${amount}`,
+        organizationId: schoolCtx?.organizationId,
+        schoolId,
+        studentId: invoiceRow.student_id,
+        familyId,
+        actorUserId: user?.id ?? null,
+        relatedEntityType: payment?.id ? "payment" : null,
+        relatedEntityId: payment?.id ?? null,
+        payload: {
+          payment_id: payment?.id ?? null,
+          amount,
+          receipt_number: receiptNumber,
+          invoice_status: status,
+          amount_paid: newPaid,
+          total_amount: total,
+        },
+        sourceTable: "payments",
+        sourceId: payment?.id ?? invoiceId,
       });
     }
   }
@@ -363,7 +431,7 @@ export async function createPaymentPlanAction(formData: FormData) {
 }
 
 export async function createScholarshipFundAction(formData: FormData) {
-  const auth = await assertAnyPermission("finance.scholarships", "finance.billing", "finance.view");
+  const auth = await assertAnyPermission("finance.scholarships", "finance.billing");
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
   const total = Number(formData.get("total_allocation"));
@@ -384,7 +452,7 @@ export async function createScholarshipFundAction(formData: FormData) {
 }
 
 export async function buildForecastAction(formData: FormData) {
-  const auth = await requireFinanceView();
+  const auth = await requireFinanceForecastWrite();
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
   await buildBudgetForecastSnapshot(supabase, formData.get("school_id") as string);
@@ -518,6 +586,35 @@ export async function applyWriteOffAction(formData: FormData) {
 
   await supabase.rpc("sync_billing_account_balance", { p_account_id: invoice.billing_account_id });
 
+  const acct = Array.isArray(invoice.family_billing_accounts)
+    ? invoice.family_billing_accounts[0]
+    : invoice.family_billing_accounts;
+  const schoolId = (acct as { school_id?: string } | null)?.school_id;
+  if (schoolId) {
+    const schoolCtx = await resolveSchoolContext(supabase, schoolId);
+    await recordActivity(supabase, {
+      eventType: "invoice.write_off",
+      moduleKey: "finance",
+      entityType: "invoice",
+      entityId: invoiceId,
+      title: "Invoice write-off",
+      summary: reason,
+      organizationId: schoolCtx?.organizationId,
+      schoolId,
+      studentId: invoice.student_id,
+      familyId: (acct as { family_id?: string } | null)?.family_id ?? null,
+      actorUserId: user?.id ?? null,
+      payload: {
+        write_off_amount: writeOff,
+        fully_written_off: fullyWrittenOff,
+        reason,
+        billing_account_id: invoice.billing_account_id,
+      },
+      sourceTable: "invoices",
+      sourceId: invoiceId,
+    });
+  }
+
   revalidatePath("/dashboard/finance");
   return { success: true };
 }
@@ -532,16 +629,22 @@ export async function processRefundAction(formData: FormData) {
   const reason = formData.get("reason") as string;
   const invoiceId = (formData.get("invoice_id") as string) || null;
 
-  await supabase.from("billing_adjustments").insert({
-    billing_account_id: billingAccountId,
-    invoice_id: invoiceId,
-    adjustment_type: "refund",
-    amount,
-    reason,
-    created_by: user?.id ?? null,
-    approval_status: "approved",
-    approved_by: user?.id ?? null,
-  });
+  const { data: adjustment, error: adjustmentError } = await supabase
+    .from("billing_adjustments")
+    .insert({
+      billing_account_id: billingAccountId,
+      invoice_id: invoiceId,
+      adjustment_type: "refund",
+      amount,
+      reason,
+      created_by: user?.id ?? null,
+      approval_status: "approved",
+      approved_by: user?.id ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (adjustmentError) return { error: adjustmentError.message };
 
   await supabase.from("billing_credits").insert({
     billing_account_id: billingAccountId,
@@ -552,6 +655,40 @@ export async function processRefundAction(formData: FormData) {
   });
 
   await supabase.rpc("sync_billing_account_balance", { p_account_id: billingAccountId });
+
+  const { data: account } = await supabase
+    .from("family_billing_accounts")
+    .select("school_id, family_id")
+    .eq("id", billingAccountId)
+    .maybeSingle();
+
+  if (account?.school_id) {
+    const schoolCtx = await resolveSchoolContext(supabase, account.school_id);
+    await recordActivity(supabase, {
+      eventType: "invoice.refunded",
+      moduleKey: "finance",
+      entityType: invoiceId ? "invoice" : "billing_account",
+      entityId: invoiceId || billingAccountId,
+      title: "Refund processed",
+      summary: reason,
+      organizationId: schoolCtx?.organizationId,
+      schoolId: account.school_id,
+      familyId: account.family_id,
+      actorUserId: user?.id ?? null,
+      relatedEntityType: "billing_adjustment",
+      relatedEntityId: adjustment.id,
+      payload: {
+        amount,
+        reason,
+        billing_account_id: billingAccountId,
+        invoice_id: invoiceId,
+        adjustment_id: adjustment.id,
+      },
+      sourceTable: "billing_adjustments",
+      sourceId: adjustment.id,
+    });
+  }
+
   revalidatePath("/dashboard/finance");
   return { success: true };
 }

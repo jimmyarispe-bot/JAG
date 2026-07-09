@@ -25,6 +25,9 @@ export const GRAPH_PROVIDER_KEYS = [
   "notes",
   "tag",
   "profile",
+  "persisted",
+  "evidence",
+  "rules",
 ] as const;
 export type GraphProviderKey = (typeof GRAPH_PROVIDER_KEYS)[number];
 

@@ -71,9 +71,26 @@ export async function recordSessionAttendance(
     relatedEntityId: input.sessionId,
   });
 
-  if (input.notifyParent && input.status.startsWith("absent")) {
-    const { processAttendanceParentNotifications } = await import("@/lib/ssis/attendance-notifications");
-    await processAttendanceParentNotifications(supabase);
+  if (input.notifyParent && input.status.startsWith("absent") && schoolId) {
+    const statusLabel = input.status.replace(/_/g, " ");
+    const { deliverParentCommunication } = await import(
+      "@/lib/platform/parent-communication/deliver"
+    );
+    await deliverParentCommunication(supabase, {
+      studentId: input.studentId,
+      schoolId,
+      category: "attendance",
+      title: `Session attendance: ${statusLabel}`,
+      body: input.notes ?? `Recorded from instructional session on ${dateStr}`,
+      channel: "parent_portal",
+      actorUserId: input.recordedBy,
+      href: "/portal",
+      relatedEntityType: "instructional_sessions",
+      relatedEntityId: input.sessionId,
+      metadata: { attendanceStatus: input.status, attendanceDate: dateStr },
+      createFollowUpWork: true,
+      followUpHref: `/dashboard/students/${input.studentId}?section=attendance`,
+    });
   }
 
   return { success: true, sisRecordId: sisRecord?.id };

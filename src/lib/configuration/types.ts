@@ -112,6 +112,13 @@ export const DEFAULT_ORGANIZATION_CONFIG = {
   currencies: ["USD"],
   business_hours: { mon_fri: "8:00-17:00" },
   contact: { email: "", phone: "", address: "" },
+  /** Role key → display title (e.g. CEO → Founder / CEO, SCHOOL_LEADER → Superintendent). */
+  role_titles: {} as Record<string, string>,
+  role_title_CEO: "",
+  role_title_FOUNDER: "",
+  role_title_EXECUTIVE_DIRECTOR: "",
+  role_title_REGIONAL_DIRECTOR: "",
+  role_title_SCHOOL_LEADER: "",
 };
 
 export const DEFAULT_BRANDING_CONFIG = {
@@ -122,6 +129,19 @@ export const DEFAULT_BRANDING_CONFIG = {
   secondary_color: "#0F172A",
   accent_color: "#10B981",
   typography: { heading: "Inter", body: "Inter" },
+  product_name: "",
+  product_tagline: "Education Operating System",
+  edition_label: "Founder's Edition",
+  monogram: "",
+  founder_workspace_label: "Founder Morning Brief",
+  intelligence_engine_label: "Executive Intelligence",
+  mission_control_label: "Mission Control",
+  compliance_label: "Compliance",
+  financial_intelligence_label: "Financial Intelligence",
+  connect_label: "Connect",
+  data_hub_label: "Data Hub",
+  support_mode_label: "Support Mode",
+  email_from_name: "",
   email_branding: {},
   portal_branding: {},
   report_branding: {},

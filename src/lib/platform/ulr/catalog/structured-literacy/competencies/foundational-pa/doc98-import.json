@@ -1,0 +1,1392 @@
+{
+  "libraryKey": "competency_library.foundational_phonological_awareness",
+  "documentRef": "DOCUMENT-98",
+  "version": "1.0.0",
+  "competencyCount": 24,
+  "competencies": [
+    {
+      "competencyKey": "AW-SL-PA-001-v1.0.0",
+      "title": "Segment Spoken Sentences into Words",
+      "titleEducator": "Sentence Segmentation — Word Boundary Identification",
+      "description": "The learner hears a spoken sentence and identifies each word as a separate unit by clapping, tapping, or counting aloud. This competency establishes the largest phonological unit — the word — as distinct from sentences and syllables. Instruction is oral and auditory; print is not required.",
+      "purpose": "Establish word-level awareness as the entry point to phonological analysis — prerequisite for all syllable and onset-rime work.",
+      "whyItMatters": "Before children can play with sounds inside words, they must hear that sentences are made of separate words. This skill supports later reading (parsing written sentences) and clear oral communication.",
+      "developmentalNotes": "Emerges with explicit instruction and rhyme/song play. Some learners consolidate quickly; others need extended guided practice. Not an age gate.",
+      "competencyGroupKey": "pa.competency.sentence_segmentation",
+      "subStrandKey": "domain.structured_literacy.sub_strand.sentence_awareness",
+      "conceptKeys": [
+        "SL-CONCEPT-PHONOLOGICAL_AWARENESS",
+        "SL-CONCEPT-LANGUAGE_PROCESSING"
+      ],
+      "prerequisiteCompetencyKeys": [],
+      "prerequisiteRationale": "Learner must respond to spoken language in conversation (language processing exposure).",
+      "nextCompetencyKeys": [
+        "AW-SL-PA-002-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "observation.instructional",
+        "observation.checklist",
+        "measurement.formative"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.observation",
+        "measurement.formative"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [
+        "instr.explicit",
+        "instr.modeling",
+        "instr.multisensory",
+        "instr.errorless"
+      ],
+      "interventionStrategies": [
+        "intervention.tier1_boost",
+        "intervention.micro.reteach"
+      ],
+      "parentActivities": [
+        "pa.parent.read_aloud_rhythm",
+        "pa.parent.syllable_clap"
+      ],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.strategy",
+        "sl.aic.pa.assess",
+        "sl.aic.pa.intervention"
+      ],
+      "schedulingRuleKeys": [
+        "sl.schedule.pa.daily_burst",
+        "sl.schedule.pa.review_cluster"
+      ],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-001-AS-001-v1.0.0",
+          "title": "Segment 3-word sentences"
+        },
+        {
+          "key": "AW-SL-PA-001-AS-002-v1.0.0",
+          "title": "Segment 5-word sentences"
+        },
+        {
+          "key": "AW-SL-PA-001-AS-003-v1.0.0",
+          "title": "Segment sentences with multisyllabic words"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-002-v1.0.0",
+      "title": "Count Words in Spoken Sentences",
+      "titleEducator": "Sentence Segmentation — Verbal Word Count",
+      "description": "The learner hears a spoken sentence and states the total number of words without necessarily clapping or tapping. This competency verifies metalinguistic word-boundary knowledge independent of motor accompaniment.",
+      "purpose": "Confirm word-boundary awareness through verbal response — reduces dependence on motor scaffolding before syllable work.",
+      "whyItMatters": "Being able to count words in a sentence helps children understand how language is built and prepares them for reading sentences in books.",
+      "developmentalNotes": "Typically follows successful clap/tap segmentation. Some learners can count before they can segment motorically — accept either path with evidence.",
+      "competencyGroupKey": "pa.competency.sentence_segmentation",
+      "subStrandKey": "domain.structured_literacy.sub_strand.sentence_awareness",
+      "conceptKeys": [
+        "SL-CONCEPT-PHONOLOGICAL_AWARENESS"
+      ],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-001-v1.0.0"
+      ],
+      "prerequisiteRationale": "Motor or procedural segmentation must be established before verbal-only count is expected.",
+      "nextCompetencyKeys": [
+        "AW-SL-PA-003-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.instructional"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "measurement.formative"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [
+        "instr.explicit",
+        "instr.retrieval"
+      ],
+      "interventionStrategies": [
+        "intervention.micro.reteach"
+      ],
+      "parentActivities": [
+        "pa.parent.read_aloud_rhythm"
+      ],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.strategy",
+        "sl.aic.pa.assess"
+      ],
+      "schedulingRuleKeys": [
+        "sl.schedule.pa.daily_burst"
+      ],
+      "cumulativeReviewKeys": [
+        "AW-SL-PA-001-v1.0.0"
+      ],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-002-AS-001-v1.0.0",
+          "title": "Verbal count 3-word sentences"
+        },
+        {
+          "key": "AW-SL-PA-002-AS-002-v1.0.0",
+          "title": "Verbal count 5-word sentences"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-003-v1.0.0",
+      "title": "Blend Two Spoken Syllables into Words",
+      "titleEducator": "Syllable Blending — Bisyllabic Oral Synthesis",
+      "description": "The learner hears two separately spoken syllables (e.g., \"pen\" … \"cil\") and blends them orally into a recognizable word (\"pencil\") without print support.",
+      "purpose": "Introduce syllable as a phonological unit and develop oral synthesis — foundation for decoding blend tasks.",
+      "whyItMatters": "Blending syllables is like putting puzzle pieces together to hear a whole word — a skill readers use when sounding out longer words.",
+      "developmentalNotes": "May lag segmentation; blending often taught before or alongside segmentation with evidence-based placement.",
+      "competencyGroupKey": "pa.competency.syllable_blend",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [
+        "SL-CONCEPT-PHONOLOGICAL_AWARENESS"
+      ],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-002-v1.0.0"
+      ],
+      "prerequisiteRationale": "Word-level awareness must be stable before syllable manipulation.",
+      "nextCompetencyKeys": [
+        "AW-SL-PA-004-v1.0.0",
+        "AW-SL-PA-006-v1.0.0",
+        "AW-SL-PA-011-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.instructional",
+        "media.audio"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.observation"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [
+        "instr.explicit",
+        "instr.modeling",
+        "instr.multisensory"
+      ],
+      "interventionStrategies": [
+        "intervention.tier1_boost",
+        "intervention.micro.ef"
+      ],
+      "parentActivities": [
+        "pa.parent.syllable_clap"
+      ],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.strategy",
+        "sl.aic.pa.assess",
+        "sl.aic.pa.intervention"
+      ],
+      "schedulingRuleKeys": [
+        "sl.schedule.pa.daily_burst"
+      ],
+      "cumulativeReviewKeys": [
+        "AW-SL-PA-001-v1.0.0",
+        "AW-SL-PA-002-v1.0.0"
+      ],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-003-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-003-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-003-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [
+        "Blends 2-syllable real words on ≥ 4/5 trials with ≤ 3 sec latency; blends 2-syllable nonsense syllables on ≥ 4/5 trials (isolates PA from vocabulary)."
+      ],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-004-v1.0.0",
+      "title": "Blend Three Spoken Syllables into Words",
+      "titleEducator": "Syllable Blending — Trisyllabic Oral Synthesis",
+      "description": "The learner blends three separately spoken syllables into a recognizable word (e.g., \"bas\" … \"ket\" … \"ball\") orally without print.",
+      "purpose": "Extend working-memory demand for syllable synthesis — prepares for multisyllabic word reading.",
+      "whyItMatters": "Many everyday words have three or more parts — blending them helps children unlock longer words when reading.",
+      "developmentalNotes": "Higher WM load than bisyllabic blend; allow scaffold fade.",
+      "competencyGroupKey": "pa.competency.syllable_blend",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [
+        "SL-CONCEPT-PHONOLOGICAL_AWARENESS"
+      ],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-003-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-005-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.instructional"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "measurement.formative"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [
+        "instr.explicit",
+        "instr.chunking"
+      ],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.strategy",
+        "sl.aic.pa.schedule"
+      ],
+      "schedulingRuleKeys": [
+        "sl.schedule.pa.break_ef"
+      ],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-004-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-004-AS-003-v1.0.0",
+          "title": "003"
+        },
+        {
+          "key": "AW-SL-PA-004-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [
+        "Blends 3-syllable words ≥ 4/5; blends 3-syllable nonsense ≥ 4/5; latency ≤ 5 sec."
+      ],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-005-v1.0.0",
+      "title": "Blend Multisyllabic Spoken Words",
+      "titleEducator": "Syllable Blending — Four+ Syllable Oral Synthesis",
+      "description": "The learner blends four or more separately spoken syllables into recognizable multisyllabic words orally.",
+      "purpose": "Establish syllable blending ceiling for PA strand before segmentation emphasis and onset-rime work.",
+      "whyItMatters": "Long words in science, history, and everyday life become approachable when children can hear the parts come together.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.syllable_blend",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-004-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-014-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.checklist",
+        "media.audio"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.mastery_bundle"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-005-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-005-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-005-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [
+        "Blends 4-syllable words ≥ 4/5; blends 5-syllable words ≥ 3/5; uses consistent strategy (chunking acceptable)."
+      ],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-006-v1.0.0",
+      "title": "Distinguish Single- from Multisyllabic Words",
+      "titleEducator": "Syllable Awareness — Unit Size Discrimination",
+      "description": "The learner hears spoken words and classifies each as one syllable or more than one syllable without full segmentation.",
+      "purpose": "Establish syllable as a discriminable unit before segmentation tasks — reduces over-segmentation of monosyllables.",
+      "whyItMatters": "Knowing whether a word has one part or many parts helps children choose the right strategy when reading or spelling.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.syllable_segment",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-003-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-007-v1.0.0",
+        "AW-SL-PA-022-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "observation.instructional",
+        "measurement.progress"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "measurement.formative"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-006-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-006-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [
+        "Correctly classifies 10 mixed mono/multisyllabic words ≥ 8/10; explains \"one part\" vs. \"more than one part\" on ≥ 3/5 prompts."
+      ],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-007-v1.0.0",
+      "title": "Segment Two-Syllable Spoken Words",
+      "titleEducator": "Syllable Segmentation — Bisyllabic Analysis",
+      "description": "The learner hears a two-syllable spoken word and segments it into its syllable parts orally (e.g., \"happy\" → \"hap\" … \"py\").",
+      "purpose": "Develop analytic syllable skill — inverse of blending; required for spelling segmentation and onset-rime work.",
+      "whyItMatters": "Breaking words into syllable parts helps with spelling and reading longer words.",
+      "developmentalNotes": "Segmentation often harder than blending; allow extended practice.",
+      "competencyGroupKey": "pa.competency.syllable_segment",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [
+        "SL-CONCEPT-PHONOLOGICAL_AWARENESS"
+      ],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-006-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-008-v1.0.0",
+        "AW-SL-PA-022-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "observation.checklist",
+        "measurement.progress",
+        "media.audio"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.observation"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [
+        "instr.explicit",
+        "instr.multisensory"
+      ],
+      "interventionStrategies": [],
+      "parentActivities": [
+        "pa.parent.syllable_clap"
+      ],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.strategy",
+        "sl.aic.pa.intervention"
+      ],
+      "schedulingRuleKeys": [
+        "sl.schedule.pa.daily_burst",
+        "sl.schedule.pa.review_cluster"
+      ],
+      "cumulativeReviewKeys": [
+        "AW-SL-PA-003-v1.0.0"
+      ],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-007-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-007-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-007-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-008-v1.0.0",
+      "title": "Segment Three- and Four-Syllable Words",
+      "description": "The learner segments spoken words of three or four syllables into constituent syllable parts orally.",
+      "purpose": "Extend segmentation to multisyllabic words — prerequisite for syllable manipulation and academic vocabulary.",
+      "whyItMatters": "Science and social studies words often have three or more syllables — this skill unlocks them orally before reading.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.syllable_segment",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-007-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-009-v1.0.0",
+        "AW-SL-PA-020-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.instructional"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.mastery_bundle"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-008-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-008-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-008-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-009-v1.0.0",
+      "title": "Delete a Syllable from Spoken Words",
+      "titleEducator": "Syllable Manipulation — Deletion",
+      "description": "The learner hears a word and a syllable-deletion prompt (e.g., \"Say cupcake without cup\") and responds with the remaining word (\"cake\").",
+      "purpose": "Develop syllable manipulation — confirms syllable representation is operational not rote.",
+      "whyItMatters": "Playing with syllable parts strengthens brain pathways for reading and spelling flexibility.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.syllable_manipulate",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-008-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-010-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "observation.instructional",
+        "measurement.progress"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "measurement.formative"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [
+        "instr.explicit",
+        "instr.errorless"
+      ],
+      "interventionStrategies": [
+        "intervention.tier2_plan"
+      ],
+      "parentActivities": [
+        "pa.parent.syllable_clap"
+      ],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-009-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-009-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-010-v1.0.0",
+      "title": "Add a Syllable to Spoken Words",
+      "description": "The learner adds a spoken syllable to a base word to form a new word (e.g., \"Say cake, now say it with cup at the beginning\" → \"cupcake\").",
+      "purpose": "Complete syllable manipulation pair (delete/add) — supports morphological awareness emergence.",
+      "whyItMatters": "Adding parts to words mirrors how prefixes and compound words work in reading.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.syllable_manipulate",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-009-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-021-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.instructional"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-010-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-010-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-011-v1.0.0",
+      "title": "Identify Rhyming Word Pairs",
+      "titleEducator": "Rhyme Recognition — Auditory Same-Rime Detection",
+      "description": "The learner hears pairs of spoken words and identifies whether they rhyme based on shared ending sound pattern.",
+      "purpose": "Develop rime awareness embedded across PA sequence — supports onset-rime blending and spelling patterns.",
+      "whyItMatters": "Rhyming games build ear for word patterns that help with reading and enjoying language.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.rhyme_recognition",
+      "subStrandKey": "domain.structured_literacy.sub_strand.rhyme_alliteration",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-003-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-012-v1.0.0",
+        "AW-SL-PA-013-v1.0.0",
+        "AW-SL-PA-018-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "observation.instructional",
+        "measurement.formative",
+        "observation.parent"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.observation"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [
+        "pa.parent.rhyme_time",
+        "pa.parent.read_aloud_rhythm"
+      ],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.parent",
+        "sl.aic.pa.strategy"
+      ],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-011-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-011-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-011-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-012-v1.0.0",
+      "title": "Produce Rhyming Words",
+      "description": "The learner generates a spoken word that rhymes with a target word (real or nonsense).",
+      "purpose": "Active rime manipulation — stronger than recognition alone; supports encoding rime families.",
+      "whyItMatters": "Making up rhymes strengthens flexible use of word patterns — fun and foundational.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.rhyme_recognition",
+      "subStrandKey": "domain.structured_literacy.sub_strand.rhyme_alliteration",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-011-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-014-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "media.audio",
+        "observation.parent"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "media.audio"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [
+        "pa.parent.rhyme_time"
+      ],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-012-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-012-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-013-v1.0.0",
+      "title": "Distinguish Rhyming from Non-Rhyming Pairs",
+      "titleEducator": "Rhyme Discrimination — Rime vs. Onset Confusion Resolution",
+      "description": "The learner accurately sorts or identifies word pairs as rhyming or not rhyming, including foil pairs sharing onset but not rime (cat/car).",
+      "purpose": "Resolve common onset-rime confusion before formal onset-rime instruction.",
+      "whyItMatters": "Learning to listen for the ending sound prevents reading mistakes where words look similar at the start.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.rhyme_recognition",
+      "subStrandKey": "domain.structured_literacy.sub_strand.rhyme_alliteration",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-011-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-020-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.instructional"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "measurement.formative"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [
+        "intervention.micro.reteach"
+      ],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-013-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-013-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-014-v1.0.0",
+      "title": "Blend Single-Consonant Onset and Rime",
+      "titleEducator": "Onset-Rime Blending — CVC Oral Synthesis",
+      "description": "The learner blends a single consonant onset with a rime orally (e.g., /c/ + at → \"cat\") without print.",
+      "purpose": "Introduce onset-rime as sub-syllabic unit — direct bridge to phoneme blending and decoding.",
+      "whyItMatters": "Onset-rime blending is how many early words are built — cat, bat, hat share patterns children learn to hear.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.onset_rime_blend",
+      "subStrandKey": "domain.structured_literacy.sub_strand.onset_rime_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-005-v1.0.0",
+        "AW-SL-PA-012-v1.0.0"
+      ],
+      "prerequisiteRationale": "Multisyllabic syllable blend and rhyme production stabilize rime unit.",
+      "nextCompetencyKeys": [
+        "AW-SL-PA-015-v1.0.0",
+        "AW-SL-PA-016-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.checklist",
+        "media.audio"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.mastery_bundle"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [
+        "instr.explicit",
+        "instr.multisensory"
+      ],
+      "interventionStrategies": [],
+      "parentActivities": [
+        "pa.parent.rhyme_time"
+      ],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.strategy",
+        "sl.aic.pa.assess"
+      ],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-014-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-014-AS-004-v1.0.0",
+          "title": "004"
+        },
+        {
+          "key": "AW-SL-PA-014-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-014-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-015-v1.0.0",
+      "title": "Blend Consonant-Cluster Onset and Rime",
+      "description": "The learner blends consonant cluster onsets with rimes (e.g., /st/ + op → \"stop\"; /bl/ + ack → \"black\").",
+      "purpose": "Extend onset-rime blending to CCVC patterns — matches early decoding complexity.",
+      "whyItMatters": "Words like stop, black, and frog need two consonant sounds at the start — this skill prepares readers for them.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.onset_rime_blend",
+      "subStrandKey": "domain.structured_literacy.sub_strand.onset_rime_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-014-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-017-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.instructional"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-015-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-015-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-015-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-016-v1.0.0",
+      "title": "Segment Single-Consonant Onset from Rime",
+      "description": "The learner segments a spoken word into onset and rime parts (e.g., \"cat\" → /c/ … at).",
+      "purpose": "Analytic onset-rime skill — inverse of blending; supports spelling by pattern.",
+      "whyItMatters": "Splitting words into beginning and ending chunks helps with spelling and word families.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.onset_rime_segment",
+      "subStrandKey": "domain.structured_literacy.sub_strand.onset_rime_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-014-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-017-v1.0.0",
+        "AW-SL-PA-023-v1.0.0"
+      ],
+      "evidenceTypes": [],
+      "assessmentMethods": [],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-016-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-016-AS-003-v1.0.0",
+          "title": "003"
+        },
+        {
+          "key": "AW-SL-PA-016-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-017-v1.0.0",
+      "title": "Segment Consonant-Cluster Onset from Rime",
+      "description": "The learner segments CCVC and related words into cluster onset and rime orally.",
+      "purpose": "Complete onset-rime segmentation for common English patterns before phoneme readiness.",
+      "whyItMatters": "Segmenting complex beginnings prepares children for accurate decoding of blend words.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.onset_rime_segment",
+      "subStrandKey": "domain.structured_literacy.sub_strand.onset_rime_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-015-v1.0.0",
+        "AW-SL-PA-016-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-019-v1.0.0",
+        "AW-SL-PA-023-v1.0.0",
+        "AW-SL-PA-020-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "observation.checklist",
+        "measurement.progress"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.mastery_bundle"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-017-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-017-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-017-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-018-v1.0.0",
+      "title": "Identify Alliterative Word Pairs",
+      "titleEducator": "Alliteration — Shared Initial Sound Detection",
+      "description": "The learner identifies word pairs sharing the same initial sound (alliteration) — distinct from rhyme.",
+      "purpose": "Reinforce onset awareness through initial-sound focus; complements rhyme and onset-rime work.",
+      "whyItMatters": "Alliteration games (Peter Piper) build attention to beginning sounds — a stepping stone to phoneme work.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.rhyme_recognition",
+      "subStrandKey": "domain.structured_literacy.sub_strand.rhyme_alliteration",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-011-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-019-v1.0.0"
+      ],
+      "evidenceTypes": [],
+      "assessmentMethods": [],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [
+        "pa.parent.rhyme_time",
+        "pa.parent.sound_walk"
+      ],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-018-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-018-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-019-v1.0.0",
+      "title": "Isolate Initial Phoneme in Spoken Words",
+      "titleEducator": "Phoneme Readiness — Initial Phoneme Isolation (Bridge)",
+      "description": "The learner isolates and produces the first phoneme in spoken words (e.g., first sound in \"sun\" → /s/). This is the **bridge competency** to the Phonemic Awareness library — still oral, no print required.",
+      "purpose": "Transition from onset-rime (which may include consonant cluster as onset) to single-phoneme manipulation — handoff preparation per Doc 51 §4.1 Stage 8.",
+      "whyItMatters": "Finding the very first sound in a word is the gateway to reading letters and sounds together.",
+      "developmentalNotes": "First phoneme task in PA sequence; full phoneme library follows in separate competency library.",
+      "competencyGroupKey": "pa.competency.phoneme_readiness",
+      "subStrandKey": "domain.structured_literacy.sub_strand.phoneme_readiness_bridge",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-017-v1.0.0",
+        "AW-SL-PA-018-v1.0.0"
+      ],
+      "prerequisiteRationale": "Onset-rime segmentation stable; alliteration awareness supports phoneme focus.",
+      "nextCompetencyKeys": [
+        "AW-SL-PA-024-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "observation.instructional",
+        "measurement.progress",
+        "media.audio"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.mastery_bundle"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [
+        "instr.explicit",
+        "instr.modeling"
+      ],
+      "interventionStrategies": [],
+      "parentActivities": [
+        "pa.parent.sound_walk",
+        "pa.parent.rhyme_time"
+      ],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.assess",
+        "sl.aic.pa.advance"
+      ],
+      "schedulingRuleKeys": [
+        "sl.schedule.pa.daily_burst"
+      ],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-019-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-019-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-019-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-020-v1.0.0",
+      "title": "Perform Integrated PA Review Across Stages",
+      "titleEducator": "Cumulative PA Integration — Multi-Task Oral Performance",
+      "description": "The learner performs mixed phonological awareness tasks spanning sentence, syllable, rhyme, and onset-rime levels in a single session without explicit task-type cueing.",
+      "purpose": "Validate recursive cumulative review (Doc 45 §2.3) — ensures PA is operational not task-dependent.",
+      "whyItMatters": "Real reading uses many sound skills together — this checks that skills stick beyond single drills.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.phoneme_readiness",
+      "subStrandKey": "domain.structured_literacy.sub_strand.phoneme_readiness_bridge",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-008-v1.0.0",
+        "AW-SL-PA-013-v1.0.0",
+        "AW-SL-PA-017-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-024-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "observation.checklist",
+        "measurement.progress",
+        "observation.parent"
+      ],
+      "assessmentMethods": [
+        "assess.sl.mastery_bundle",
+        "assess.sl.diagnostic.pa"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.schedule",
+        "sl.aic.pa.assess"
+      ],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-020-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-020-AS-005-v1.0.0",
+          "title": "005"
+        },
+        {
+          "key": "AW-SL-PA-020-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-020-AS-003-v1.0.0",
+          "title": "003"
+        },
+        {
+          "key": "AW-SL-PA-020-AS-004-v1.0.0",
+          "title": "004"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-021-v1.0.0",
+      "title": "Substitute Syllables in Spoken Words",
+      "description": "The learner substitutes one syllable for another in a spoken word to create a new word (e.g., \"Say cupcake, now say it with pan instead of cup\" → \"pancake\").",
+      "purpose": "Advanced syllable manipulation — confirms flexible syllable representation.",
+      "whyItMatters": "Swapping word parts builds mental flexibility used in reading, spelling, and vocabulary.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.syllable_manipulate",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-010-v1.0.0"
+      ],
+      "nextCompetencyKeys": [],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.instructional"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-021-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-021-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-022-v1.0.0",
+      "title": "Count Syllables in Spoken Words",
+      "description": "The learner states the number of syllables in spoken words without full oral segmentation — metalinguistic syllable counting.",
+      "purpose": "Efficient syllable quantification for placement and progress monitoring.",
+      "whyItMatters": "Quickly knowing how many parts a word has helps choose reading and spelling strategies.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.syllable_segment",
+      "subStrandKey": "domain.structured_literacy.sub_strand.syllable_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-007-v1.0.0"
+      ],
+      "nextCompetencyKeys": [],
+      "evidenceTypes": [
+        "measurement.progress",
+        "measurement.formative"
+      ],
+      "assessmentMethods": [
+        "assess.sl.screen.pa",
+        "assess.sl.probe.pa"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "moderate",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-022-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-022-AS-002-v1.0.0",
+          "title": "002"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-023-v1.0.0",
+      "title": "Manipulate Onset-Rime Units",
+      "titleEducator": "Onset-Rime Manipulation — Delete/Substitute Rime",
+      "description": "The learner deletes or substitutes rime units in spoken words (e.g., \"Say cat without /at/\" → /k/; \"Change /at/ to /op/\" → cop).",
+      "purpose": "Advanced onset-rime manipulation — final PA analytic skill before phoneme library.",
+      "whyItMatters": "Changing word endings orally mirrors phoneme substitution used in advanced reading.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.onset_rime_segment",
+      "subStrandKey": "domain.structured_literacy.sub_strand.onset_rime_awareness",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-017-v1.0.0"
+      ],
+      "nextCompetencyKeys": [
+        "AW-SL-PA-024-v1.0.0"
+      ],
+      "evidenceTypes": [
+        "measurement.progress",
+        "observation.checklist"
+      ],
+      "assessmentMethods": [
+        "assess.sl.probe.pa",
+        "assess.sl.mastery_bundle"
+      ],
+      "minimumEvidenceCount": 2,
+      "instructionalStrategies": [],
+      "interventionStrategies": [],
+      "parentActivities": [],
+      "aiCoachingRuleKeys": [],
+      "schedulingRuleKeys": [],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": false,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-023-AS-001-v1.0.0",
+          "title": "001"
+        },
+        {
+          "key": "AW-SL-PA-023-AS-002-v1.0.0",
+          "title": "002"
+        },
+        {
+          "key": "AW-SL-PA-023-AS-003-v1.0.0",
+          "title": "003"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    },
+    {
+      "competencyKey": "AW-SL-PA-024-v1.0.0",
+      "title": "Demonstrate PA Mastery for Phonemic Awareness Handoff",
+      "titleEducator": "PA Capstone — Phonemic Awareness Library Entry Validation",
+      "description": "The learner demonstrates consolidated phonological awareness across all PA competency groups at proficiency (L3), validated by multi-method evidence bundle, qualifying for entry to the Phonemic Awareness Competency Library (future Doc 99+).",
+      "purpose": "Capstone and library exit gate — ensures complete PA foundation before phoneme-level instruction intensifies.",
+      "whyItMatters": "This milestone confirms your child has the sound-awareness foundation needed to learn individual letter sounds and reading.",
+      "developmentalNotes": "",
+      "competencyGroupKey": "pa.competency.phoneme_readiness",
+      "subStrandKey": "domain.structured_literacy.sub_strand.phoneme_readiness_bridge",
+      "conceptKeys": [],
+      "prerequisiteCompetencyKeys": [
+        "AW-SL-PA-019-v1.0.0",
+        "AW-SL-PA-020-v1.0.0",
+        "AW-SL-PA-023-v1.0.0"
+      ],
+      "prerequisiteRationale": "Initial phoneme isolation, integrated review, and onset-rime manipulation all required.",
+      "nextCompetencyKeys": [],
+      "evidenceTypes": [
+        "observation.checklist",
+        "measurement.progress",
+        "measurement.retention",
+        "observation.parent",
+        "media.audio"
+      ],
+      "assessmentMethods": [
+        "assess.sl.mastery_bundle",
+        "assess.sl.diagnostic.pa",
+        "assess.sl.probe.pa"
+      ],
+      "minimumEvidenceCount": 3,
+      "instructionalStrategies": [
+        "instr.explicit",
+        "instr.retrieval",
+        "instr.generalization"
+      ],
+      "interventionStrategies": [
+        "intervention.tier2_plan",
+        "intervention.tier3_intensive"
+      ],
+      "parentActivities": [
+        "pa.parent.rhyme_time",
+        "pa.parent.syllable_clap",
+        "pa.parent.read_aloud_rhythm"
+      ],
+      "aiCoachingRuleKeys": [
+        "sl.aic.pa.assess",
+        "sl.aic.pa.advance",
+        "sl.aic.pa.intervention"
+      ],
+      "schedulingRuleKeys": [
+        "sl.schedule.pa.review_cluster"
+      ],
+      "cumulativeReviewKeys": [],
+      "executiveFunctionDemand": "high",
+      "portfolioEligible": true,
+      "transcriptEligible": false,
+      "futureAtomicSkillRefs": [
+        {
+          "key": "AW-SL-PA-024-AS-001-v1.0.0",
+          "title": "Capstone mixed probe — Form A"
+        },
+        {
+          "key": "AW-SL-PA-024-AS-002-v1.0.0",
+          "title": "Capstone mixed probe — Form B"
+        },
+        {
+          "key": "AW-SL-PA-024-AS-003-v1.0.0",
+          "title": "Retention probe — 2-week spacing"
+        },
+        {
+          "key": "AW-SL-PA-024-AS-004-v1.0.0",
+          "title": "Generalization performance task"
+        }
+      ],
+      "successCriteria": [],
+      "crossDomainLinks": []
+    }
+  ]
+}

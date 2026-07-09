@@ -25,6 +25,14 @@ const SECTION_COMPONENT_LOADERS: Record<string, () => Promise<ProfileSectionComp
     import("@/components/students/profile/sections/StudentSectionViews").then(
       (module) => module.AcademicsSection
     ),
+  "learning-journey": () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.LearningJourneySection
+    ),
+  "graduation-readiness": () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.GraduationReadinessSection
+    ),
   progress: () =>
     import("@/components/students/profile/sections/StudentSectionViews").then(
       (module) => module.ProgressSection
@@ -44,6 +52,10 @@ const SECTION_COMPONENT_LOADERS: Record<string, () => Promise<ProfileSectionComp
   scheduling: () =>
     import("@/components/students/profile/sections/StudentSectionViews").then(
       (module) => module.SchedulingSection
+    ),
+  teachers: () =>
+    import("@/components/students/profile/sections/StudentSectionViews").then(
+      (module) => module.TeachersSection
     ),
   "special-ed": () =>
     import("@/components/students/profile/sections/StudentSectionViews").then(

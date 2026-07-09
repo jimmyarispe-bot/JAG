@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { redirectIfPasswordResetRequired } from "@/lib/auth/must-reset-password";
-import { getSessionUser } from "@/lib/auth/session";
-import { createAuthClient } from "@/lib/supabase/server-auth";
+import { getAuthUser, getSessionUser } from "@/lib/auth/session";
 import {
   canAccessParentPortal,
   canAccessStudentPortal,
@@ -10,25 +9,21 @@ import {
 } from "@/lib/platform/identity/portal-access";
 import { getUnreadNotificationCount } from "@/lib/portal/notifications";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { loadOrganizationBranding } from "@/lib/branding";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createAuthClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [{ supabase, user }, sessionUser] = await Promise.all([getAuthUser(), getSessionUser()]);
 
-  if (!user) redirect("/login?next=/portal");
+  if (!user || !sessionUser) redirect("/login?next=/portal");
 
   redirectIfPasswordResetRequired(user, "/portal");
-
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) redirect("/login?next=/portal");
-  const [isParent, isStudent, studentIds, selfId, unread] = await Promise.all([
+  const [isParent, isStudent, studentIds, selfId, unread, branding] = await Promise.all([
     canAccessParentPortal(supabase, sessionUser.id),
     canAccessStudentPortal(supabase, sessionUser.id),
     getParentLinkedStudentIds(supabase, sessionUser.id),
     getStudentSelfId(supabase, sessionUser.id),
     getUnreadNotificationCount(supabase, sessionUser.id),
+    loadOrganizationBranding(supabase),
   ]);
 
   if (!isParent && !isStudent && studentIds.length === 0 && !selfId) {
@@ -52,6 +47,7 @@ export default async function PortalLayout({ children }: { children: React.React
       mode={mode}
       students={students}
       unreadNotifications={unread}
+      productName={branding.productName}
     >
       {children}
     </PortalShell>

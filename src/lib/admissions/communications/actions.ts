@@ -11,7 +11,7 @@ import { renderTemplate, type MergeContext } from "@/lib/admissions/communicatio
 import { sendTransactionalEmail } from "@/lib/platform/email/sendgrid";
 
 async function requireAdmissionsManage() {
-  return assertAnyPermission("admissions.manage", "admissions.accept", "admissions.view");
+  return assertAnyPermission("admissions.manage", "admissions.accept");
 }
 
 export async function runCommunicationQueueProcessor() {
@@ -226,7 +226,12 @@ export async function markStaffNotificationRead(notificationId: string) {
 }
 
 export async function previewTemplateMerge(formData: FormData) {
-  const auth = await requireAdmissionsManage();
+  // Read-only preview — view permission remains valid.
+  const auth = await assertAnyPermission(
+    "admissions.manage",
+    "admissions.accept",
+    "admissions.view"
+  );
   if ("error" in auth) return { error: auth.error };
 
   const subject = formData.get("subject") as string;

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { AdmissionsPageContent, AdmissionsPageSkeleton } from "./AdmissionsPageContent";
 
 interface AdmissionsPageProps {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; work?: string; drill?: string }>;
 }
 
 export default function AdmissionsPage({ searchParams }: AdmissionsPageProps) {

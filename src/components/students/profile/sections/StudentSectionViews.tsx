@@ -7,15 +7,21 @@ import {
   AcademicPanel,
   AttendancePanel,
   BehaviorPanel,
+  BillingPanel,
   DocumentsPanel,
   EngagementPanel,
   FundingPanel,
+  GraduationReadinessPanel,
+  GradeHistoryPanel,
+  LearningJourneyPanel,
   MedicalPanel,
   OverviewPanel,
   PlaceholderMessagePanel,
   ProfilePanel,
+  SchedulingPanel,
   ServicesPanel,
   SpedPanel,
+  TeachersPanel,
 } from "@/components/students/profile/panels/StudentProfilePanels";
 import { ProfileCard, ProfileEmpty, ProfileItem } from "@/components/students/profile/shared/ProfilePrimitives";
 import { buildFamilyProfileSectionHref } from "@/lib/families/profile/href";
@@ -105,18 +111,72 @@ export function EnrollmentSection(props: ProfileSectionViewProps) {
     enrollments: SisEnrollment[];
     conversion: StudentConversionLink | null;
     lifecycleHistory: Record<string, unknown>[];
+    gradeHistory?: {
+      lifecycle: Record<string, unknown>[];
+      enrollments: Record<string, unknown>[];
+      courseEnrollments: Record<string, unknown>[];
+    };
   } | null;
   if (!data?.student) {
     return <ProfileSectionPlaceholder title="Enrollment" status="live" />;
   }
   return (
-    <ProfilePanel
-      student={data.student}
-      enrollments={data.enrollments}
-      conversion={data.conversion}
-      lifecycleHistory={data.lifecycleHistory}
+    <div className="space-y-6">
+      <ProfilePanel
+        student={data.student}
+        enrollments={data.enrollments}
+        conversion={data.conversion}
+        lifecycleHistory={data.lifecycleHistory}
+      />
+      {data.gradeHistory && (
+        <GradeHistoryPanel
+          lifecycle={data.gradeHistory.lifecycle}
+          enrollments={data.gradeHistory.enrollments}
+          courseEnrollments={data.gradeHistory.courseEnrollments}
+        />
+      )}
+    </div>
+  );
+}
+
+export function LearningJourneySection(props: ProfileSectionViewProps) {
+  const data = props.data as {
+    journey: Record<string, unknown> | null;
+    domains: Record<string, unknown>[];
+    competencies: Record<string, unknown>[];
+    evidence: Record<string, unknown>[];
+  } | null;
+  if (!data) return <ProfileSectionPlaceholder title="Learning Journey" status="live" />;
+  return (
+    <LearningJourneyPanel
+      journey={data.journey}
+      domains={data.domains}
+      competencies={data.competencies}
+      evidence={data.evidence}
     />
   );
+}
+
+export function GraduationReadinessSection(props: ProfileSectionViewProps) {
+  const data = props.data as {
+    graduationScore: number;
+    ruleOutcome?: string;
+    explanation?: string;
+    successScore: Record<string, unknown> | null;
+    proficientCount: number;
+    evidenceCount: number;
+  } | null;
+  if (!data) return <ProfileSectionPlaceholder title="Graduation Readiness" status="live" />;
+  return <GraduationReadinessPanel {...data} />;
+}
+
+export function TeachersSection(props: ProfileSectionViewProps) {
+  const data = props.data as {
+    team: Record<string, unknown> | null;
+    members: Record<string, unknown>[];
+  } | null;
+  if (!data) return <ProfileSectionPlaceholder title="Teachers & Team" status="live" />;
+  return <TeachersPanel team={data.team} members={data.members} />;
 }
 
 export function AcademicsSection(props: ProfileSectionViewProps) {
@@ -209,25 +269,22 @@ export function BehaviorSection(props: ProfileSectionViewProps) {
 }
 
 export function SchedulingSection(props: ProfileSectionViewProps) {
-  const data = props.data as Record<string, unknown>[] | null;
-  if (!data?.length) {
-    return (
-      <PlaceholderMessagePanel
-        title="Scheduling"
-        message="No schedule entries found. Enable Scheduling in Configuration Studio for full timetable integration."
-      />
-    );
+  const data = props.data as {
+    sessions: Record<string, unknown>[];
+    services: Record<string, unknown>[];
+    courseEnrollments?: Record<string, unknown>[];
+  } | null;
+
+  if (!data) {
+    return <ProfileSectionPlaceholder title="Scheduling" status="partial" />;
   }
+
   return (
-    <ProfileCard title="Schedule">
-      <ul className="space-y-2 text-sm">
-        {data.map((entry) => (
-          <li key={String(entry.id)} className="rounded-lg bg-slate-50 px-3 py-2">
-            {String(entry.title ?? entry.course_name ?? "Schedule entry")}
-          </li>
-        ))}
-      </ul>
-    </ProfileCard>
+    <SchedulingPanel
+      sessions={data.sessions}
+      services={data.services}
+      courseEnrollments={data.courseEnrollments ?? []}
+    />
   );
 }
 
@@ -274,6 +331,35 @@ export function FamilySection(props: ProfileSectionViewProps) {
               <ProfileItem label="Siblings" value={String(data.siblings.length)} />
               <ProfileItem label="Contacts" value={String(data.authorizedContacts.length)} />
             </div>
+            {data.guardians.length > 0 && (
+              <div>
+                <p className="text-xs uppercase text-slate-400">Guardians</p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {data.guardians.map((g) => (
+                    <li key={g.id} className="rounded-lg bg-slate-50 px-3 py-2">
+                      {g.first_name} {g.last_name}
+                      {g.is_primary && <span className="ml-2 text-xs text-brand-600">Primary</span>}
+                      {g.email && <span className="ml-2 text-slate-500">{g.email}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {data.authorizedContacts.length > 0 && (
+              <div>
+                <p className="text-xs uppercase text-slate-400">Emergency & Authorized Contacts</p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {data.authorizedContacts.map((c) => (
+                    <li key={String(c.id)} className="rounded-lg bg-slate-50 px-3 py-2">
+                      <span className="font-medium capitalize">{String(c.contact_type ?? "contact").replace(/_/g, " ")}</span>
+                      {" — "}
+                      {String(c.first_name)} {String(c.last_name)}
+                      {c.phone ? <span className="ml-2 text-slate-500">{String(c.phone)}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="flex flex-wrap gap-3 text-sm">
               <Link
                 href={buildFamilyProfileSectionHref(familyId, "overview")}
@@ -309,11 +395,18 @@ export function FamilySection(props: ProfileSectionViewProps) {
 }
 
 export function BillingSection(props: ProfileSectionViewProps) {
-  const data = props.data as { account: unknown; message?: string } | null;
+  const data = props.data as {
+    profile: Record<string, unknown> | null;
+    studentId?: string;
+    message?: string;
+  } | null;
+  if (data?.message && !data.profile) {
+    return <PlaceholderMessagePanel title="Tuition & Billing" message={data.message} />;
+  }
   return (
-    <PlaceholderMessagePanel
-      title="Tuition & Billing"
-      message={data?.message ?? "Family billing account details will appear when Finance is fully integrated."}
+    <BillingPanel
+      profile={data?.profile ?? null}
+      studentId={data?.studentId ?? ""}
     />
   );
 }
@@ -331,12 +424,18 @@ export function ScholarshipsSection(props: ProfileSectionViewProps) {
 }
 
 export function TransportationSection(props: ProfileSectionViewProps) {
-  const data = props.data as { routes: unknown[]; message?: string } | null;
+  const data = props.data as { routes: PlatformRelationship[] } | null;
+  if (!data?.routes?.length) {
+    return (
+      <ProfileCard title="Transportation">
+        <ProfileEmpty>No transportation routes assigned</ProfileEmpty>
+      </ProfileCard>
+    );
+  }
   return (
-    <PlaceholderMessagePanel
-      title="Transportation"
-      message={data?.message ?? "Transportation routes will appear when the module is enabled."}
-    />
+    <ProfileCard title="Transportation Routes">
+      <ProfileRelationshipsList relationships={data.routes} />
+    </ProfileCard>
   );
 }
 
@@ -384,12 +483,24 @@ export function ParentEngagementSection(props: ProfileSectionViewProps) {
 }
 
 export function AiInsightsSection(props: ProfileSectionViewProps) {
-  const data = props.data as { message?: string } | null;
+  const data = props.data as {
+    graduationScore: number;
+    ruleOutcome?: string;
+    explanation?: string;
+    successScore: Record<string, unknown> | null;
+    proficientCount: number;
+    evidenceCount: number;
+  } | null;
+  if (!data) {
+    return <ProfileSectionPlaceholder title="AI Insights" status="partial" />;
+  }
   return (
-    <PlaceholderMessagePanel
-      title="AI Insights"
-      message={data?.message ?? "Intelligence Network recommendations will appear here."}
-    />
+    <div className="space-y-4">
+      <p className="text-sm text-slate-500">
+        Intelligence derived from Rules Engine™, PAJ competency progress, and SSIS success scoring.
+      </p>
+      <GraduationReadinessPanel {...data} />
+    </div>
   );
 }
 

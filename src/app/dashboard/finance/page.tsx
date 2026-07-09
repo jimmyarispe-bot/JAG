@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { FinancePageContent, FinancePageSkeleton } from "./FinancePageContent";
 
 interface FinancePageProps {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; work?: string }>;
 }
 
 export default function FinancePage({ searchParams }: FinancePageProps) {

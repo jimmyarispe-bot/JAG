@@ -211,3 +211,27 @@ export async function getCampuses() {
   const { data } = await supabase.from("campuses").select("id, name, school_id").order("name");
   return data ?? [];
 }
+
+export async function getAdmissionsWorkData() {
+  const supabase = await createAuthClient();
+  const today = new Date().toISOString().split("T")[0]!;
+
+  const [tasksResult, toursResult] = await Promise.all([
+    supabase
+      .from("admissions_tasks")
+      .select("id, lead_id, task_name, due_date, task_status")
+      .neq("task_status", "completed")
+      .order("due_date", { ascending: true }),
+    supabase
+      .from("admissions_tours")
+      .select("id, lead_id, scheduled_at, tour_status")
+      .gte("scheduled_at", `${today}T00:00:00`)
+      .lte("scheduled_at", `${today}T23:59:59.999`)
+      .neq("tour_status", "cancelled"),
+  ]);
+
+  return {
+    tasks: (tasksResult.data ?? []) as AdmissionTask[],
+    tours: (toursResult.data ?? []) as AdmissionTour[],
+  };
+}

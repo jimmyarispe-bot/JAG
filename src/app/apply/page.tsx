@@ -1,11 +1,18 @@
 import { ApplyShell } from "@/components/admissions/portal/ApplyShell";
 import { ParentInquiryForm } from "@/components/admissions/portal/ParentInquiryForm";
 import { getSchoolsForInquiry } from "@/lib/admissions/portal/queries";
+import { createAuthClient } from "@/lib/supabase/server-auth";
+import { loadOrganizationBranding, formatProductTitle } from "@/lib/branding";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Admissions Inquiry | AcademyOS",
-  description: "Submit a parent inquiry to begin the admissions process.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = await createAuthClient();
+  const branding = await loadOrganizationBranding(supabase);
+  return {
+    title: formatProductTitle(branding, "Admissions Inquiry"),
+    description: "Submit a parent inquiry to begin the admissions process.",
+  };
+}
 
 export default async function ApplyInquiryPage() {
   const schools = await getSchoolsForInquiry();

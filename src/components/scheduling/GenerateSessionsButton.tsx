@@ -26,8 +26,15 @@ export function GenerateSessionsButton({ sectionId, sectionCode }: GenerateSessi
     }
   }
 
-  const today = new Date().toISOString().split("T")[0];
-  const in30 = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
+  const [dateDefaults] = useState(() => {
+    const todayDate = new Date();
+    const in30Date = new Date(todayDate);
+    in30Date.setDate(in30Date.getDate() + 30);
+    return {
+      today: todayDate.toISOString().split("T")[0],
+      in30: in30Date.toISOString().split("T")[0],
+    };
+  });
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -37,7 +44,7 @@ export function GenerateSessionsButton({ sectionId, sectionCode }: GenerateSessi
         <input
           type="date"
           name="date_from"
-          defaultValue={today}
+          defaultValue={dateDefaults.today}
           className="rounded-lg border border-slate-200 px-2 py-1 text-sm"
           required
         />
@@ -47,7 +54,7 @@ export function GenerateSessionsButton({ sectionId, sectionCode }: GenerateSessi
         <input
           type="date"
           name="date_to"
-          defaultValue={in30}
+          defaultValue={dateDefaults.in30}
           className="rounded-lg border border-slate-200 px-2 py-1 text-sm"
           required
         />

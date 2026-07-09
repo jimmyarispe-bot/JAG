@@ -1,21 +1,33 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAuthClient } from "@/lib/supabase/server-auth";
+import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import { processWorkflowQueue } from "@/lib/admissions/automation/queue";
 import { processCommunicationQueue } from "@/lib/admissions/communications/engine";
 import { dispatchAdmissionsAutomation } from "@/lib/admissions/automation/dispatch";
 import type { WorkflowTriggerEvent } from "@/lib/admissions/automation/types";
 
+async function requireAdmissionsManage() {
+  return assertAnyPermission("admissions.manage", "admissions.accept");
+}
+
+async function requireAdmissionsAutomation() {
+  return assertAnyPermission("admissions.manage", "mission_control.access");
+}
+
 export async function runAutomationProcessor() {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsAutomation();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { processAllPlatformQueues } = await import("@/lib/platform/automation/process-queues");
   await processAllPlatformQueues(supabase);
   return { success: true };
 }
 
 export async function saveWorkflow(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const id = formData.get("id") as string | null;
 
   const payload = {
@@ -41,7 +53,9 @@ export async function saveWorkflow(formData: FormData) {
 }
 
 export async function duplicateWorkflow(workflowId: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: original } = await supabase
     .from("admissions_workflows")
     .select("*")
@@ -92,7 +106,9 @@ export async function duplicateWorkflow(workflowId: string) {
 }
 
 export async function saveWorkflowStep(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const id = formData.get("id") as string | null;
   const configRaw = formData.get("config") as string;
 
@@ -122,7 +138,9 @@ export async function saveWorkflowStep(formData: FormData) {
 }
 
 export async function deleteWorkflowStep(stepId: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { error } = await supabase
     .from("admissions_workflow_steps")
     .delete()
@@ -134,7 +152,9 @@ export async function deleteWorkflowStep(stepId: string) {
 }
 
 export async function toggleWorkflow(workflowId: string, isActive: boolean) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { error } = await supabase
     .from("admissions_workflows")
     .update({ is_active: isActive })
@@ -147,7 +167,9 @@ export async function toggleWorkflow(workflowId: string, isActive: boolean) {
 }
 
 export async function reorderWorkflows(orderedIds: string[]) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   for (let i = 0; i < orderedIds.length; i++) {
     await supabase
       .from("admissions_workflows")
@@ -159,7 +181,9 @@ export async function reorderWorkflows(orderedIds: string[]) {
 }
 
 export async function saveTemplateWithVersion(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -209,7 +233,9 @@ export async function fireAutomationTrigger(input: {
   applicationId?: string | null;
   trigger: WorkflowTriggerEvent;
 }) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -227,7 +253,9 @@ export async function fireAutomationTrigger(input: {
 }
 
 export async function publishWorkflow(workflowId: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: workflow } = await supabase
     .from("admissions_workflows")
     .select("*")
@@ -259,7 +287,9 @@ export async function publishWorkflow(workflowId: string) {
 }
 
 export async function archiveWorkflow(workflowId: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { error } = await supabase
     .from("admissions_workflows")
     .update({
@@ -275,7 +305,9 @@ export async function archiveWorkflow(workflowId: string) {
 }
 
 export async function createWorkflowDraftFromActive(workflowId: string) {
-  const supabase = await createAuthClient();
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
   const { data: original } = await supabase
     .from("admissions_workflows")
     .select("*")

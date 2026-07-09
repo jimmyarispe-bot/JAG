@@ -17,6 +17,8 @@ import { DecisionWizard } from "@/components/admissions/DecisionWizard";
 import { DuplicateWarningBanner } from "@/components/admissions/DuplicateWarningBanner";
 import { EnrollmentPacketPanel } from "@/components/admissions/EnrollmentPacketPanel";
 import { StaffFundingVerificationPanel } from "@/components/admissions/StaffFundingVerificationPanel";
+import { updateScholarshipStatus } from "@/lib/scholarships/actions";
+import { formatCurrency } from "@/lib/format";
 import { StaffTimelinePanel } from "@/components/admissions/StaffTimelinePanel";
 import { StageTimeline } from "@/components/admissions/StageTimeline";
 import { TasksPanel } from "@/components/admissions/TasksPanel";
@@ -321,11 +323,29 @@ export function ScholarshipsSection(props: ProfileSectionViewProps) {
   const env = isAdmissionsCaseProfileEnvelope(props.envelope) ? props.envelope : null;
   const data = props.data as {
     verifications: Parameters<typeof StaffFundingVerificationPanel>[0]["verifications"];
+    scholarships: {
+      id: string;
+      scholarship_status: string;
+      requested_amount: number | null;
+      approved_amount: number | null;
+      household_income: number | null;
+    }[];
     applicationIds: string[];
   } | null;
+  const [isPending, startTransition] = useTransition();
+
   if (!data || !env) return missing("Scholarships & Funding");
 
-  if (!data.applicationIds.length || !data.verifications.length) {
+  function handleScholarshipReview(id: string, status: string, amount?: number) {
+    startTransition(async () => {
+      await updateScholarshipStatus(id, status, amount);
+    });
+  }
+
+  const hasFunding = data.applicationIds.length > 0 && data.verifications.length > 0;
+  const hasScholarships = data.scholarships.length > 0;
+
+  if (!hasFunding && !hasScholarships) {
     return (
       <ProfileCard title="Scholarships & Funding">
         <ProfileEmpty>No funding records on file</ProfileEmpty>
@@ -334,11 +354,71 @@ export function ScholarshipsSection(props: ProfileSectionViewProps) {
   }
 
   return (
-    <StaffFundingVerificationPanel
-      applicationId={data.applicationIds[0]!}
-      leadId={env.leadId}
-      verifications={data.verifications}
-    />
+    <div className="space-y-6">
+      {hasScholarships && (
+        <ProfileCard title="Scholarship Review">
+          <div className="space-y-3">
+            {data.scholarships.map((sch) => (
+              <div
+                key={sch.id}
+                className="rounded-xl border border-slate-100 bg-slate-50 p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900 capitalize">
+                      {sch.scholarship_status.replace(/_/g, " ")}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Requested {formatCurrency(Number(sch.requested_amount ?? 0))}
+                      {sch.household_income != null &&
+                        ` · Household income ${formatCurrency(Number(sch.household_income))}`}
+                    </p>
+                  </div>
+                  {["submitted", "under_review"].includes(sch.scholarship_status) && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() =>
+                          handleScholarshipReview(
+                            sch.id,
+                            "approved",
+                            Number(sch.requested_amount ?? 0)
+                          )
+                        }
+                        className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => handleScholarshipReview(sch.id, "denied")}
+                        className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-white disabled:opacity-50"
+                      >
+                        Deny
+                      </button>
+                    </div>
+                  )}
+                  {sch.scholarship_status === "approved" && sch.approved_amount != null && (
+                    <span className="text-xs font-medium text-emerald-700">
+                      Approved {formatCurrency(Number(sch.approved_amount))}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ProfileCard>
+      )}
+      {hasFunding && (
+        <StaffFundingVerificationPanel
+          applicationId={data.applicationIds[0]!}
+          leadId={env.leadId}
+          verifications={data.verifications}
+        />
+      )}
+    </div>
   );
 }
 
@@ -363,7 +443,9 @@ export function EnrollmentSection(props: ProfileSectionViewProps) {
   const data = props.data as {
     packet: Parameters<typeof EnrollmentPacketPanel>[0]["packet"] | null;
     applicationId: string | null;
+    leadId: string;
     signerEmail: string;
+    studentId?: string | null;
   } | null;
   if (!data?.packet || !data.applicationId) {
     return (
@@ -377,7 +459,9 @@ export function EnrollmentSection(props: ProfileSectionViewProps) {
     <EnrollmentPacketPanel
       packet={data.packet}
       applicationId={data.applicationId}
+      leadId={data.leadId}
       signerEmail={data.signerEmail}
+      studentId={data.studentId}
     />
   );
 }

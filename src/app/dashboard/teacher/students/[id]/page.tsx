@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { ReadinessSnapshotPanel } from "@/components/instruction/ReadinessSnapshotPanel";
 import { EvidenceLibraryFilters } from "@/components/instruction/EvidenceLibraryFilters";
 import { ProgressVisualizationPanel } from "@/components/instruction/ProgressVisualizationPanel";
 import {
@@ -13,13 +12,15 @@ import {
   NewGrowthGoalForm,
   TeamMemberForm,
 } from "@/components/instruction/InstructionForms";
+import { JagProfileOverviewPanel } from "@/components/experience-system";
 import { getStudentById } from "@/lib/students/queries";
 import { getStudentInstructionalTeam, getStudentGrowthPlan } from "@/lib/instruction/growth-plan";
 import { getStudentCollaborationFeed } from "@/lib/instruction/feed";
-import { getStudentReadinessSnapshot } from "@/lib/instruction/readiness";
 import { searchEvidenceLibrary, getProgressVisualizationData } from "@/lib/instruction/evidence";
 import { getInterventionEffectivenessReport } from "@/lib/instruction/effectiveness";
 import { getStudentMeetings } from "@/lib/instruction/meetings";
+import { resolveJagProfile } from "@/lib/platform/jag-profile";
+import { getIdentityContext } from "@/lib/platform/identity/context";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 
 interface StudentCollaborationPageProps {
@@ -46,6 +47,10 @@ export default async function StudentCollaborationPage({ params, searchParams }:
   if (!student) notFound();
 
   const supabase = await createAuthClient();
+  const identity = await getIdentityContext();
+  const jagProfile = await resolveJagProfile(supabase, id, {
+    identity: identity ?? undefined,
+  });
   const { data: schoolStaff } = await supabase
     .from("employees")
     .select("id, employee_profiles(display_name)")
@@ -61,8 +66,7 @@ export default async function StudentCollaborationPage({ params, searchParams }:
     };
   });
 
-  const [readiness, team, goals, feed, meetings, progressData, effectiveness] = await Promise.all([
-    getStudentReadinessSnapshot(supabase, id),
+  const [team, goals, feed, meetings, progressData, effectiveness] = await Promise.all([
     getStudentInstructionalTeam(supabase, id),
     getStudentGrowthPlan(supabase, id),
     getStudentCollaborationFeed(supabase, id),
@@ -85,7 +89,7 @@ export default async function StudentCollaborationPage({ params, searchParams }:
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <Link href="/dashboard/teacher" className="text-sm text-slate-500 hover:text-brand-600">← Teacher Workspace</Link>
+      <Link href="/dashboard/teacher?work=today" className="text-sm text-slate-500 hover:text-brand-600">← Today&apos;s Work</Link>
       <PageHeader
         title={`${student.first_name} ${student.last_name}`}
         subtitle="Collaborative instruction & Student Growth Plan"
@@ -104,7 +108,7 @@ export default async function StudentCollaborationPage({ params, searchParams }:
         <Link href={`/dashboard/students/${id}`} className="rounded-lg px-3 py-1.5 text-sm text-brand-600">SSIS profile →</Link>
       </nav>
 
-      {view === "overview" && <ReadinessSnapshotPanel snapshot={readiness} />}
+      {view === "overview" && <JagProfileOverviewPanel profile={jagProfile} />}
 
       {view === "growth" && (
         <div className="space-y-6">

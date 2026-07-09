@@ -12,10 +12,10 @@ import {
   syncGuardianStudentRelationships,
   syncStudentPlatformRelationships,
 } from "@/lib/students/platform-sync";
-import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
+import { assertPermission } from "@/lib/platform/identity/action-guards";
 
 async function requireStudentsEdit() {
-  return assertAnyPermission("students.edit", "students.view");
+  return assertPermission("students.edit");
 }
 
 export async function createFamily(formData: FormData) {

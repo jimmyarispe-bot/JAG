@@ -28,9 +28,9 @@ describe("Platform intelligence graph registry validation", () => {
 
   it("registers reference definitions and providers on side-effect import", () => {
     expect(isGraphRegistryRegistered()).toBe(true);
-    expect(getActiveGraphRegistrySnapshot().nodeDefinitions.length).toBeGreaterThanOrEqual(8);
-    expect(getActiveGraphRegistrySnapshot().edgeDefinitions.length).toBeGreaterThanOrEqual(8);
-    expect(getActiveGraphRegistrySnapshot().providers).toHaveLength(8);
+    expect(getActiveGraphRegistrySnapshot().nodeDefinitions.length).toBeGreaterThanOrEqual(25);
+    expect(getActiveGraphRegistrySnapshot().edgeDefinitions.length).toBeGreaterThanOrEqual(18);
+    expect(getActiveGraphRegistrySnapshot().providers).toHaveLength(11);
   });
 });
 
@@ -318,7 +318,7 @@ describe("Platform intelligence graph query APIs", () => {
 
     expect(snapshot.rootNodeId).toBe(rootNodeId);
     expect(snapshot.capturedAt).toBeTruthy();
-    expect(snapshot.providers.length).toBe(8);
+    expect(snapshot.providers.length).toBe(11);
     expect(snapshot.nodes.length).toBeGreaterThanOrEqual(1);
   });
 });

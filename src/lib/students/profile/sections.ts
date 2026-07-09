@@ -97,7 +97,9 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
         getStudentConversion(env.studentId),
       ]);
       const lifecycleHistory = await getStudentLifecycleHistory(supabase, env.studentId);
-      return { student, enrollments, conversion, lifecycleHistory };
+      const { loadStudentGradeHistory } = await import("@/lib/students/profile/queries");
+      const gradeHistory = await loadStudentGradeHistory(supabase, env.studentId);
+      return { student, enrollments, conversion, lifecycleHistory, gradeHistory };
     },
   }),
   section({
@@ -117,6 +119,36 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
         getStudentSpedPlans(env.studentId),
       ]);
       return { academic, spedPlans };
+    },
+  }),
+  section({
+    key: "learning-journey",
+    label: "Learning Journey",
+    group: "learning",
+    sortOrder: 45,
+    moduleKey: "paj",
+    permissions: ["students.view"],
+    status: "live",
+    loadData: async (supabase, envelope) => {
+      const env = studentEnvelope(envelope);
+      if (!env) return null;
+      const { loadStudentLearningJourney } = await import("@/lib/students/profile/queries");
+      return loadStudentLearningJourney(supabase, env.studentId);
+    },
+  }),
+  section({
+    key: "graduation-readiness",
+    label: "Graduation Readiness",
+    group: "learning",
+    sortOrder: 55,
+    moduleKey: "ssis",
+    permissions: ["students.view"],
+    status: "live",
+    loadData: async (supabase, envelope) => {
+      const env = studentEnvelope(envelope);
+      if (!env) return null;
+      const { loadStudentGraduationReadiness } = await import("@/lib/students/profile/queries");
+      return loadStudentGraduationReadiness(supabase, env.studentId, env.schoolId);
     },
   }),
   section({
@@ -211,7 +243,27 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
       const env = studentEnvelope(envelope);
       if (!env) return null;
       const { getStudentSchedule } = await import("@/lib/scheduling/queries");
-      return getStudentSchedule(env.studentId);
+      const { loadStudentGradeHistory } = await import("@/lib/students/profile/queries");
+      const [schedule, gradeHistory] = await Promise.all([
+        getStudentSchedule(env.studentId),
+        loadStudentGradeHistory(supabase, env.studentId),
+      ]);
+      return { ...schedule, courseEnrollments: gradeHistory.courseEnrollments };
+    },
+  }),
+  section({
+    key: "teachers",
+    label: "Teachers & Team",
+    group: "student_life",
+    sortOrder: 95,
+    moduleKey: "instruction",
+    permissions: ["students.view"],
+    status: "live",
+    loadData: async (supabase, envelope) => {
+      const env = studentEnvelope(envelope);
+      if (!env) return null;
+      const { loadStudentInstructionalTeam } = await import("@/lib/students/profile/queries");
+      return loadStudentInstructionalTeam(supabase, env.studentId);
     },
   }),
   section({
@@ -316,12 +368,13 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     sortOrder: 140,
     moduleKey: "finance",
     permissions: ["students.view", "finance.view"],
-    status: "partial",
+    status: "live",
     loadData: async (supabase, envelope) => {
       const env = studentEnvelope(envelope);
-      if (!env?.familyId) return { account: null, message: "No family billing account linked" };
-      const { getFamilyFinancialProfile } = await import("@/lib/finance/family-center");
-      return getFamilyFinancialProfile(supabase, env.familyId);
+      if (!env?.familyId) return { profile: null, message: "No family billing account linked" };
+      const { loadStudentBillingSnapshot } = await import("@/lib/students/profile/queries");
+      const profile = await loadStudentBillingSnapshot(supabase, env.familyId, env.studentId);
+      return { profile, studentId: env.studentId };
     },
   }),
   section({
@@ -351,7 +404,7 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     sortOrder: 160,
     moduleKey: "transportation",
     permissions: ["students.view"],
-    status: "placeholder",
+    status: "partial",
     loadData: async (supabase, envelope) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
@@ -359,7 +412,7 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
       const routes = await getStudentRelationships(supabase, env.studentId, {
         relationshipType: "student.transportation_route",
       });
-      return { routes, message: "Enable Transportation in Configuration Studio for full route management" };
+      return { routes };
     },
   }),
   section({
@@ -433,11 +486,13 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     sortOrder: 200,
     moduleKey: "decision_intelligence",
     permissions: ["students.view"],
-    status: "placeholder",
-    loadData: async () => ({
-      insights: [],
-      message: "Intelligence Network recommendations will appear here",
-    }),
+    status: "partial",
+    loadData: async (supabase, envelope) => {
+      const env = studentEnvelope(envelope);
+      if (!env) return null;
+      const { loadStudentGraduationReadiness } = await import("@/lib/students/profile/queries");
+      return loadStudentGraduationReadiness(supabase, env.studentId, env.schoolId);
+    },
   }),
   section({
     key: "timeline",
@@ -450,7 +505,45 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     loadData: async (supabase, envelope) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
-      return getStudentActivityFeed(supabase, env.studentId);
+      const { getStudentCommunicationTimeline } = await import("@/lib/ssis/timeline");
+      const [activity, communications] = await Promise.all([
+        getStudentActivityFeed(supabase, env.studentId),
+        getStudentCommunicationTimeline(supabase, env.studentId, { limit: 50 }),
+      ]);
+      const commEvents = communications.map((c) => ({
+        id: c.id as string,
+        organization_id: null,
+        school_id: (c.school_id as string | null) ?? null,
+        campus_id: null,
+        module_key: "ssis",
+        event_type: "ssis.communication",
+        event_version: "1",
+        entity_type: "students",
+        entity_id: env.studentId,
+        title: c.subject as string,
+        summary: c.subject as string,
+        body: c.body as string,
+        actor_user_id: (c.actor_user_id as string | null) ?? null,
+        actor_type: "user" as const,
+        occurred_at: c.occurred_at as string,
+        student_id: env.studentId,
+        family_id: null,
+        related_entity_type: (c.related_entity_type as string | null) ?? null,
+        related_entity_id: (c.related_entity_id as string | null) ?? null,
+        classification: "communication" as const,
+        visibility: "staff" as const,
+        severity: null,
+        payload: { channel: c.channel, direction: c.direction },
+        correlation_id: null,
+        source_table: "ssis_communication_events",
+        source_id: c.id as string,
+        searchable_text: `${c.subject} ${c.body}`,
+        created_at: c.occurred_at as string,
+      }));
+      const merged = [...activity, ...commEvents].sort(
+        (a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime()
+      );
+      return merged.slice(0, 100);
     },
   }),
   section({

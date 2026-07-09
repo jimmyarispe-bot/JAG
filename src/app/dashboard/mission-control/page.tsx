@@ -1,29 +1,24 @@
 import { PageHeader } from "@/components/ui/PageHeader";
 import { MissionControlView } from "@/components/platform/MissionControlView";
 import { getMissionControlDashboard } from "@/lib/platform/automation/queries";
-import { processAllPlatformQueues } from "@/lib/platform/automation/process-queues";
-import { createAuthClient } from "@/lib/supabase/server-auth";
 
+/**
+ * Mission Control — Sprint 002 Task 6.
+ * Compose path uses Executive Aggregate Metrics + Alert Orchestrator
+ * (see mission-control-compose.ts). Queue processing stays on cron —
+ * not on page load (removed processAllPlatformQueues).
+ */
 export default async function MissionControlPage() {
-  const supabase = await createAuthClient();
-  await processAllPlatformQueues(supabase);
-
   const data = await getMissionControlDashboard();
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Mission Control"
-        subtitle="Cross-module operations — tasks, automations, alerts, and escalations"
+        title="Mission Control™"
+        subtitle="The JAG™ operational command center — health, priorities, alerts, and real-time operations"
         backHref="/dashboard"
       />
-      <MissionControlView
-        feed={data.feed}
-        queueMetrics={data.queueMetrics}
-        summary={data.summary}
-        userRole={data.userRole}
-        accessDenied={"accessDenied" in data ? data.accessDenied : false}
-      />
+      <MissionControlView {...data} />
     </div>
   );
 }

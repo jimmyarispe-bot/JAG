@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { SchedulingPageContent, SchedulingPageSkeleton } from "./SchedulingPageContent";
 
 interface SchedulingPageProps {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; work?: string }>;
 }
 
 export default function SchedulingPage({ searchParams }: SchedulingPageProps) {

@@ -2,10 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { writePlatformAudit } from "@/lib/platform/automation/audit";
+import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import type { LeadStageValue } from "@/lib/constants/admissions";
-import { transitionLeadStage } from "@/lib/admissions/workflow";
+import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import { generateEnrollmentPacket } from "@/lib/admissions/enrollment-packets";
 import { onDecisionSubmitted } from "@/lib/admissions/communications/triggers";
+import { loadOrganizationBranding, buildAdmissionsDecisionEmail } from "@/lib/branding";
 
 export type DecisionType = "accept" | "waitlist" | "deny" | "request_info";
 
@@ -25,31 +28,17 @@ const DECISION_APP_STATUS: Partial<Record<DecisionType, string>> = {
 function buildDecisionEmail(
   decision: DecisionType,
   studentName: string,
+  branding: Awaited<ReturnType<typeof loadOrganizationBranding>>,
   customNotes?: string
 ): { subject: string; body: string } {
-  const templates: Record<DecisionType, { subject: string; body: string }> = {
-    accept: {
-      subject: `Welcome to AcademyOS — ${studentName} has been accepted`,
-      body: `Dear Family,\n\nWe are delighted to inform you that ${studentName} has been accepted for enrollment at AcademyOS.\n\n${customNotes ?? "Our admissions team will contact you with next steps for enrollment."}\n\nWarm regards,\nAcademyOS Admissions`,
-    },
-    waitlist: {
-      subject: `AcademyOS Admissions Update — ${studentName}`,
-      body: `Dear Family,\n\nThank you for your interest in AcademyOS. ${studentName} has been placed on our waitlist.\n\n${customNotes ?? "We will notify you immediately if a seat becomes available."}\n\nAcademyOS Admissions`,
-    },
-    deny: {
-      subject: `AcademyOS Admissions Decision — ${studentName}`,
-      body: `Dear Family,\n\nThank you for applying to AcademyOS. After careful review, we are unable to offer enrollment to ${studentName} at this time.\n\n${customNotes ?? "We encourage you to reapply in a future enrollment period."}\n\nAcademyOS Admissions`,
-    },
-    request_info: {
-      subject: `Additional Information Needed — ${studentName}`,
-      body: `Dear Family,\n\nWe are reviewing ${studentName}'s application and need additional information before we can proceed.\n\n${customNotes ?? "Please log in to your admissions portal to upload the requested documents."}\n\nAcademyOS Admissions`,
-    },
-  };
-  return templates[decision];
+  return buildAdmissionsDecisionEmail(decision, studentName, branding, customNotes);
 }
 
 export async function submitAdmissionsDecision(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertAnyPermission("admissions.manage", "admissions.accept");
+  if ("error" in auth) return { error: auth.error };
+
+  const supabase = auth.supabase;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -69,7 +58,8 @@ export async function submitAdmissionsDecision(formData: FormData) {
   if (!lead) return { error: "Lead not found" };
 
   const studentName = `${lead.first_name} ${lead.last_name}`;
-  const email = buildDecisionEmail(decisionType, studentName, customNotes);
+  const branding = await loadOrganizationBranding(supabase);
+  const email = buildDecisionEmail(decisionType, studentName, branding, customNotes);
 
   const { data: decision, error: decisionError } = await supabase
     .from("admissions_decisions")
@@ -100,7 +90,7 @@ export async function submitAdmissionsDecision(formData: FormData) {
   }
 
   const stage = DECISION_STAGE[decisionType];
-  const stageResult = await transitionLeadStage(supabase, leadId, stage, user?.id ?? null);
+  const stageResult = await transitionCaseStage(supabase, leadId, stage, user?.id ?? null);
   if (stageResult.error) return { error: stageResult.error };
 
   if (applicationId && DECISION_APP_STATUS[decisionType]) {
@@ -131,15 +121,29 @@ export async function submitAdmissionsDecision(formData: FormData) {
 
   if (decisionType === "accept" && applicationId) {
     await generateEnrollmentPacket(applicationId, leadId);
-
-    const { convertAcceptedApplicantToStudent } = await import("@/lib/sis/conversion");
-    await convertAcceptedApplicantToStudent(supabase, {
-      applicationId,
-      leadId,
-      convertedBy: user?.id ?? null,
-      source: "decision",
-    });
   }
+
+  const { data: leadSchool } = await supabase
+    .from("admissions_leads")
+    .select("school_id")
+    .eq("id", leadId)
+    .maybeSingle();
+
+  await writePlatformAudit(supabase, {
+    schoolId: leadSchool?.school_id,
+    module: "admissions",
+    entityType: "admissions_leads",
+    entityId: leadId,
+    actionType: "admissions_decision",
+    summary: `Decision recorded: ${decisionType}`,
+    actorUserId: user?.id ?? null,
+    metadata: {
+      decisionId: decision.id,
+      decisionType,
+      applicationId,
+      sendEmail,
+    },
+  });
 
   revalidatePath(`/dashboard/admissions/leads/${leadId}`);
   revalidatePath("/dashboard/admissions");

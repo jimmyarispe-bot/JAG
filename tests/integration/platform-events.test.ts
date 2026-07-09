@@ -41,7 +41,7 @@ describe("Platform event catalog", () => {
     const domains = new Set(PLATFORM_REFERENCE_EVENT_DEFINITIONS.map((d) => d.domain));
     expect(domains.has("platform")).toBe(true);
     expect(domains.has("operations")).toBe(true);
-    expect(getEventDefinitionsByDomain("platform")).toHaveLength(4);
+    expect(getEventDefinitionsByDomain("platform")).toHaveLength(5);
     expect(PLATFORM_EVENT_CATALOG.length).toBeGreaterThanOrEqual(5);
   });
 

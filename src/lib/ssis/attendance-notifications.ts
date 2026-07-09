@@ -1,5 +1,4 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
-import { logStudentCommunicationEvent } from "@/lib/ssis/timeline";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -23,14 +22,25 @@ export async function processAttendanceParentNotifications(supabase: AuthClient)
     const family = Array.isArray(families) ? families[0] : families;
     const email = family?.billing_email;
 
-    await logStudentCommunicationEvent(supabase, {
+    const statusLabel = record.status.replace(/_/g, " ");
+    const { deliverParentCommunication } = await import(
+      "@/lib/platform/parent-communication/deliver"
+    );
+    await deliverParentCommunication(supabase, {
       studentId: record.student_id,
       schoolId: student.school_id as string,
-      channel: "email",
-      direction: "outbound",
-      subject: `Attendance notice: ${student.first_name} ${student.last_name}`,
-      body: `${record.status.replace(/_/g, " ")} on ${record.attendance_date}.${email ? ` Sent to ${email}.` : ""}`,
-      metadata: { attendance_record_id: record.id, delivery: email ? "logged" : "no_email" },
+      familyId: student.family_id as string | null,
+      category: "attendance",
+      title: `Attendance notice: ${student.first_name} ${student.last_name}`,
+      body: `${statusLabel} on ${record.attendance_date}.${record.notes ? ` ${record.notes}` : ""}`,
+      channel: email ? "email" : "parent_portal",
+      href: "/portal",
+      relatedEntityType: "student_attendance_records",
+      relatedEntityId: record.id,
+      metadata: { attendance_record_id: record.id, billingEmail: email ?? null },
+      createFollowUpWork: record.status.startsWith("absent"),
+      followUpTitle: `Follow up on ${student.first_name}'s attendance`,
+      followUpHref: `/dashboard/students/${record.student_id}?section=attendance`,
     });
 
     await supabase

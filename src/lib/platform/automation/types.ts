@@ -15,6 +15,8 @@ export const PLATFORM_MODULES = [
   "mission_control",
   "compliance",
   "work",
+  "learning_progress",
+  "parent_communication",
 ] as const;
 
 export type PlatformModule = (typeof PLATFORM_MODULES)[number];
@@ -35,6 +37,8 @@ export const MODULE_LABELS: Record<PlatformModule, string> = {
   mission_control: "Mission Control",
   compliance: "Enterprise Compliance",
   work: "Enterprise Work Management",
+  learning_progress: "Learning Progress",
+  parent_communication: "Parent Communication",
 };
 
 export const WORKFLOW_LIFECYCLE_STATUSES = [

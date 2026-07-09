@@ -7,6 +7,8 @@ export const LEAD_STAGES = [
   { value: "application_submitted", label: "Application Submitted", color: "bg-violet-100 text-violet-700" },
   { value: "records_requested", label: "Records Requested", color: "bg-purple-100 text-purple-700" },
   { value: "admissions_review", label: "Admissions Review", color: "bg-amber-100 text-amber-700" },
+  { value: "interview_scheduled", label: "Interview Scheduled", color: "bg-sky-100 text-sky-700" },
+  { value: "assessment_scheduled", label: "Assessment Scheduled", color: "bg-cyan-100 text-cyan-700" },
   { value: "accepted", label: "Accepted", color: "bg-emerald-100 text-emerald-700" },
   { value: "waitlisted", label: "Waitlisted", color: "bg-orange-100 text-orange-700" },
   { value: "declined", label: "Declined", color: "bg-red-100 text-red-700" },

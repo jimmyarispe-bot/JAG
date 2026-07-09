@@ -302,12 +302,25 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
         .eq("lead_id", env.leadId)
         .limit(1);
       const applicationId = applications?.[0]?.id ?? null;
-      const packet = applicationId
-        ? await import("@/lib/admissions/enrollment-packets").then((m) =>
-            m.getEnrollmentPacket(applicationId)
-          )
-        : null;
-      return { packet, applicationId, signerEmail: lead?.guardian_email ?? "" };
+      const [packet, studentResult] = await Promise.all([
+        applicationId
+          ? import("@/lib/admissions/enrollment-packets").then((m) =>
+              m.getEnrollmentPacket(applicationId)
+            )
+          : Promise.resolve(null),
+        supabase
+          .from("students")
+          .select("id")
+          .eq("admissions_lead_id", env.leadId)
+          .maybeSingle(),
+      ]);
+      return {
+        packet,
+        applicationId,
+        leadId: env.leadId,
+        signerEmail: lead?.guardian_email ?? "",
+        studentId: studentResult.data?.id ?? null,
+      };
     },
   }),
   section({

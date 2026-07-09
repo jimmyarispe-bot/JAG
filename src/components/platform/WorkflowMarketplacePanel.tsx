@@ -45,7 +45,7 @@ export function WorkflowMarketplacePanel({ templates, schools }: WorkflowMarketp
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-slate-900">Workflow Marketplace</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Reusable automation templates across AcademyOS modules. Install admissions workflows as drafts,
+          Reusable automation templates across platform modules. Install admissions workflows as drafts,
           then publish when ready. Other modules use the same architecture and will gain install support
           as those modules adopt the platform engine.
         </p>

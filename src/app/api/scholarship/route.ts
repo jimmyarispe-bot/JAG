@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   if (!limited.ok) return rateLimitResponse(limited.retryAfter);
 
   const supabase = await createAuthClient();
-  const gate = await guardApiRoute(supabase, "scholarships.view");
+  const gate = await guardApiRoute(supabase, "scholarships.approve");
   if (gate instanceof NextResponse) return gate;
 
   try {

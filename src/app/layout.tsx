@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "AcademyOS",
-  description: "Education Operating System for school executives",
+  title: "School Platform",
+  description: "Education Operating System",
 };
 
 export default function RootLayout({

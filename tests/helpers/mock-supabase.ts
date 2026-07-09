@@ -54,6 +54,10 @@ function createFilterChain(
       filters[`in:${column}`] = value;
       return chain;
     },
+    contains: (column: string, value: unknown[]) => {
+      filters[`contains:${column}`] = value;
+      return chain;
+    },
     order: () => chain,
     limit: () => chain,
     maybeSingle: async () => handler({ table, operation: "maybeSingle", filters, payload }),

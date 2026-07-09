@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ApplyShell } from "@/components/admissions/portal/ApplyShell";
+import { createAuthClient } from "@/lib/supabase/server-auth";
+import { loadOrganizationBranding } from "@/lib/branding";
 
 interface ThankYouPageProps {
   searchParams: Promise<{ lead?: string }>;
@@ -7,6 +9,8 @@ interface ThankYouPageProps {
 
 export default async function ApplyThankYouPage({ searchParams }: ThankYouPageProps) {
   const { lead } = await searchParams;
+  const supabase = await createAuthClient();
+  const branding = await loadOrganizationBranding(supabase);
 
   return (
     <ApplyShell>
@@ -16,7 +20,7 @@ export default async function ApplyThankYouPage({ searchParams }: ThankYouPagePr
       </div>
       <h1 className="mt-4 text-2xl font-bold text-slate-900">Inquiry Received</h1>
       <p className="mt-2 text-slate-600">
-        Thank you for your interest in AcademyOS. Our admissions team will review your inquiry and
+        Thank you for your interest in {branding.productName}. Our admissions team will review your inquiry and
         follow up shortly.
       </p>
       {lead && (

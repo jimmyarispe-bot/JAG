@@ -69,6 +69,7 @@ export function CommandCenterDashboard({ metrics, insights, deadlineAnalytics, f
         <QuickLink href="/dashboard/work" label="Work Management" />
         <QuickLink href="/dashboard/admissions?view=executive" label="Admissions Executive" />
         <QuickLink href="/dashboard/executive/decisions" label="Decision Intelligence" />
+        <QuickLink href="/dashboard/executive?view=operational-loop" label="Operational Loop" />
         <QuickLink href="/dashboard/finance/intelligence" label="Financial Intelligence" />
         <QuickLink href="/dashboard/teacher/executive" label="Instruction Executive" />
         <QuickLink href="/dashboard/hr?view=analytics" label="Workforce Analytics" />

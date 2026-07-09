@@ -1,17 +1,69 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { recordActivity } from "@/lib/platform/activity";
 import { requirePermission } from "@/lib/platform/identity/permissions";
 import { logSecurityEvent } from "@/lib/platform/identity/security";
 import { upsertUserPreferences } from "@/lib/platform/identity/preferences";
 import { startImpersonation, endImpersonation } from "@/lib/platform/identity/impersonation";
+import { IMPERSONATION_COOKIE } from "@/lib/platform/identity/context";
+import {
+  extractSchoolOrganizationId,
+  resolveActorUserId,
+  resolveSchoolContext,
+} from "@/lib/platform/shared/context";
+
+type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
 async function assertPermission(key: Parameters<typeof requirePermission>[1]) {
   const supabase = await createAuthClient();
   const gate = await requirePermission(supabase, key);
   if (!gate.ok) throw new Error(gate.error);
   return supabase;
+}
+
+/** Resolve tenant context for identity activity (school preferred, else org). */
+async function resolveIdentityActivityContext(
+  supabase: AuthClient,
+  preferredSchoolId?: string | null
+): Promise<{
+  actorUserId: string | null;
+  organizationId: string | null;
+  schoolId: string | null;
+}> {
+  const actorUserId = await resolveActorUserId(supabase);
+
+  if (preferredSchoolId) {
+    const schoolCtx = await resolveSchoolContext(supabase, preferredSchoolId);
+    return {
+      actorUserId,
+      schoolId: preferredSchoolId,
+      organizationId: schoolCtx?.organizationId ?? null,
+    };
+  }
+
+  if (actorUserId) {
+    const { data: assignment } = await supabase
+      .from("user_org_assignments")
+      .select("school_id, is_primary, schools(organization_id)")
+      .eq("user_id", actorUserId)
+      .order("is_primary", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (assignment?.school_id) {
+      return {
+        actorUserId,
+        schoolId: assignment.school_id,
+        organizationId: extractSchoolOrganizationId(assignment.schools),
+      };
+    }
+  }
+
+  const { data: org } = await supabase.from("org_organizations").select("id").limit(1).maybeSingle();
+  return { actorUserId, schoolId: null, organizationId: org?.id ?? null };
 }
 
 export async function saveUserPreferencesAction(formData: FormData) {
@@ -101,6 +153,28 @@ export async function assignUserOrgScopeAction(formData: FormData) {
     summary: "User org assignment updated",
   });
 
+  const ctx = await resolveIdentityActivityContext(supabase, schoolId);
+  await recordActivity(supabase, {
+    eventType: "identity.org_scope_assigned",
+    moduleKey: "identity",
+    entityType: "user",
+    entityId: userId,
+    title: "User org scope assigned",
+    summary: `Org assignment updated for school ${schoolId}`,
+    organizationId: ctx.organizationId,
+    schoolId,
+    actorUserId: ctx.actorUserId,
+    relatedEntityType: "school",
+    relatedEntityId: schoolId,
+    payload: {
+      target_user_id: userId,
+      all_campuses: allCampuses,
+      all_programs: allPrograms,
+    },
+    sourceTable: "user_org_assignments",
+    sourceId: userId,
+  });
+
   revalidatePath("/dashboard/admin/users");
   return { success: true };
 }
@@ -130,6 +204,24 @@ export async function toggleRolePermissionAction(formData: FormData) {
     metadata: { roleId, permissionKey },
   });
 
+  const ctx = await resolveIdentityActivityContext(supabase);
+  await recordActivity(supabase, {
+    eventType: "identity.permission_changed",
+    moduleKey: "identity",
+    entityType: "role",
+    entityId: roleId,
+    title: "Role permission changed",
+    summary: `Permission ${permissionKey} ${enabled ? "granted" : "revoked"}`,
+    organizationId: ctx.organizationId,
+    schoolId: ctx.schoolId,
+    actorUserId: ctx.actorUserId,
+    classification: "audit",
+    visibility: "internal",
+    payload: { role_id: roleId, permission_key: permissionKey, enabled },
+    sourceTable: "platform_role_permissions",
+    sourceId: roleId,
+  });
+
   revalidatePath("/dashboard/admin/roles");
   return { success: true };
 }
@@ -151,17 +243,44 @@ export async function createCustomRoleAction(formData: FormData) {
     parentRoleId = parent?.id ?? null;
   }
 
-  const { error } = await supabase.from("roles").insert({
-    name,
-    display_name: displayName,
-    description,
-    is_system: false,
-    is_custom: true,
-    parent_role_id: parentRoleId,
-    sort_order: 500,
-  });
+  const { data: role, error } = await supabase
+    .from("roles")
+    .insert({
+      name,
+      display_name: displayName,
+      description,
+      is_system: false,
+      is_custom: true,
+      parent_role_id: parentRoleId,
+      sort_order: 500,
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  const ctx = await resolveIdentityActivityContext(supabase);
+  await recordActivity(supabase, {
+    eventType: "identity.role_created",
+    moduleKey: "identity",
+    entityType: "role",
+    entityId: role.id,
+    title: "Custom role created",
+    summary: displayName || name,
+    organizationId: ctx.organizationId,
+    schoolId: ctx.schoolId,
+    actorUserId: ctx.actorUserId,
+    classification: "audit",
+    visibility: "internal",
+    payload: {
+      role_name: name,
+      display_name: displayName,
+      parent_role_id: parentRoleId,
+    },
+    sourceTable: "roles",
+    sourceId: role.id,
+  });
+
   revalidatePath("/dashboard/admin/roles");
   return { success: true };
 }
@@ -171,13 +290,78 @@ export async function startImpersonationAction(formData: FormData) {
   const reason = (formData.get("reason") as string) || "Support troubleshooting";
   const result = await startImpersonation(targetUserId, reason);
   if (result.error) return { error: result.error };
+
+  const supabase = await createAuthClient();
+  const ctx = await resolveIdentityActivityContext(supabase);
+  if (result.sessionId) {
+    await recordActivity(supabase, {
+      eventType: "identity.impersonation_started",
+      moduleKey: "identity",
+      entityType: "impersonation_session",
+      entityId: result.sessionId,
+      title: "Impersonation started",
+      summary: `Impersonating user ${targetUserId}`,
+      organizationId: ctx.organizationId,
+      schoolId: ctx.schoolId,
+      actorUserId: ctx.actorUserId,
+      classification: "audit",
+      visibility: "internal",
+      relatedEntityType: "user",
+      relatedEntityId: targetUserId,
+      payload: { target_user_id: targetUserId, reason, session_id: result.sessionId },
+      sourceTable: "platform_impersonation_sessions",
+      sourceId: result.sessionId,
+    });
+  }
+
   revalidatePath("/dashboard");
   return { success: true };
 }
 
 export async function endImpersonationAction() {
+  const supabase = await createAuthClient();
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get(IMPERSONATION_COOKIE)?.value ?? null;
+  let targetUserId: string | null = null;
+
+  if (sessionId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const { data: session } = await supabase
+      .from("platform_impersonation_sessions")
+      .select("target_user_id")
+      .eq("id", sessionId)
+      .eq("actor_user_id", user?.id ?? "")
+      .maybeSingle();
+    targetUserId = session?.target_user_id ?? null;
+  }
+
   const result = await endImpersonation();
   if (result.error) return { error: result.error };
+
+  if (sessionId) {
+    const ctx = await resolveIdentityActivityContext(supabase);
+    await recordActivity(supabase, {
+      eventType: "identity.impersonation_ended",
+      moduleKey: "identity",
+      entityType: "impersonation_session",
+      entityId: sessionId,
+      title: "Impersonation ended",
+      summary: targetUserId ? `Ended impersonation of ${targetUserId}` : "Impersonation ended",
+      organizationId: ctx.organizationId,
+      schoolId: ctx.schoolId,
+      actorUserId: ctx.actorUserId,
+      classification: "audit",
+      visibility: "internal",
+      relatedEntityType: targetUserId ? "user" : null,
+      relatedEntityId: targetUserId,
+      payload: { target_user_id: targetUserId, session_id: sessionId },
+      sourceTable: "platform_impersonation_sessions",
+      sourceId: sessionId,
+    });
+  }
+
   revalidatePath("/dashboard");
   return { success: true };
 }

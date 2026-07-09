@@ -1,5 +1,5 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
-import { transitionLeadStage } from "@/lib/admissions/workflow";
+import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import { computeAdmissionsProgress } from "@/lib/admissions/portal/progress";
 import type {
   PortalApplication,
@@ -60,7 +60,7 @@ export async function runAutomatedAcceptanceWorkflow(
 
   if (appError) return { error: appError.message };
 
-  const stageResult = await transitionLeadStage(
+  const stageResult = await transitionCaseStage(
     supabase,
     input.application.lead_id,
     "accepted",
@@ -69,17 +69,8 @@ export async function runAutomatedAcceptanceWorkflow(
 
   if (stageResult.error) return { error: stageResult.error };
 
-  const { convertAcceptedApplicantToStudent } = await import("@/lib/sis/conversion");
-  const conversion = await convertAcceptedApplicantToStudent(supabase, {
-    applicationId,
-    leadId: input.application.lead_id,
-    convertedBy: changedBy,
-    source: "portal",
-  });
+  const { generateEnrollmentPacket } = await import("@/lib/admissions/enrollment-packets");
+  await generateEnrollmentPacket(applicationId, input.application.lead_id);
 
-  if (!conversion.success && !conversion.alreadyExists) {
-    return { error: conversion.error ?? "Failed to create student record" };
-  }
-
-  return { accepted: true, studentId: conversion.studentId };
+  return { accepted: true };
 }

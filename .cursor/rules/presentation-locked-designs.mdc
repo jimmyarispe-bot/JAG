@@ -1,0 +1,44 @@
+---
+description: MICMS presentation design lock — immutable templates, content-only changes
+globs: src/components/presentation/**,src/app/presentation/**
+alwaysApply: false
+---
+
+# Presentation Design Lock
+
+Stop redesigning.
+
+The approved Slide 2 design is the **immutable specification** for Template B — not a reference or inspiration.
+
+## Rules
+
+- Do not reinterpret approved designs.
+- Once LOCKED, treat slides as fixed design specifications.
+- Only make exact changes explicitly requested.
+- Do not introduce new layouts, spacing, typography, or visual hierarchy unless instructed.
+- Do not "improve," modernize, or optimize locked templates.
+- Future changes: **content only**, not layout.
+
+## Three approved layouts only
+
+| Template | Slides | Component |
+|----------|--------|-----------|
+| **A — Cover** | 1 | `Slide01Title` |
+| **B — Executive Content** | 3, 5, 6, 14, 15 | `TemplateBExecutiveContent` (match Slide 2) |
+| **C — Executive Dashboard** | 4, 7–13 | `TemplateCExecutiveDashboard` |
+
+**Slide 2 is LOCKED** in `Slide02HowILead.tsx` — fully standalone. Footer: logo left, presenter right only (no center cycle on Slide 2). Do not refactor unless explicitly requested.
+
+## Footer (slides 2–15 — IMMUTABLE)
+
+Left: Official MICMS logo  
+Center: Listening • Learning • Leading • Improving  
+Right: Jimmy Arispe / Leadership Presentation  
+
+Do not add footer text. Do not redesign the footer.
+
+Slide 1: centered cycle only — no standard footer.
+
+## Locked tokens
+
+All layout values live in `src/components/presentation/tokens.ts`. Do not change tokens unless explicitly requested.

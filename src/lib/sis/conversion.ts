@@ -381,6 +381,11 @@ export async function convertAcceptedApplicantToStudent(
   const { syncStudentFundingRecords } = await import("@/lib/ssis/funding");
   await syncStudentFundingRecords(supabase, student.id, applicationId);
 
+  await supabase
+    .from("scholarship_applications")
+    .update({ student_id: student.id })
+    .eq("application_id", applicationId);
+
   const { logStudentCommunicationEvent } = await import("@/lib/ssis/timeline");
   await logStudentCommunicationEvent(supabase, {
     studentId: student.id,

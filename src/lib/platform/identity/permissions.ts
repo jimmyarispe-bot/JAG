@@ -57,15 +57,17 @@ export function isEnterpriseAdminRole(roles: string[]): boolean {
 export async function userHasPermission(
   supabase: AuthClient,
   permissionKey: PermissionKey,
-  userId?: string
+  userId?: string,
+  authUserId?: string | null
 ): Promise<boolean> {
-  const authUserId = (await supabase.auth.getUser()).data.user?.id;
-  const sessionUserId = userId ?? authUserId;
+  const resolvedAuthUserId =
+    authUserId === undefined ? (await supabase.auth.getUser()).data.user?.id : authUserId;
+  const sessionUserId = userId ?? resolvedAuthUserId;
   if (!sessionUserId) return false;
 
   const roles = await loadUserRoleNames(supabase, sessionUserId);
 
-  if (sessionUserId === authUserId) {
+  if (sessionUserId === resolvedAuthUserId) {
     const { data, error } = await supabase.rpc("has_permission", {
       permission_key: permissionKey,
     });
@@ -106,9 +108,11 @@ export async function requirePermission(
 
 export async function loadUserPermissions(
   supabase: AuthClient,
-  userId: string
+  userId: string,
+  authUserId?: string | null
 ): Promise<Set<string>> {
-  const authUserId = (await supabase.auth.getUser()).data.user?.id;
+  const resolvedAuthUserId =
+    authUserId === undefined ? (await supabase.auth.getUser()).data.user?.id : authUserId;
   const roles = await loadUserRoleNames(supabase, userId);
 
   if (hasUnrestrictedRole(roles)) {
@@ -117,14 +121,18 @@ export async function loadUserPermissions(
     return collectRoleFallbackPermissions(roles);
   }
 
-  if (userId === authUserId) {
+  if (userId === resolvedAuthUserId) {
     const { data: all, error } = await supabase.from("platform_permissions").select("permission_key");
     if (error && isMissingPermissionInfraError(error.message)) {
       return collectRoleFallbackPermissions(roles);
     }
     const keys = all?.map((p) => p.permission_key) ?? [];
     const allowed = await Promise.all(
-      keys.map(async (key) => ((await userHasPermission(supabase, key as PermissionKey, userId)) ? key : null))
+      keys.map(async (key) =>
+        (await userHasPermission(supabase, key as PermissionKey, userId, resolvedAuthUserId))
+          ? key
+          : null
+      )
     );
     return new Set(allowed.filter((key): key is string => Boolean(key)));
   }

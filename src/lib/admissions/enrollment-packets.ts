@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 
 export interface EnrollmentPacketView {
@@ -173,6 +174,31 @@ export async function signEnrollmentDocument(formData: FormData) {
       })
       .eq("application_id", applicationId)
       .eq("item_key", "enrollment_packet");
+
+    const { completeEnrollmentHandoff } = await import(
+      "@/lib/admissions/handoff/complete-enrollment-handoff"
+    );
+    const handoff = await completeEnrollmentHandoff(supabase, {
+      leadId: packet!.lead_id,
+      applicationId,
+      actorUserId: null,
+    });
+
+    if (!handoff.success) {
+      return {
+        success: false,
+        completed: true,
+        handoffError: handoff.error ?? handoff.activationError,
+        loopErrors: handoff.loopErrors,
+      };
+    }
+
+    revalidatePath(`/dashboard/admissions/cases/${packet!.lead_id}`);
+    revalidatePath(`/dashboard/admissions/leads/${packet!.lead_id}`);
+    revalidatePath("/dashboard/admissions");
+    revalidatePath("/dashboard/students");
+    revalidatePath("/dashboard/teacher");
+    revalidatePath(`/apply/portal/${applicationId}`);
   } else {
     await supabase
       .from("enrollment_packets")

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { submitApplication } from "@/lib/admissions/portal/actions";
 import type { AdmissionsProgress } from "@/lib/admissions/portal/progress";
+import { useBranding } from "@/components/branding/BrandingContext";
 
 interface SubmitApplicationButtonProps {
   applicationId: string;
@@ -17,6 +18,7 @@ export function SubmitApplicationButton({
   applicationStatus,
 }: SubmitApplicationButtonProps) {
   const router = useRouter();
+  const branding = useBranding();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function SubmitApplicationButton({
         return;
       }
       if (result.autoAccepted) {
-        setMessage("Application submitted and automatically accepted. Welcome to AcademyOS!");
+        setMessage(`Application submitted and automatically accepted. Welcome to ${branding.productName}!`);
       } else {
         setMessage("Application submitted for admissions review.");
       }

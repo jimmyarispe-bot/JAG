@@ -2,17 +2,28 @@
 
 import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { recordActivity } from "@/lib/platform/activity";
 import { writePlatformAudit } from "@/lib/platform/automation/audit";
 import { allocatePayrollFromScheduling } from "@/lib/finance/payroll-allocation";
 import { seedDefaultOnboardingTasks } from "@/lib/hr/automation";
 import { recordFinancialTransaction } from "@/lib/finance/ledger";
+import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import { requirePermission } from "@/lib/platform/identity/permissions";
+import { resolveSchoolContext } from "@/lib/platform/shared/context";
 
 async function assertHrManage() {
   const supabase = await createAuthClient();
   const gate = await requirePermission(supabase, "hr.manage");
   if (!gate.ok) return { error: "Forbidden" as const };
   return { supabase };
+}
+
+async function assertHrRecruiting() {
+  return assertAnyPermission("hr.manage", "hr.recruiting");
+}
+
+async function assertHrSelfServiceOrManage() {
+  return assertAnyPermission("hr.manage", "employee.self_service");
 }
 
 async function assertPayrollRun() {
@@ -85,7 +96,9 @@ export async function createEmployee(formData: FormData) {
 }
 
 export async function createPosition(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrManage();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { error } = await supabase.from("positions").insert({
     school_id: formData.get("school_id") as string,
     title: formData.get("title") as string,
@@ -98,7 +111,9 @@ export async function createPosition(formData: FormData) {
 }
 
 export async function assignEmployeePositionAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrManage();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { error } = await supabase.from("employee_positions").insert({
     employee_id: formData.get("employee_id") as string,
     position_id: formData.get("position_id") as string,
@@ -111,7 +126,9 @@ export async function assignEmployeePositionAction(formData: FormData) {
 }
 
 export async function createCertification(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrManage();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { error } = await supabase.from("employee_certifications").insert({
     employee_id: formData.get("employee_id") as string,
     certification_name: formData.get("certification_name") as string,
@@ -127,8 +144,9 @@ export async function createCertification(formData: FormData) {
 }
 
 export async function createPayrollRecord(formData: FormData) {
-  const supabase = await createAuthClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const auth = await assertPayrollRun();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const grossPay = Number(formData.get("gross_pay")) || 0;
   const deductions = Number(formData.get("deductions")) || 0;
   const employeeId = formData.get("employee_id") as string;
@@ -199,6 +217,30 @@ export async function approvePayrollRecordAction(formData: FormData) {
     createdBy: user?.id ?? null,
   });
 
+  const schoolCtx = await resolveSchoolContext(supabase, record.school_id);
+  await recordActivity(supabase, {
+    eventType: "payroll.approved",
+    moduleKey: "hr",
+    entityType: "payroll_record",
+    entityId: payrollId,
+    title: "Payroll approved",
+    summary: `Payroll ${record.pay_period_start}–${record.pay_period_end}`,
+    organizationId: schoolCtx?.organizationId,
+    schoolId: record.school_id,
+    actorUserId: user?.id ?? null,
+    relatedEntityType: "employee",
+    relatedEntityId: record.employee_id,
+    payload: {
+      employee_id: record.employee_id,
+      gross_pay: Number(record.gross_pay),
+      pay_period_start: record.pay_period_start,
+      pay_period_end: record.pay_period_end,
+      pay_status: "paid",
+    },
+    sourceTable: "payroll_records",
+    sourceId: payrollId,
+  });
+
   revalidatePath("/dashboard/hr");
   return { success: true };
 }
@@ -208,7 +250,9 @@ export async function approvePayrollFormAction(formData: FormData) {
 }
 
 export async function createJobPostingAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrRecruiting();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
   const { error } = await supabase.from("hr_job_postings").insert({
     school_id: formData.get("school_id") as string,
@@ -226,7 +270,9 @@ export async function createJobPostingAction(formData: FormData) {
 }
 
 export async function createJobApplicationAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrRecruiting();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { error } = await supabase.from("hr_job_applications").insert({
     job_posting_id: formData.get("job_posting_id") as string,
     candidate_name: formData.get("candidate_name") as string,
@@ -241,7 +287,9 @@ export async function createJobApplicationAction(formData: FormData) {
 }
 
 export async function updateApplicationStageAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrRecruiting();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { error } = await supabase
     .from("hr_job_applications")
     .update({ pipeline_stage: formData.get("pipeline_stage") as string })
@@ -252,7 +300,9 @@ export async function updateApplicationStageAction(formData: FormData) {
 }
 
 export async function submitLeaveRequestAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrSelfServiceOrManage();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { error } = await supabase.from("leave_requests").insert({
     employee_id: formData.get("employee_id") as string,
     school_id: formData.get("school_id") as string,
@@ -269,7 +319,9 @@ export async function submitLeaveRequestAction(formData: FormData) {
 }
 
 export async function completeOnboardingTaskAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrSelfServiceOrManage();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { error } = await supabase
     .from("hr_onboarding_tasks")
     .update({ status: "completed", completed_at: new Date().toISOString() })
@@ -281,7 +333,9 @@ export async function completeOnboardingTaskAction(formData: FormData) {
 }
 
 export async function registerEmployeeDocumentAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrManage();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
   const { error } = await supabase.from("employee_documents").insert({
     employee_id: formData.get("employee_id") as string,
@@ -297,7 +351,9 @@ export async function registerEmployeeDocumentAction(formData: FormData) {
 }
 
 export async function addSubstituteToPoolAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrManage();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { error } = await supabase.from("substitute_pool_members").insert({
     school_id: formData.get("school_id") as string,
     substitute_name: formData.get("substitute_name") as string,
@@ -311,7 +367,9 @@ export async function addSubstituteToPoolAction(formData: FormData) {
 }
 
 export async function addVolunteerAction(formData: FormData) {
-  const supabase = await createAuthClient();
+  const auth = await assertHrManage();
+  if ("error" in auth) return auth;
+  const supabase = auth.supabase;
   const { error } = await supabase.from("volunteers").insert({
     school_id: formData.get("school_id") as string,
     first_name: formData.get("first_name") as string,

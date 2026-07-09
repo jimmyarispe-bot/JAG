@@ -286,28 +286,63 @@ export async function executeWorkflowAction(
         break;
       }
 
-      case "create_student_record":
+      case "create_student_record": {
+        if (ctx.applicationId) {
+          const { completeEnrollmentHandoff } = await import(
+            "@/lib/admissions/handoff/complete-enrollment-handoff"
+          );
+          const result = await completeEnrollmentHandoff(supabase, {
+            leadId: ctx.leadId,
+            applicationId: ctx.applicationId,
+            actorUserId: sentBy,
+          });
+          if (!result.success) {
+            return { success: false, error: result.error ?? result.activationError };
+          }
+        }
+        break;
+      }
       case "create_family_record":
       case "create_sis_enrollment": {
-        if (ctx.applicationId && actionType === "create_student_record") {
-          const { convertAcceptedApplicantToStudent } = await import("@/lib/sis/conversion");
-          await convertAcceptedApplicantToStudent(supabase, {
-            applicationId: ctx.applicationId,
-            leadId: ctx.leadId,
-            convertedBy: sentBy,
-            source: "automation",
-          });
-        } else {
-          await writeAuditLog(supabase, {
-            schoolId: ctx.schoolId,
-            leadId: ctx.leadId,
-            applicationId: ctx.applicationId,
-            executionId,
-            actorUserId: sentBy,
-            eventType: actionType,
-            summary: `${ACTION_TYPE_LABELS[actionType]} completed via workflow`,
-            details: config,
-          });
+        await writeAuditLog(supabase, {
+          schoolId: ctx.schoolId,
+          leadId: ctx.leadId,
+          applicationId: ctx.applicationId,
+          executionId,
+          actorUserId: sentBy,
+          eventType: actionType,
+          summary: `${ACTION_TYPE_LABELS[actionType]} handled by Admissions to Active Student handoff`,
+          details: config,
+        });
+        break;
+      }
+
+      case "create_financial_account": {
+        if (ctx.applicationId) {
+          const { data: conversion } = await supabase
+            .from("sis_admissions_conversions")
+            .select("student_id, family_id")
+            .eq("application_id", ctx.applicationId)
+            .maybeSingle();
+          if (conversion?.student_id && conversion.family_id) {
+            const { data: lead } = await supabase
+              .from("admissions_leads")
+              .select("school_id, program, applying_for_grade, current_grade, guardian_email")
+              .eq("id", ctx.leadId)
+              .single();
+            const { data: app } = await supabase
+              .from("admissions_applications")
+              .select("school_year_id")
+              .eq("id", ctx.applicationId)
+              .single();
+            if (lead && app) {
+              const { provisionFamilyBillingAccountOnly } = await import("@/lib/sis/activation");
+              await provisionFamilyBillingAccountOnly(supabase, {
+                familyId: conversion.family_id,
+                schoolId: lead.school_id,
+              });
+            }
+          }
         }
         break;
       }
@@ -315,7 +350,6 @@ export async function executeWorkflowAction(
       case "generate_pdf":
       case "request_document":
       case "create_calendar_event":
-      case "create_financial_account":
       case "create_scholarship_record":
       case "create_state_funding_record": {
         return {

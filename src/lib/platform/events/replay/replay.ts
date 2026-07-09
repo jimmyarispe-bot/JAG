@@ -2,9 +2,11 @@ import {
   getAuditedEventEnvelopes,
   getEventAuditEntries,
 } from "@/lib/platform/events/audit/audit";
+import { loadPersistedEventEnvelopes } from "@/lib/platform/events/persistence/records";
 import { dispatchEvent, flushAsyncEventQueue } from "@/lib/platform/events/dispatch/dispatcher";
 import { getEventDefinition } from "@/lib/platform/events/registry/registry";
 import { resolveEventSubscribers } from "@/lib/platform/events/subscriber/subscribe";
+import type { createAuthClient } from "@/lib/supabase/server-auth";
 import type {
   EventHandlerResult,
   EventReplayBatchResult,
@@ -12,6 +14,9 @@ import type {
   EventReplayResult,
   PlatformEventEnvelope,
 } from "@/lib/platform/events/types";
+import type { ListPlatformEventRecordsFilters } from "@/lib/platform/events/persistence/types";
+
+type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
 export interface EventReplayer {
   replay(
@@ -112,6 +117,21 @@ export async function replayEventById(
 
   const batch = await getEventReplayer(replayerKey).replay([envelope], options);
   return batch.results[0] ?? null;
+}
+
+export interface ReplayPersistedEventsOptions extends EventReplayOptions {
+  filters?: ListPlatformEventRecordsFilters;
+}
+
+/** Replay events loaded from platform_event_records persistence. */
+export async function replayPersistedEvents(
+  supabase: AuthClient,
+  options: ReplayPersistedEventsOptions = {},
+  replayerKey = "default"
+): Promise<EventReplayBatchResult> {
+  const { filters, ...replayOptions } = options;
+  const envelopes = await loadPersistedEventEnvelopes(supabase, filters);
+  return getEventReplayer(replayerKey).replay(envelopes, replayOptions);
 }
 
 /** Preview which subscribers would receive an envelope without dispatching. */

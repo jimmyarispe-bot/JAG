@@ -6,6 +6,7 @@ import { getWorkforceAnalytics } from "@/lib/hr/analytics";
 import { getExecutiveInstructionDashboard } from "@/lib/instruction/executive";
 import { getExecutiveAdmissionsMetrics } from "@/lib/admissions/executive-metrics";
 import { getRiskRegister } from "@/lib/executive/risk-intelligence";
+import { loadOrganizationBranding, buildBoardReportHeader } from "@/lib/branding";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -24,7 +25,8 @@ export async function buildExecutiveBoardExport(
   dateFrom: string,
   dateTo: string
 ) {
-  const [financeCsv, metrics, kpis, workforce, instruction, admissions, risks] = await Promise.all([
+  const [financeCsv, metrics, kpis, workforce, instruction, admissions, risks, branding] =
+    await Promise.all([
     buildFinanceBoardExport(supabase, schoolId, dateFrom, dateTo),
     getCommandCenterMetrics(supabase, schoolId),
     getKpiCenter(supabase, schoolId),
@@ -32,6 +34,7 @@ export async function buildExecutiveBoardExport(
     getExecutiveInstructionDashboard(supabase, schoolId),
     getExecutiveAdmissionsMetrics(),
     getRiskRegister(supabase, schoolId),
+    loadOrganizationBranding(supabase),
   ]);
 
   const executiveSummary = [
@@ -82,7 +85,7 @@ export async function buildExecutiveBoardExport(
   ];
 
   const sections = [
-    "# AcademyOS Executive Board Report",
+    buildBoardReportHeader(branding),
     `# School: ${schoolId}`,
     `# Period: ${dateFrom} to ${dateTo}`,
     `# Generated: ${new Date().toISOString()}`,

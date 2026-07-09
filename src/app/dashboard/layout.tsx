@@ -1,21 +1,19 @@
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { redirectIfPasswordResetRequired } from "@/lib/auth/must-reset-password";
+import { getAuthUser, getSessionUser } from "@/lib/auth/session";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { getStaffNotifications } from "@/lib/admissions/communications/queries";
-import { createAuthClient } from "@/lib/supabase/server-auth";
+import { loadOrganizationBranding } from "@/lib/branding";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createAuthClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [{ user }, sessionUser] = await Promise.all([getAuthUser(), getSessionUser()]);
 
-  if (!user) {
+  if (!user || !sessionUser) {
     redirect("/login");
   }
 
@@ -27,12 +25,17 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const notifications = await getStaffNotifications(ctx.id);
+  const { supabase } = await getAuthUser();
+  const [notifications, branding] = await Promise.all([
+    getStaffNotifications(ctx.id),
+    loadOrganizationBranding(supabase),
+  ]);
 
   return (
     <DashboardShell
       fullName={ctx.fullName}
       roleLabel={ctx.roleLabel}
+      branding={branding}
       notifications={notifications}
       impersonation={ctx.impersonation}
     >

@@ -3,25 +3,32 @@ import { getDashboardMetrics } from "@/lib/dashboard/metrics";
 import { getFinanceExecutiveDashboard } from "@/lib/finance/dashboards";
 import { getExecutiveInstructionDashboard } from "@/lib/instruction/executive";
 import { getWorkforceAnalytics } from "@/lib/hr/analytics";
-import { getExecutiveAdmissionsMetrics } from "@/lib/admissions/executive-metrics";
-import { getMissionControlDashboard } from "@/lib/platform/automation/queries";
+import { getMissionControlFeed } from "@/lib/platform/automation/mission-control";
 import type { CommandCenterMetrics, ExecutiveInsight } from "@/lib/executive/types";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
+/**
+ * Legacy Command Center metrics composer.
+ * Uses lightweight Mission Control feed counts — does NOT call
+ * getMissionControlDashboard (avoids CCM ↔ MC circular dependency).
+ *
+ * Prefer getExecutiveAggregateMetrics + aggregateToCommandCenterMetrics
+ * when aggregate is already loaded for the request.
+ */
 export async function getCommandCenterMetrics(
   supabase: AuthClient,
   schoolId?: string
 ): Promise<CommandCenterMetrics> {
   const yearStart = `${new Date().getFullYear()}-01-01`;
 
-  const [home, finance, instruction, workforce, missionControl, enrollmentTrend] =
+  const [home, finance, instruction, workforce, mcFeed, enrollmentTrend] =
     await Promise.all([
       getDashboardMetrics(),
       getFinanceExecutiveDashboard(supabase, schoolId),
       getExecutiveInstructionDashboard(supabase, schoolId),
       getWorkforceAnalytics(supabase, schoolId),
-      getMissionControlDashboard(),
+      getMissionControlFeed(supabase, { schoolId, limit: 50 }),
       computeEnrollmentTrend(supabase, schoolId),
     ]);
 
@@ -29,7 +36,9 @@ export async function getCommandCenterMetrics(
   const { count: complianceCount } = await supabase
     .from("compliance_obligations")
     .select("id", { count: "exact", head: true })
-    .or(`status.eq.overdue,and(status.eq.pending,due_date.lt.${new Date().toISOString().split("T")[0]})`);
+    .or(
+      `status.eq.overdue,and(status.eq.pending,due_date.lt.${new Date().toISOString().split("T")[0]})`
+    );
   complianceAlerts = complianceCount ?? 0;
 
   const { data: paymentsYtd } = await supabase
@@ -41,9 +50,16 @@ export async function getCommandCenterMetrics(
   const interventionEffectiveness =
     instruction.interventionEffectiveness.sampleSize > 0
       ? Math.round(
-          (instruction.interventionEffectiveness.strong / instruction.interventionEffectiveness.sampleSize) * 100
+          (instruction.interventionEffectiveness.strong /
+            instruction.interventionEffectiveness.sampleSize) *
+            100
         )
       : null;
+
+  const missionControlOpen = mcFeed.length;
+  const missionControlCritical = mcFeed.filter(
+    (i) => (i.severity ?? "").toLowerCase() === "critical"
+  ).length;
 
   return {
     enrollment: home.enrollment,
@@ -61,13 +77,15 @@ export async function getCommandCenterMetrics(
     staffingLevels: workforce.staffingLevels,
     payrollYtd: workforce.payrollCostsYtd,
     complianceAlerts,
-    missionControlOpen: missionControl.summary?.openItems ?? 0,
-    missionControlCritical: missionControl.summary?.overdueTasks ?? 0,
+    missionControlOpen,
+    missionControlCritical,
   };
 }
 
 async function fetchAttendanceRate(supabase: AuthClient, schoolId?: string) {
-  let query = supabase.from("rpt_student_outcomes").select("attendance_present, attendance_total");
+  let query = supabase
+    .from("rpt_student_outcomes")
+    .select("attendance_present, attendance_total");
   if (schoolId) query = query.eq("school_id", schoolId);
   const { data } = await query;
   const present = (data ?? []).reduce((s, r) => s + Number(r.attendance_present ?? 0), 0);
@@ -77,9 +95,9 @@ async function fetchAttendanceRate(supabase: AuthClient, schoolId?: string) {
 
 async function computeEnrollmentTrend(supabase: AuthClient, schoolId?: string) {
   const now = new Date();
-  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
-  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+    .toISOString()
+    .split("T")[0];
 
   let currentQuery = supabase
     .from("students")
@@ -96,7 +114,10 @@ async function computeEnrollmentTrend(supabase: AuthClient, schoolId?: string) {
     priorQuery = priorQuery.eq("school_id", schoolId);
   }
 
-  const [{ count: current }, { count: prior }] = await Promise.all([currentQuery, priorQuery]);
+  const [{ count: current }, { count: prior }] = await Promise.all([
+    currentQuery,
+    priorQuery,
+  ]);
   if (!prior || prior === 0) return null;
   return Math.round(((Number(current ?? 0) - prior) / prior) * 100);
 }
@@ -108,7 +129,9 @@ export async function getExecutiveInsights(
 ): Promise<ExecutiveInsight[]> {
   let query = supabase
     .from("executive_insights")
-    .select("id, title, body, severity, insight_type, recommended_action, href, metric_key, metric_value")
+    .select(
+      "id, title, body, severity, insight_type, recommended_action, href, metric_key, metric_value"
+    )
     .eq("is_dismissed", false)
     .order("created_at", { ascending: false })
     .limit(limit);

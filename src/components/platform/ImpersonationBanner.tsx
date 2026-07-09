@@ -5,16 +5,20 @@ import { endImpersonationAction } from "@/lib/platform/identity/server-actions";
 
 interface ImpersonationBannerProps {
   targetName: string;
+  supportModeLabel?: string;
 }
 
-export function ImpersonationBanner({ targetName }: ImpersonationBannerProps) {
+export function ImpersonationBanner({
+  targetName,
+  supportModeLabel = "Support Mode",
+}: ImpersonationBannerProps) {
   const [isPending, startTransition] = useTransition();
 
   return (
     <div className="border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-950">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2">
         <span>
-          Acting as <strong>{targetName}</strong>. All actions are logged.
+          {supportModeLabel} — viewing as <strong>{targetName}</strong>. All actions are logged.
         </span>
         <button
           type="button"

@@ -34,7 +34,7 @@ export function buildEventAuditEntry(
   };
 }
 
-/** In-memory audit buffer for skeleton dispatch — replaced by DB persistence in Phase 2+. */
+/** In-memory audit buffer — canonical persistence via platform_event_records (Wave 1). */
 const EVENT_AUDIT_BUFFER: EventAuditEntry[] = [];
 
 export function recordEventAuditEntry(entry: EventAuditEntry): void {

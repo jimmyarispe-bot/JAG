@@ -78,6 +78,30 @@ export async function recordSessionOutcome(
 
     await computeStudentSuccessScore(supabase, input.studentId);
 
+    const { processCanonicalLearningProgress } = await import(
+      "@/lib/instruction/canonical-progress"
+    );
+    await processCanonicalLearningProgress(supabase, {
+      studentId: input.studentId,
+      schoolId,
+      actorUserId: input.recordedBy,
+      sessionId: input.sessionId,
+      evidenceTypeKey: "instruction.session_outcome",
+      competencyKeys: input.skillsAddressed?.length ? input.skillsAddressed : undefined,
+      narrative:
+        input.recommendedNextSteps ??
+        input.studentResponse ??
+        "Instructional session outcome recorded",
+      evidenceConfidence: input.masteryLevel === "proficient" ? 0.9 : 0.75,
+      evidenceQuality: input.evidenceCollected?.length ? 0.85 : 0.7,
+      sourceContext: {
+        masteryLevel: input.masteryLevel,
+        learningObjectives: input.learningObjectives,
+        evidenceCollected: input.evidenceCollected,
+      },
+      educatorConfirmAdvance: input.masteryLevel === "proficient",
+    });
+
     if (input.followUpTasks?.length && schoolId) {
       const { enqueueSessionFollowUpTasks } = await import("@/lib/instruction/automation");
       await enqueueSessionFollowUpTasks(supabase, {

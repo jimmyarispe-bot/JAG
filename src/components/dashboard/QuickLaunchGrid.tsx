@@ -1,20 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { QUICK_LAUNCH_MODULES } from "@/lib/dashboard/navigation";
+import { QUICK_LAUNCH_MODULES, type ModuleId } from "@/lib/dashboard/navigation";
+import { useBranding } from "@/components/branding/BrandingContext";
 import { ModuleIcon } from "./ModuleIcons";
 
-export function QuickLaunchGrid() {
+interface QuickLaunchGridProps {
+  visibleModuleIds?: ModuleId[];
+}
+
+export function QuickLaunchGrid({ visibleModuleIds }: QuickLaunchGridProps) {
+  const branding = useBranding();
+  const modules = QUICK_LAUNCH_MODULES.filter(
+    (module) => !visibleModuleIds || visibleModuleIds.includes(module.id)
+  );
+
+  if (!modules.length) {
+    return null;
+  }
+
   return (
     <section>
       <div className="mb-5">
         <h2 className="text-lg font-semibold text-slate-900">Quick Launch</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Jump directly into key AcademyOS modules
+          Jump directly into key {branding.productName} modules
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {QUICK_LAUNCH_MODULES.map((module) => (
+        {modules.map((module) => (
           <Link
             key={module.id}
             href={module.href}
@@ -24,11 +38,7 @@ export function QuickLaunchGrid() {
               <ModuleIcon moduleId={module.id} className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-slate-900">
-                {module.id === "executive"
-                  ? "Executive Dashboard"
-                  : module.pageTitle}
-              </h3>
+              <h3 className="font-semibold text-slate-900">{module.pageTitle}</h3>
               <p className="mt-1 text-sm text-slate-500">{module.pageSubtitle}</p>
             </div>
             <svg

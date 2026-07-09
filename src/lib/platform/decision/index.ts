@@ -14,3 +14,4 @@ export * from "@/lib/platform/decision/engine/ai-engine";
 export * from "@/lib/platform/decision/engine/explanation";
 export * from "@/lib/platform/decision/engine/audit";
 export * from "@/lib/platform/decision/engine/execute";
+export * from "@/lib/platform/decision/persistence";

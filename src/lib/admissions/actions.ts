@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/platform/activity";
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
+import { resolveSchoolContext } from "@/lib/platform/shared/context";
 import type { GradeValue } from "@/lib/constants/grades";
 import type { ProgramValue } from "@/lib/constants/programs";
 import type { LeadStageValue } from "@/lib/constants/admissions";
@@ -17,7 +19,7 @@ import {
 } from "@/lib/admissions/communications/triggers";
 
 async function requireAdmissionsManage() {
-  return assertAnyPermission("admissions.manage", "admissions.accept", "admissions.view");
+  return assertAnyPermission("admissions.manage", "admissions.accept");
 }
 
 export async function createLead(formData: FormData) {
@@ -28,19 +30,25 @@ export async function createLead(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   const fundingSources = parseFundingSourcesFromForm(formData);
+  const schoolId = formData.get("school_id") as string;
+  const firstName = formData.get("first_name") as string;
+  const lastName = formData.get("last_name") as string;
+  const program = (formData.get("program") as ProgramValue) || null;
+  const applyingForGrade = (formData.get("applying_for_grade") as GradeValue) || null;
+  const referralSource = (formData.get("referral_source") as string) || null;
 
   const { data, error } = await supabase
     .from("admissions_leads")
     .insert({
-      school_id: formData.get("school_id") as string,
-      first_name: formData.get("first_name") as string,
-      last_name: formData.get("last_name") as string,
+      school_id: schoolId,
+      first_name: firstName,
+      last_name: lastName,
       preferred_name: (formData.get("preferred_name") as string) || null,
       date_of_birth: (formData.get("date_of_birth") as string) || null,
       current_grade: (formData.get("current_grade") as GradeValue) || null,
-      applying_for_grade: (formData.get("applying_for_grade") as GradeValue) || null,
-      program: (formData.get("program") as ProgramValue) || null,
-      referral_source: (formData.get("referral_source") as string) || null,
+      applying_for_grade: applyingForGrade,
+      program,
+      referral_source: referralSource,
       guardian_first_name: (formData.get("guardian_first_name") as string) || null,
       guardian_last_name: (formData.get("guardian_last_name") as string) || null,
       guardian_email: (formData.get("guardian_email") as string) || null,
@@ -63,6 +71,27 @@ export async function createLead(formData: FormData) {
 
   await recordInitialStage(supabase, data.id, user?.id ?? null);
   await onInquirySubmitted(supabase, data.id, user?.id ?? null);
+
+  const schoolCtx = await resolveSchoolContext(supabase, schoolId);
+  await recordActivity(supabase, {
+    eventType: "admissions.inquiry_created",
+    moduleKey: "admissions",
+    entityType: "admissions_lead",
+    entityId: data.id,
+    title: "Inquiry created",
+    summary: `${firstName} ${lastName}`,
+    organizationId: schoolCtx?.organizationId,
+    schoolId,
+    actorUserId: user?.id ?? null,
+    payload: {
+      program,
+      applying_for_grade: applyingForGrade,
+      referral_source: referralSource,
+      lead_stage: "new_inquiry",
+    },
+    sourceTable: "admissions_leads",
+    sourceId: data.id,
+  });
 
   revalidatePath("/dashboard/admissions");
   return { id: data.id };
@@ -89,12 +118,32 @@ export async function updateLeadStage(leadId: string, leadStage: LeadStageValue)
       .limit(1)
       .maybeSingle();
 
-    await onEnrollmentCompleted(
-      supabase,
-      leadId,
-      application?.id ?? null,
-      user?.id ?? null
-    );
+    const { data: student } = await supabase
+      .from("students")
+      .select("id")
+      .eq("admissions_lead_id", leadId)
+      .maybeSingle();
+
+    if (!student && application?.id) {
+      const { completeEnrollmentHandoff } = await import(
+        "@/lib/admissions/handoff/complete-enrollment-handoff"
+      );
+      const handoff = await completeEnrollmentHandoff(supabase, {
+        leadId,
+        applicationId: application.id,
+        actorUserId: user?.id ?? null,
+      });
+      if (!handoff.success) {
+        return { error: handoff.error ?? handoff.activationError ?? "Enrollment handoff failed" };
+      }
+    } else if (!student) {
+      await onEnrollmentCompleted(
+        supabase,
+        leadId,
+        application?.id ?? null,
+        user?.id ?? null
+      );
+    }
   }
 
   revalidatePath("/dashboard/admissions");
@@ -202,15 +251,27 @@ export async function scheduleInterview(formData: FormData) {
   const leadId = formData.get("lead_id") as string;
   const applicationId = (formData.get("application_id") as string) || null;
   const scheduledAt = formData.get("scheduled_at") as string;
+  const interviewType = (formData.get("interview_type") as string) || "virtual";
 
   await supabase.from("admissions_interviews").insert({
     lead_id: leadId,
     application_id: applicationId,
     scheduled_at: scheduledAt,
-    interview_type: (formData.get("interview_type") as string) || "virtual",
+    interview_type: interviewType,
     notes: (formData.get("notes") as string) || null,
     host_user_id: user?.id ?? null,
   });
+
+  const pipelineStage =
+    interviewType === "initial_assessment" ? "assessment_scheduled" : "interview_scheduled";
+  const { transitionCasePipelineStage } = await import("@/lib/admissions/case/orchestration");
+  const stageResult = await transitionCasePipelineStage(
+    supabase,
+    leadId,
+    pipelineStage,
+    user?.id ?? null
+  );
+  if (stageResult.error) return { error: stageResult.error };
 
   await onInterviewScheduled(
     supabase,

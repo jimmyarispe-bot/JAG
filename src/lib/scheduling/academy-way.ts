@@ -1,13 +1,31 @@
-/** Academy Way instructional scheduling rules */
+/** Academy Way instructional scheduling rules — Scheduling Intelligence™ */
 
 export type AcademySubject = "reading" | "writing" | "math" | "structured_literacy" | "other";
 
-export const ACADEMY_VIRTUAL_SUBJECTS: AcademySubject[] = [
-  "reading",
-  "writing",
-  "math",
-  "structured_literacy",
-];
+export type JagProgramKey =
+  | "structured_literacy"
+  | "real_life_math"
+  | "litlab"
+  | "earthology"
+  | "life_lab"
+  | "ai_venture_lab_a"
+  | "ai_venture_lab_b";
+
+/** The JAG™ Virtual program capacity rules */
+export const JAG_VIRTUAL_PROGRAM_RULES: Record<
+  JagProgramKey,
+  { min: number; max: number; reserveSeatUntilMax?: boolean }
+> = {
+  structured_literacy: { min: 2, max: 3 },
+  real_life_math: { min: 5, max: 6, reserveSeatUntilMax: true },
+  litlab: { min: 5, max: 6 },
+  earthology: { min: 5, max: 6 },
+  life_lab: { min: 8, max: 10 },
+  ai_venture_lab_a: { min: 8, max: 10 },
+  ai_venture_lab_b: { min: 8, max: 10 },
+};
+
+export const DISPLAY_TIMEZONE = "America/New_York";
 
 export const DEFAULT_ACADEMY_WAY_CONFIG = {
   virtualStartOnHour: true,
@@ -20,6 +38,78 @@ export const DEFAULT_ACADEMY_WAY_CONFIG = {
   tutoringMaxSize: 1,
   allowHsInVirtual: true,
 };
+
+export type AcademyWayConfig = typeof DEFAULT_ACADEMY_WAY_CONFIG;
+
+/** Load per-school config from schedule_academy_way_config; falls back to defaults. */
+export async function loadAcademyWayConfig(
+  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server-auth").createAuthClient>>,
+  schoolId: string
+): Promise<AcademyWayConfig> {
+  const { data } = await supabase
+    .from("schedule_academy_way_config")
+    .select("*")
+    .eq("school_id", schoolId)
+    .maybeSingle();
+
+  if (!data) return { ...DEFAULT_ACADEMY_WAY_CONFIG };
+
+  return {
+    virtualStartOnHour: data.virtual_start_on_hour ?? true,
+    virtualEndAtMinute: data.virtual_end_at_minute ?? 50,
+    use12HourDisplay: data.use_12_hour_display ?? true,
+    minReadingSize: data.min_reading_size ?? 4,
+    minWritingSize: data.min_writing_size ?? 4,
+    minMathSize: data.min_math_size ?? 4,
+    minStructuredLiteracySize: data.min_structured_literacy_size ?? 2,
+    tutoringMaxSize: data.tutoring_max_size ?? 1,
+    allowHsInVirtual: data.allow_hs_in_virtual ?? true,
+  };
+}
+
+/** Effective max enrollment considering JAG reserve-seat rules (e.g. Real-Life Math). */
+export function effectiveSectionCapacity(
+  programKey: JagProgramKey | null | undefined,
+  maxCapacity: number,
+  _config = DEFAULT_ACADEMY_WAY_CONFIG
+): number {
+  if (!programKey) return maxCapacity;
+  const rules = JAG_VIRTUAL_PROGRAM_RULES[programKey];
+  if (!rules) return maxCapacity;
+  const cap = Math.min(maxCapacity, rules.max);
+  if (rules.reserveSeatUntilMax) {
+    return Math.max(rules.min, cap - 1);
+  }
+  return cap;
+}
+
+/** Whether a new section may open — existing sections must reach max first. */
+export function canOpenNewSection(
+  programKey: JagProgramKey | null | undefined,
+  enrolledCount: number,
+  maxCapacity: number,
+  _config = DEFAULT_ACADEMY_WAY_CONFIG
+): boolean {
+  if (!programKey) return enrolledCount >= maxCapacity;
+  const rules = JAG_VIRTUAL_PROGRAM_RULES[programKey];
+  if (!rules) return enrolledCount >= maxCapacity;
+  return enrolledCount >= rules.max;
+}
+
+/** Normalize local time to Eastern for display and conflict comparison. */
+export function toEasternDisplay(date: Date | string, sourceTimezone?: string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return formatAcademyTime(d, DISPLAY_TIMEZONE);
+}
+
+/** Store local preference window; compute ET equivalent for scheduling engine. */
+export function localTimeToEasternMinutes(
+  localTime: string,
+  _sourceTimezone = "America/New_York"
+): number {
+  const [h, m] = localTime.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
 
 export function minClassSizeForSubject(
   subject: AcademySubject | null | undefined,

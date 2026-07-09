@@ -1,8 +1,11 @@
 import { cookies } from "next/headers";
-import { getSessionUser, type SessionUser } from "@/lib/auth/session";
+import { cache } from "react";
+import { getAuthUser, getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { loadUserPermissions } from "@/lib/platform/identity/permissions";
 import type { ImpersonationState, OrgAssignment, UserPreferences } from "@/lib/platform/identity/types";
+
+type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
 const IMPERSONATION_COOKIE = "aos_impersonate_session";
 
@@ -20,10 +23,10 @@ export interface IdentityContext extends SessionUser {
   preferences: UserPreferences | null;
 }
 
-export async function getIdentityContext(): Promise<IdentityContext | null> {
-  const supabase = await createAuthClient();
+export const getIdentityContext = cache(async (): Promise<IdentityContext | null> => {
+  const { supabase, user: authUser } = await getAuthUser();
   const sessionUser = await getSessionUser();
-  if (!sessionUser) return null;
+  if (!sessionUser || !authUser) return null;
 
   const cookieStore = await cookies();
   const impersonationSessionId = cookieStore.get(IMPERSONATION_COOKIE)?.value;
@@ -59,7 +62,7 @@ export async function getIdentityContext(): Promise<IdentityContext | null> {
   }
 
   const [permissions, orgAssignments, preferences] = await Promise.all([
-    loadUserPermissions(supabase, effectiveUserId).then((s) => [...s]),
+    loadUserPermissions(supabase, effectiveUserId, authUser.id),
     loadOrgAssignments(supabase, effectiveUserId),
     loadPreferences(supabase, effectiveUserId),
   ]);
@@ -73,7 +76,7 @@ export async function getIdentityContext(): Promise<IdentityContext | null> {
   return {
     ...sessionUser,
     effectiveUserId,
-    permissions,
+    permissions: [...permissions],
     orgAssignments,
     accessibleSchoolIds,
     hasUnrestrictedSchoolAccess,
@@ -84,10 +87,10 @@ export async function getIdentityContext(): Promise<IdentityContext | null> {
     impersonation,
     preferences,
   };
-}
+});
 
 async function loadOrgAssignments(
-  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  supabase: AuthClient,
   userId: string
 ): Promise<OrgAssignment[]> {
   const { data: orgRows } = await supabase
@@ -120,7 +123,7 @@ async function loadOrgAssignments(
 }
 
 async function loadPreferences(
-  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  supabase: AuthClient,
   userId: string
 ): Promise<UserPreferences | null> {
   const { data } = await supabase.from("user_preferences").select("*").eq("user_id", userId).maybeSingle();

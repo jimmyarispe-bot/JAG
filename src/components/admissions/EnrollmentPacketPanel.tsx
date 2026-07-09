@@ -1,23 +1,30 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { signEnrollmentPacket } from "@/lib/admissions/sprint15-actions";
+import { completeEnrollmentHandoffAction } from "@/lib/admissions/handoff/actions";
 import type { EnrollmentPacketView } from "@/lib/admissions/enrollment-packets";
 
 interface EnrollmentPacketPanelProps {
   packet: EnrollmentPacketView;
   applicationId: string;
+  leadId: string;
   signerEmail: string;
+  studentId?: string | null;
   readOnly?: boolean;
 }
 
 export function EnrollmentPacketPanel({
   packet,
   applicationId,
+  leadId,
   signerEmail,
+  studentId,
   readOnly = false,
 }: EnrollmentPacketPanelProps) {
   const [isPending, startTransition] = useTransition();
+  const [handoffError, setHandoffError] = useState<string | null>(null);
   const [signatures, setSignatures] = useState<Record<string, string>>({});
 
   function handleSign(templateKey: string) {
@@ -36,6 +43,16 @@ export function EnrollmentPacketPanel({
     });
   }
 
+  function handleCompleteHandoff() {
+    startTransition(async () => {
+      setHandoffError(null);
+      const result = await completeEnrollmentHandoffAction(leadId, applicationId);
+      if ("error" in result && result.error) {
+        setHandoffError(result.error);
+      }
+    });
+  }
+
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -45,12 +62,40 @@ export function EnrollmentPacketPanel({
             Status: {packet.packet_status.replace(/_/g, " ")}
           </p>
         </div>
-        {packet.completed_at && (
-          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-            Completed {new Date(packet.completed_at).toLocaleDateString()}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {studentId && (
+            <Link
+              href={`/dashboard/students/${studentId}`}
+              className="rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-800 hover:bg-brand-200"
+            >
+              View active student →
+            </Link>
+          )}
+          {packet.completed_at && (
+            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+              Completed {new Date(packet.completed_at).toLocaleDateString()}
+            </span>
+          )}
+        </div>
       </div>
+
+      {packet.packet_status === "completed" && !studentId && !readOnly && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm text-amber-900">
+            Enrollment agreement signed — complete the Admissions to Active Student handoff to
+            create the student record, activate billing, and assign teachers.
+          </p>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={handleCompleteHandoff}
+            className="mt-3 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          >
+            Complete enrollment handoff
+          </button>
+          {handoffError && <p className="mt-2 text-xs text-red-600">{handoffError}</p>}
+        </div>
+      )}
 
       <div className="mt-4 space-y-4">
         {packet.templates.map((doc) => (

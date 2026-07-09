@@ -6,14 +6,14 @@ export interface StudentReadinessSnapshot {
   medicalAlerts: string[];
   iepAccommodations: string[];
   instructionalLevels: Record<string, string | null>;
-  activeInterventions: { type: string; goal?: string | null }[];
+  activeInterventions: { id: string; type: string; goal?: string | null }[];
   recentAttendance: { date: string; status: string }[];
   recentBehavior: { title: string; occurredAt: string }[];
   openCommunications: { subject: string; sentAt?: string | null }[];
   outstandingTasks: { title: string; dueDate?: string | null }[];
 }
 
-export async function getStudentReadinessSnapshot(
+export async function buildOperationalReadinessSnapshot(
   supabase: AuthClient,
   studentId: string
 ): Promise<StudentReadinessSnapshot> {
@@ -30,7 +30,7 @@ export async function getStudentReadinessSnapshot(
       supabase.from("student_learning_profiles").select("reading_level, writing_level, math_level, structured_literacy_level").eq("student_id", studentId).maybeSingle(),
       supabase
         .from("student_academic_interventions")
-        .select("intervention_type, goal_text")
+        .select("id, intervention_type, goal_text")
         .eq("student_id", studentId)
         .eq("status", "active"),
       supabase
@@ -91,6 +91,7 @@ export async function getStudentReadinessSnapshot(
       structuredLiteracy: profile.data?.structured_literacy_level ?? null,
     },
     activeInterventions: (interventions.data ?? []).map((i) => ({
+      id: i.id,
       type: i.intervention_type,
       goal: i.goal_text,
     })),
@@ -112,13 +113,25 @@ export async function getStudentReadinessSnapshot(
   };
 }
 
+/** @deprecated Prefer resolveJagProfile — returns operational readiness from the canonical profile. */
+export async function getStudentReadinessSnapshot(
+  supabase: AuthClient,
+  studentId: string
+): Promise<StudentReadinessSnapshot> {
+  return buildOperationalReadinessSnapshot(supabase, studentId);
+}
+
 export async function getSessionReadinessForStudents(
   supabase: AuthClient,
   studentIds: string[]
 ): Promise<Map<string, StudentReadinessSnapshot>> {
+  const { resolveJagProfilesForStudents, jagProfileToReadinessSnapshot } = await import(
+    "@/lib/platform/jag-profile"
+  );
+  const profiles = await resolveJagProfilesForStudents(supabase, studentIds);
   const map = new Map<string, StudentReadinessSnapshot>();
-  for (const id of studentIds) {
-    map.set(id, await getStudentReadinessSnapshot(supabase, id));
+  for (const [id, profile] of profiles) {
+    map.set(id, jagProfileToReadinessSnapshot(profile));
   }
   return map;
 }

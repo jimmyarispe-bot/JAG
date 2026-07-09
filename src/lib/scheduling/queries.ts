@@ -3,7 +3,7 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 export async function getSchedulingExecutiveStats(schoolId?: string) {
   const supabase = await createAuthClient();
 
-  let sessionsQuery = supabase
+  const sessionsQuery = supabase
     .from("instructional_sessions")
     .select("id, session_status, scheduled_start, course_sections(max_capacity, courses(school_id))")
     .gte("scheduled_start", new Date(Date.now() - 7 * 86400000).toISOString());
@@ -207,4 +207,110 @@ export async function getStaffWorkload(schoolId: string) {
   }
 
   return workload.sort((a, b) => b.weeklyHours - a.weeklyHours);
+}
+
+export async function getStudentSchedulePreferences(studentId: string) {
+  const supabase = await createAuthClient();
+  const { data } = await supabase
+    .from("student_schedule_preferences")
+    .select("*")
+    .eq("student_id", studentId)
+    .order("day_of_week");
+  return data ?? [];
+}
+
+export async function getTeacherAvailability(employeeId: string) {
+  const supabase = await createAuthClient();
+  const { data } = await supabase
+    .from("employee_availability")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .eq("is_available", true)
+    .order("day_of_week");
+  return data ?? [];
+}
+
+export async function getSchedulingCapacityReport(schoolId: string) {
+  const supabase = await createAuthClient();
+  const { loadAcademyWayConfig, effectiveSectionCapacity, JAG_VIRTUAL_PROGRAM_RULES } = await import(
+    "@/lib/scheduling/academy-way"
+  );
+  const config = await loadAcademyWayConfig(supabase, schoolId);
+
+  const { data: sections } = await supabase
+    .from("course_sections")
+    .select(
+      "id, section_code, max_capacity, min_capacity, status, structured_literacy_level, structured_literacy_step, courses(name, academy_subject, school_id, program)"
+    )
+    .eq("status", "open");
+
+  const report = [];
+  for (const section of sections ?? []) {
+    const course = Array.isArray(section.courses) ? section.courses[0] : section.courses;
+    if ((course as { school_id?: string })?.school_id !== schoolId) continue;
+
+    const { count } = await supabase
+      .from("student_enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("course_section_id", section.id)
+      .eq("enrollment_status", "enrolled");
+
+    const enrolled = count ?? 0;
+    const max = section.max_capacity ?? 30;
+    report.push({
+      sectionId: section.id,
+      sectionCode: section.section_code,
+      courseName: (course as { name?: string })?.name ?? "—",
+      academySubject: (course as { academy_subject?: string })?.academy_subject,
+      enrolled,
+      maxCapacity: max,
+      openSeats: max - enrolled,
+      utilizationPct: max ? Math.round((enrolled / max) * 100) : 0,
+      structuredLiteracyLevel: section.structured_literacy_level,
+      structuredLiteracyStep: section.structured_literacy_step,
+    });
+  }
+
+  return { sections: report, programRules: JAG_VIRTUAL_PROGRAM_RULES, config };
+}
+
+export async function getStudentsWithoutSectionMatch(schoolId: string) {
+  const supabase = await createAuthClient();
+  const { findBestSectionForStudent } = await import("@/lib/scheduling/placement");
+
+  const { data: students } = await supabase
+    .from("students")
+    .select("id, first_name, last_name, program, school_id")
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .eq("enrollment_status", "enrolled");
+
+  const gaps = [];
+  for (const student of students ?? []) {
+    const { data: enrollments } = await supabase
+      .from("student_enrollments")
+      .select("id")
+      .eq("student_id", student.id)
+      .eq("enrollment_status", "enrolled")
+      .limit(1);
+
+    if (enrollments?.length) continue;
+
+    const result = await findBestSectionForStudent(supabase, {
+      studentId: student.id,
+      schoolId,
+      program: student.program,
+      academySubject: "structured_literacy",
+    });
+
+    if (!result.sectionId) {
+      gaps.push({
+        studentId: student.id,
+        studentName: `${student.first_name} ${student.last_name}`,
+        reason: result.reason ?? "No matching section",
+      });
+    }
+  }
+
+  return gaps;
 }

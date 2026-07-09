@@ -12,3 +12,4 @@ export * from "@/lib/platform/events/dispatch/dispatcher";
 export * from "@/lib/platform/events/publisher/publish";
 export * from "@/lib/platform/events/replay/replay";
 export * from "@/lib/platform/events/audit/audit";
+export * from "@/lib/platform/events/persistence";

@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { DashboardModule } from "@/lib/dashboard/navigation";
+import { useBranding } from "@/components/branding/BrandingContext";
 import { ModuleIcon } from "./ModuleIcons";
 
 interface ModulePlaceholderProps {
@@ -7,6 +10,8 @@ interface ModulePlaceholderProps {
 }
 
 export function ModulePlaceholder({ module }: ModulePlaceholderProps) {
+  const branding = useBranding();
+
   return (
     <div className="mx-auto max-w-3xl">
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
@@ -60,7 +65,7 @@ export function ModulePlaceholder({ module }: ModulePlaceholderProps) {
               href="/dashboard"
               className="inline-flex items-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
             >
-              Back to Executive Home
+              Back to {branding.founderWorkspaceLabel}
             </Link>
           </div>
         </div>

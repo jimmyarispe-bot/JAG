@@ -9,7 +9,7 @@ export default async function ConfigurationStudioPage() {
   return (
     <ConfigStudioShell
       title="Configuration Studio"
-      subtitle="Organization builder — configure AcademyOS without code. All settings stored in the database."
+      subtitle="Organization builder — configure your platform without code. All settings stored in the database."
     >
       <div className="flex flex-wrap gap-3 text-sm">
         <Link href="/dashboard/admin/setup" className="rounded-lg bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700">

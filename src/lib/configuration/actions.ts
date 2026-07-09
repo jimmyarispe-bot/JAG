@@ -88,7 +88,7 @@ export async function advanceSetupAction(formData: FormData): Promise<void> {
   const { ctx, supabase, orgId } = await resolveOrg(formData.get("organization_id")?.toString());
   if (!canManageConfiguration(ctx)) return;
 
-  let session = await startSetupSession(supabase, orgId, ctx.effectiveUserId);
+  const session = await startSetupSession(supabase, orgId, ctx.effectiveUserId);
   if (!session) return;
 
   const step = (formData.get("step")?.toString() ?? "organization") as SetupStepKey;

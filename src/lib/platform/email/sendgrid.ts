@@ -10,6 +10,7 @@ export interface SendEmailParams {
   subject: string;
   body: string;
   from?: string;
+  fromName?: string;
 }
 
 /**
@@ -44,7 +45,7 @@ export async function sendTransactionalEmail(params: SendEmailParams): Promise<E
       },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: params.to }] }],
-        from: { email: fromEmail, name: process.env.SENDGRID_FROM_NAME ?? "AcademyOS" },
+        from: { email: fromEmail, name: params.fromName ?? process.env.SENDGRID_FROM_NAME ?? "School Platform" },
         subject: params.subject,
         content: [{ type: "text/html", value: params.body.replace(/\n/g, "<br>") }],
       }),

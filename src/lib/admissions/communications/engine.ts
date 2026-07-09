@@ -157,6 +157,21 @@ async function deliverCommunication(
     deliveryStatus = emailResult.success ? "sent" : "failed";
     providerMessageId = emailResult.messageId ?? null;
     deliveryError = emailResult.error ?? null;
+
+    if (!emailResult.success && process.env.NODE_ENV === "production") {
+      const { createMissionControlItem } = await import("@/lib/platform/automation/mission-control");
+      await createMissionControlItem(supabase, {
+        module: "admissions",
+        itemType: "admissions_alert",
+        title: "Admissions email delivery failed",
+        body: deliveryError ?? "SendGrid delivery failed",
+        entityType: "admissions_leads",
+        entityId: params.leadId,
+        severity: "high",
+        assignedRole: "ADMISSIONS_DIRECTOR",
+        metadata: { triggerEvent: params.template.trigger_event, sentTo },
+      });
+    }
   } else if (channel === "sms") {
     deliveryStatus = "logged";
     deliveryError = "SMS provider not configured for v1.0";

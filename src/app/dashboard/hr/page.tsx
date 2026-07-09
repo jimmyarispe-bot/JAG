@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { HrPageContent, HrPageSkeleton } from "./HrPageContent";
 
 interface HrPageProps {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; work?: string }>;
 }
 
 export default function HrPage({ searchParams }: HrPageProps) {

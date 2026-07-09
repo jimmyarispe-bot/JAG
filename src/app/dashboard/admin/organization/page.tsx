@@ -26,6 +26,20 @@ export default async function OrganizationAdminPage() {
           { name: "timezone", label: "Time zone" },
         ]}
       />
+      <ConfigSectionForm
+        sectionKey="organization"
+        organizationId={organizationId}
+        title="Executive role titles"
+        description="Display titles for leadership roles — overrides system defaults"
+        config={config}
+        fields={[
+          { name: "role_title_CEO", label: "CEO title", placeholder: "e.g. Founder / CEO" },
+          { name: "role_title_FOUNDER", label: "Founder title", placeholder: "e.g. Founder" },
+          { name: "role_title_EXECUTIVE_DIRECTOR", label: "Executive Director title" },
+          { name: "role_title_REGIONAL_DIRECTOR", label: "Regional Director title" },
+          { name: "role_title_SCHOOL_LEADER", label: "School Leader title", placeholder: "e.g. Superintendent" },
+        ]}
+      />
       <OrganizationHierarchyPanel hierarchy={hierarchy} />
     </ConfigStudioShell>
   );

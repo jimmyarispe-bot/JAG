@@ -137,9 +137,8 @@ export const ADMISSIONS_WORKFLOW_CATALOG: AdmissionsWorkflowCatalogEntry[] = [
     status: "live",
     defaultActions: [
       "send_email",
-      "create_sis_enrollment",
-      "create_family_record",
       "notify_executive",
+      "audit_log_entry",
     ],
   },
 ];

@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { assertAnyPermission, assertPermission } from "@/lib/platform/identity/action-guards";
+import { assertPermission } from "@/lib/platform/identity/action-guards";
+import { createAuthClient } from "@/lib/supabase/server-auth";
 import { transitionStudentLifecycle, type LifecycleStage } from "@/lib/ssis/transitions";
 import { logStudentCommunicationEvent } from "@/lib/ssis/timeline";
 import { computeStudentSuccessScore } from "@/lib/ssis/score";
 
 async function requireStudentsEdit() {
-  return assertAnyPermission("students.edit", "students.view");
+  return assertPermission("students.edit");
 }
 
 export async function recordStudentAttendance(formData: FormData) {
@@ -40,14 +41,39 @@ export async function recordStudentAttendance(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  await logStudentCommunicationEvent(supabase, {
-    studentId,
-    channel: "attendance",
-    direction: "internal",
-    subject: `Attendance: ${status.replace(/_/g, " ")}`,
-    body: notes ?? `Recorded for ${date}`,
-    actorUserId: user?.id ?? null,
-  });
+  if (notifyParent && status.startsWith("absent")) {
+    const { data: student } = await supabase
+      .from("students")
+      .select("school_id, first_name, last_name, family_id")
+      .eq("id", studentId)
+      .single();
+    const { deliverParentCommunication } = await import(
+      "@/lib/platform/parent-communication/deliver"
+    );
+    await deliverParentCommunication(supabase, {
+      studentId,
+      schoolId: student?.school_id,
+      familyId: student?.family_id,
+      category: "attendance",
+      title: `Attendance: ${status.replace(/_/g, " ")}`,
+      body: notes ?? `Recorded for ${date}`,
+      channel: "parent_portal",
+      actorUserId: user?.id ?? null,
+      href: "/portal",
+      metadata: { attendanceDate: date, status },
+      createFollowUpWork: true,
+      followUpHref: `/dashboard/students/${studentId}?section=attendance`,
+    });
+  } else {
+    await logStudentCommunicationEvent(supabase, {
+      studentId,
+      channel: "attendance",
+      direction: "internal",
+      subject: `Attendance: ${status.replace(/_/g, " ")}`,
+      body: notes ?? `Recorded for ${date}`,
+      actorUserId: user?.id ?? null,
+    });
+  }
 
   await computeStudentSuccessScore(supabase, studentId);
   revalidatePath(`/dashboard/students/${studentId}`);

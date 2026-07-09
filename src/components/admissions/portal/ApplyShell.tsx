@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useBranding } from "@/components/branding/BrandingContext";
 
 export function ApplyShell({
   children,
@@ -7,13 +10,15 @@ export function ApplyShell({
   children: React.ReactNode;
   userEmail?: string | null;
 }) {
+  const branding = useBranding();
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
           <div>
             <Link href="/apply" className="text-lg font-bold text-brand-700">
-              AcademyOS Admissions
+              {branding.productName} Admissions
             </Link>
             <p className="text-xs text-slate-500">Enrollment inquiry & application portal</p>
           </div>

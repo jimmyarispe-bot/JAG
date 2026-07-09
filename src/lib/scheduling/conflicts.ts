@@ -1,6 +1,7 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { createMissionControlItem } from "@/lib/platform/automation/mission-control";
-import { validateSectionAgainstAcademyWay, type AcademySubject } from "@/lib/scheduling/academy-way";
+import { validateSectionAgainstAcademyWay, loadAcademyWayConfig, type AcademySubject, effectiveSectionCapacity, canOpenNewSection } from "@/lib/scheduling/academy-way";
+import { findBestSectionForStudent } from "@/lib/scheduling/placement";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -18,6 +19,7 @@ export async function detectSchedulingConflicts(
   supabase: AuthClient,
   schoolId: string
 ): Promise<ScheduleConflict[]> {
+  const config = await loadAcademyWayConfig(supabase, schoolId);
   const conflicts: ScheduleConflict[] = [];
 
   const { data: sessions } = await supabase
@@ -86,6 +88,70 @@ export async function detectSchedulingConflicts(
     }
   }
 
+  // Student double-booking across sessions
+  const { data: enrollments } = await supabase
+    .from("student_enrollments")
+    .select("student_id, course_section_id")
+    .eq("enrollment_status", "enrolled");
+
+  const studentSessions = new Map<string, typeof schoolSessions>();
+  for (const enr of enrollments ?? []) {
+    const sectionSessions = schoolSessions.filter((s) => s.course_section_id === enr.course_section_id);
+    if (!studentSessions.has(enr.student_id)) studentSessions.set(enr.student_id, []);
+    studentSessions.get(enr.student_id)!.push(...sectionSessions);
+  }
+
+  for (const [studentId, list] of studentSessions) {
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        if (timesOverlap(list[i], list[j])) {
+          conflicts.push({
+            conflictType: "student",
+            severity: "critical",
+            title: "Student scheduling conflict",
+            description: "Student enrolled in overlapping sessions",
+            recommendation: "Adjust enrollment or reschedule a session",
+            entityType: "students",
+            entityId: studentId,
+          });
+        }
+      }
+    }
+  }
+
+  // Teacher availability mismatches
+  for (const s of schoolSessions) {
+    if (!s.instructor_employee_id) continue;
+    const sessionDay = new Date(s.scheduled_start).getDay();
+    const sessionStart = new Date(s.scheduled_start).toTimeString().slice(0, 8);
+    const sessionEnd = new Date(s.scheduled_end).toTimeString().slice(0, 8);
+
+    const { data: availability } = await supabase
+      .from("employee_availability")
+      .select("start_time, end_time")
+      .eq("employee_id", s.instructor_employee_id)
+      .eq("day_of_week", sessionDay)
+      .eq("is_available", true);
+
+    if ((availability ?? []).length === 0) continue;
+
+    const inWindow = (availability ?? []).some(
+      (a) => String(a.start_time) <= sessionStart && String(a.end_time) >= sessionEnd
+    );
+
+    if (!inWindow) {
+      conflicts.push({
+        conflictType: "teacher",
+        severity: "warning",
+        title: "Teacher outside submitted availability",
+        description: "Session scheduled outside teacher availability window",
+        recommendation: "Reschedule session or update availability submission",
+        entityType: "employee",
+        entityId: s.instructor_employee_id,
+      });
+    }
+  }
+
   // Academy Way capacity
   const { data: sections } = await supabase
     .from("course_sections")
@@ -119,6 +185,70 @@ export async function detectSchedulingConflicts(
         recommendation: "Adjust enrollment or section configuration",
         entityType: "course_sections",
         entityId: section.id,
+      });
+    }
+
+    const enrolled = count ?? 0;
+    const max = section.max_capacity ?? 30;
+    const subject = (course as { academy_subject?: string })?.academy_subject;
+    if (subject === "structured_literacy" && enrolled > effectiveSectionCapacity("structured_literacy", max, config)) {
+      conflicts.push({
+        conflictType: "capacity",
+        severity: "critical",
+        title: "Structured Literacy section over capacity",
+        description: `${enrolled} enrolled exceeds JAG Virtual max (2–3 students)`,
+        recommendation: "Move students or open a new section when existing reaches capacity",
+        entityType: "course_sections",
+        entityId: section.id,
+      });
+    }
+
+    if (enrolled >= max && !canOpenNewSection(null, enrolled, max, config)) {
+      conflicts.push({
+        conflictType: "capacity",
+        severity: "info",
+        title: `Section ${section.id} at capacity`,
+        description: "Section full — eligible to open a new section per JAG rules",
+        recommendation: "Create new section for incoming placements",
+        entityType: "course_sections",
+        entityId: section.id,
+      });
+    }
+  }
+
+  // Students without section placement
+  const { data: unplacedStudents } = await supabase
+    .from("students")
+    .select("id, first_name, last_name, program")
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .eq("enrollment_status", "enrolled");
+
+  for (const student of unplacedStudents ?? []) {
+    const { count: enrCount } = await supabase
+      .from("student_enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("student_id", student.id)
+      .eq("enrollment_status", "enrolled");
+
+    if ((enrCount ?? 0) > 0) continue;
+
+    const placement = await findBestSectionForStudent(supabase, {
+      studentId: student.id,
+      schoolId,
+      program: student.program,
+      academySubject: "structured_literacy",
+    });
+
+    if (!placement.sectionId) {
+      conflicts.push({
+        conflictType: "student",
+        severity: "warning",
+        title: `Placement needed — ${student.first_name} ${student.last_name}`,
+        description: placement.reason ?? "No section match found",
+        recommendation: "Run placement intelligence or create a new section",
+        entityType: "students",
+        entityId: student.id,
       });
     }
   }

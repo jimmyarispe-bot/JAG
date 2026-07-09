@@ -5,9 +5,9 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { recordSessionAttendance } from "@/lib/scheduling/attendance-bridge";
 import { writePlatformAudit } from "@/lib/platform/automation/audit";
-import { logStudentCommunicationEvent } from "@/lib/ssis/timeline";
 import { computeStudentSuccessScore } from "@/lib/ssis/score";
 import { recommendNextStructuredLiteracyStep, computeGrowth } from "@/lib/teacher/progress";
+import { formatAcademyTime } from "@/lib/scheduling/academy-way";
 import { getTeacherEmployeeId } from "@/lib/teacher/queries";
 
 async function requireTeacherPermission(permission: string) {
@@ -57,6 +57,14 @@ export async function completeSessionAction(formData: FormData) {
   const sessionId = formData.get("session_id") as string;
   const sessionNotes = (formData.get("session_notes") as string) || null;
   const homework = (formData.get("homework") as string) || null;
+  const teacherReflection = (formData.get("teacher_reflection") as string) || null;
+  const learnerEngagementRaw = (formData.get("learner_engagement") as string) || "unknown";
+  const learnerEngagement =
+    learnerEngagementRaw === "active" ||
+    learnerEngagementRaw === "moderate" ||
+    learnerEngagementRaw === "minimal"
+      ? learnerEngagementRaw
+      : "unknown";
 
   await supabase.from("instructional_session_deliveries").upsert(
     {
@@ -79,9 +87,26 @@ export async function completeSessionAction(formData: FormData) {
 
   const { data: sessionRow } = await supabase
     .from("instructional_sessions")
-    .select("course_section_id")
+    .select("*, course_sections(section_code, courses(name, school_id))")
     .eq("id", sessionId)
     .single();
+
+  const [{ count: artifactCount }, { count: assessmentCount }, { data: deliveryRow }] =
+    await Promise.all([
+      supabase
+        .from("student_learning_artifacts")
+        .select("id", { count: "exact", head: true })
+        .eq("instructional_session_id", sessionId),
+      supabase
+        .from("session_assessment_records")
+        .select("id", { count: "exact", head: true })
+        .eq("instructional_session_id", sessionId),
+      supabase
+        .from("instructional_session_deliveries")
+        .select("*")
+        .eq("instructional_session_id", sessionId)
+        .maybeSingle(),
+    ]);
 
   if (sessionRow?.course_section_id) {
     const { data: enrollments } = await supabase
@@ -100,6 +125,45 @@ export async function completeSessionAction(formData: FormData) {
         recordedBy: ctx.effectiveUserId,
         actorEmployeeId: employeeId,
       });
+    }
+
+    if (employeeId && sessionRow) {
+      const cs = Array.isArray(sessionRow.course_sections)
+        ? sessionRow.course_sections[0]
+        : sessionRow.course_sections;
+      const course = Array.isArray(cs?.courses) ? cs.courses[0] : cs?.courses;
+      const sectionCode = (cs as { section_code?: string })?.section_code ?? "";
+      const scheduledLabel = `${formatAcademyTime(sessionRow.scheduled_start)} – ${formatAcademyTime(sessionRow.scheduled_end)}`;
+      const deliveryData = (deliveryRow ?? null) as Record<string, unknown> | null;
+
+      const { runContinuousImprovementLoop } = await import(
+        "@/lib/instruction/continuous-improvement"
+      );
+
+      for (const e of enrollments ?? []) {
+        try {
+          await runContinuousImprovementLoop(supabase, {
+            sessionId,
+            studentId: e.student_id,
+            identity: ctx,
+            employeeId,
+            sessionRow: sessionRow as Record<string, unknown>,
+            delivery: deliveryData,
+            course: course as { name?: string } | null,
+            sectionCode,
+            scheduledLabel,
+            sessionNotes,
+            teacherReflection,
+            learnerEngagement,
+            artifactCount: artifactCount ?? 0,
+            assessmentCount: assessmentCount ?? 0,
+            outcomeRecorded: true,
+            schoolId: (course as { school_id?: string })?.school_id,
+          });
+        } catch {
+          // Continuous improvement must not block session completion
+        }
+      }
     }
   }
 
@@ -201,6 +265,36 @@ export async function recordProgressAction(formData: FormData) {
 
   if (insertError) return { error: insertError.message };
 
+  const { data: student } = await supabase
+    .from("students")
+    .select("school_id")
+    .eq("id", studentId)
+    .single();
+
+  const { processCanonicalLearningProgress } = await import("@/lib/instruction/canonical-progress");
+  await processCanonicalLearningProgress(supabase, {
+    studentId,
+    schoolId: student?.school_id,
+    actorUserId: ctx.effectiveUserId,
+    sessionId,
+    evidenceTypeKey: "measurement.progress",
+    narrative: teacherNotes ?? `Progress recorded for ${domain}`,
+    evidenceConfidence: 0.8,
+    evidenceQuality: 0.75,
+    sourceContext: { domain, currentLevel, previousLevel },
+  });
+
+  await writePlatformAudit(supabase, {
+    schoolId: student?.school_id,
+    module: "teacher_portal",
+    entityType: "students",
+    entityId: studentId,
+    actionType: "progress_recorded",
+    summary: `Progress recorded: ${domain}`,
+    actorUserId: ctx.effectiveUserId,
+    metadata: { domain, currentLevel, sessionId },
+  });
+
   const levelField =
     domain === "reading" ? "reading_level" : domain === "writing" ? "writing_level" : domain === "math" ? "math_level" : null;
 
@@ -245,6 +339,38 @@ export async function recordStructuredLiteracyAction(formData: FormData) {
   });
 
   if (insertError) return { error: insertError.message };
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("school_id")
+    .eq("id", studentId)
+    .single();
+
+  const { processCanonicalLearningProgress } = await import("@/lib/instruction/canonical-progress");
+  const { getPajJourneyByStudent, listPajDomainEnrollments } = await import(
+    "@/lib/platform/paj/persistence/records"
+  );
+  const journey = await getPajJourneyByStudent(supabase, studentId);
+  let activeCompetencyKey: string | undefined;
+  if (journey) {
+    const enrollments = await listPajDomainEnrollments(supabase, journey.id);
+    activeCompetencyKey =
+      enrollments.find((enrollment) => enrollment.status === "active")?.active_competency_key ?? undefined;
+  }
+
+  await processCanonicalLearningProgress(supabase, {
+    studentId,
+    schoolId: student?.school_id,
+    actorUserId: ctx.effectiveUserId,
+    sessionId,
+    evidenceTypeKey: "assessment.structured_literacy",
+    competencyKeys: activeCompetencyKey ? [activeCompetencyKey] : undefined,
+    narrative: teacherNotes ?? `Structured literacy L${level} step ${step}${mastered ? " (mastered)" : ""}`,
+    evidenceConfidence: mastered ? 0.95 : 0.8,
+    evidenceQuality: mastered ? 0.9 : 0.75,
+    sourceContext: { literacyLevel: level, literacyStep: step, mastered, instructionalMinutes: minutes },
+    educatorConfirmAdvance: mastered,
+  });
 
   if (mastered) {
     await supabase.from("student_academic_progress_records").insert({
@@ -305,18 +431,29 @@ export async function sendParentMessageAction(formData: FormData) {
 
   const { data: student } = await supabase
     .from("students")
-    .select("school_id")
+    .select("school_id, family_id")
     .eq("id", studentId)
     .single();
 
-  await logStudentCommunicationEvent(supabase, {
+  const { deliverParentCommunication } = await import(
+    "@/lib/platform/parent-communication/deliver"
+  );
+  await deliverParentCommunication(supabase, {
     studentId,
     schoolId: student?.school_id,
-    channel: "teacher_portal",
-    direction: "outbound",
-    subject,
+    familyId: student?.family_id,
+    category: "teacher_message",
+    title: subject,
     body,
+    channel: "teacher_portal",
     actorUserId: ctx.effectiveUserId,
+    href: "/portal/messages",
+    relatedEntityType: "teacher_parent_outreach",
+    metadata: { messageType },
+    fireLoopTransition: true,
+    createFollowUpWork: messageType === "intervention",
+    followUpTitle: `Intervention follow-up: ${subject}`,
+    followUpHref: `/dashboard/students/${studentId}?section=interventions`,
   });
 
   const { data: outreach } = await supabase
@@ -460,10 +597,34 @@ export async function registerArtifactAction(formData: FormData) {
   await writePlatformAudit(supabase, {
     module: "teacher_portal",
     entityType: "student_learning_artifacts",
-    entityId: formData.get("student_id") as string,
+    entityId: artifact?.id ?? studentId,
     actionType: "artifact_uploaded",
     summary: formData.get("title") as string,
     actorUserId: ctx.effectiveUserId,
+    schoolId: student?.school_id,
+  });
+
+  const learningObjective = (formData.get("learning_objective") as string) || null;
+  const { processCanonicalLearningProgress } = await import("@/lib/instruction/canonical-progress");
+
+  const competencyKeys = learningObjective ? [learningObjective] : [];
+  await processCanonicalLearningProgress(supabase, {
+    studentId,
+    schoolId: student?.school_id,
+    actorUserId: ctx.effectiveUserId,
+    sessionId: (formData.get("session_id") as string) || null,
+    evidenceTypeKey: "artifact.product",
+    competencyKeys: competencyKeys.length ? competencyKeys : undefined,
+    artifactRefs: artifact?.id
+      ? [{ refType: "student_learning_artifacts", refId: artifact.id, label: formData.get("title") as string }]
+      : undefined,
+    narrative: (formData.get("description") as string) || null,
+    evidenceConfidence: 0.85,
+    evidenceQuality: 0.8,
+    sourceContext: {
+      sessionId: (formData.get("session_id") as string) || null,
+      artifactType: formData.get("artifact_type") as string,
+    },
   });
 
   revalidatePath("/dashboard/teacher");

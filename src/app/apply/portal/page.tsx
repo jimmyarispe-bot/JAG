@@ -6,10 +6,15 @@ import {
   getCurrentSchoolYear,
   getGuardianPortalLeads,
 } from "@/lib/admissions/portal/queries";
+import { createAuthClient } from "@/lib/supabase/server-auth";
+import { loadOrganizationBranding, formatProductTitle } from "@/lib/branding";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Application Portal | AcademyOS",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = await createAuthClient();
+  const branding = await loadOrganizationBranding(supabase);
+  return { title: formatProductTitle(branding, "Application Portal") };
+}
 
 export default async function ApplyPortalPage() {
   const sessionUser = await getSessionUser();

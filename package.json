@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run validate:platform && npm run validate:admissions && npm run validate:workflow && npm run validate:decision && npm run validate:events && npm run validate:intelligence-graph && npm run validate:automation && next build",
+    "build": "npm run validate:platform && npm run validate:admissions && npm run validate:workflow && npm run validate:decision && npm run validate:events && npm run validate:intelligence-graph && npm run validate:automation && npm run validate:ulr && npm run validate:hierarchy && npm run validate:execution-engine && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
@@ -15,6 +15,9 @@
     "validate:events": "tsx scripts/validate-platform-event-registry.mts",
     "validate:intelligence-graph": "tsx scripts/validate-platform-intelligence-graph-registry.mts",
     "validate:automation": "tsx scripts/validate-platform-automation-registry.mts",
+    "validate:ulr": "tsx scripts/validate-platform-ulr-registry.mts",
+    "validate:hierarchy": "tsx scripts/validate-platform-hierarchy-registry.mts",
+    "validate:execution-engine": "tsx scripts/validate-platform-execution-engine.mts",
     "test": "vitest run",
     "test:integration": "vitest run tests/integration",
     "test:smoke": "playwright test",

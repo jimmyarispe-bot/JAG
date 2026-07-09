@@ -10,7 +10,7 @@ export async function updateScholarshipStatus(
   approvedAmount?: number,
   reviewNotes?: string
 ) {
-  const auth = await assertAnyPermission("scholarships.approve", "scholarships.view");
+  const auth = await assertPermission("scholarships.approve");
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
@@ -39,11 +39,20 @@ export async function updateScholarshipStatus(
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard/scholarships");
+  const { data: application } = await supabase
+    .from("scholarship_applications")
+    .select("application_id, admissions_applications(lead_id)")
+    .eq("id", id)
+    .maybeSingle();
+  const leadId = (application?.admissions_applications as { lead_id?: string } | null)?.lead_id;
+  if (leadId) {
+    revalidatePath(`/dashboard/admissions/cases/${leadId}`);
+  }
   return { success: true };
 }
 
 export async function createScholarshipDocument(formData: FormData) {
-  const auth = await assertPermission("scholarships.view");
+  const auth = await assertAnyPermission("scholarships.approve", "admissions.manage");
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
   const { data: { user } } = await supabase.auth.getUser();
@@ -62,7 +71,7 @@ export async function createScholarshipDocument(formData: FormData) {
 }
 
 export async function submitScholarshipApplication(formData: FormData) {
-  const auth = await assertPermission("scholarships.view");
+  const auth = await assertAnyPermission("scholarships.approve", "admissions.manage");
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
 

@@ -1,3 +1,9 @@
+import type { OrganizationBranding } from "@/lib/branding/types";
+import {
+  FOUNDERS_QUICK_LAUNCH_MODULE_IDS,
+  getFoundersModuleLabels,
+} from "@/lib/dashboard/founders-navigation";
+
 export type ModuleId =
   | "executive"
   | "admissions"
@@ -23,9 +29,9 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
   {
     id: "executive",
     href: "/dashboard",
-    sidebarLabel: "Executive Home",
-    pageTitle: "Executive Home",
-    pageSubtitle: "Organization overview and quick actions",
+    sidebarLabel: "Founder Morning Brief",
+    pageTitle: "Founder Morning Brief",
+    pageSubtitle: "Daily operating snapshot and quick actions",
     placeholderTitle: "",
     placeholderDescription: "",
     placeholderFeatures: [],
@@ -81,8 +87,8 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
   {
     id: "teacher",
     href: "/dashboard/teacher",
-    sidebarLabel: "Teacher Workspace",
-    pageTitle: "Teacher Workspace",
+    sidebarLabel: "Teacher Studio",
+    pageTitle: "Teacher Studio",
     pageSubtitle: "Daily instructional hub — schedule, sessions, progress, and compliance",
     placeholderTitle: "Teacher Workspace",
     placeholderDescription:
@@ -146,26 +152,40 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
 export const EXECUTIVE_MODULE = DASHBOARD_MODULES[0];
 
-export const QUICK_LAUNCH_MODULES: DashboardModule[] = [
-  DASHBOARD_MODULES.find((m) => m.id === "admissions")!,
-  DASHBOARD_MODULES.find((m) => m.id === "students")!,
-  DASHBOARD_MODULES.find((m) => m.id === "scheduling")!,
-  DASHBOARD_MODULES.find((m) => m.id === "teacher")!,
-  DASHBOARD_MODULES.find((m) => m.id === "scholarships")!,
-  DASHBOARD_MODULES.find((m) => m.id === "finance")!,
-  DASHBOARD_MODULES.find((m) => m.id === "hr")!,
-  EXECUTIVE_MODULE,
-];
+export const QUICK_LAUNCH_MODULES: DashboardModule[] = FOUNDERS_QUICK_LAUNCH_MODULE_IDS.map(
+  (id) => DASHBOARD_MODULES.find((m) => m.id === id)!
+);
 
-export function getModuleByPath(pathname: string): DashboardModule {
+export function applyBrandingToModule(
+  module: DashboardModule,
+  branding: OrganizationBranding
+): DashboardModule {
+  const labels = getFoundersModuleLabels(branding);
+  const sidebarLabel = labels[module.id as keyof typeof labels] ?? module.sidebarLabel;
+  if (module.id === "executive") {
+    return {
+      ...module,
+      sidebarLabel,
+      pageTitle: branding.founderWorkspaceLabel,
+      pageSubtitle: "Daily operating snapshot and quick actions",
+    };
+  }
+  return { ...module, sidebarLabel, pageTitle: sidebarLabel };
+}
+
+export function getBrandedDashboardModules(branding: OrganizationBranding): DashboardModule[] {
+  return DASHBOARD_MODULES.map((module) => applyBrandingToModule(module, branding));
+}
+
+export function getModuleByPath(pathname: string, branding?: OrganizationBranding): DashboardModule {
   if (pathname === "/dashboard") {
-    return EXECUTIVE_MODULE;
+    return branding ? applyBrandingToModule(EXECUTIVE_MODULE, branding) : EXECUTIVE_MODULE;
   }
 
   if (pathname.startsWith("/dashboard/mission-control")) {
     return {
       ...EXECUTIVE_MODULE,
-      pageTitle: "Mission Control",
+      pageTitle: branding?.missionControlLabel ?? "Mission Control",
       pageSubtitle: "Cross-module operations and alerts",
     };
   }
@@ -182,7 +202,7 @@ export function getModuleByPath(pathname: string): DashboardModule {
     return {
       ...EXECUTIVE_MODULE,
       pageTitle: "Configuration Studio",
-      pageSubtitle: "Organization builder — configure AcademyOS without code",
+      pageSubtitle: "Organization builder — configure your platform without code",
     };
   }
 
@@ -219,11 +239,17 @@ export function getModuleByPath(pathname: string): DashboardModule {
   }
 
   if (pathname.startsWith("/dashboard/executive")) {
-    return {
-      ...EXECUTIVE_MODULE,
-      pageTitle: "Executive Intelligence",
-      pageSubtitle: "Decision support, forecasting, risk, and board reporting",
-    };
+    return branding
+      ? {
+          ...EXECUTIVE_MODULE,
+          pageTitle: branding.intelligenceEngineLabel,
+          pageSubtitle: "Decision support, forecasting, risk, and board reporting",
+        }
+      : {
+          ...EXECUTIVE_MODULE,
+          pageTitle: "Executive Intelligence",
+          pageSubtitle: "Decision support, forecasting, risk, and board reporting",
+        };
   }
 
   if (pathname.startsWith("/dashboard/employee")) {
@@ -280,7 +306,7 @@ export function getModuleByPath(pathname: string): DashboardModule {
   if (pathname.startsWith("/cloud")) {
     return {
       ...EXECUTIVE_MODULE,
-      pageTitle: "AcademyOS Cloud Console",
+      pageTitle: branding ? `${branding.productName} Cloud` : "Cloud Console",
       pageSubtitle: "Commercial SaaS — customers, subscriptions, support, and operations",
     };
   }
@@ -301,11 +327,12 @@ export function getModuleByPath(pathname: string): DashboardModule {
     };
   }
 
-  return (
+  const resolved =
     DASHBOARD_MODULES.find(
       (module) => module.id !== "executive" && pathname.startsWith(module.href)
-    ) ?? EXECUTIVE_MODULE
-  );
+    ) ?? EXECUTIVE_MODULE;
+
+  return branding ? applyBrandingToModule(resolved, branding) : resolved;
 }
 
 export function isModuleActive(pathname: string, module: DashboardModule): boolean {

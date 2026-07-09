@@ -75,6 +75,66 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventDefinition> = {
     visibility: "staff",
     label: "Invoice Paid",
   },
+  "invoice.created": {
+    moduleKey: "finance",
+    classification: "operational",
+    visibility: "staff",
+    label: "Invoice Created",
+  },
+  "invoice.payment_recorded": {
+    moduleKey: "finance",
+    classification: "operational",
+    visibility: "staff",
+    label: "Payment Recorded",
+  },
+  "invoice.refunded": {
+    moduleKey: "finance",
+    classification: "operational",
+    visibility: "staff",
+    label: "Refund Processed",
+  },
+  "invoice.write_off": {
+    moduleKey: "finance",
+    classification: "operational",
+    visibility: "staff",
+    label: "Invoice Write-Off",
+  },
+  "payroll.approved": {
+    moduleKey: "hr",
+    classification: "operational",
+    visibility: "staff",
+    label: "Payroll Approved",
+  },
+  "identity.permission_changed": {
+    moduleKey: "identity",
+    classification: "audit",
+    visibility: "internal",
+    label: "Role Permission Changed",
+  },
+  "identity.org_scope_assigned": {
+    moduleKey: "identity",
+    classification: "audit",
+    visibility: "internal",
+    label: "User Org Scope Assigned",
+  },
+  "identity.role_created": {
+    moduleKey: "identity",
+    classification: "audit",
+    visibility: "internal",
+    label: "Custom Role Created",
+  },
+  "identity.impersonation_started": {
+    moduleKey: "identity",
+    classification: "audit",
+    visibility: "internal",
+    label: "Impersonation Started",
+  },
+  "identity.impersonation_ended": {
+    moduleKey: "identity",
+    classification: "audit",
+    visibility: "internal",
+    label: "Impersonation Ended",
+  },
   "communication.sent": {
     moduleKey: "platform",
     classification: "communication",
@@ -255,6 +315,12 @@ export const ACTIVITY_EVENT_CATALOG: Record<string, ActivityEventDefinition> = {
     classification: "operational",
     visibility: "staff",
     label: "Enrollment Completed",
+  },
+  "executive.kpi_snapshot_written": {
+    moduleKey: "executive",
+    classification: "system",
+    visibility: "internal",
+    label: "Executive KPI Snapshot Written",
   },
 };
 

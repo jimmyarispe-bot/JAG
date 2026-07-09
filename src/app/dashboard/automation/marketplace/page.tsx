@@ -10,7 +10,7 @@ export default async function WorkflowMarketplacePage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
         title="Workflow Marketplace"
-        subtitle="Reusable automation templates for every AcademyOS module"
+        subtitle="Reusable automation templates for every module"
         backHref="/dashboard/mission-control"
       />
       <WorkflowMarketplacePanel templates={templates} schools={schools} />

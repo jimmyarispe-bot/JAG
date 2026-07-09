@@ -69,7 +69,7 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
     order: 60,
     isTerminal: false,
     isActivePipeline: true,
-    legacyLeadStages: [],
+    legacyLeadStages: ["interview_scheduled"],
   },
   {
     key: "assessment_scheduled",
@@ -78,7 +78,7 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
     order: 70,
     isTerminal: false,
     isActivePipeline: true,
-    legacyLeadStages: [],
+    legacyLeadStages: ["assessment_scheduled"],
   },
   {
     key: "assessment_complete",
