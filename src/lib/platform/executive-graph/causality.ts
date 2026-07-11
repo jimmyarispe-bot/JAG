@@ -116,11 +116,6 @@ export function applyCausalRules(
         sourceId: source.id,
         targetId: target.id,
         confidence: rule.confidence,
-        direction: rule.edgeType === "DECLINES"
-  ? "negative"
-  : rule.edgeType === "MEASURES"
-    ? "neutral"
-    : "positive",
         ruleId: rule.ruleId,
         evidence: rule.supportingEvidence,
         reason: rule.reason,

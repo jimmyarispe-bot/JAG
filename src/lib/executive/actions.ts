@@ -21,7 +21,7 @@ export async function getExecutiveKPIsAction(): Promise<
   { data: ExecutiveKPIs } | { error: "Forbidden" | "Unauthorized" }
 > {
   const auth = await assertExecutive();
-  if ("error" in auth) return { error: auth.error };
+  if ("error" in auth) return { error: "Forbidden" };
 
   const {
     data: { user },
