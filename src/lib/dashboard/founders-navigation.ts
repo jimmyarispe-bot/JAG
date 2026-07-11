@@ -39,6 +39,7 @@ export const FOUNDERS_QUICK_LAUNCH_MODULE_IDS = [
 /** Trimmed executive sub-routes for Founder's Edition. */
 export const FOUNDERS_EXECUTIVE_NAV = [
   { href: "/dashboard/executive", label: "Command Center", exact: true },
+  { href: "/dashboard/jag", label: "JAG Workspace" },
   { href: "/dashboard/executive/decisions", label: "Decisions" },
   { href: "/dashboard/executive/briefings", label: "Briefings" },
   { href: "/dashboard/executive/kpis", label: "KPIs" },

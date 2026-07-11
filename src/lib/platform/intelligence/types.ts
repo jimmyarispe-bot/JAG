@@ -18,6 +18,7 @@ export const INTELLIGENCE_DOMAINS = [
   "compliance",
   "success",
   "learning",
+  "strategic",
 ] as const;
 export type IntelligenceDomain = (typeof INTELLIGENCE_DOMAINS)[number];
 
