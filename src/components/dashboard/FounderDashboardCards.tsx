@@ -130,6 +130,11 @@ export function FounderDashboardCards({
 
   return (
     <div className="space-y-6">
+      {data.loadError && (
+        <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-500">
+          {data.loadError}
+        </p>
+      )}
       {showStatGrid && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {visibleCards.includes("activeEnrollment") && data.activeEnrollment !== null && (
@@ -258,11 +263,11 @@ export function FounderDashboardCards({
               detail={
                 data.teacherAttendance.total
                   ? `${data.teacherAttendance.submitted} of ${data.teacherAttendance.total} sessions submitted today`
-                  : "No sessions scheduled today"
+                  : "No data available."
               }
               accent="sky"
               emptyTitle="Teacher Attendance"
-              emptyDescription="No instructional sessions scheduled today. Attendance submission rates appear once classes are on the calendar."
+              emptyDescription="No data available."
             />
           )}
 
@@ -273,11 +278,11 @@ export function FounderDashboardCards({
               detail={
                 data.studentAttendance.total
                   ? `${data.studentAttendance.present} of ${data.studentAttendance.total} students present today`
-                  : "No attendance recorded today"
+                  : "No data available."
               }
               accent="emerald"
               emptyTitle="Student Attendance"
-              emptyDescription="No student attendance has been recorded today. Rates appear once attendance is logged."
+              emptyDescription="No data available."
             />
           )}
         </div>
@@ -323,7 +328,7 @@ export function FounderDashboardCards({
                 </ul>
               ) : (
                 <p className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-6 text-sm text-slate-500">
-                  No upcoming classes scheduled. Generate sessions from the scheduling module to populate this view.
+                  No data available.
                 </p>
               )}
             </section>
@@ -368,7 +373,7 @@ export function FounderDashboardCards({
                 </ul>
               ) : (
                 <p className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-6 text-sm text-slate-500">
-                  No executive alerts right now. Intelligence engines will surface risks and recommendations as data flows in.
+                  No data available.
                 </p>
               )}
             </section>

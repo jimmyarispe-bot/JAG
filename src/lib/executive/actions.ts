@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { requirePermission } from "@/lib/platform/identity/permissions";
 import { buildScenarioProjections } from "@/lib/executive/forecasting";
+import { getExecutiveKPIs, type ExecutiveKPIs } from "@/lib/executive/kpis";
 import { writePlatformAudit } from "@/lib/platform/automation/audit";
 
 async function assertExecutive() {
@@ -13,6 +14,22 @@ async function assertExecutive() {
   const dash = await requirePermission(supabase, "executive.dashboard");
   if (dash.ok) return { supabase };
   return { error: "Forbidden" as const };
+}
+
+/** Sprint 003 — live Executive KPI cards (no mock / placeholder values). */
+export async function getExecutiveKPIsAction(): Promise<
+  { data: ExecutiveKPIs } | { error: "Forbidden" | "Unauthorized" }
+> {
+  const auth = await assertExecutive();
+  if ("error" in auth) return { error: auth.error };
+
+  const {
+    data: { user },
+  } = await auth.supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const data = await getExecutiveKPIs({ supabase: auth.supabase });
+  return { data };
 }
 
 async function assertStrategic() {
