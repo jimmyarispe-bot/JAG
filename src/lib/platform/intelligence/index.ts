@@ -64,3 +64,32 @@ export type {
   GraphAnalysisResult,
   GraphBuildInput,
 } from "@/lib/platform/intelligence/executive-graph";
+export {
+  EXECUTIVE_DECISION_INTELLIGENCE_VERSION,
+  createExecutiveDecisionIntelligence,
+  createPresetScenario,
+  DecisionEngine,
+  ExecutiveDecisionService,
+  ScenarioSimulator,
+  RecommendationEngine,
+  StrategyEngine,
+  TradeoffAnalyzer,
+  ImpactForecast,
+  DecisionConfidence,
+  DecisionHistory,
+  ScenarioRepository,
+  DecisionQueries,
+  DecisionScoring,
+  DecisionProjection,
+  decisionModels,
+} from "@/lib/platform/intelligence/executive-decision";
+export type {
+  CreateExecutiveDecisionOptions,
+  ExecutiveDecisionStack,
+  ExecutiveDecisionRequest,
+  ExecutiveDecisionResult,
+  ExecutiveDecisionRecommendation,
+  DecisionScenarioDefinition,
+  ScenarioSimulationResult,
+  DecisionProjectionResult,
+} from "@/lib/platform/intelligence/executive-decision";
