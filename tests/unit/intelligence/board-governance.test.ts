@@ -212,6 +212,7 @@ describe("Board & Governance Intelligence (Sprint 029)", () => {
       "business-model",
       "operations",
       "customer",
+      "knowledge",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

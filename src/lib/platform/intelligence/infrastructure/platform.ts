@@ -101,6 +101,10 @@ import type {
   CreateCustomerOptions,
   CustomerStack,
 } from "@/lib/platform/intelligence/customer";
+import type {
+  CreateKnowledgeOptions,
+  KnowledgeStack,
+} from "@/lib/platform/intelligence/knowledge";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -156,6 +160,8 @@ export interface CreateIntelligencePlatformOptions
   operations?: OperationsStack;
   customerOptions?: CreateCustomerOptions;
   customer?: CustomerStack;
+  knowledgeOptions?: CreateKnowledgeOptions;
+  knowledge?: KnowledgeStack;
 }
 
 /**
@@ -239,6 +245,8 @@ export function createIntelligencePlatform(
             operationsOptions: options.operationsOptions,
             customer: options.customer,
             customerOptions: options.customerOptions,
+            knowledge: options.knowledge,
+            knowledgeOptions: options.knowledgeOptions,
           }),
         ]);
 

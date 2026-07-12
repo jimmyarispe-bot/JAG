@@ -26,11 +26,11 @@ Define how intelligence domains exist inside JAG OIOS — registration, status, 
 - organizational-improvement
 - business-model
 - operations
+- customer
+- knowledge
 
 ### Registered (future)
 
-- customer
-- knowledge
 - document
 - legal
 - compliance

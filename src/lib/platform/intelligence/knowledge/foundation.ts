@@ -2,6 +2,8 @@
  * JAG Intelligence — knowledge access (foundation).
  *
  * Retrieves and links institutional knowledge for reasoning and learning.
+ * Preserved from the original foundation stub; distinct from Sprint 040
+ * Knowledge Intelligence (OIOS product domain).
  */
 
 import type { IntelligenceContext } from "@/lib/platform/intelligence/context";

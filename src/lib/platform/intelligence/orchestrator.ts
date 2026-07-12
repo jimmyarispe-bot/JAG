@@ -21,7 +21,7 @@ import type { IntelligenceExplainService } from "@/lib/platform/intelligence/exp
 import type {
   IntelligenceKnowledgeResult,
   IntelligenceKnowledgeService,
-} from "@/lib/platform/intelligence/knowledge";
+} from "@/lib/platform/intelligence/knowledge/foundation";
 import type {
   IntelligenceLearningRecord,
   IntelligenceLearningService,

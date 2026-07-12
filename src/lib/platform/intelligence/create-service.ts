@@ -90,6 +90,11 @@ import {
   type CustomerStack,
 } from "@/lib/platform/intelligence/customer";
 import {
+  createKnowledgeIntelligence,
+  type CreateKnowledgeOptions,
+  type KnowledgeStack,
+} from "@/lib/platform/intelligence/knowledge";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -115,7 +120,7 @@ import {
 } from "@/lib/platform/intelligence/domains/support";
 import { IntelligenceEventService } from "@/lib/platform/intelligence/events";
 import { IntelligenceExplainService } from "@/lib/platform/intelligence/explain";
-import { IntelligenceKnowledgeService } from "@/lib/platform/intelligence/knowledge";
+import { IntelligenceKnowledgeService } from "@/lib/platform/intelligence/knowledge/foundation";
 import { IntelligenceLearningService } from "@/lib/platform/intelligence/learning";
 import { IntelligenceMemoryService } from "@/lib/platform/intelligence/memory";
 import {
@@ -192,6 +197,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Customer Intelligence stack (Sprint 039). */
   customer?: CustomerStack;
   customerOptions?: CreateCustomerOptions;
+  /** Optional Knowledge Intelligence stack (Sprint 040). */
+  knowledge?: KnowledgeStack;
+  knowledgeOptions?: CreateKnowledgeOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -595,7 +603,8 @@ function createDecisionDomainModule(
  * Sprint 032 Human Capital Intelligence, Sprint 033 Revenue Intelligence,
  * Sprint 034 Funding Intelligence, Sprint 035 Opportunity Intelligence,
  * Sprint 036 Organizational Improvement Engine, Sprint 037 Business Model Intelligence,
- * and Sprint 038 Operations Intelligence / Sprint 039 Customer Intelligence.
+ * and Sprint 038 Operations Intelligence / Sprint 039 Customer Intelligence /
+ * Sprint 040 Knowledge Intelligence.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
@@ -614,6 +623,7 @@ export function createIntelligenceService(
   businessModel: BusinessModelStack;
   operations: OperationsStack;
   customer: CustomerStack;
+  knowledge: KnowledgeStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -776,6 +786,16 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const knowledge =
+    options.knowledge ??
+    createKnowledgeIntelligence({
+      ...(options.knowledgeOptions ?? {}),
+      organizationDna:
+        options.knowledgeOptions?.organizationDna ?? organizationDna,
+      oios: options.knowledgeOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -804,6 +824,7 @@ export function createIntelligenceService(
       operations:
         options.intelligencePlatformOptions?.operations ?? operations,
       customer: options.intelligencePlatformOptions?.customer ?? customer,
+      knowledge: options.intelligencePlatformOptions?.knowledge ?? knowledge,
     });
 
   if (!registry.get("success")) {
@@ -858,6 +879,7 @@ export function createIntelligenceService(
     businessModel,
     operations,
     customer,
+    knowledge,
     intelligencePlatform,
   });
 }

@@ -185,6 +185,7 @@ describe("Revenue Intelligence (Sprint 033)", () => {
       "business-model",
       "operations",
       "customer",
+      "knowledge",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

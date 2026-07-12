@@ -89,6 +89,7 @@ const PIPELINE_ORDER = [
   "business-model",
   "operations",
   "customer",
+  "knowledge",
 ];
 
 describe("Operations Intelligence (Sprint 038)", () => {

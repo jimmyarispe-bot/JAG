@@ -7,7 +7,7 @@
 
 import type { IntelligenceContext } from "@/lib/platform/intelligence/context";
 import type { IntelligenceEvent } from "@/lib/platform/intelligence/events";
-import type { IntelligenceKnowledgeResult } from "@/lib/platform/intelligence/knowledge";
+import type { IntelligenceKnowledgeResult } from "@/lib/platform/intelligence/knowledge/foundation";
 import type { IntelligenceLearningRecord } from "@/lib/platform/intelligence/learning";
 import type { IntelligenceMemoryEntry } from "@/lib/platform/intelligence/memory";
 import type { IntelligenceResult } from "@/lib/platform/intelligence/orchestrator";
