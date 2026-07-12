@@ -105,17 +105,18 @@ describe("Intelligence Platform Infrastructure (Sprint 027)", () => {
       "executive-graph",
       "executive-decision",
       "predictive",
+      "board-governance",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
 
     const health = await platform.checkHealth();
-    expect(health.modules.length).toBe(7);
+    expect(health.modules.length).toBe(8);
     expect(["healthy", "degraded", "unhealthy", "unknown"]).toContain(health.status);
 
     const diagnostics = await platform.collectDiagnostics();
     expect(diagnostics.platformVersion).toBe(platform.version);
-    expect(diagnostics.versions.length).toBeGreaterThanOrEqual(7);
+    expect(diagnostics.versions.length).toBeGreaterThanOrEqual(8);
     expect(diagnostics.recentEvents.length).toBeGreaterThan(0);
 
     await platform.shutdown();
@@ -184,6 +185,7 @@ describe("Intelligence Platform Infrastructure (Sprint 027)", () => {
     expect(service.executiveGraphAnalyzer).toBeTruthy();
     expect(service.executiveDecision).toBeTruthy();
     expect(service.predictiveIntelligence).toBeTruthy();
+    expect(service.boardGovernance).toBeTruthy();
 
     const partial = await service.intelligencePlatform.run({
       moduleIds: ["organization-health", "financial"],

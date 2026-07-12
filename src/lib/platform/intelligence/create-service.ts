@@ -40,6 +40,11 @@ import {
   type PredictiveIntelligenceStack,
 } from "@/lib/platform/intelligence/predictive-intelligence";
 import {
+  createBoardGovernanceIntelligence,
+  type CreateBoardGovernanceOptions,
+  type BoardGovernanceStack,
+} from "@/lib/platform/intelligence/board-governance";
+import {
   createExecutiveIntelligenceDomain,
   EXECUTIVE_INTELLIGENCE_VERSION,
   type ExecutiveRequest,
@@ -104,6 +109,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Predictive Intelligence stack (Sprint 028). */
   predictiveIntelligence?: PredictiveIntelligenceStack;
   predictiveIntelligenceOptions?: CreatePredictiveIntelligenceOptions;
+  /** Optional Board & Governance Intelligence stack (Sprint 029). */
+  boardGovernance?: BoardGovernanceStack;
+  boardGovernanceOptions?: CreateBoardGovernanceOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -502,7 +510,7 @@ function createDecisionDomainModule(
  * Registers Support (`success`), Executive (`executive`), Strategic (`strategic`),
  * and Decision (`decision`) domains. Optionally wires Sprint 025 Executive Graph Analyzer,
  * Sprint 026 Executive Decision Intelligence, Sprint 027 Platform Infrastructure,
- * and Sprint 028 Predictive Intelligence.
+ * Sprint 028 Predictive Intelligence, and Sprint 029 Board & Governance Intelligence.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
@@ -510,6 +518,7 @@ export function createIntelligenceService(
   executiveGraphAnalyzer: ExecutiveGraphAnalyzerStack;
   executiveDecision: ExecutiveDecisionStack;
   predictiveIntelligence: PredictiveIntelligenceStack;
+  boardGovernance: BoardGovernanceStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -549,6 +558,20 @@ export function createIntelligenceService(
       wireGraphAnalyzer: false,
       wireDecision: false,
     });
+  const boardGovernance =
+    options.boardGovernance ??
+    createBoardGovernanceIntelligence({
+      ...(options.boardGovernanceOptions ?? {}),
+      graphAnalyzer:
+        options.boardGovernanceOptions?.graphAnalyzer ?? executiveGraphAnalyzer,
+      decision:
+        options.boardGovernanceOptions?.decision ?? executiveDecision,
+      predictive:
+        options.boardGovernanceOptions?.predictive ?? predictiveIntelligence,
+      wireGraphAnalyzer: false,
+      wireDecision: false,
+      wirePredictive: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -559,6 +582,8 @@ export function createIntelligenceService(
         options.intelligencePlatformOptions?.decision ?? executiveDecision,
       predictive:
         options.intelligencePlatformOptions?.predictive ?? predictiveIntelligence,
+      boardGovernance:
+        options.intelligencePlatformOptions?.boardGovernance ?? boardGovernance,
     });
 
   if (!registry.get("success")) {
@@ -602,6 +627,7 @@ export function createIntelligenceService(
     executiveGraphAnalyzer,
     executiveDecision,
     predictiveIntelligence,
+    boardGovernance,
     intelligencePlatform,
   });
 }

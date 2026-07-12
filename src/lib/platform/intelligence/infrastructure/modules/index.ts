@@ -9,6 +9,7 @@ export { createExecutiveIntelligenceModule } from "@/lib/platform/intelligence/i
 export { createExecutiveGraphModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-graph";
 export { createExecutiveDecisionModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-decision";
 export { createPredictiveIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/predictive";
+export { createBoardGovernanceModule } from "@/lib/platform/intelligence/infrastructure/modules/board-governance";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -19,6 +20,7 @@ import { createExecutiveIntelligenceModule } from "@/lib/platform/intelligence/i
 import { createExecutiveGraphModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-graph";
 import { createExecutiveDecisionModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-decision";
 import { createPredictiveIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/predictive";
+import { createBoardGovernanceModule } from "@/lib/platform/intelligence/infrastructure/modules/board-governance";
 import type {
   CreateExecutiveDecisionOptions,
   ExecutiveDecisionStack,
@@ -31,6 +33,10 @@ import type {
   CreatePredictiveIntelligenceOptions,
   PredictiveIntelligenceStack,
 } from "@/lib/platform/intelligence/predictive-intelligence";
+import type {
+  CreateBoardGovernanceOptions,
+  BoardGovernanceStack,
+} from "@/lib/platform/intelligence/board-governance";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -39,6 +45,8 @@ export interface CreateDefaultModulesOptions {
   decision?: ExecutiveDecisionStack;
   predictiveOptions?: CreatePredictiveIntelligenceOptions;
   predictive?: PredictiveIntelligenceStack;
+  boardGovernanceOptions?: CreateBoardGovernanceOptions;
+  boardGovernance?: BoardGovernanceStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -53,6 +61,7 @@ export function createDefaultIntelligenceModules(
     createExecutiveGraphModule(options.graphAnalyzerOptions, options.graphAnalyzer),
     createExecutiveDecisionModule(options.decisionOptions, options.decision),
     createPredictiveIntelligenceModule(options.predictiveOptions, options.predictive),
+    createBoardGovernanceModule(options.boardGovernanceOptions, options.boardGovernance),
   ];
 }
 

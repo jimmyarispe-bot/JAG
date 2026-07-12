@@ -217,6 +217,7 @@ describe("Predictive Intelligence (Sprint 028)", () => {
       "executive-graph",
       "executive-decision",
       "predictive",
+      "board-governance",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

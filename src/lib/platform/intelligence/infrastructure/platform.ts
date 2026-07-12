@@ -57,6 +57,10 @@ import type {
   CreatePredictiveIntelligenceOptions,
   PredictiveIntelligenceStack,
 } from "@/lib/platform/intelligence/predictive-intelligence";
+import type {
+  CreateBoardGovernanceOptions,
+  BoardGovernanceStack,
+} from "@/lib/platform/intelligence/board-governance";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -90,6 +94,8 @@ export interface CreateIntelligencePlatformOptions
   decision?: ExecutiveDecisionStack;
   predictiveOptions?: CreatePredictiveIntelligenceOptions;
   predictive?: PredictiveIntelligenceStack;
+  boardGovernanceOptions?: CreateBoardGovernanceOptions;
+  boardGovernance?: BoardGovernanceStack;
 }
 
 /**
@@ -151,6 +157,8 @@ export function createIntelligencePlatform(
             decisionOptions: options.decisionOptions,
             predictive: options.predictive,
             predictiveOptions: options.predictiveOptions,
+            boardGovernance: options.boardGovernance,
+            boardGovernanceOptions: options.boardGovernanceOptions,
           }),
         ]);
 

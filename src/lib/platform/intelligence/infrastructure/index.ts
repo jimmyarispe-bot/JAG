@@ -157,6 +157,7 @@ export {
   createExecutiveGraphModule,
   createExecutiveDecisionModule,
   createPredictiveIntelligenceModule,
+  createBoardGovernanceModule,
   createDefaultIntelligenceModules,
   createDefaultIntelligenceProvider,
   ORGANIZATION_HEALTH_MODULE_VERSION,
