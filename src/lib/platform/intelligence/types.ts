@@ -1,206 +1,80 @@
-/**
- * JAG Intelligence — Phase 1 foundation types.
- *
- * Shared cognitive contracts for the autonomous intelligence layer.
- * See `docs/architecture/JAG_INTELLIGENCE_ARCHITECTURE.md`.
- */
+export type HealthStatus =
+  | "excellent"
+  | "healthy"
+  | "warning"
+  | "critical";
 
-/** Semantic version of the JAG Intelligence foundation runtime. */
-export const INTELLIGENCE_ENGINE_VERSION = "0.1.0";
+export type HealthTrend =
+  | "improving"
+  | "stable"
+  | "declining";
 
-/** Specialized intelligence domains that form the cognitive system. */
-export const INTELLIGENCE_DOMAINS = [
-  "executive",
-  "operational",
-  "financial",
-  "mission",
-  "decision",
-  "compliance",
-  "success",
-  "learning",
-  "strategic",
-] as const;
-export type IntelligenceDomain = (typeof INTELLIGENCE_DOMAINS)[number];
-
-/** Stages of the Observe → Learn decision pipeline. */
-export const INTELLIGENCE_PIPELINE_STAGES = [
-  "observe",
-  "understand",
-  "collect_evidence",
-  "generate_hypotheses",
-  "score_confidence",
-  "recommend_action",
-  "execute",
-  "measure_outcome",
-  "learn",
-  "improve",
-] as const;
-export type IntelligencePipelineStage = (typeof INTELLIGENCE_PIPELINE_STAGES)[number];
-
-/** Confidence band for recommendations and hypotheses. */
-export const INTELLIGENCE_CONFIDENCE_LEVELS = ["high", "medium", "low", "unknown"] as const;
-export type IntelligenceConfidenceLevel = (typeof INTELLIGENCE_CONFIDENCE_LEVELS)[number];
-
-/** Memory tiers in the JAG memory model. */
-export const INTELLIGENCE_MEMORY_KINDS = ["short_term", "long_term"] as const;
-export type IntelligenceMemoryKind = (typeof INTELLIGENCE_MEMORY_KINDS)[number];
-
-/** Authorization posture for proposed or executed actions. */
-export const INTELLIGENCE_ACTION_AUTHORITY = [
-  "observe_only",
-  "recommend",
-  "auto_safe",
-  "requires_human",
-  "forbidden",
-] as const;
-export type IntelligenceActionAuthority = (typeof INTELLIGENCE_ACTION_AUTHORITY)[number];
-
-/** Lifecycle status for an intelligence run / cognitive session. */
-export const INTELLIGENCE_RUN_STATUSES = [
-  "pending",
-  "running",
-  "awaiting_authorization",
-  "completed",
-  "failed",
-  "cancelled",
-] as const;
-export type IntelligenceRunStatus = (typeof INTELLIGENCE_RUN_STATUSES)[number];
-
-/** Support / success-intelligence case statuses. */
-export const INTELLIGENCE_CASE_STATUSES = [
-  "open",
-  "triaging",
-  "diagnosing",
-  "remediating",
-  "awaiting_user",
-  "escalated",
-  "resolved",
-  "closed",
-] as const;
-export type IntelligenceCaseStatus = (typeof INTELLIGENCE_CASE_STATUSES)[number];
-
-/** Case priority levels. */
-export const INTELLIGENCE_CASE_PRIORITIES = ["critical", "high", "medium", "low"] as const;
-export type IntelligenceCasePriority = (typeof INTELLIGENCE_CASE_PRIORITIES)[number];
-
-/** Opaque metadata bag — never use `any`. */
-export type IntelligenceMetadata = Record<string, unknown>;
-
-/** Reference to an evidence artifact used during reasoning. */
-export interface IntelligenceEvidenceRef {
-  evidenceId: string;
-  evidenceTypeKey?: string;
-  label?: string;
-  sourceKind?: string;
-  weight?: number;
-  metadata?: IntelligenceMetadata;
+export interface HealthMetric {
+  score: number;
+  weight: number;
+  status: HealthStatus;
+  message: string;
+  lastUpdated: Date;
 }
 
-/** Factor contributing to a confidence score. */
-export interface IntelligenceConfidenceFactor {
-  key: string;
-  label: string;
-  contribution: number;
-  reason?: string;
+export interface EnrollmentHealth extends HealthMetric {
+  activeStudents: number;
+  capacity: number;
+  utilization: number;
+  waitlist: number;
 }
 
-/** Structured confidence score for hypotheses and recommendations. */
-export interface IntelligenceConfidenceScore {
-  value: number;
-  level: IntelligenceConfidenceLevel;
-  factors: IntelligenceConfidenceFactor[];
+export interface FinancialHealth extends HealthMetric {
+  revenue: number;
+  expenses: number;
+  cashOnHand: number;
+  operatingMargin: number;
 }
 
-/** Candidate explanation for an observed situation. */
-export interface IntelligenceHypothesis {
-  hypothesisId: string;
-  label: string;
-  description?: string;
-  confidence: IntelligenceConfidenceScore;
-  evidenceRefs: IntelligenceEvidenceRef[];
-  domain: IntelligenceDomain;
-  metadata?: IntelligenceMetadata;
+export interface AcademicHealth extends HealthMetric {
+  attendance: number;
+  mastery: number;
+  progress: number;
+  interventionRate: number;
 }
 
-/** Recommended next action produced by the planner / decision pipeline. */
-export interface IntelligenceRecommendation {
-  recommendationId: string;
-  actionKey: string;
-  label: string;
-  description?: string;
-  domain: IntelligenceDomain;
-  authority: IntelligenceActionAuthority;
-  confidence: IntelligenceConfidenceScore;
-  expectedImpact?: string;
-  alternatives?: IntelligenceRecommendation[];
-  evidenceRefs: IntelligenceEvidenceRef[];
-  metadata?: IntelligenceMetadata;
+export interface WorkforceHealth extends HealthMetric {
+  staffingLevel: number;
+  vacancies: number;
+  teacherAttendance: number;
+  retentionRate: number;
 }
 
-/** Measured outcome after an authorized action executes. */
-export interface IntelligenceOutcome {
-  outcomeId: string;
-  recommendationId?: string;
-  success: boolean;
-  summary: string;
-  measuredAt: string;
-  metrics?: IntelligenceMetadata;
-  metadata?: IntelligenceMetadata;
+export interface ComplianceHealth extends HealthMetric {
+  openFindings: number;
+  overdueItems: number;
+  requiredTrainingsComplete: number;
 }
 
-/** Explainability payload answering what / why / evidence / confidence / next step. */
-export interface IntelligenceExplanation {
-  summary: string;
-  whatHappened?: string;
-  why?: string;
-  evidenceSummary?: string[];
-  confidence?: IntelligenceConfidenceScore;
-  alternatives?: string[];
-  expectedImpact?: string;
-  recommendedNextStep?: string;
-  caveats?: string[];
-  metadata?: IntelligenceMetadata;
+export interface OperationsHealth extends HealthMetric {
+  scheduledSessions: number;
+  completedSessions: number;
+  schedulingAccuracy: number;
 }
 
-/** Identity and tenant scope for a cognitive run. */
-export interface IntelligenceActor {
-  userId: string | null;
-  roleKeys?: string[];
-  displayName?: string;
-}
+export interface OrganizationHealth {
+  overallScore: number;
 
-/** Tenant / school isolation boundary for all intelligence operations. */
-export interface IntelligenceTenantScope {
-  organizationId: string | null;
-  schoolId: string | null;
-}
+  status: HealthStatus;
 
-/** High-level request that initiates an intelligence pipeline run. */
-export interface IntelligenceRunRequest {
-  runId?: string;
-  domain: IntelligenceDomain;
-  intent: string;
-  actor: IntelligenceActor;
-  scope: IntelligenceTenantScope;
-  stage?: IntelligencePipelineStage;
-  input?: IntelligenceMetadata;
-  metadata?: IntelligenceMetadata;
-}
+  trend: HealthTrend;
 
-/** Snapshot of a pipeline run (foundation shape only). */
-export interface IntelligenceRunSnapshot {
-  runId: string;
-  domain: IntelligenceDomain;
-  status: IntelligenceRunStatus;
-  currentStage: IntelligencePipelineStage;
-  intent: string;
-  actor: IntelligenceActor;
-  scope: IntelligenceTenantScope;
-  hypotheses: IntelligenceHypothesis[];
-  recommendation: IntelligenceRecommendation | null;
-  explanation: IntelligenceExplanation | null;
-  outcome: IntelligenceOutcome | null;
-  createdAt: string;
-  updatedAt: string;
-  metadata?: IntelligenceMetadata;
+  enrollment: EnrollmentHealth;
+
+  financial: FinancialHealth;
+
+  academic: AcademicHealth;
+
+  workforce: WorkforceHealth;
+
+  compliance: ComplianceHealth;
+
+  operations: OperationsHealth;
+
+  generatedAt: Date;
 }
