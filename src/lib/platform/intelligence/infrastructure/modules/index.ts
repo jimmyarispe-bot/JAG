@@ -14,6 +14,7 @@ export { createOrganizationDnaModule } from "@/lib/platform/intelligence/infrast
 export { createOiosCoreModule } from "@/lib/platform/intelligence/infrastructure/modules/oios-core";
 export { createHumanCapitalModule } from "@/lib/platform/intelligence/infrastructure/modules/human-capital";
 export { createRevenueModule } from "@/lib/platform/intelligence/infrastructure/modules/revenue";
+export { createFundingModule } from "@/lib/platform/intelligence/infrastructure/modules/funding";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -21,6 +22,7 @@ import { createOrganizationDnaModule } from "@/lib/platform/intelligence/infrast
 import { createOiosCoreModule } from "@/lib/platform/intelligence/infrastructure/modules/oios-core";
 import { createHumanCapitalModule } from "@/lib/platform/intelligence/infrastructure/modules/human-capital";
 import { createRevenueModule } from "@/lib/platform/intelligence/infrastructure/modules/revenue";
+import { createFundingModule } from "@/lib/platform/intelligence/infrastructure/modules/funding";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -61,6 +63,10 @@ import type {
   CreateRevenueOptions,
   RevenueStack,
 } from "@/lib/platform/intelligence/revenue";
+import type {
+  CreateFundingOptions,
+  FundingStack,
+} from "@/lib/platform/intelligence/funding";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -79,6 +85,8 @@ export interface CreateDefaultModulesOptions {
   humanCapital?: HumanCapitalStack;
   revenueOptions?: CreateRevenueOptions;
   revenue?: RevenueStack;
+  fundingOptions?: CreateFundingOptions;
+  funding?: FundingStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -98,6 +106,7 @@ export function createDefaultIntelligenceModules(
     createBoardGovernanceModule(options.boardGovernanceOptions, options.boardGovernance),
     createHumanCapitalModule(options.humanCapitalOptions, options.humanCapital),
     createRevenueModule(options.revenueOptions, options.revenue),
+    createFundingModule(options.fundingOptions, options.funding),
   ];
 }
 

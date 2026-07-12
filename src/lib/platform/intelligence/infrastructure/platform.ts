@@ -77,6 +77,10 @@ import type {
   CreateRevenueOptions,
   RevenueStack,
 } from "@/lib/platform/intelligence/revenue";
+import type {
+  CreateFundingOptions,
+  FundingStack,
+} from "@/lib/platform/intelligence/funding";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -120,6 +124,8 @@ export interface CreateIntelligencePlatformOptions
   humanCapital?: HumanCapitalStack;
   revenueOptions?: CreateRevenueOptions;
   revenue?: RevenueStack;
+  fundingOptions?: CreateFundingOptions;
+  funding?: FundingStack;
 }
 
 /**
@@ -191,6 +197,8 @@ export function createIntelligencePlatform(
             humanCapitalOptions: options.humanCapitalOptions,
             revenue: options.revenue,
             revenueOptions: options.revenueOptions,
+            funding: options.funding,
+            fundingOptions: options.fundingOptions,
           }),
         ]);
 

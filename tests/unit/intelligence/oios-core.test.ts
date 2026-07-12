@@ -36,6 +36,7 @@ describe("JAG OIOS Core Architecture (Sprint 031)", () => {
     expect(stack.registry.list().length).toBe(OIOS_INTELLIGENCE_DOMAINS.length);
     expect(stack.registry.get("human-capital")?.status).toBe("active");
     expect(stack.registry.get("revenue")?.status).toBe("active");
+    expect(stack.registry.get("funding")?.status).toBe("active");
     expect(stack.registry.get("organization-dna")?.status).toBe("active");
 
     const result = stack.service.build({
@@ -163,6 +164,7 @@ describe("JAG OIOS Core Architecture (Sprint 031)", () => {
       "board-governance",
       "human-capital",
       "revenue",
+      "funding",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

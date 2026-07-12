@@ -152,7 +152,7 @@ describe("Revenue Intelligence (Sprint 033)", () => {
     expect(result.brief.id.length).toBeGreaterThan(0);
   });
 
-  it("runs as the terminal platform module after human-capital", async () => {
+  it("runs as a platform module before funding", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T16:00:00.000Z"),
@@ -179,6 +179,7 @@ describe("Revenue Intelligence (Sprint 033)", () => {
       "board-governance",
       "human-capital",
       "revenue",
+      "funding",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

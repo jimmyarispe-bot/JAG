@@ -234,6 +234,7 @@ describe("Organizational DNA & Company Builder (Sprint 030)", () => {
       "board-governance",
       "human-capital",
       "revenue",
+      "funding",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
