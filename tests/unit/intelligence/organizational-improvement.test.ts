@@ -85,6 +85,7 @@ const PIPELINE_ORDER = [
   "funding",
   "opportunity",
   "organizational-improvement",
+  "business-model",
 ];
 
 describe("Organizational Improvement Engine (Sprint 036)", () => {
@@ -179,7 +180,7 @@ describe("Organizational Improvement Engine (Sprint 036)", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("runs after opportunity as the terminal platform module", async () => {
+  it("runs after opportunity before business-model", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T16:00:00.000Z"),

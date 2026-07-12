@@ -89,6 +89,10 @@ import type {
   CreateImprovementOptions,
   ImprovementStack,
 } from "@/lib/platform/intelligence/organizational-improvement";
+import type {
+  CreateBusinessModelOptions,
+  BusinessModelStack,
+} from "@/lib/platform/intelligence/business-model";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -138,6 +142,8 @@ export interface CreateIntelligencePlatformOptions
   opportunity?: OpportunityStack;
   organizationalImprovementOptions?: CreateImprovementOptions;
   organizationalImprovement?: ImprovementStack;
+  businessModelOptions?: CreateBusinessModelOptions;
+  businessModel?: BusinessModelStack;
 }
 
 /**
@@ -215,6 +221,8 @@ export function createIntelligencePlatform(
             opportunityOptions: options.opportunityOptions,
             organizationalImprovement: options.organizationalImprovement,
             organizationalImprovementOptions: options.organizationalImprovementOptions,
+            businessModel: options.businessModel,
+            businessModelOptions: options.businessModelOptions,
           }),
         ]);
 

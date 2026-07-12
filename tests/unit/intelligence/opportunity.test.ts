@@ -174,6 +174,7 @@ describe("Opportunity Intelligence (Sprint 035)", () => {
       "funding",
       "opportunity",
       "organizational-improvement",
+      "business-model",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

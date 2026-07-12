@@ -75,6 +75,11 @@ import {
   type ImprovementStack,
 } from "@/lib/platform/intelligence/organizational-improvement";
 import {
+  createBusinessModelIntelligence,
+  type CreateBusinessModelOptions,
+  type BusinessModelStack,
+} from "@/lib/platform/intelligence/business-model";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -168,6 +173,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Organizational Improvement Engine stack (Sprint 036). */
   organizationalImprovement?: ImprovementStack;
   organizationalImprovementOptions?: CreateImprovementOptions;
+  /** Optional Business Model Intelligence stack (Sprint 037). */
+  businessModel?: BusinessModelStack;
+  businessModelOptions?: CreateBusinessModelOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -570,7 +578,7 @@ function createDecisionDomainModule(
  * Sprint 030 Organizational DNA & Company Builder, Sprint 031 OIOS Core,
  * Sprint 032 Human Capital Intelligence, Sprint 033 Revenue Intelligence,
  * Sprint 034 Funding Intelligence, Sprint 035 Opportunity Intelligence,
- * and Sprint 036 Organizational Improvement Engine.
+ * Sprint 036 Organizational Improvement Engine, and Sprint 037 Business Model Intelligence.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
@@ -586,6 +594,7 @@ export function createIntelligenceService(
   funding: FundingStack;
   opportunity: OpportunityStack;
   organizationalImprovement: ImprovementStack;
+  businessModel: BusinessModelStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -718,6 +727,16 @@ export function createIntelligenceService(
       wireOios: false,
       wireOpportunity: false,
     });
+  const businessModel =
+    options.businessModel ??
+    createBusinessModelIntelligence({
+      ...(options.businessModelOptions ?? {}),
+      organizationDna:
+        options.businessModelOptions?.organizationDna ?? organizationDna,
+      oios: options.businessModelOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -741,6 +760,8 @@ export function createIntelligenceService(
       organizationalImprovement:
         options.intelligencePlatformOptions?.organizationalImprovement ??
         organizationalImprovement,
+      businessModel:
+        options.intelligencePlatformOptions?.businessModel ?? businessModel,
     });
 
   if (!registry.get("success")) {
@@ -792,6 +813,7 @@ export function createIntelligenceService(
     funding,
     opportunity,
     organizationalImprovement,
+    businessModel,
     intelligencePlatform,
   });
 }

@@ -10,6 +10,7 @@ export const OIOS_INTELLIGENCE_DOMAINS = [
   "organization-dna", "organization-health", "financial", "founder", "executive",
   "executive-graph", "executive-decision", "predictive", "board-governance",
   "human-capital", "revenue", "funding", "opportunity", "organizational-improvement",
+  "business-model",
   "operations", "customer", "knowledge", "document", "legal", "compliance", "risk",
   "market", "innovation", "impact",
 ] as const;

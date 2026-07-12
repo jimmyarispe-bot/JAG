@@ -17,6 +17,7 @@ export { createRevenueModule } from "@/lib/platform/intelligence/infrastructure/
 export { createFundingModule } from "@/lib/platform/intelligence/infrastructure/modules/funding";
 export { createOpportunityModule } from "@/lib/platform/intelligence/infrastructure/modules/opportunity";
 export { createOrganizationalImprovementModule } from "@/lib/platform/intelligence/infrastructure/modules/organizational-improvement";
+export { createBusinessModelModule } from "@/lib/platform/intelligence/infrastructure/modules/business-model";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -27,6 +28,7 @@ import { createRevenueModule } from "@/lib/platform/intelligence/infrastructure/
 import { createFundingModule } from "@/lib/platform/intelligence/infrastructure/modules/funding";
 import { createOpportunityModule } from "@/lib/platform/intelligence/infrastructure/modules/opportunity";
 import { createOrganizationalImprovementModule } from "@/lib/platform/intelligence/infrastructure/modules/organizational-improvement";
+import { createBusinessModelModule } from "@/lib/platform/intelligence/infrastructure/modules/business-model";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -79,6 +81,10 @@ import type {
   CreateImprovementOptions,
   ImprovementStack,
 } from "@/lib/platform/intelligence/organizational-improvement";
+import type {
+  CreateBusinessModelOptions,
+  BusinessModelStack,
+} from "@/lib/platform/intelligence/business-model";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -103,6 +109,8 @@ export interface CreateDefaultModulesOptions {
   opportunity?: OpportunityStack;
   organizationalImprovementOptions?: CreateImprovementOptions;
   organizationalImprovement?: ImprovementStack;
+  businessModelOptions?: CreateBusinessModelOptions;
+  businessModel?: BusinessModelStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -128,6 +136,7 @@ export function createDefaultIntelligenceModules(
       options.organizationalImprovementOptions,
       options.organizationalImprovement
     ),
+    createBusinessModelModule(options.businessModelOptions, options.businessModel),
   ];
 }
 
