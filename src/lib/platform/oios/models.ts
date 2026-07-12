@@ -37,6 +37,7 @@ export function defaultRegisteredDomains(): DomainDescriptor[] {
     "market",
     "innovation",
     "impact",
+    "economic",
   ]);
   return OIOS_INTELLIGENCE_DOMAINS.map((domain, index) => ({
     domain,
@@ -74,6 +75,8 @@ export function defaultRegisteredDomains(): DomainDescriptor[] {
                                     ? ["organization-dna", "market"]
                                     : domain === "impact"
                                       ? ["organization-dna", "innovation"]
+                                      : domain === "economic"
+                                        ? ["organization-dna", "impact"]
                                     : [],
     priority: index,
     description: `${domain} intelligence domain`,

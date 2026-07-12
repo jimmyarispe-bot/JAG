@@ -120,6 +120,11 @@ import {
   type ImpactStack,
 } from "@/lib/platform/intelligence/impact";
 import {
+  createEconomicIntelligence,
+  type CreateEconomicOptions,
+  type EconomicStack,
+} from "@/lib/platform/intelligence/economic";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -240,6 +245,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Impact Intelligence stack (Sprint 045). */
   impact?: ImpactStack;
   impactOptions?: CreateImpactOptions;
+  /** Optional Economic Intelligence stack (Sprint 046). */
+  economic?: EconomicStack;
+  economicOptions?: CreateEconomicOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -669,6 +677,7 @@ export function createIntelligenceService(
   market: MarketStack;
   innovation: InnovationStack;
   impact: ImpactStack;
+  economic: EconomicStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -888,6 +897,15 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const economic =
+    options.economic ??
+    createEconomicIntelligence({
+      ...(options.economicOptions ?? {}),
+      organizationDna: options.economicOptions?.organizationDna ?? organizationDna,
+      oios: options.economicOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -923,6 +941,7 @@ export function createIntelligenceService(
       market: options.intelligencePlatformOptions?.market ?? market,
       innovation: options.intelligencePlatformOptions?.innovation ?? innovation,
       impact: options.intelligencePlatformOptions?.impact ?? impact,
+      economic: options.intelligencePlatformOptions?.economic ?? economic,
     });
 
   if (!registry.get("success")) {
@@ -983,6 +1002,7 @@ export function createIntelligenceService(
     market,
     innovation,
     impact,
+    economic,
     intelligencePlatform,
   });
 }

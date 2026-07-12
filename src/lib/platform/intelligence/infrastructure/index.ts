@@ -169,6 +169,7 @@ export {
   createOperationsModule,
   createCustomerModule,
   createImpactModule,
+  createEconomicModule,
   createDefaultIntelligenceModules,
   createDefaultIntelligenceProvider,
   ORGANIZATION_HEALTH_MODULE_VERSION,

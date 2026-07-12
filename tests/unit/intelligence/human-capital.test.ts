@@ -188,6 +188,7 @@ describe("Human Capital Intelligence (Sprint 032)", () => {
       "market",
       "innovation",
       "impact",
+      "economic",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

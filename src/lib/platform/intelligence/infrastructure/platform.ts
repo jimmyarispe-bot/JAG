@@ -125,6 +125,10 @@ import type {
   CreateImpactOptions,
   ImpactStack,
 } from "@/lib/platform/intelligence/impact";
+import type {
+  CreateEconomicOptions,
+  EconomicStack,
+} from "@/lib/platform/intelligence/economic";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -192,6 +196,8 @@ export interface CreateIntelligencePlatformOptions
   innovation?: InnovationStack;
   impactOptions?: CreateImpactOptions;
   impact?: ImpactStack;
+  economicOptions?: CreateEconomicOptions;
+  economic?: EconomicStack;
 }
 
 /**
@@ -287,6 +293,8 @@ export function createIntelligencePlatform(
             innovationOptions: options.innovationOptions,
             impact: options.impact,
             impactOptions: options.impactOptions,
+            economic: options.economic,
+            economicOptions: options.economicOptions,
           }),
         ]);
 

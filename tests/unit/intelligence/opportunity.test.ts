@@ -183,6 +183,7 @@ describe("Opportunity Intelligence (Sprint 035)", () => {
       "market",
       "innovation",
       "impact",
+      "economic",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

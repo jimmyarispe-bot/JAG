@@ -98,6 +98,7 @@ const PIPELINE_ORDER = [
   "market",
   "innovation",
   "impact",
+  "economic",
 ];
 
 describe("Document Intelligence (Sprint 041)", () => {
@@ -357,9 +358,10 @@ describe("Document Intelligence (Sprint 041)", () => {
     });
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
-    expect(result.moduleOrder.at(-3)).toBe("market");
-    expect(result.moduleOrder.at(-2)).toBe("innovation");
-    expect(result.moduleOrder.at(-1)).toBe("impact");
+    expect(result.moduleOrder.at(-4)).toBe("market");
+    expect(result.moduleOrder.at(-3)).toBe("innovation");
+    expect(result.moduleOrder.at(-2)).toBe("impact");
+    expect(result.moduleOrder.at(-1)).toBe("economic");
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });

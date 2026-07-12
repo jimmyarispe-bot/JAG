@@ -97,6 +97,7 @@ const PIPELINE_ORDER = [
   "market",
   "innovation",
   "impact",
+  "economic",
 ];
 
 function buildResult(seed: string) {
@@ -326,7 +327,7 @@ describe("Innovation Intelligence (Sprint 044)", () => {
     expect(result.recommendations.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("runs after market and before terminal impact", async () => {
+  it("runs after market and before impact and economic", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T15:00:00.000Z"),
@@ -339,9 +340,10 @@ describe("Innovation Intelligence (Sprint 044)", () => {
     });
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
-    expect(result.moduleOrder.at(-3)).toBe("market");
-    expect(result.moduleOrder.at(-2)).toBe("innovation");
-    expect(result.moduleOrder.at(-1)).toBe("impact");
+    expect(result.moduleOrder.at(-4)).toBe("market");
+    expect(result.moduleOrder.at(-3)).toBe("innovation");
+    expect(result.moduleOrder.at(-2)).toBe("impact");
+    expect(result.moduleOrder.at(-1)).toBe("economic");
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });

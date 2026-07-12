@@ -29,7 +29,7 @@ const PIPELINE_ORDER = [
   "executive", "executive-graph", "executive-decision", "predictive", "board-governance",
   "human-capital", "revenue", "funding", "opportunity", "organizational-improvement",
   "business-model", "operations", "customer", "knowledge", "document",
-  "legal-compliance-risk", "market", "innovation", "impact",
+  "legal-compliance-risk", "market", "innovation", "impact", "economic",
 ];
 
 function buildResult(seed: string) {
@@ -131,7 +131,7 @@ describe("Impact Intelligence (Sprint 045)", () => {
     expect(service.impact.service.build({ requestId: "imp-di" }).healthScore.value).toBeGreaterThan(0);
   });
 
-  it("runs as the terminal platform module after innovation", async () => {
+  it("runs after innovation and before terminal economic", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T20:00:00.000Z"),
@@ -144,8 +144,9 @@ describe("Impact Intelligence (Sprint 045)", () => {
     });
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
-    expect(result.moduleOrder.at(-2)).toBe("innovation");
-    expect(result.moduleOrder.at(-1)).toBe("impact");
+    expect(result.moduleOrder.at(-3)).toBe("innovation");
+    expect(result.moduleOrder.at(-2)).toBe("impact");
+    expect(result.moduleOrder.at(-1)).toBe("economic");
     expect(result.results.every(item => item.ok)).toBe(true);
   });
 });
