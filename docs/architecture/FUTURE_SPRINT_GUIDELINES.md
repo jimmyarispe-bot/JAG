@@ -6,7 +6,7 @@ Rules every future intelligence sprint must follow so JAG OIOS remains coherent.
 
 ## Non-negotiables
 
-1. **Do not regenerate** existing packages (`organization-dna`, health, founder, graph, decision, predictive, board-governance, infrastructure, oios, human-capital, revenue, funding, opportunity, organizational-improvement, business-model, operations, customer, knowledge, document, legal-compliance-risk).
+1. **Do not regenerate** existing packages (`organization-dna`, health, founder, graph, decision, predictive, board-governance, infrastructure, oios, human-capital, revenue, funding, opportunity, organizational-improvement, business-model, operations, customer, knowledge, document, legal-compliance-risk, market).
 2. **Extend** via new domain packages + DI + platform module registration.
 3. **Register** domains in the OIOS catalog before claiming them active.
 4. **Keep leaf modules leaf** (`types` / `contracts` import-free of implementations).
@@ -27,11 +27,15 @@ Rules every future intelligence sprint must follow so JAG OIOS remains coherent.
 
 ## Future domains (reserved)
 
-Market, Innovation, Impact, Economic Intelligence.
+Innovation, Impact, Economic Intelligence.
 
 `legal-compliance-risk` shipped in Sprint 042 as a single consolidated governance
 domain. The `legal`, `compliance`, and `risk` keys remain registered (not active)
 in case a future sprint splits the consolidated domain into separate packages.
+
+`market` shipped in Sprint 043 as the terminal platform module after
+`legal-compliance-risk`. Prefer soft context attachments from upstream domains
+unless a hard DAG edge is required for pipeline data.
 
 ## Suggested dependency defaults
 
@@ -40,7 +44,8 @@ Most future domains should:
 - Depend on `organization-dna` and/or `oios-core` in the platform DAG
 - Read `context.get("oios")` for twin/strategy/governance
 - Avoid hard dependencies on every upstream product module unless required
-- After Revenue (033), Funding (034), Opportunity (035), Organizational Improvement (036), Business Model (037), Operations (038), Customer (039), Knowledge (040), Document (041), and Legal, Compliance & Risk (042), prefer soft context attachments over hard DAG edges unless required for pipeline data
+- After Revenue (033), Funding (034), Opportunity (035), Organizational Improvement (036), Business Model (037), Operations (038), Customer (039), Knowledge (040), Document (041), Legal, Compliance & Risk (042), and Market (043), prefer soft context attachments over hard DAG edges unless required for pipeline data
+- Market is terminal after `legal-compliance-risk`; future domains that need market context should soft-read it rather than reorder the pipeline
 
 ## Commit message style
 

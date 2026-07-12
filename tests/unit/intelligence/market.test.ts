@@ -1,12 +1,11 @@
-/** Legal, Compliance & Risk Intelligence unit tests (Sprint 042 / 0.1.0). */
+/** Market Intelligence unit tests (Sprint 043 / 0.1.0). */
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  createLegalComplianceRiskIntelligence,
-  RISK_CATEGORIES,
-  COMPLIANCE_SCOPES,
-  LEGAL_COMPLIANCE_RISK_CAPABILITIES,
-  LEGAL_COMPLIANCE_RISK_INTELLIGENCE_VERSION,
-} from "@/lib/platform/intelligence/legal-compliance-risk";
+  createMarketIntelligence,
+  MARKET_SIGNAL_KINDS,
+  MARKET_CAPABILITIES,
+  MARKET_INTELLIGENCE_VERSION,
+} from "@/lib/platform/intelligence/market";
 import { createIntelligenceService } from "@/lib/platform/intelligence";
 import { resetGraphEdgeSeqForTests } from "@/lib/platform/intelligence/executive-graph";
 import {
@@ -42,19 +41,19 @@ function graphInput() {
       priorities: [],
       risks: [
         {
-          id: "lcr-risk",
-          title: "Unmanaged compliance obligations",
+          id: "market-risk",
+          title: "Competitive pressure rising",
           severity: "high" as const,
-          probability: 0.6,
-          impact: 0.7,
+          probability: 0.55,
+          impact: 0.65,
         },
       ],
       opportunities: [
         {
-          id: "legal-compliance-risk",
-          title: "Strengthen legal, compliance & risk intelligence",
-          estimatedValue: 260_000,
-          confidence: 0.7,
+          id: "market",
+          title: "Capture adjacent market white space",
+          estimatedValue: 320_000,
+          confidence: 0.72,
         },
       ],
     },
@@ -62,14 +61,14 @@ function graphInput() {
 }
 
 const LENS_KEYS = [
-  "regulationOrPolicyApplies",
+  "marketOpportunityExists",
   "evidenceSupports",
-  "confidence",
-  "organizationalRisk",
-  "ifNoActionTaken",
-  "correctiveActionRecommended",
-  "whoOwnsAction",
-  "whenShouldComplete",
+  "competitorsInvolved",
+  "estimatedMarketSize",
+  "risksExist",
+  "investmentRequired",
+  "expectedReturn",
+  "organizationalCapabilitiesRequired",
 ].sort();
 
 const PIPELINE_ORDER = [
@@ -98,14 +97,14 @@ const PIPELINE_ORDER = [
 ];
 
 function buildResult(seed: string) {
-  const { service } = createLegalComplianceRiskIntelligence({
+  const { service } = createMarketIntelligence({
     createId: (prefix) => `${prefix}-${seed}`,
     now: () => new Date("2026-07-12T15:00:00.000Z"),
     wireOrganizationDna: false,
     wireOios: false,
   });
   return service.build({
-    requestId: `lcr-${seed}`,
+    requestId: `mkt-${seed}`,
     graphInput: graphInput(),
     scope: { organizationId: "org-1", schoolId: "school-1" },
     knowledgeResult: {
@@ -122,138 +121,147 @@ function buildResult(seed: string) {
         complianceCoverage: 78,
         riskPressure: 0.3,
         contractDensity: 12,
-        grantDensity: 6,
-        policyDensity: 9,
-        expirationRisk: 0.25,
         documentCount: 48,
       },
     },
-    boardGovernanceResult: {
-      healthScore: { value: 72 },
+    legalComplianceRiskResult: {
+      healthScore: { value: 74 },
+      riskScore: { value: 72 },
+      complianceHealthScore: { value: 76 },
       baseline: {
-        policyGovernance: 70,
-        minutesCoverage: 68,
-        decisionTraceability: 66,
+        riskPressure: 0.28,
+        complianceCoverage: 74,
+        regulatoryCoverage: 71,
       },
     },
-    humanCapitalResult: {
-      healthScore: { value: 71 },
+    revenueResult: {
+      healthScore: { value: 73 },
       baseline: {
-        policyCoverage: 66,
-        trainingCoverage: 68,
-        successionReadiness: 62,
+        revenueDiversification: 68,
+        pricingPower: 70,
+        pipelineCoverage: 66,
       },
     },
     fundingResult: {
       healthScore: { value: 69 },
-      baseline: { grantReadiness: 65, awardCompliance: 67 },
-    },
-    operationsResult: {
-      healthScore: { value: 72 },
-      workflowScore: { value: 70 },
-      baseline: { operationsScore: 75, backlogPressure: 0.35 },
+      baseline: { grantReadiness: 65, pipelineCoverage: 67, fundingCapacity: 70 },
     },
     customerResult: {
       healthScore: { value: 74 },
       baseline: {
         familyExperienceScore: 72,
+        demandMomentum: 71,
         complaintBurden: 0.28,
         communicationCoverage: 73,
       },
     },
-    improvementResult: {
-      healthScore: { value: 73 },
-      baseline: { executionScore: 70, capacityScore: 68 },
+    businessModelResult: {
+      healthScore: { value: 71 },
+      baseline: {
+        businessModelFit: 68,
+        valuePropositionStrength: 70,
+        monetizationClarity: 66,
+      },
+    },
+    operationsResult: {
+      healthScore: { value: 72 },
+      workflowScore: { value: 70 },
+      baseline: { operationsScore: 75, processCoverage: 72, capacityScore: 70 },
+    },
+    opportunityResult: {
+      healthScore: { value: 70 },
+      baseline: { opportunityDensity: 68, captureReadiness: 66 },
     },
   });
 }
 
-describe("Legal, Compliance & Risk Intelligence (Sprint 042)", () => {
+describe("Market Intelligence (Sprint 043)", () => {
   beforeEach(() => {
     resetGraphEdgeSeqForTests();
     resetPlatformIdSeqForTests();
   });
 
-  it("builds a complete legal-compliance-risk result", () => {
+  it("builds a complete market result", () => {
     const result = buildResult("complete");
 
-    expect(result.version).toBe(LEGAL_COMPLIANCE_RISK_INTELLIGENCE_VERSION);
+    expect(result.version).toBe(MARKET_INTELLIGENCE_VERSION);
     expect(result.healthScore.value).toBeGreaterThan(0);
-    expect(result.complianceHealthScore.value).toBeGreaterThan(0);
-    expect(result.riskScore.value).toBeGreaterThan(0);
-    expect(result.contractScore.value).toBeGreaterThan(0);
-    expect(result.regulatoryScore.value).toBeGreaterThan(0);
-    expect(result.policyScore.value).toBeGreaterThan(0);
-    expect(result.auditScore.value).toBeGreaterThan(0);
-    expect(result.licensePermitScore.value).toBeGreaterThan(0);
-    expect(result.insuranceScore.value).toBeGreaterThan(0);
-    expect(result.litigationScore.value).toBeGreaterThan(0);
-    expect(result.vendorRiskScore.value).toBeGreaterThan(0);
-    expect(result.cyberGovernanceScore.value).toBeGreaterThan(0);
+    expect(result.competitivePositionScore.value).toBeGreaterThan(0);
+    expect(result.expansionOpportunityScore.value).toBeGreaterThan(0);
+    expect(result.marketRiskScore.value).toBeGreaterThan(0);
+    expect(result.industryScore.value).toBeGreaterThan(0);
+    expect(result.marketSizeScore.value).toBeGreaterThan(0);
+    expect(result.pricingScore.value).toBeGreaterThan(0);
+    expect(result.demandScore.value).toBeGreaterThan(0);
+    expect(result.demographicScore.value).toBeGreaterThan(0);
+    expect(result.geographicScore.value).toBeGreaterThan(0);
+    expect(result.economicScore.value).toBeGreaterThan(0);
+    expect(result.technologyScore.value).toBeGreaterThan(0);
+    expect(result.partnershipScore.value).toBeGreaterThan(0);
+    expect(result.maScore.value).toBeGreaterThan(0);
+    expect(result.whiteSpaceScore.value).toBeGreaterThan(0);
     expect(result.knowledgeScore.value).toBeGreaterThan(0);
 
     expect(result.dashboard.headline.length).toBeGreaterThan(0);
-    expect(result.enterpriseRiskDashboard.narrative.length).toBeGreaterThan(0);
-    expect(result.complianceDashboard.narrative.length).toBeGreaterThan(0);
-    expect(result.contractDashboard.narrative.length).toBeGreaterThan(0);
-    expect(result.auditDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.competitiveDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.expansionDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.trendDashboard.narrative.length).toBeGreaterThan(0);
     expect(result.brief.headline.length).toBeGreaterThan(0);
-    expect(result.boardBrief.headline.length).toBeGreaterThan(0);
     expect(result.projection.headline.length).toBeGreaterThan(0);
     expect(result.reasoning.answer.length).toBeGreaterThan(0);
-    expect(result.correctiveActions.length).toBeGreaterThan(0);
-    expect(
-      result.correctiveActionPlan.correctiveActions.length
-    ).toBeGreaterThanOrEqual(0);
   });
 
-  it("covers all enterprise risk categories", () => {
-    const result = buildResult("risk");
-
-    expect(Object.keys(result.enterpriseRisk.risks).sort()).toEqual(
-      [...RISK_CATEGORIES].sort()
-    );
-    expect(Object.keys(result.enterpriseRisk.byCategory).sort()).toEqual(
-      [...RISK_CATEGORIES].sort()
-    );
-    for (const category of RISK_CATEGORIES) {
-      expect(result.enterpriseRisk.risks[category].length).toBeGreaterThan(0);
-    }
-    expect((RISK_CATEGORIES as readonly string[])).toContain(
-      result.enterpriseRisk.hottestCategory
-    );
-  });
-
-  it("covers all compliance scopes", () => {
-    const result = buildResult("scope");
-
-    expect(result.compliance.scopes.sort()).toEqual([...COMPLIANCE_SCOPES].sort());
-    expect(Object.keys(result.compliance.byScope).sort()).toEqual(
-      [...COMPLIANCE_SCOPES].sort()
-    );
-    expect((COMPLIANCE_SCOPES as readonly string[])).toContain(
-      result.compliance.weakestScope
-    );
-  });
-
-  it("emits recommendations with the full 8-field lens", () => {
+  it("emits recommendations with the full 8-field market lens", () => {
     const result = buildResult("rec");
 
     expect(result.recommendations.length).toBeGreaterThan(0);
-    expect(LEGAL_COMPLIANCE_RISK_CAPABILITIES).toContain("corrective_action_planning");
-    for (const rec of [...result.recommendations, ...result.correctiveActions]) {
+    expect(MARKET_CAPABILITIES).toContain("recommendation_generation");
+    for (const rec of result.recommendations) {
       expect(Object.keys(rec.lenses).sort()).toEqual(LENS_KEYS);
       expect(rec.title.length).toBeGreaterThan(0);
-      expect(rec.regulationOrPolicyRef.length).toBeGreaterThan(0);
       expect(Array.isArray(rec.evidenceRefs)).toBe(true);
       expect(rec.confidenceScore).toBeGreaterThanOrEqual(0);
       expect(rec.riskScore).toBeGreaterThanOrEqual(0);
+      expect(rec.marketSizeEstimate).toBeGreaterThanOrEqual(0);
+      expect(rec.investmentEstimate).toBeGreaterThanOrEqual(0);
+      expect(rec.expectedReturnEstimate).toBeGreaterThanOrEqual(0);
+      expect(Array.isArray(rec.competitors)).toBe(true);
+      expect(Array.isArray(rec.capabilitiesRequired)).toBe(true);
       expect(rec.owner.length).toBeGreaterThan(0);
       expect(rec.dueDate.length).toBeGreaterThan(0);
-      expect((["critical", "high", "medium", "low", "monitor"] as string[])).toContain(
-        rec.priority
-      );
+      expect(
+        (["critical", "high", "medium", "low", "monitor"] as string[]).includes(
+          rec.priority
+        )
+      ).toBe(true);
     }
+  });
+
+  it("covers all market signal kinds", () => {
+    const result = buildResult("signals");
+
+    const kinds = result.signals.signals.map((signal) => signal.kind).sort();
+    expect(kinds).toEqual([...MARKET_SIGNAL_KINDS].sort());
+    expect(Object.keys(result.signals.byKind).sort()).toEqual(
+      [...MARKET_SIGNAL_KINDS].sort()
+    );
+    expect((MARKET_SIGNAL_KINDS as readonly string[])).toContain(
+      result.signals.hottestKind
+    );
+  });
+
+  it("includes TAM / SAM / SOM market size estimates", () => {
+    const result = buildResult("size");
+
+    expect(result.marketSize.estimates.tam).toBeGreaterThan(0);
+    expect(result.marketSize.estimates.sam).toBeGreaterThan(0);
+    expect(result.marketSize.estimates.som).toBeGreaterThan(0);
+    expect(result.marketSize.estimates.sam).toBeLessThanOrEqual(
+      result.marketSize.estimates.tam
+    );
+    expect(result.marketSize.estimates.som).toBeLessThanOrEqual(
+      result.marketSize.estimates.sam
+    );
   });
 
   it("contributes knowledge drafts", () => {
@@ -265,25 +273,34 @@ describe("Legal, Compliance & Risk Intelligence (Sprint 042)", () => {
   });
 
   it("supports focused queries and repository persistence", () => {
-    const { service } = createLegalComplianceRiskIntelligence({
+    const { service } = createMarketIntelligence({
       createId: (prefix) => `${prefix}-q`,
       now: () => new Date("2026-07-12T15:00:00.000Z"),
       wireOrganizationDna: false,
       wireOios: false,
     });
     const result = service.build({
-      requestId: "lcr-query-1",
+      requestId: "mkt-query-1",
       graphInput: graphInput(),
       scope: { organizationId: "org-1", schoolId: "school-1" },
     });
 
     for (const focus of [
-      "contracts",
-      "regulatory",
-      "compliance",
-      "risk",
-      "audit",
-      "corrective",
+      "industry",
+      "competitive",
+      "market_size",
+      "pricing",
+      "demand",
+      "demographic",
+      "geographic",
+      "economic",
+      "technology",
+      "partnership",
+      "ma",
+      "white_space",
+      "signals",
+      "recommendations",
+      "reasoning",
     ] as const) {
       const answer = service.query(result, {
         question: `What about ${focus}?`,
@@ -292,23 +309,23 @@ describe("Legal, Compliance & Risk Intelligence (Sprint 042)", () => {
       expect(answer.answer.length).toBeGreaterThan(0);
     }
 
-    expect(service.repository().get("lcr-query-1")).toBeTruthy();
+    expect(service.repository().get("mkt-query-1")).toBeTruthy();
     expect(service.repository().listHistory().length).toBeGreaterThan(0);
   });
 
-  it("wires through createIntelligenceService().legalComplianceRisk", () => {
+  it("wires through createIntelligenceService().market", () => {
     const service = createIntelligenceService();
-    expect(service.legalComplianceRisk).toBeTruthy();
-    const result = service.legalComplianceRisk.service.build({
-      requestId: "lcr-di-1",
+    expect(service.market).toBeTruthy();
+    const result = service.market.service.build({
+      requestId: "mkt-di-1",
       graphInput: graphInput(),
       scope: { organizationId: "org-1", schoolId: "school-1" },
     });
     expect(result.healthScore.value).toBeGreaterThan(0);
-    expect(result.correctiveActions.length).toBeGreaterThanOrEqual(0);
+    expect(result.recommendations.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("runs before market in the platform pipeline", async () => {
+  it("runs as the terminal platform module after legal-compliance-risk", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T15:00:00.000Z"),

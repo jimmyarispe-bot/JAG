@@ -243,6 +243,7 @@ describe("Organizational DNA & Company Builder (Sprint 030)", () => {
       "knowledge",
       "document",
       "legal-compliance-risk",
+      "market",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

@@ -30,13 +30,13 @@ Define how intelligence domains exist inside JAG OIOS — registration, status, 
 - knowledge
 - document
 - legal-compliance-risk
+- market
 
 ### Registered (future)
 
 - legal
 - compliance
 - risk
-- market
 - innovation
 - impact
 

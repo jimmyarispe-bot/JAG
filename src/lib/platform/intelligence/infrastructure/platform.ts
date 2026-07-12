@@ -113,6 +113,10 @@ import type {
   CreateLegalComplianceRiskOptions,
   LegalComplianceRiskStack,
 } from "@/lib/platform/intelligence/legal-compliance-risk";
+import type {
+  CreateMarketOptions,
+  MarketStack,
+} from "@/lib/platform/intelligence/market";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -174,6 +178,8 @@ export interface CreateIntelligencePlatformOptions
   document?: DocumentStack;
   legalComplianceRiskOptions?: CreateLegalComplianceRiskOptions;
   legalComplianceRisk?: LegalComplianceRiskStack;
+  marketOptions?: CreateMarketOptions;
+  market?: MarketStack;
 }
 
 /**
@@ -263,6 +269,8 @@ export function createIntelligencePlatform(
             documentOptions: options.documentOptions,
             legalComplianceRisk: options.legalComplianceRisk,
             legalComplianceRiskOptions: options.legalComplianceRiskOptions,
+            market: options.market,
+            marketOptions: options.marketOptions,
           }),
         ]);
 

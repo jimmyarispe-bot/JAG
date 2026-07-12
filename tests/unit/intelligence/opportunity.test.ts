@@ -180,6 +180,7 @@ describe("Opportunity Intelligence (Sprint 035)", () => {
       "knowledge",
       "document",
       "legal-compliance-risk",
+      "market",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

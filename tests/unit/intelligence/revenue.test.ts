@@ -188,6 +188,7 @@ describe("Revenue Intelligence (Sprint 033)", () => {
       "knowledge",
       "document",
       "legal-compliance-risk",
+      "market",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

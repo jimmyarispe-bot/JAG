@@ -105,6 +105,11 @@ import {
   type LegalComplianceRiskStack,
 } from "@/lib/platform/intelligence/legal-compliance-risk";
 import {
+  createMarketIntelligence,
+  type CreateMarketOptions,
+  type MarketStack,
+} from "@/lib/platform/intelligence/market";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -216,6 +221,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Legal, Compliance & Risk Intelligence stack (Sprint 042). */
   legalComplianceRisk?: LegalComplianceRiskStack;
   legalComplianceRiskOptions?: CreateLegalComplianceRiskOptions;
+  /** Optional Market Intelligence stack (Sprint 043). */
+  market?: MarketStack;
+  marketOptions?: CreateMarketOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -642,6 +650,7 @@ export function createIntelligenceService(
   knowledge: KnowledgeStack;
   document: DocumentStack;
   legalComplianceRisk: LegalComplianceRiskStack;
+  market: MarketStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -834,6 +843,15 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const market =
+    options.market ??
+    createMarketIntelligence({
+      ...(options.marketOptions ?? {}),
+      organizationDna: options.marketOptions?.organizationDna ?? organizationDna,
+      oios: options.marketOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -866,6 +884,7 @@ export function createIntelligenceService(
       document: options.intelligencePlatformOptions?.document ?? document,
       legalComplianceRisk:
         options.intelligencePlatformOptions?.legalComplianceRisk ?? legalComplianceRisk,
+      market: options.intelligencePlatformOptions?.market ?? market,
     });
 
   if (!registry.get("success")) {
@@ -923,6 +942,7 @@ export function createIntelligenceService(
     knowledge,
     document,
     legalComplianceRisk,
+    market,
     intelligencePlatform,
   });
 }

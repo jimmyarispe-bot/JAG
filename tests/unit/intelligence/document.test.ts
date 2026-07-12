@@ -95,6 +95,7 @@ const PIPELINE_ORDER = [
   "knowledge",
   "document",
   "legal-compliance-risk",
+  "market",
 ];
 
 describe("Document Intelligence (Sprint 041)", () => {
@@ -354,8 +355,8 @@ describe("Document Intelligence (Sprint 041)", () => {
     });
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
-    expect(result.moduleOrder.at(-2)).toBe("document");
-    expect(result.moduleOrder.at(-1)).toBe("legal-compliance-risk");
+    expect(result.moduleOrder.at(-2)).toBe("legal-compliance-risk");
+    expect(result.moduleOrder.at(-1)).toBe("market");
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });
