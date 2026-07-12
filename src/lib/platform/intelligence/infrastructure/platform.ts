@@ -93,6 +93,14 @@ import type {
   CreateBusinessModelOptions,
   BusinessModelStack,
 } from "@/lib/platform/intelligence/business-model";
+import type {
+  CreateOperationsOptions,
+  OperationsStack,
+} from "@/lib/platform/intelligence/operations";
+import type {
+  CreateCustomerOptions,
+  CustomerStack,
+} from "@/lib/platform/intelligence/customer";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -144,6 +152,10 @@ export interface CreateIntelligencePlatformOptions
   organizationalImprovement?: ImprovementStack;
   businessModelOptions?: CreateBusinessModelOptions;
   businessModel?: BusinessModelStack;
+  operationsOptions?: CreateOperationsOptions;
+  operations?: OperationsStack;
+  customerOptions?: CreateCustomerOptions;
+  customer?: CustomerStack;
 }
 
 /**
@@ -223,6 +235,10 @@ export function createIntelligencePlatform(
             organizationalImprovementOptions: options.organizationalImprovementOptions,
             businessModel: options.businessModel,
             businessModelOptions: options.businessModelOptions,
+            operations: options.operations,
+            operationsOptions: options.operationsOptions,
+            customer: options.customer,
+            customerOptions: options.customerOptions,
           }),
         ]);
 

@@ -80,6 +80,16 @@ import {
   type BusinessModelStack,
 } from "@/lib/platform/intelligence/business-model";
 import {
+  createOperationsIntelligence,
+  type CreateOperationsOptions,
+  type OperationsStack,
+} from "@/lib/platform/intelligence/operations";
+import {
+  createCustomerIntelligence,
+  type CreateCustomerOptions,
+  type CustomerStack,
+} from "@/lib/platform/intelligence/customer";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -176,6 +186,12 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Business Model Intelligence stack (Sprint 037). */
   businessModel?: BusinessModelStack;
   businessModelOptions?: CreateBusinessModelOptions;
+  /** Optional Operations Intelligence stack (Sprint 038). */
+  operations?: OperationsStack;
+  operationsOptions?: CreateOperationsOptions;
+  /** Optional Customer Intelligence stack (Sprint 039). */
+  customer?: CustomerStack;
+  customerOptions?: CreateCustomerOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -578,7 +594,8 @@ function createDecisionDomainModule(
  * Sprint 030 Organizational DNA & Company Builder, Sprint 031 OIOS Core,
  * Sprint 032 Human Capital Intelligence, Sprint 033 Revenue Intelligence,
  * Sprint 034 Funding Intelligence, Sprint 035 Opportunity Intelligence,
- * Sprint 036 Organizational Improvement Engine, and Sprint 037 Business Model Intelligence.
+ * Sprint 036 Organizational Improvement Engine, Sprint 037 Business Model Intelligence,
+ * and Sprint 038 Operations Intelligence / Sprint 039 Customer Intelligence.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
@@ -595,6 +612,8 @@ export function createIntelligenceService(
   opportunity: OpportunityStack;
   organizationalImprovement: ImprovementStack;
   businessModel: BusinessModelStack;
+  operations: OperationsStack;
+  customer: CustomerStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -737,6 +756,26 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const operations =
+    options.operations ??
+    createOperationsIntelligence({
+      ...(options.operationsOptions ?? {}),
+      organizationDna:
+        options.operationsOptions?.organizationDna ?? organizationDna,
+      oios: options.operationsOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const customer =
+    options.customer ??
+    createCustomerIntelligence({
+      ...(options.customerOptions ?? {}),
+      organizationDna:
+        options.customerOptions?.organizationDna ?? organizationDna,
+      oios: options.customerOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -762,6 +801,9 @@ export function createIntelligenceService(
         organizationalImprovement,
       businessModel:
         options.intelligencePlatformOptions?.businessModel ?? businessModel,
+      operations:
+        options.intelligencePlatformOptions?.operations ?? operations,
+      customer: options.intelligencePlatformOptions?.customer ?? customer,
     });
 
   if (!registry.get("success")) {
@@ -814,6 +856,8 @@ export function createIntelligenceService(
     opportunity,
     organizationalImprovement,
     businessModel,
+    operations,
+    customer,
     intelligencePlatform,
   });
 }

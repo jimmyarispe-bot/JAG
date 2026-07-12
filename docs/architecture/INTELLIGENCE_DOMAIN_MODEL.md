@@ -21,12 +21,14 @@ Define how intelligence domains exist inside JAG OIOS — registration, status, 
 - board-governance
 - human-capital
 - revenue
+- funding
+- opportunity
+- organizational-improvement
+- business-model
+- operations
 
 ### Registered (future)
 
-- funding
-- opportunity
-- operations
 - customer
 - knowledge
 - document

@@ -18,6 +18,8 @@ export { createFundingModule } from "@/lib/platform/intelligence/infrastructure/
 export { createOpportunityModule } from "@/lib/platform/intelligence/infrastructure/modules/opportunity";
 export { createOrganizationalImprovementModule } from "@/lib/platform/intelligence/infrastructure/modules/organizational-improvement";
 export { createBusinessModelModule } from "@/lib/platform/intelligence/infrastructure/modules/business-model";
+export { createOperationsModule } from "@/lib/platform/intelligence/infrastructure/modules/operations";
+export { createCustomerModule } from "@/lib/platform/intelligence/infrastructure/modules/customer";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -29,6 +31,8 @@ import { createFundingModule } from "@/lib/platform/intelligence/infrastructure/
 import { createOpportunityModule } from "@/lib/platform/intelligence/infrastructure/modules/opportunity";
 import { createOrganizationalImprovementModule } from "@/lib/platform/intelligence/infrastructure/modules/organizational-improvement";
 import { createBusinessModelModule } from "@/lib/platform/intelligence/infrastructure/modules/business-model";
+import { createOperationsModule } from "@/lib/platform/intelligence/infrastructure/modules/operations";
+import { createCustomerModule } from "@/lib/platform/intelligence/infrastructure/modules/customer";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -85,6 +89,14 @@ import type {
   CreateBusinessModelOptions,
   BusinessModelStack,
 } from "@/lib/platform/intelligence/business-model";
+import type {
+  CreateOperationsOptions,
+  OperationsStack,
+} from "@/lib/platform/intelligence/operations";
+import type {
+  CreateCustomerOptions,
+  CustomerStack,
+} from "@/lib/platform/intelligence/customer";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -111,6 +123,10 @@ export interface CreateDefaultModulesOptions {
   organizationalImprovement?: ImprovementStack;
   businessModelOptions?: CreateBusinessModelOptions;
   businessModel?: BusinessModelStack;
+  operationsOptions?: CreateOperationsOptions;
+  operations?: OperationsStack;
+  customerOptions?: CreateCustomerOptions;
+  customer?: CustomerStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -137,6 +153,8 @@ export function createDefaultIntelligenceModules(
       options.organizationalImprovement
     ),
     createBusinessModelModule(options.businessModelOptions, options.businessModel),
+    createOperationsModule(options.operationsOptions, options.operations),
+    createCustomerModule(options.customerOptions, options.customer),
   ];
 }
 
