@@ -9,6 +9,7 @@ export const INTELLIGENCE_PLATFORM_VERSION = "0.1.0";
 
 /** Canonical module identifiers registered on the platform. */
 export const INTELLIGENCE_MODULE_IDS = [
+  "organization-dna",
   "organization-health",
   "financial",
   "founder",

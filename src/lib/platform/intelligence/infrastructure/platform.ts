@@ -61,6 +61,10 @@ import type {
   CreateBoardGovernanceOptions,
   BoardGovernanceStack,
 } from "@/lib/platform/intelligence/board-governance";
+import type {
+  CreateOrganizationDnaOptions,
+  OrganizationDnaStack,
+} from "@/lib/platform/intelligence/organization-dna";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -96,6 +100,8 @@ export interface CreateIntelligencePlatformOptions
   predictive?: PredictiveIntelligenceStack;
   boardGovernanceOptions?: CreateBoardGovernanceOptions;
   boardGovernance?: BoardGovernanceStack;
+  organizationDnaOptions?: CreateOrganizationDnaOptions;
+  organizationDna?: OrganizationDnaStack;
 }
 
 /**
@@ -159,6 +165,8 @@ export function createIntelligencePlatform(
             predictiveOptions: options.predictiveOptions,
             boardGovernance: options.boardGovernance,
             boardGovernanceOptions: options.boardGovernanceOptions,
+            organizationDna: options.organizationDna,
+            organizationDnaOptions: options.organizationDnaOptions,
           }),
         ]);
 

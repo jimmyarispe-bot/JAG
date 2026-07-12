@@ -45,6 +45,11 @@ import {
   type BoardGovernanceStack,
 } from "@/lib/platform/intelligence/board-governance";
 import {
+  createOrganizationDnaIntelligence,
+  type CreateOrganizationDnaOptions,
+  type OrganizationDnaStack,
+} from "@/lib/platform/intelligence/organization-dna";
+import {
   createExecutiveIntelligenceDomain,
   EXECUTIVE_INTELLIGENCE_VERSION,
   type ExecutiveRequest,
@@ -112,6 +117,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Board & Governance Intelligence stack (Sprint 029). */
   boardGovernance?: BoardGovernanceStack;
   boardGovernanceOptions?: CreateBoardGovernanceOptions;
+  /** Optional Organizational DNA & Company Builder stack (Sprint 030). */
+  organizationDna?: OrganizationDnaStack;
+  organizationDnaOptions?: CreateOrganizationDnaOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -510,7 +518,8 @@ function createDecisionDomainModule(
  * Registers Support (`success`), Executive (`executive`), Strategic (`strategic`),
  * and Decision (`decision`) domains. Optionally wires Sprint 025 Executive Graph Analyzer,
  * Sprint 026 Executive Decision Intelligence, Sprint 027 Platform Infrastructure,
- * Sprint 028 Predictive Intelligence, and Sprint 029 Board & Governance Intelligence.
+ * Sprint 028 Predictive Intelligence, Sprint 029 Board & Governance Intelligence,
+ * and Sprint 030 Organizational DNA & Company Builder.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
@@ -519,6 +528,7 @@ export function createIntelligenceService(
   executiveDecision: ExecutiveDecisionStack;
   predictiveIntelligence: PredictiveIntelligenceStack;
   boardGovernance: BoardGovernanceStack;
+  organizationDna: OrganizationDnaStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -572,6 +582,23 @@ export function createIntelligenceService(
       wireDecision: false,
       wirePredictive: false,
     });
+  const organizationDna =
+    options.organizationDna ??
+    createOrganizationDnaIntelligence({
+      ...(options.organizationDnaOptions ?? {}),
+      graphAnalyzer:
+        options.organizationDnaOptions?.graphAnalyzer ?? executiveGraphAnalyzer,
+      decision:
+        options.organizationDnaOptions?.decision ?? executiveDecision,
+      predictive:
+        options.organizationDnaOptions?.predictive ?? predictiveIntelligence,
+      boardGovernance:
+        options.organizationDnaOptions?.boardGovernance ?? boardGovernance,
+      wireGraphAnalyzer: false,
+      wireDecision: false,
+      wirePredictive: false,
+      wireBoardGovernance: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -584,6 +611,8 @@ export function createIntelligenceService(
         options.intelligencePlatformOptions?.predictive ?? predictiveIntelligence,
       boardGovernance:
         options.intelligencePlatformOptions?.boardGovernance ?? boardGovernance,
+      organizationDna:
+        options.intelligencePlatformOptions?.organizationDna ?? organizationDna,
     });
 
   if (!registry.get("success")) {
@@ -628,6 +657,7 @@ export function createIntelligenceService(
     executiveDecision,
     predictiveIntelligence,
     boardGovernance,
+    organizationDna,
     intelligencePlatform,
   });
 }

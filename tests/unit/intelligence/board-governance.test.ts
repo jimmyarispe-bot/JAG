@@ -194,6 +194,7 @@ describe("Board & Governance Intelligence (Sprint 029)", () => {
 
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual([
+      "organization-dna",
       "organization-health",
       "financial",
       "founder",

@@ -10,9 +10,11 @@ export { createExecutiveGraphModule } from "@/lib/platform/intelligence/infrastr
 export { createExecutiveDecisionModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-decision";
 export { createPredictiveIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/predictive";
 export { createBoardGovernanceModule } from "@/lib/platform/intelligence/infrastructure/modules/board-governance";
+export { createOrganizationDnaModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-dna";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
+import { createOrganizationDnaModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-dna";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -37,6 +39,10 @@ import type {
   CreateBoardGovernanceOptions,
   BoardGovernanceStack,
 } from "@/lib/platform/intelligence/board-governance";
+import type {
+  CreateOrganizationDnaOptions,
+  OrganizationDnaStack,
+} from "@/lib/platform/intelligence/organization-dna";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -47,6 +53,8 @@ export interface CreateDefaultModulesOptions {
   predictive?: PredictiveIntelligenceStack;
   boardGovernanceOptions?: CreateBoardGovernanceOptions;
   boardGovernance?: BoardGovernanceStack;
+  organizationDnaOptions?: CreateOrganizationDnaOptions;
+  organizationDna?: OrganizationDnaStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -54,6 +62,7 @@ export function createDefaultIntelligenceModules(
   options: CreateDefaultModulesOptions = {}
 ): IntelligenceModule[] {
   return [
+    createOrganizationDnaModule(options.organizationDnaOptions, options.organizationDna),
     createOrganizationHealthModule(),
     createFinancialIntelligenceModule(),
     createFounderIntelligenceModule(),
