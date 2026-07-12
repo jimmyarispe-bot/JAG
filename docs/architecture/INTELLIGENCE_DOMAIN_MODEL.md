@@ -19,10 +19,10 @@ Define how intelligence domains exist inside JAG OIOS — registration, status, 
 - executive-decision
 - predictive
 - board-governance
+- human-capital
 
 ### Registered (future)
 
-- human-capital
 - revenue
 - funding
 - opportunity

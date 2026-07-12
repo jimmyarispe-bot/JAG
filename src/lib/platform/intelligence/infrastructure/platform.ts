@@ -69,6 +69,10 @@ import type {
   CreateOiosOptions,
   OiosStack,
 } from "@/lib/platform/oios";
+import type {
+  CreateHumanCapitalOptions,
+  HumanCapitalStack,
+} from "@/lib/platform/intelligence/human-capital";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -108,6 +112,8 @@ export interface CreateIntelligencePlatformOptions
   organizationDna?: OrganizationDnaStack;
   oiosOptions?: CreateOiosOptions;
   oios?: OiosStack;
+  humanCapitalOptions?: CreateHumanCapitalOptions;
+  humanCapital?: HumanCapitalStack;
 }
 
 /**
@@ -175,6 +181,8 @@ export function createIntelligencePlatform(
             organizationDnaOptions: options.organizationDnaOptions,
             oios: options.oios,
             oiosOptions: options.oiosOptions,
+            humanCapital: options.humanCapital,
+            humanCapitalOptions: options.humanCapitalOptions,
           }),
         ]);
 

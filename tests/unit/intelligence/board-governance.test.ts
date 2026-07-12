@@ -204,6 +204,7 @@ describe("Board & Governance Intelligence (Sprint 029)", () => {
       "executive-decision",
       "predictive",
       "board-governance",
+      "human-capital",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

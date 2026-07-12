@@ -232,6 +232,7 @@ describe("Organizational DNA & Company Builder (Sprint 030)", () => {
       "executive-decision",
       "predictive",
       "board-governance",
+      "human-capital",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

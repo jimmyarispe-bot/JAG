@@ -50,6 +50,11 @@ import {
   type OrganizationDnaStack,
 } from "@/lib/platform/intelligence/organization-dna";
 import {
+  createHumanCapitalIntelligence,
+  type CreateHumanCapitalOptions,
+  type HumanCapitalStack,
+} from "@/lib/platform/intelligence/human-capital";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -128,6 +133,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional JAG OIOS Core stack (Sprint 031). */
   oios?: OiosStack;
   oiosOptions?: CreateOiosOptions;
+  /** Optional Human Capital Intelligence stack (Sprint 032). */
+  humanCapital?: HumanCapitalStack;
+  humanCapitalOptions?: CreateHumanCapitalOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -527,7 +535,8 @@ function createDecisionDomainModule(
  * and Decision (`decision`) domains. Optionally wires Sprint 025 Executive Graph Analyzer,
  * Sprint 026 Executive Decision Intelligence, Sprint 027 Platform Infrastructure,
  * Sprint 028 Predictive Intelligence, Sprint 029 Board & Governance Intelligence,
- * Sprint 030 Organizational DNA & Company Builder, and Sprint 031 OIOS Core.
+ * Sprint 030 Organizational DNA & Company Builder, Sprint 031 OIOS Core,
+ * and Sprint 032 Human Capital Intelligence.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
@@ -538,6 +547,7 @@ export function createIntelligenceService(
   boardGovernance: BoardGovernanceStack;
   organizationDna: OrganizationDnaStack;
   oios: OiosStack;
+  humanCapital: HumanCapitalStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -616,6 +626,16 @@ export function createIntelligenceService(
         options.oiosOptions?.organizationDnaStack ?? organizationDna,
       wireOrganizationDna: false,
     });
+  const humanCapital =
+    options.humanCapital ??
+    createHumanCapitalIntelligence({
+      ...(options.humanCapitalOptions ?? {}),
+      organizationDna:
+        options.humanCapitalOptions?.organizationDna ?? organizationDna,
+      oios: options.humanCapitalOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -631,6 +651,8 @@ export function createIntelligenceService(
       organizationDna:
         options.intelligencePlatformOptions?.organizationDna ?? organizationDna,
       oios: options.intelligencePlatformOptions?.oios ?? oios,
+      humanCapital:
+        options.intelligencePlatformOptions?.humanCapital ?? humanCapital,
     });
 
   if (!registry.get("success")) {
@@ -677,6 +699,7 @@ export function createIntelligenceService(
     boardGovernance,
     organizationDna,
     oios,
+    humanCapital,
     intelligencePlatform,
   });
 }

@@ -27,7 +27,7 @@ Rules every future intelligence sprint must follow so JAG OIOS remains coherent.
 
 ## Future domains (reserved)
 
-Human Capital, Revenue, Funding, Opportunity, Operations, Customer, Knowledge, Document, Legal, Compliance, Risk, Market, Innovation, Impact.
+Revenue, Funding, Opportunity, Operations, Customer, Knowledge, Document, Legal, Compliance, Risk, Market, Innovation, Impact.
 
 ## Suggested dependency defaults
 

@@ -12,11 +12,13 @@ export { createPredictiveIntelligenceModule } from "@/lib/platform/intelligence/
 export { createBoardGovernanceModule } from "@/lib/platform/intelligence/infrastructure/modules/board-governance";
 export { createOrganizationDnaModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-dna";
 export { createOiosCoreModule } from "@/lib/platform/intelligence/infrastructure/modules/oios-core";
+export { createHumanCapitalModule } from "@/lib/platform/intelligence/infrastructure/modules/human-capital";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
 import { createOrganizationDnaModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-dna";
 import { createOiosCoreModule } from "@/lib/platform/intelligence/infrastructure/modules/oios-core";
+import { createHumanCapitalModule } from "@/lib/platform/intelligence/infrastructure/modules/human-capital";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -49,6 +51,10 @@ import type {
   CreateOiosOptions,
   OiosStack,
 } from "@/lib/platform/oios";
+import type {
+  CreateHumanCapitalOptions,
+  HumanCapitalStack,
+} from "@/lib/platform/intelligence/human-capital";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -63,6 +69,8 @@ export interface CreateDefaultModulesOptions {
   organizationDna?: OrganizationDnaStack;
   oiosOptions?: CreateOiosOptions;
   oios?: OiosStack;
+  humanCapitalOptions?: CreateHumanCapitalOptions;
+  humanCapital?: HumanCapitalStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -80,6 +88,7 @@ export function createDefaultIntelligenceModules(
     createExecutiveDecisionModule(options.decisionOptions, options.decision),
     createPredictiveIntelligenceModule(options.predictiveOptions, options.predictive),
     createBoardGovernanceModule(options.boardGovernanceOptions, options.boardGovernance),
+    createHumanCapitalModule(options.humanCapitalOptions, options.humanCapital),
   ];
 }
 
