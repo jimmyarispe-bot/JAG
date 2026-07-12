@@ -1,11 +1,9 @@
 /**
- * Human Capital Intelligence — unit tests (Sprint 032).
+ * Revenue Intelligence — unit tests (Sprint 033).
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  createHumanCapitalIntelligence,
-} from "@/lib/platform/intelligence/human-capital";
+import { createRevenueIntelligence } from "@/lib/platform/intelligence/revenue";
 import { resetGraphEdgeSeqForTests } from "@/lib/platform/intelligence/executive-graph";
 import { createIntelligenceService } from "@/lib/platform/intelligence";
 import {
@@ -67,14 +65,14 @@ function graphInput() {
   };
 }
 
-describe("Human Capital Intelligence (Sprint 032)", () => {
+describe("Revenue Intelligence (Sprint 033)", () => {
   beforeEach(() => {
     resetGraphEdgeSeqForTests();
     resetPlatformIdSeqForTests();
   });
 
-  it("builds full workforce intelligence result", () => {
-    const { service } = createHumanCapitalIntelligence({
+  it("builds full revenue intelligence result", () => {
+    const { service } = createRevenueIntelligence({
       createId: (prefix) => `${prefix}-test`,
       now: () => new Date("2026-07-12T15:00:00.000Z"),
       wireOrganizationDna: false,
@@ -82,36 +80,41 @@ describe("Human Capital Intelligence (Sprint 032)", () => {
     });
 
     const result = service.build({
-      requestId: "hc-test-1",
-      question: "How healthy is our workforce?",
+      requestId: "rev-test-1",
+      question: "How healthy is our revenue engine?",
       graphInput: graphInput(),
       scope: { organizationId: "org-1", schoolId: "school-1" },
-      workforceHealth: { score: 70, status: "healthy" },
+      financialSignal: {
+        revenue: 54000,
+        expenses: 42000,
+        marginPct: 22,
+      },
     });
 
-    expect(result.workforceHealthScore.value).toBeGreaterThan(0);
-    expect(result.leadershipHealthScore.value).toBeGreaterThan(0);
-    expect(result.employeeEngagementScore.value).toBeGreaterThan(0);
-    expect(result.talentRiskScore.value).toBeGreaterThanOrEqual(0);
-    expect(result.candidates.length).toBeGreaterThan(0);
-    expect(result.employees.length).toBeGreaterThan(0);
-    expect(result.hiringDashboard.openRoles).toBeGreaterThan(0);
-    expect(result.succession.slots.length).toBeGreaterThan(0);
-    expect(result.burnout.length).toBeGreaterThan(0);
-    expect(result.coaching.length).toBeGreaterThan(0);
-    expect(result.careerPlans.length).toBeGreaterThan(0);
+    expect(result.healthScore.value).toBeGreaterThan(0);
+    expect(result.growthScore.value).toBeGreaterThan(0);
+    expect(result.riskScore.value).toBeGreaterThanOrEqual(0);
+    expect(result.mix.length).toBeGreaterThan(0);
     expect(result.forecast.length).toBeGreaterThan(0);
+    expect(result.pricingRecommendations.length).toBeGreaterThan(0);
+    expect(result.offerings.length).toBeGreaterThan(0);
+    expect(result.customerLtv.length).toBeGreaterThan(0);
+    expect(result.pipeline.weightedPipeline).toBeGreaterThanOrEqual(0);
+    expect(result.grossMargin.grossMarginPct).toBeGreaterThan(0);
     expect(result.brief.headline.length).toBeGreaterThan(0);
     expect(result.dashboard.headline.length).toBeGreaterThan(0);
-    expect(result.burnoutDashboard.status).toBeTruthy();
-    expect(result.capabilityIndex.overallScore).toBeGreaterThan(0);
+    expect(result.pricingDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.marginDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.customerValueDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.revenueHealth.status).toBeTruthy();
     expect(result.historyRecord.status).toBe("generated");
     expect(result.confidence.value).toBeGreaterThan(0);
-    expect(result.projection.metrics.headcount).toBeGreaterThan(0);
+    expect(result.projection.metrics.annualRevenue).toBeGreaterThan(0);
+    expect(result.recommendations.length).toBeGreaterThan(0);
   });
 
   it("supports queries and repository persistence", () => {
-    const { service } = createHumanCapitalIntelligence({
+    const { service } = createRevenueIntelligence({
       createId: (prefix) => `${prefix}-test`,
       now: () => new Date("2026-07-12T15:00:00.000Z"),
       wireOrganizationDna: false,
@@ -119,37 +122,37 @@ describe("Human Capital Intelligence (Sprint 032)", () => {
     });
 
     const result = service.build({
-      requestId: "hc-query-1",
+      requestId: "rev-query-1",
       graphInput: graphInput(),
       scope: { organizationId: "org-1", schoolId: "school-1" },
     });
 
     const answer = service.query(result, {
-      question: "Where is retention risk highest?",
-      focus: "retention",
+      question: "Where should we improve pricing?",
+      focus: "pricing",
     });
     expect(answer.answer.length).toBeGreaterThan(0);
     expect(answer.references.length).toBeGreaterThan(0);
 
-    expect(service.repository().get("hc-query-1")).toBeTruthy();
+    expect(service.repository().get("rev-query-1")).toBeTruthy();
     expect(service.repository().list().length).toBeGreaterThanOrEqual(1);
     expect(service.repository().listHistory().length).toBeGreaterThanOrEqual(1);
   });
 
-  it("wires humanCapital onto createIntelligenceService", () => {
+  it("wires revenue onto createIntelligenceService", () => {
     const service = createIntelligenceService();
-    expect(service.humanCapital).toBeTruthy();
-    expect(service.humanCapital.service).toBeTruthy();
+    expect(service.revenue).toBeTruthy();
+    expect(service.revenue.service).toBeTruthy();
 
-    const result = service.humanCapital.service.build({
-      requestId: "wired-hc-1",
+    const result = service.revenue.service.build({
+      requestId: "wired-rev-1",
       scope: { organizationId: "org-1", schoolId: "school-1" },
     });
-    expect(result.workforceHealthScore.value).toBeGreaterThan(0);
+    expect(result.healthScore.value).toBeGreaterThan(0);
     expect(result.brief.id.length).toBeGreaterThan(0);
   });
 
-  it("runs as the terminal platform module after board-governance", async () => {
+  it("runs as the terminal platform module after human-capital", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T16:00:00.000Z"),

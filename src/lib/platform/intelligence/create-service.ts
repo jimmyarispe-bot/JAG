@@ -55,6 +55,11 @@ import {
   type HumanCapitalStack,
 } from "@/lib/platform/intelligence/human-capital";
 import {
+  createRevenueIntelligence,
+  type CreateRevenueOptions,
+  type RevenueStack,
+} from "@/lib/platform/intelligence/revenue";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -136,6 +141,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Human Capital Intelligence stack (Sprint 032). */
   humanCapital?: HumanCapitalStack;
   humanCapitalOptions?: CreateHumanCapitalOptions;
+  /** Optional Revenue Intelligence stack (Sprint 033). */
+  revenue?: RevenueStack;
+  revenueOptions?: CreateRevenueOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -536,7 +544,7 @@ function createDecisionDomainModule(
  * Sprint 026 Executive Decision Intelligence, Sprint 027 Platform Infrastructure,
  * Sprint 028 Predictive Intelligence, Sprint 029 Board & Governance Intelligence,
  * Sprint 030 Organizational DNA & Company Builder, Sprint 031 OIOS Core,
- * and Sprint 032 Human Capital Intelligence.
+ * Sprint 032 Human Capital Intelligence, and Sprint 033 Revenue Intelligence.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
@@ -548,6 +556,7 @@ export function createIntelligenceService(
   organizationDna: OrganizationDnaStack;
   oios: OiosStack;
   humanCapital: HumanCapitalStack;
+  revenue: RevenueStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -636,6 +645,16 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const revenue =
+    options.revenue ??
+    createRevenueIntelligence({
+      ...(options.revenueOptions ?? {}),
+      organizationDna:
+        options.revenueOptions?.organizationDna ?? organizationDna,
+      oios: options.revenueOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -653,6 +672,7 @@ export function createIntelligenceService(
       oios: options.intelligencePlatformOptions?.oios ?? oios,
       humanCapital:
         options.intelligencePlatformOptions?.humanCapital ?? humanCapital,
+      revenue: options.intelligencePlatformOptions?.revenue ?? revenue,
     });
 
   if (!registry.get("success")) {
@@ -700,6 +720,7 @@ export function createIntelligenceService(
     organizationDna,
     oios,
     humanCapital,
+    revenue,
     intelligencePlatform,
   });
 }

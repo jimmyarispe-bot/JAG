@@ -59,7 +59,7 @@ const hc = intelligence.humanCapital.service.build({ requestId: "hc-2" });
 ```
 organization-dna → oios-core → organization-health → financial → founder
   → executive → executive-graph → executive-decision → predictive
-  → board-governance → human-capital
+  → board-governance → human-capital → revenue
 ```
 
 ## DI / platform

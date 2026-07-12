@@ -221,6 +221,7 @@ describe("Predictive Intelligence (Sprint 028)", () => {
       "predictive",
       "board-governance",
       "human-capital",
+      "revenue",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

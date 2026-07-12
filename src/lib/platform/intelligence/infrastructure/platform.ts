@@ -73,6 +73,10 @@ import type {
   CreateHumanCapitalOptions,
   HumanCapitalStack,
 } from "@/lib/platform/intelligence/human-capital";
+import type {
+  CreateRevenueOptions,
+  RevenueStack,
+} from "@/lib/platform/intelligence/revenue";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -114,6 +118,8 @@ export interface CreateIntelligencePlatformOptions
   oios?: OiosStack;
   humanCapitalOptions?: CreateHumanCapitalOptions;
   humanCapital?: HumanCapitalStack;
+  revenueOptions?: CreateRevenueOptions;
+  revenue?: RevenueStack;
 }
 
 /**
@@ -183,6 +189,8 @@ export function createIntelligencePlatform(
             oiosOptions: options.oiosOptions,
             humanCapital: options.humanCapital,
             humanCapitalOptions: options.humanCapitalOptions,
+            revenue: options.revenue,
+            revenueOptions: options.revenueOptions,
           }),
         ]);
 

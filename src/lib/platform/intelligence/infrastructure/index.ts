@@ -161,6 +161,7 @@ export {
   createOrganizationDnaModule,
   createOiosCoreModule,
   createHumanCapitalModule,
+  createRevenueModule,
   createDefaultIntelligenceModules,
   createDefaultIntelligenceProvider,
   ORGANIZATION_HEALTH_MODULE_VERSION,

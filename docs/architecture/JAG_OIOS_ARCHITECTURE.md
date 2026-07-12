@@ -110,6 +110,7 @@ See dedicated docs:
 ## Pipeline position
 
 ```
-organization-dna → oios-core → human-capital → organization-health → financial → founder
-  → executive → executive-graph → executive-decision → predictive → board-governance
+organization-dna → oios-core → organization-health → financial → founder
+  → executive → executive-graph → executive-decision → predictive
+  → board-governance → human-capital → revenue
 ```
