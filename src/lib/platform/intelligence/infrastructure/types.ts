@@ -15,6 +15,7 @@ export const INTELLIGENCE_MODULE_IDS = [
   "executive",
   "executive-graph",
   "executive-decision",
+  "predictive",
 ] as const;
 
 export type IntelligenceModuleId = (typeof INTELLIGENCE_MODULE_IDS)[number] | (string & {});

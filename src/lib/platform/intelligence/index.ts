@@ -94,6 +94,32 @@ export type {
   DecisionProjectionResult,
 } from "@/lib/platform/intelligence/executive-decision";
 export {
+  PREDICTIVE_INTELLIGENCE_VERSION,
+  createPredictiveIntelligence,
+  createForecastScenario,
+  PredictionEngine,
+  PredictionService,
+  ForecastEngine,
+  TrendAnalyzer,
+  ForecastRepository,
+  ForecastQueries,
+  ForecastProjection,
+  PredictionConfidence,
+  ForecastScoring,
+  ForecastHistory,
+  predictionModels,
+} from "@/lib/platform/intelligence/predictive-intelligence";
+export type {
+  CreatePredictiveIntelligenceOptions,
+  PredictiveIntelligenceStack,
+  PredictionRequest,
+  PredictionResult,
+  ForecastScenarioDefinition,
+  ForecastProjectionResult,
+  ScenarioForecast,
+  DomainForecast,
+} from "@/lib/platform/intelligence/predictive-intelligence";
+export {
   INTELLIGENCE_PLATFORM_VERSION,
   createIntelligencePlatform,
   createIntelligenceRegistry,

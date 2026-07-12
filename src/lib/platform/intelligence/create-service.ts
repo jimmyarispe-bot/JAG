@@ -35,6 +35,11 @@ import {
   type IntelligencePlatformStack,
 } from "@/lib/platform/intelligence/infrastructure";
 import {
+  createPredictiveIntelligence,
+  type CreatePredictiveIntelligenceOptions,
+  type PredictiveIntelligenceStack,
+} from "@/lib/platform/intelligence/predictive-intelligence";
+import {
   createExecutiveIntelligenceDomain,
   EXECUTIVE_INTELLIGENCE_VERSION,
   type ExecutiveRequest,
@@ -96,6 +101,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Executive Decision Intelligence stack (Sprint 026). */
   executiveDecision?: ExecutiveDecisionStack;
   executiveDecisionOptions?: CreateExecutiveDecisionOptions;
+  /** Optional Predictive Intelligence stack (Sprint 028). */
+  predictiveIntelligence?: PredictiveIntelligenceStack;
+  predictiveIntelligenceOptions?: CreatePredictiveIntelligenceOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -493,13 +501,15 @@ function createDecisionDomainModule(
  *
  * Registers Support (`success`), Executive (`executive`), Strategic (`strategic`),
  * and Decision (`decision`) domains. Optionally wires Sprint 025 Executive Graph Analyzer,
- * Sprint 026 Executive Decision Intelligence, and Sprint 027 Platform Infrastructure.
+ * Sprint 026 Executive Decision Intelligence, Sprint 027 Platform Infrastructure,
+ * and Sprint 028 Predictive Intelligence.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
 ): IntelligenceService & {
   executiveGraphAnalyzer: ExecutiveGraphAnalyzerStack;
   executiveDecision: ExecutiveDecisionStack;
+  predictiveIntelligence: PredictiveIntelligenceStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -527,6 +537,18 @@ export function createIntelligenceService(
       graphAnalyzer:
         options.executiveDecisionOptions?.graphAnalyzer ?? executiveGraphAnalyzer,
     });
+  const predictiveIntelligence =
+    options.predictiveIntelligence ??
+    createPredictiveIntelligence({
+      ...(options.predictiveIntelligenceOptions ?? {}),
+      graphAnalyzer:
+        options.predictiveIntelligenceOptions?.graphAnalyzer ??
+        executiveGraphAnalyzer,
+      decision:
+        options.predictiveIntelligenceOptions?.decision ?? executiveDecision,
+      wireGraphAnalyzer: false,
+      wireDecision: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -535,6 +557,8 @@ export function createIntelligenceService(
         options.intelligencePlatformOptions?.graphAnalyzer ?? executiveGraphAnalyzer,
       decision:
         options.intelligencePlatformOptions?.decision ?? executiveDecision,
+      predictive:
+        options.intelligencePlatformOptions?.predictive ?? predictiveIntelligence,
     });
 
   if (!registry.get("success")) {
@@ -577,6 +601,7 @@ export function createIntelligenceService(
   return Object.assign(service, {
     executiveGraphAnalyzer,
     executiveDecision,
+    predictiveIntelligence,
     intelligencePlatform,
   });
 }

@@ -53,6 +53,10 @@ import type {
   CreateExecutiveGraphAnalyzerOptions,
   ExecutiveGraphAnalyzerStack,
 } from "@/lib/platform/intelligence/executive-graph";
+import type {
+  CreatePredictiveIntelligenceOptions,
+  PredictiveIntelligenceStack,
+} from "@/lib/platform/intelligence/predictive-intelligence";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -84,6 +88,8 @@ export interface CreateIntelligencePlatformOptions
   graphAnalyzer?: ExecutiveGraphAnalyzerStack;
   decisionOptions?: CreateExecutiveDecisionOptions;
   decision?: ExecutiveDecisionStack;
+  predictiveOptions?: CreatePredictiveIntelligenceOptions;
+  predictive?: PredictiveIntelligenceStack;
 }
 
 /**
@@ -143,6 +149,8 @@ export function createIntelligencePlatform(
             graphAnalyzerOptions: options.graphAnalyzerOptions,
             decision: options.decision,
             decisionOptions: options.decisionOptions,
+            predictive: options.predictive,
+            predictiveOptions: options.predictiveOptions,
           }),
         ]);
 

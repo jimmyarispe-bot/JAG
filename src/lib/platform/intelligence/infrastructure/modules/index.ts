@@ -8,6 +8,7 @@ export { createFounderIntelligenceModule, FOUNDER_INTELLIGENCE_MODULE_VERSION } 
 export { createExecutiveIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/executive";
 export { createExecutiveGraphModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-graph";
 export { createExecutiveDecisionModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-decision";
+export { createPredictiveIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/predictive";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -17,6 +18,7 @@ import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/inf
 import { createExecutiveIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/executive";
 import { createExecutiveGraphModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-graph";
 import { createExecutiveDecisionModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-decision";
+import { createPredictiveIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/predictive";
 import type {
   CreateExecutiveDecisionOptions,
   ExecutiveDecisionStack,
@@ -25,12 +27,18 @@ import type {
   CreateExecutiveGraphAnalyzerOptions,
   ExecutiveGraphAnalyzerStack,
 } from "@/lib/platform/intelligence/executive-graph";
+import type {
+  CreatePredictiveIntelligenceOptions,
+  PredictiveIntelligenceStack,
+} from "@/lib/platform/intelligence/predictive-intelligence";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
   graphAnalyzer?: ExecutiveGraphAnalyzerStack;
   decisionOptions?: CreateExecutiveDecisionOptions;
   decision?: ExecutiveDecisionStack;
+  predictiveOptions?: CreatePredictiveIntelligenceOptions;
+  predictive?: PredictiveIntelligenceStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -44,6 +52,7 @@ export function createDefaultIntelligenceModules(
     createExecutiveIntelligenceModule(),
     createExecutiveGraphModule(options.graphAnalyzerOptions, options.graphAnalyzer),
     createExecutiveDecisionModule(options.decisionOptions, options.decision),
+    createPredictiveIntelligenceModule(options.predictiveOptions, options.predictive),
   ];
 }
 
