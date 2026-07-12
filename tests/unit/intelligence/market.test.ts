@@ -95,6 +95,7 @@ const PIPELINE_ORDER = [
   "legal-compliance-risk",
   "market",
   "innovation",
+  "impact",
 ];
 
 function buildResult(seed: string) {
@@ -339,8 +340,9 @@ describe("Market Intelligence (Sprint 043)", () => {
     });
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
-    expect(result.moduleOrder.at(-2)).toBe("market");
-    expect(result.moduleOrder.at(-1)).toBe("innovation");
+    expect(result.moduleOrder.at(-3)).toBe("market");
+    expect(result.moduleOrder.at(-2)).toBe("innovation");
+    expect(result.moduleOrder.at(-1)).toBe("impact");
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });

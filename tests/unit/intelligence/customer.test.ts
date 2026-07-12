@@ -95,6 +95,7 @@ const PIPELINE_ORDER = [
   "legal-compliance-risk",
   "market",
   "innovation",
+  "impact",
 ];
 
 describe("Customer Intelligence (Sprint 039)", () => {

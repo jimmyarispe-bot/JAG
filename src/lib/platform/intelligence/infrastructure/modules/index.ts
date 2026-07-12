@@ -25,6 +25,7 @@ export { createDocumentModule } from "@/lib/platform/intelligence/infrastructure
 export { createLegalComplianceRiskModule } from "@/lib/platform/intelligence/infrastructure/modules/legal-compliance-risk";
 export { createMarketModule } from "@/lib/platform/intelligence/infrastructure/modules/market";
 export { createInnovationModule } from "@/lib/platform/intelligence/infrastructure/modules/innovation";
+export { createImpactModule } from "@/lib/platform/intelligence/infrastructure/modules/impact";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -43,6 +44,7 @@ import { createDocumentModule } from "@/lib/platform/intelligence/infrastructure
 import { createLegalComplianceRiskModule } from "@/lib/platform/intelligence/infrastructure/modules/legal-compliance-risk";
 import { createMarketModule } from "@/lib/platform/intelligence/infrastructure/modules/market";
 import { createInnovationModule } from "@/lib/platform/intelligence/infrastructure/modules/innovation";
+import { createImpactModule } from "@/lib/platform/intelligence/infrastructure/modules/impact";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -127,6 +129,10 @@ import type {
   CreateInnovationOptions,
   InnovationStack,
 } from "@/lib/platform/intelligence/innovation";
+import type {
+  CreateImpactOptions,
+  ImpactStack,
+} from "@/lib/platform/intelligence/impact";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -167,6 +173,8 @@ export interface CreateDefaultModulesOptions {
   market?: MarketStack;
   innovationOptions?: CreateInnovationOptions;
   innovation?: InnovationStack;
+  impactOptions?: CreateImpactOptions;
+  impact?: ImpactStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -203,6 +211,7 @@ export function createDefaultIntelligenceModules(
     ),
     createMarketModule(options.marketOptions, options.market),
     createInnovationModule(options.innovationOptions, options.innovation),
+    createImpactModule(options.impactOptions, options.impact),
   ];
 }
 

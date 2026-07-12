@@ -1,0 +1,25 @@
+import { buildLens, clamp, priorityFromScore, statusFromScore } from "@/lib/platform/intelligence/impact/models";
+import type { ImpactArea, ImpactAreaSuite, ImpactBaseline, ImpactDashboard, ImpactHealthScore, ImpactOpportunityRecord, ImpactRecommendationRecord, ImpactRiskRecord, ImpactScore, OutcomeSuite, RoiSuite } from "@/lib/platform/intelligence/impact/types";
+import { IMPACT_AREAS } from "@/lib/platform/intelligence/impact/types";
+export const score = (key: string, label: string, value: number): ImpactScore => { const v = clamp(value); return { key, label, value: v, status: statusFromScore(v), band: priorityFromScore(v), narrative: `${label} is ${statusFromScore(v)} at ${Math.round(v)}.` }; };
+const lens = (area: string, value: number) => buildLens({ outcomeAchieved: `${area} impact score ${Math.round(value)}.`, evidenceSupports: "Baseline, current, trend, and outcome evidence.", baselineUsed: `Derived ${area} baseline.`, whatChanged: "Current performance compared with baseline.", confidenceLevel: "medium", causeAttribution: "Attributed across managed initiatives and external conditions.", goalsImproved: `${area} strategic goals.`, nextImprovement: `Address highest-priority ${area} gap.` });
+export class ImpactIntelligence {
+  composeScores(input: { baseline: ImpactBaseline; areas: Record<ImpactArea, ImpactAreaSuite>; measurement: number; outcome: number; roi: number; knowledge: number }) {
+    const areaScores = Object.fromEntries(IMPACT_AREAS.map(a => [a, score(`impact_${a}`, `${a} Impact Score`, input.areas[a].score)])) as Record<ImpactArea, ImpactScore>;
+    const overall = IMPACT_AREAS.reduce((s,a)=>s+areaScores[a].value,0)/IMPACT_AREAS.length * .7 + input.measurement*.1 + input.outcome*.1 + input.roi*.05 + input.knowledge*.05;
+    return { healthScore: score("impact_health", "Impact Health Score", overall), areaScores, measurementScore: score("impact_measurement","Measurement Score",input.measurement), outcomeScore: score("impact_outcome","Outcome Score",input.outcome), roiScore: score("impact_roi","ROI/SROI Score",input.roi), knowledgeScore: score("impact_knowledge","Knowledge Score",input.knowledge) };
+  }
+}
+export class ImpactRecommendationComposer {
+  constructor(private createId: (prefix:string)=>string) {}
+  compose(areas: Record<ImpactArea, ImpactAreaSuite>, outcomes: OutcomeSuite, now: Date): ImpactRecommendationRecord[] {
+    return [...IMPACT_AREAS].sort((a,b)=>areas[a].score-areas[b].score).slice(0,5).map((area,index)=>({ id:this.createId("imp-rec"), title:`Improve ${area} impact evidence and outcomes`, priority: priorityFromScore(areas[area].score), evidenceRefs: outcomes.outcomes.filter(o=>o.area===area).map(o=>o.id), confidenceScore: .65, owner: index ? "impact-owner":"executive-team", dueDate:new Date(now.getTime()+(30+index*15)*86400000).toISOString(), rationale:areas[area].narrative, action:`Run a measured improvement cycle for ${area}.`, lenses:lens(area,areas[area].score), narrative:`Prioritize ${area} outcome improvement.` }));
+  }
+}
+export function composeRisksOpportunities(areas: Record<ImpactArea, ImpactAreaSuite>, createId:(prefix:string)=>string): { risks: ImpactRiskRecord[]; opportunities: ImpactOpportunityRecord[] } {
+  const ordered=[...IMPACT_AREAS].sort((a,b)=>areas[a].score-areas[b].score);
+  return { risks: ordered.slice(0,4).map(a=>({id:createId("imp-risk"),title:`${a} outcome underperformance`,area:a,severity:priorityFromScore(areas[a].score),score:100-areas[a].score,mitigation:`Strengthen ${a} measurement and intervention.`,lenses:lens(a,areas[a].score),narrative:areas[a].narrative})), opportunities: ordered.slice(-4).reverse().map(a=>({id:createId("imp-opp"),title:`Scale ${a} impact`,area:a,priority:priorityFromScore(100-areas[a].score),score:areas[a].score,lenses:lens(a,areas[a].score),narrative:areas[a].narrative})) };
+}
+export function composeHealth(scores: ReturnType<ImpactIntelligence["composeScores"]>): ImpactHealthScore { const areaScores=Object.fromEntries(IMPACT_AREAS.map(a=>[a,scores.areaScores[a].value])) as Record<ImpactArea,number>; return {overallScore:scores.healthScore.value,status:scores.healthScore.status,areaScores,measurementScore:scores.measurementScore.value,outcomeScore:scores.outcomeScore.value,roiScore:scores.roiScore.value,knowledgeScore:scores.knowledgeScore.value,lenses:lens("organization",scores.healthScore.value),narrative:scores.healthScore.narrative}; }
+export function composeDashboard(now: Date, health: ImpactHealthScore, risks: ImpactRiskRecord[], opportunities: ImpactOpportunityRecord[]): ImpactDashboard { return {generatedAt:now.toISOString(),headline:`Impact health ${Math.round(health.overallScore)} - ${health.status}`,overall:health.overallScore,areaScores:health.areaScores,measurementScore:health.measurementScore,outcomeScore:health.outcomeScore,roiScore:health.roiScore,knowledgeScore:health.knowledgeScore,topRisks:risks.map(r=>r.title),topOpportunities:opportunities.map(o=>o.title),narrative:health.narrative}; }
+export const impactLens = lens;

@@ -115,6 +115,11 @@ import {
   type InnovationStack,
 } from "@/lib/platform/intelligence/innovation";
 import {
+  createImpactIntelligence,
+  type CreateImpactOptions,
+  type ImpactStack,
+} from "@/lib/platform/intelligence/impact";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -232,6 +237,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Innovation Intelligence stack (Sprint 044). */
   innovation?: InnovationStack;
   innovationOptions?: CreateInnovationOptions;
+  /** Optional Impact Intelligence stack (Sprint 045). */
+  impact?: ImpactStack;
+  impactOptions?: CreateImpactOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -660,6 +668,7 @@ export function createIntelligenceService(
   legalComplianceRisk: LegalComplianceRiskStack;
   market: MarketStack;
   innovation: InnovationStack;
+  impact: ImpactStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -870,6 +879,15 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const impact =
+    options.impact ??
+    createImpactIntelligence({
+      ...(options.impactOptions ?? {}),
+      organizationDna: options.impactOptions?.organizationDna ?? organizationDna,
+      oios: options.impactOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -904,6 +922,7 @@ export function createIntelligenceService(
         options.intelligencePlatformOptions?.legalComplianceRisk ?? legalComplianceRisk,
       market: options.intelligencePlatformOptions?.market ?? market,
       innovation: options.intelligencePlatformOptions?.innovation ?? innovation,
+      impact: options.intelligencePlatformOptions?.impact ?? impact,
     });
 
   if (!registry.get("success")) {
@@ -963,6 +982,7 @@ export function createIntelligenceService(
     legalComplianceRisk,
     market,
     innovation,
+    impact,
     intelligencePlatform,
   });
 }

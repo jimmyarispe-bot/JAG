@@ -93,6 +93,7 @@ const PIPELINE_ORDER = [
   "legal-compliance-risk",
   "market",
   "innovation",
+  "impact",
 ];
 
 describe("Organizational Improvement Engine (Sprint 036)", () => {

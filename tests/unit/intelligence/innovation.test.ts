@@ -96,6 +96,7 @@ const PIPELINE_ORDER = [
   "legal-compliance-risk",
   "market",
   "innovation",
+  "impact",
 ];
 
 function buildResult(seed: string) {
@@ -325,7 +326,7 @@ describe("Innovation Intelligence (Sprint 044)", () => {
     expect(result.recommendations.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("runs as the terminal platform module after market", async () => {
+  it("runs after market and before terminal impact", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T15:00:00.000Z"),
@@ -338,8 +339,9 @@ describe("Innovation Intelligence (Sprint 044)", () => {
     });
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
-    expect(result.moduleOrder.at(-2)).toBe("market");
-    expect(result.moduleOrder.at(-1)).toBe("innovation");
+    expect(result.moduleOrder.at(-3)).toBe("market");
+    expect(result.moduleOrder.at(-2)).toBe("innovation");
+    expect(result.moduleOrder.at(-1)).toBe("impact");
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });

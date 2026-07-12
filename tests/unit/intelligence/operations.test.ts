@@ -94,6 +94,7 @@ const PIPELINE_ORDER = [
   "legal-compliance-risk",
   "market",
   "innovation",
+  "impact",
 ];
 
 describe("Operations Intelligence (Sprint 038)", () => {

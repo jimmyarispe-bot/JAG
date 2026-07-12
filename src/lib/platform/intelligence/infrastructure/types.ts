@@ -32,6 +32,7 @@ export const INTELLIGENCE_MODULE_IDS = [
   "legal-compliance-risk",
   "market",
   "innovation",
+  "impact",
 ] as const;
 
 export type IntelligenceModuleId = (typeof INTELLIGENCE_MODULE_IDS)[number] | (string & {});
