@@ -184,6 +184,7 @@ describe("Human Capital Intelligence (Sprint 032)", () => {
       "customer",
       "knowledge",
       "document",
+      "legal-compliance-risk",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

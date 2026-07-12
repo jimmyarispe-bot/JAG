@@ -11,7 +11,8 @@ export const OIOS_INTELLIGENCE_DOMAINS = [
   "executive-graph", "executive-decision", "predictive", "board-governance",
   "human-capital", "revenue", "funding", "opportunity", "organizational-improvement",
   "business-model",
-  "operations", "customer", "knowledge", "document", "legal", "compliance", "risk",
+  "operations", "customer", "knowledge", "document", "legal-compliance-risk",
+  "legal", "compliance", "risk",
   "market", "innovation", "impact",
 ] as const;
 export type OiosIntelligenceDomain = (typeof OIOS_INTELLIGENCE_DOMAINS)[number];

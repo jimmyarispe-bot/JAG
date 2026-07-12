@@ -113,6 +113,7 @@ const PIPELINE_ORDER = [
   "customer",
   "knowledge",
   "document",
+  "legal-compliance-risk",
 ];
 
 describe("Knowledge Intelligence (Sprint 040)", () => {

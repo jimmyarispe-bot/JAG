@@ -109,6 +109,10 @@ import type {
   CreateDocumentOptions,
   DocumentStack,
 } from "@/lib/platform/intelligence/document";
+import type {
+  CreateLegalComplianceRiskOptions,
+  LegalComplianceRiskStack,
+} from "@/lib/platform/intelligence/legal-compliance-risk";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -168,6 +172,8 @@ export interface CreateIntelligencePlatformOptions
   knowledge?: KnowledgeStack;
   documentOptions?: CreateDocumentOptions;
   document?: DocumentStack;
+  legalComplianceRiskOptions?: CreateLegalComplianceRiskOptions;
+  legalComplianceRisk?: LegalComplianceRiskStack;
 }
 
 /**
@@ -255,6 +261,8 @@ export function createIntelligencePlatform(
             knowledgeOptions: options.knowledgeOptions,
             document: options.document,
             documentOptions: options.documentOptions,
+            legalComplianceRisk: options.legalComplianceRisk,
+            legalComplianceRiskOptions: options.legalComplianceRiskOptions,
           }),
         ]);
 

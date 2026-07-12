@@ -100,6 +100,11 @@ import {
   type DocumentStack,
 } from "@/lib/platform/intelligence/document";
 import {
+  createLegalComplianceRiskIntelligence,
+  type CreateLegalComplianceRiskOptions,
+  type LegalComplianceRiskStack,
+} from "@/lib/platform/intelligence/legal-compliance-risk";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -208,6 +213,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Document Intelligence stack (Sprint 041). */
   document?: DocumentStack;
   documentOptions?: CreateDocumentOptions;
+  /** Optional Legal, Compliance & Risk Intelligence stack (Sprint 042). */
+  legalComplianceRisk?: LegalComplianceRiskStack;
+  legalComplianceRiskOptions?: CreateLegalComplianceRiskOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -633,6 +641,7 @@ export function createIntelligenceService(
   customer: CustomerStack;
   knowledge: KnowledgeStack;
   document: DocumentStack;
+  legalComplianceRisk: LegalComplianceRiskStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -815,6 +824,16 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const legalComplianceRisk =
+    options.legalComplianceRisk ??
+    createLegalComplianceRiskIntelligence({
+      ...(options.legalComplianceRiskOptions ?? {}),
+      organizationDna:
+        options.legalComplianceRiskOptions?.organizationDna ?? organizationDna,
+      oios: options.legalComplianceRiskOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -845,6 +864,8 @@ export function createIntelligenceService(
       customer: options.intelligencePlatformOptions?.customer ?? customer,
       knowledge: options.intelligencePlatformOptions?.knowledge ?? knowledge,
       document: options.intelligencePlatformOptions?.document ?? document,
+      legalComplianceRisk:
+        options.intelligencePlatformOptions?.legalComplianceRisk ?? legalComplianceRisk,
     });
 
   if (!registry.get("success")) {
@@ -901,6 +922,7 @@ export function createIntelligenceService(
     customer,
     knowledge,
     document,
+    legalComplianceRisk,
     intelligencePlatform,
   });
 }
