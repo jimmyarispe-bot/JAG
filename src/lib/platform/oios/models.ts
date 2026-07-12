@@ -13,7 +13,7 @@ export function maturityFromScore(score: number): OiosMaturityLevel { if (score 
 export function healthBandFromScore(score: number): OiosHealthBand { if (score >= 85) return "thriving"; if (score >= 70) return "healthy"; if (score >= 50) return "stable"; if (score >= 30) return "at-risk"; return "critical"; }
 export function priorityFromScore(score: number): OiosPriorityBand { if (score < 35) return "critical"; if (score < 50) return "high"; if (score < 65) return "medium"; if (score < 80) return "low"; return "monitor"; }
 export function defaultRegisteredDomains(): DomainDescriptor[] {
-  const active = new Set(["organization-dna", "organization-health", "financial", "founder", "executive", "executive-graph", "executive-decision", "predictive", "board-governance", "human-capital", "revenue", "funding"]);
+  const active = new Set(["organization-dna", "organization-health", "financial", "founder", "executive", "executive-graph", "executive-decision", "predictive", "board-governance", "human-capital", "revenue", "funding", "opportunity"]);
   return OIOS_INTELLIGENCE_DOMAINS.map((domain, index) => ({
     domain,
     status: active.has(domain) ? "active" : "registered",
@@ -28,7 +28,9 @@ export function defaultRegisteredDomains(): DomainDescriptor[] {
               ? ["organization-dna", "financial", "human-capital"]
               : domain === "funding"
                 ? ["organization-dna", "financial", "revenue"]
-                : [],
+                : domain === "opportunity"
+                  ? ["organization-dna", "funding", "revenue"]
+                  : [],
     priority: index,
     description: `${domain} intelligence domain`,
   }));

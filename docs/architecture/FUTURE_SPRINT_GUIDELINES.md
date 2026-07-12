@@ -6,7 +6,7 @@ Rules every future intelligence sprint must follow so JAG OIOS remains coherent.
 
 ## Non-negotiables
 
-1. **Do not regenerate** existing packages (`organization-dna`, health, founder, graph, decision, predictive, board-governance, infrastructure, oios, human-capital, revenue, funding).
+1. **Do not regenerate** existing packages (`organization-dna`, health, founder, graph, decision, predictive, board-governance, infrastructure, oios, human-capital, revenue, funding, opportunity).
 2. **Extend** via new domain packages + DI + platform module registration.
 3. **Register** domains in the OIOS catalog before claiming them active.
 4. **Keep leaf modules leaf** (`types` / `contracts` import-free of implementations).
@@ -27,7 +27,7 @@ Rules every future intelligence sprint must follow so JAG OIOS remains coherent.
 
 ## Future domains (reserved)
 
-Opportunity, Operations, Customer, Knowledge, Document, Legal, Compliance, Risk, Market, Innovation, Impact.
+Operations, Customer, Knowledge, Document, Legal, Compliance, Risk, Market, Innovation, Impact.
 
 ## Suggested dependency defaults
 
@@ -36,7 +36,7 @@ Most future domains should:
 - Depend on `organization-dna` and/or `oios-core` in the platform DAG
 - Read `context.get("oios")` for twin/strategy/governance
 - Avoid hard dependencies on every upstream product module unless required
-- After Revenue (033) and Funding (034), prefer soft context attachments over hard DAG edges unless required for pipeline data
+- After Revenue (033), Funding (034), and Opportunity (035), prefer soft context attachments over hard DAG edges unless required for pipeline data
 
 ## Commit message style
 

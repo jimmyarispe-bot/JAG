@@ -163,6 +163,7 @@ export {
   createHumanCapitalModule,
   createRevenueModule,
   createFundingModule,
+  createOpportunityModule,
   createDefaultIntelligenceModules,
   createDefaultIntelligenceProvider,
   ORGANIZATION_HEALTH_MODULE_VERSION,

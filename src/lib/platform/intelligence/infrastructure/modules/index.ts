@@ -15,6 +15,7 @@ export { createOiosCoreModule } from "@/lib/platform/intelligence/infrastructure
 export { createHumanCapitalModule } from "@/lib/platform/intelligence/infrastructure/modules/human-capital";
 export { createRevenueModule } from "@/lib/platform/intelligence/infrastructure/modules/revenue";
 export { createFundingModule } from "@/lib/platform/intelligence/infrastructure/modules/funding";
+export { createOpportunityModule } from "@/lib/platform/intelligence/infrastructure/modules/opportunity";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -23,6 +24,7 @@ import { createOiosCoreModule } from "@/lib/platform/intelligence/infrastructure
 import { createHumanCapitalModule } from "@/lib/platform/intelligence/infrastructure/modules/human-capital";
 import { createRevenueModule } from "@/lib/platform/intelligence/infrastructure/modules/revenue";
 import { createFundingModule } from "@/lib/platform/intelligence/infrastructure/modules/funding";
+import { createOpportunityModule } from "@/lib/platform/intelligence/infrastructure/modules/opportunity";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -67,6 +69,10 @@ import type {
   CreateFundingOptions,
   FundingStack,
 } from "@/lib/platform/intelligence/funding";
+import type {
+  CreateOpportunityOptions,
+  OpportunityStack,
+} from "@/lib/platform/intelligence/opportunity";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -87,6 +93,8 @@ export interface CreateDefaultModulesOptions {
   revenue?: RevenueStack;
   fundingOptions?: CreateFundingOptions;
   funding?: FundingStack;
+  opportunityOptions?: CreateOpportunityOptions;
+  opportunity?: OpportunityStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -107,6 +115,7 @@ export function createDefaultIntelligenceModules(
     createHumanCapitalModule(options.humanCapitalOptions, options.humanCapital),
     createRevenueModule(options.revenueOptions, options.revenue),
     createFundingModule(options.fundingOptions, options.funding),
+    createOpportunityModule(options.opportunityOptions, options.opportunity),
   ];
 }
 
