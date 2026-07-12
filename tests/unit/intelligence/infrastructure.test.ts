@@ -99,6 +99,7 @@ describe("Intelligence Platform Infrastructure (Sprint 027)", () => {
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual([
       "organization-dna",
+      "oios-core",
       "organization-health",
       "financial",
       "founder",
@@ -112,7 +113,7 @@ describe("Intelligence Platform Infrastructure (Sprint 027)", () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
 
     const health = await platform.checkHealth();
-    expect(health.modules.length).toBe(9);
+    expect(health.modules.length).toBe(10);
     expect(["healthy", "degraded", "unhealthy", "unknown"]).toContain(health.status);
 
     const diagnostics = await platform.collectDiagnostics();

@@ -211,6 +211,7 @@ describe("Predictive Intelligence (Sprint 028)", () => {
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual([
       "organization-dna",
+      "oios-core",
       "organization-health",
       "financial",
       "founder",

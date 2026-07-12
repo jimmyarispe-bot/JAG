@@ -223,6 +223,7 @@ describe("Organizational DNA & Company Builder (Sprint 030)", () => {
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual([
       "organization-dna",
+      "oios-core",
       "organization-health",
       "financial",
       "founder",

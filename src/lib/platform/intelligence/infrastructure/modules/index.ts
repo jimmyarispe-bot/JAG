@@ -11,10 +11,12 @@ export { createExecutiveDecisionModule } from "@/lib/platform/intelligence/infra
 export { createPredictiveIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/predictive";
 export { createBoardGovernanceModule } from "@/lib/platform/intelligence/infrastructure/modules/board-governance";
 export { createOrganizationDnaModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-dna";
+export { createOiosCoreModule } from "@/lib/platform/intelligence/infrastructure/modules/oios-core";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
 import { createOrganizationDnaModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-dna";
+import { createOiosCoreModule } from "@/lib/platform/intelligence/infrastructure/modules/oios-core";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -43,6 +45,10 @@ import type {
   CreateOrganizationDnaOptions,
   OrganizationDnaStack,
 } from "@/lib/platform/intelligence/organization-dna";
+import type {
+  CreateOiosOptions,
+  OiosStack,
+} from "@/lib/platform/oios";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -55,6 +61,8 @@ export interface CreateDefaultModulesOptions {
   boardGovernance?: BoardGovernanceStack;
   organizationDnaOptions?: CreateOrganizationDnaOptions;
   organizationDna?: OrganizationDnaStack;
+  oiosOptions?: CreateOiosOptions;
+  oios?: OiosStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -63,6 +71,7 @@ export function createDefaultIntelligenceModules(
 ): IntelligenceModule[] {
   return [
     createOrganizationDnaModule(options.organizationDnaOptions, options.organizationDna),
+    createOiosCoreModule(options.oiosOptions, options.oios),
     createOrganizationHealthModule(),
     createFinancialIntelligenceModule(),
     createFounderIntelligenceModule(),

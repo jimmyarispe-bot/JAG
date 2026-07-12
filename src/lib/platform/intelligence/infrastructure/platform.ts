@@ -65,6 +65,10 @@ import type {
   CreateOrganizationDnaOptions,
   OrganizationDnaStack,
 } from "@/lib/platform/intelligence/organization-dna";
+import type {
+  CreateOiosOptions,
+  OiosStack,
+} from "@/lib/platform/oios";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -102,6 +106,8 @@ export interface CreateIntelligencePlatformOptions
   boardGovernance?: BoardGovernanceStack;
   organizationDnaOptions?: CreateOrganizationDnaOptions;
   organizationDna?: OrganizationDnaStack;
+  oiosOptions?: CreateOiosOptions;
+  oios?: OiosStack;
 }
 
 /**
@@ -167,6 +173,8 @@ export function createIntelligencePlatform(
             boardGovernanceOptions: options.boardGovernanceOptions,
             organizationDna: options.organizationDna,
             organizationDnaOptions: options.organizationDnaOptions,
+            oios: options.oios,
+            oiosOptions: options.oiosOptions,
           }),
         ]);
 

@@ -50,6 +50,11 @@ import {
   type OrganizationDnaStack,
 } from "@/lib/platform/intelligence/organization-dna";
 import {
+  createOiosOperatingSystem,
+  type CreateOiosOptions,
+  type OiosStack,
+} from "@/lib/platform/oios";
+import {
   createExecutiveIntelligenceDomain,
   EXECUTIVE_INTELLIGENCE_VERSION,
   type ExecutiveRequest,
@@ -120,6 +125,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Organizational DNA & Company Builder stack (Sprint 030). */
   organizationDna?: OrganizationDnaStack;
   organizationDnaOptions?: CreateOrganizationDnaOptions;
+  /** Optional JAG OIOS Core stack (Sprint 031). */
+  oios?: OiosStack;
+  oiosOptions?: CreateOiosOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -519,7 +527,7 @@ function createDecisionDomainModule(
  * and Decision (`decision`) domains. Optionally wires Sprint 025 Executive Graph Analyzer,
  * Sprint 026 Executive Decision Intelligence, Sprint 027 Platform Infrastructure,
  * Sprint 028 Predictive Intelligence, Sprint 029 Board & Governance Intelligence,
- * and Sprint 030 Organizational DNA & Company Builder.
+ * Sprint 030 Organizational DNA & Company Builder, and Sprint 031 OIOS Core.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
@@ -529,6 +537,7 @@ export function createIntelligenceService(
   predictiveIntelligence: PredictiveIntelligenceStack;
   boardGovernance: BoardGovernanceStack;
   organizationDna: OrganizationDnaStack;
+  oios: OiosStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -599,6 +608,14 @@ export function createIntelligenceService(
       wirePredictive: false,
       wireBoardGovernance: false,
     });
+  const oios =
+    options.oios ??
+    createOiosOperatingSystem({
+      ...(options.oiosOptions ?? {}),
+      organizationDnaStack:
+        options.oiosOptions?.organizationDnaStack ?? organizationDna,
+      wireOrganizationDna: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -613,6 +630,7 @@ export function createIntelligenceService(
         options.intelligencePlatformOptions?.boardGovernance ?? boardGovernance,
       organizationDna:
         options.intelligencePlatformOptions?.organizationDna ?? organizationDna,
+      oios: options.intelligencePlatformOptions?.oios ?? oios,
     });
 
   if (!registry.get("success")) {
@@ -658,6 +676,7 @@ export function createIntelligenceService(
     predictiveIntelligence,
     boardGovernance,
     organizationDna,
+    oios,
     intelligencePlatform,
   });
 }
