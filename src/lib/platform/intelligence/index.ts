@@ -35,3 +35,32 @@ export * from "@/lib/platform/intelligence/domains/executive";
 export * from "@/lib/platform/intelligence/domains/strategic";
 export * from "@/lib/platform/intelligence/decision";
 export * from "@/lib/platform/intelligence/organization";
+export {
+  EXECUTIVE_GRAPH_ANALYZER_VERSION,
+  createExecutiveGraphAnalyzer,
+  GraphAnalyzer,
+  GraphBuilder,
+  GraphRepository,
+  RootCauseAnalyzer,
+  DependencyAnalyzer,
+  CascadeAnalyzer,
+  RiskPropagation,
+  ExecutiveReasoner,
+  OpportunityEngine,
+  ConstraintEngine,
+  CriticalityScore,
+  ExecutivePriority as ExecutiveGraphPriorityRanker,
+  ConfidenceScore as ExecutiveGraphConfidenceScorer,
+  ExecutiveQueries,
+  GraphSearch,
+  DashboardProjection as ExecutiveGraphDashboardProjector,
+} from "@/lib/platform/intelligence/executive-graph";
+export type {
+  CreateExecutiveGraphAnalyzerOptions,
+  ExecutiveGraphAnalyzerStack,
+  Graph as ExecutiveReasoningGraph,
+  GraphNode as ExecutiveReasoningGraphNode,
+  GraphEdge as ExecutiveReasoningGraphEdge,
+  GraphAnalysisResult,
+  GraphBuildInput,
+} from "@/lib/platform/intelligence/executive-graph";

@@ -20,6 +20,11 @@ import {
   type DecisionResolver,
 } from "@/lib/platform/intelligence/decision";
 import {
+  createExecutiveGraphAnalyzer,
+  type CreateExecutiveGraphAnalyzerOptions,
+  type ExecutiveGraphAnalyzerStack,
+} from "@/lib/platform/intelligence/executive-graph";
+import {
   createExecutiveIntelligenceDomain,
   EXECUTIVE_INTELLIGENCE_VERSION,
   type ExecutiveRequest,
@@ -75,6 +80,9 @@ export interface CreateIntelligenceServiceOptions {
   decisionResolver?: DecisionResolver;
   sharedContextBuilder?: SharedIntelligenceContextBuilder;
   orchestratorDependencies?: IntelligenceOrchestratorDependencies;
+  /** Optional Executive Graph Analyzer stack (Sprint 025). */
+  executiveGraphAnalyzer?: ExecutiveGraphAnalyzerStack;
+  executiveGraphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
 }
 
 /**
@@ -468,11 +476,13 @@ function createDecisionDomainModule(
  * Create a fully wired {@link IntelligenceService}.
  *
  * Registers Support (`success`), Executive (`executive`), Strategic (`strategic`),
- * and Decision (`decision`) domains.
+ * and Decision (`decision`) domains. Optionally wires Sprint 025 Executive Graph Analyzer.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
-): IntelligenceService {
+): IntelligenceService & {
+  executiveGraphAnalyzer: ExecutiveGraphAnalyzerStack;
+} {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
   const orchestrator =
     options.orchestrator ??
@@ -488,6 +498,9 @@ export function createIntelligenceService(
     options.decisionResolver ?? createDecisionIntelligenceDomain();
   const sharedContextBuilder =
     options.sharedContextBuilder ?? createSharedIntelligenceContextBuilder();
+  const executiveGraphAnalyzer =
+    options.executiveGraphAnalyzer ??
+    createExecutiveGraphAnalyzer(options.executiveGraphAnalyzerOptions ?? {});
 
   if (!registry.get("success")) {
     registry.register(
@@ -525,7 +538,8 @@ export function createIntelligenceService(
     orchestrator,
   };
 
-  return new IntelligenceService(dependencies);
+  const service = new IntelligenceService(dependencies);
+  return Object.assign(service, { executiveGraphAnalyzer });
 }
 
 /**

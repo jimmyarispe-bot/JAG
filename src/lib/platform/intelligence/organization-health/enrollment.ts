@@ -22,10 +22,10 @@ export interface EnrollmentHealthResult {
     const activeEnrollment = 0;
     const admissionsPipeline = 0;
     const capacity = 100;
-  
+
     const utilization =
-      capacity === 0 ? 0 : (activeEnrollment / capacity) * 100;
-  
+      capacity <= 0 ? 0 : (activeEnrollment / capacity) * 100;
+
     let score = Math.round(utilization);
   
     if (admissionsPipeline > 20) score += 10;
