@@ -208,6 +208,7 @@ describe("Board & Governance Intelligence (Sprint 029)", () => {
       "revenue",
       "funding",
       "opportunity",
+      "organizational-improvement",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

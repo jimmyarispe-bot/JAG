@@ -16,6 +16,7 @@ export { createHumanCapitalModule } from "@/lib/platform/intelligence/infrastruc
 export { createRevenueModule } from "@/lib/platform/intelligence/infrastructure/modules/revenue";
 export { createFundingModule } from "@/lib/platform/intelligence/infrastructure/modules/funding";
 export { createOpportunityModule } from "@/lib/platform/intelligence/infrastructure/modules/opportunity";
+export { createOrganizationalImprovementModule } from "@/lib/platform/intelligence/infrastructure/modules/organizational-improvement";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -25,6 +26,7 @@ import { createHumanCapitalModule } from "@/lib/platform/intelligence/infrastruc
 import { createRevenueModule } from "@/lib/platform/intelligence/infrastructure/modules/revenue";
 import { createFundingModule } from "@/lib/platform/intelligence/infrastructure/modules/funding";
 import { createOpportunityModule } from "@/lib/platform/intelligence/infrastructure/modules/opportunity";
+import { createOrganizationalImprovementModule } from "@/lib/platform/intelligence/infrastructure/modules/organizational-improvement";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -73,6 +75,10 @@ import type {
   CreateOpportunityOptions,
   OpportunityStack,
 } from "@/lib/platform/intelligence/opportunity";
+import type {
+  CreateImprovementOptions,
+  ImprovementStack,
+} from "@/lib/platform/intelligence/organizational-improvement";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -95,6 +101,8 @@ export interface CreateDefaultModulesOptions {
   funding?: FundingStack;
   opportunityOptions?: CreateOpportunityOptions;
   opportunity?: OpportunityStack;
+  organizationalImprovementOptions?: CreateImprovementOptions;
+  organizationalImprovement?: ImprovementStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -116,6 +124,10 @@ export function createDefaultIntelligenceModules(
     createRevenueModule(options.revenueOptions, options.revenue),
     createFundingModule(options.fundingOptions, options.funding),
     createOpportunityModule(options.opportunityOptions, options.opportunity),
+    createOrganizationalImprovementModule(
+      options.organizationalImprovementOptions,
+      options.organizationalImprovement
+    ),
   ];
 }
 

@@ -1,6 +1,10 @@
-/** Opportunity Intelligence unit tests (Sprint 035). */
+/** Organizational Improvement Engine unit tests (Sprint 036). */
 import { beforeEach, describe, expect, it } from "vitest";
-import { createOpportunityIntelligence, OPPORTUNITY_CATEGORIES } from "@/lib/platform/intelligence/opportunity";
+import {
+  createOrganizationalImprovementIntelligence,
+  IMPROVEMENT_SOURCE_DOMAINS,
+  IMPROVEMENT_LOOP_STAGES,
+} from "@/lib/platform/intelligence/organizational-improvement";
 import { createIntelligenceService } from "@/lib/platform/intelligence";
 import { resetGraphEdgeSeqForTests } from "@/lib/platform/intelligence/executive-graph";
 import { createIntelligencePlatform, resetPlatformIdSeqForTests } from "@/lib/platform/intelligence/infrastructure";
@@ -53,28 +57,51 @@ function graphInput() {
 }
 
 const LENS_KEYS = [
-  "organizationalHealth",
-  "financialSustainability",
+  "whyNow",
+  "expectedRoi",
   "missionImpact",
-  "longTermValue",
+  "financialImpact",
+  "peopleImpact",
+  "implementationEffort",
+  "risk",
+  "confidence",
+  "dependencies",
   "timeToValue",
 ].sort();
 
-describe("Opportunity Intelligence (Sprint 035)", () => {
+const PIPELINE_ORDER = [
+  "organization-dna",
+  "oios-core",
+  "organization-health",
+  "financial",
+  "founder",
+  "executive",
+  "executive-graph",
+  "executive-decision",
+  "predictive",
+  "board-governance",
+  "human-capital",
+  "revenue",
+  "funding",
+  "opportunity",
+  "organizational-improvement",
+];
+
+describe("Organizational Improvement Engine (Sprint 036)", () => {
   beforeEach(() => {
     resetGraphEdgeSeqForTests();
     resetPlatformIdSeqForTests();
   });
 
-  it("builds the complete opportunity intelligence result", () => {
-    const { service } = createOpportunityIntelligence({
+  it("builds the complete organizational improvement result", () => {
+    const { service } = createOrganizationalImprovementIntelligence({
       createId: (prefix) => `${prefix}-test`,
       now: () => new Date("2026-07-12T15:00:00.000Z"),
       wireOrganizationDna: false,
       wireOios: false,
     });
     const result = service.build({
-      requestId: "opp-test-1",
+      requestId: "imp-test-1",
       graphInput: graphInput(),
       scope: { organizationId: "org-1", schoolId: "school-1" },
       financialSignal: {
@@ -86,41 +113,47 @@ describe("Opportunity Intelligence (Sprint 035)", () => {
     });
 
     expect(result.healthScore.value).toBeGreaterThan(0);
-    expect(result.opportunityScore.value).toBeGreaterThan(0);
+    expect(result.improvementScore.value).toBeGreaterThan(0);
     expect(result.riskScore.value).toBeGreaterThanOrEqual(0);
-    expect(Object.keys(result.categories).sort()).toEqual([...OPPORTUNITY_CATEGORIES].sort());
-    for (const category of OPPORTUNITY_CATEGORIES) {
-      expect(result.categories[category].length).toBeGreaterThan(0);
+    expect(Object.keys(result.sources).sort()).toEqual([...IMPROVEMENT_SOURCE_DOMAINS].sort());
+    for (const domain of IMPROVEMENT_SOURCE_DOMAINS) {
+      expect(result.sources[domain].length).toBeGreaterThan(0);
     }
-    expect(result.exchange.length).toBeGreaterThan(0);
+    expect(result.improvements.length).toBeGreaterThan(0);
     expect(result.analysis.scored.length).toBeGreaterThan(0);
-    expect(result.analysis.roi.length).toBeGreaterThan(0);
-    expect(result.rankings.length).toBe(7);
-    expect(result.pipeline.records.length).toBeGreaterThan(0);
+    expect(result.analysis.priority.length).toBeGreaterThan(0);
+    expect(result.planning.quickWins.items.length).toBeGreaterThan(0);
+    expect(result.planning.weekly.items.length).toBeGreaterThan(0);
+    expect(result.planning.quarterly.items.length).toBeGreaterThan(0);
+    expect(result.planning.annual.items.length).toBeGreaterThan(0);
+    expect(result.loop.stages).toEqual([...IMPROVEMENT_LOOP_STAGES]);
     expect(result.dashboard.headline.length).toBeGreaterThan(0);
-    expect(result.topOpportunitiesDashboard.opportunities.length).toBeGreaterThan(0);
-    expect(result.quickWinsDashboard.narrative.length).toBeGreaterThan(0);
-    expect(result.strategicInvestmentDashboard.narrative.length).toBeGreaterThan(0);
-    expect(result.missionOpportunityDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.missionDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.financialDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.peopleDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.todaysPriorities.priorities.length).toBeGreaterThan(0);
+    expect(result.todaysPriorities.priorities.length).toBeLessThanOrEqual(5);
     expect(result.heatMap.cells.length).toBeGreaterThan(0);
+    expect(result.dailyBrief.topFive.length).toBeGreaterThan(0);
+    expect(result.dailyBrief.topFive.length).toBeLessThanOrEqual(5);
     expect(result.brief.headline.length).toBeGreaterThan(0);
-    expect(result.projection.metrics.pipelineValue).toBeGreaterThan(0);
+    expect(result.projection.metrics.plannedValue).toBeGreaterThanOrEqual(0);
     expect(result.historyRecord.status).toBe("generated");
-    for (const opportunity of result.topOpportunitiesDashboard.opportunities) {
-      expect(Object.keys(opportunity.lenses).sort()).toEqual(LENS_KEYS);
-      expect(opportunity.title.length).toBeGreaterThan(0);
-      expect(opportunity.originatingDomain.length).toBeGreaterThan(0);
+    for (const improvement of result.todaysPriorities.priorities) {
+      expect(Object.keys(improvement.lenses).sort()).toEqual(LENS_KEYS);
+      expect(improvement.title.length).toBeGreaterThan(0);
+      expect(improvement.sourceDomain.length).toBeGreaterThan(0);
     }
   });
 
   it("supports focused queries and repository persistence", () => {
-    const { service } = createOpportunityIntelligence({
+    const { service } = createOrganizationalImprovementIntelligence({
       createId: (prefix) => `${prefix}-test`,
       wireOrganizationDna: false,
       wireOios: false,
     });
     const result = service.build({
-      requestId: "opp-query-1",
+      requestId: "imp-query-1",
       graphInput: graphInput(),
       scope: { organizationId: "org-1", schoolId: "school-1" },
     });
@@ -130,23 +163,23 @@ describe("Opportunity Intelligence (Sprint 035)", () => {
     });
     expect(answer.answer.length).toBeGreaterThan(0);
     expect(answer.references.length).toBeGreaterThan(0);
-    expect(service.repository().get("opp-query-1")).toBeTruthy();
+    expect(service.repository().get("imp-query-1")).toBeTruthy();
     expect(service.repository().listHistory().length).toBeGreaterThan(0);
   });
 
-  it("wires opportunity onto createIntelligenceService", () => {
+  it("wires organizational improvement onto createIntelligenceService", () => {
     const service = createIntelligenceService();
-    expect(service.opportunity).toBeTruthy();
-    expect(service.opportunity.service).toBeTruthy();
+    expect(service.organizationalImprovement).toBeTruthy();
+    expect(service.organizationalImprovement.service).toBeTruthy();
     expect(
-      service.opportunity.service.build({
-        requestId: "wired-opp-1",
+      service.organizationalImprovement.service.build({
+        requestId: "wired-imp-1",
         scope: { organizationId: "org-1", schoolId: "school-1" },
       }).brief.id.length
     ).toBeGreaterThan(0);
   });
 
-  it("runs after funding and before organizational-improvement", async () => {
+  it("runs after opportunity as the terminal platform module", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T16:00:00.000Z"),
@@ -158,23 +191,7 @@ describe("Opportunity Intelligence (Sprint 035)", () => {
       bypassCache: true,
     });
     expect(result.status).toBe("completed");
-    expect(result.moduleOrder).toEqual([
-      "organization-dna",
-      "oios-core",
-      "organization-health",
-      "financial",
-      "founder",
-      "executive",
-      "executive-graph",
-      "executive-decision",
-      "predictive",
-      "board-governance",
-      "human-capital",
-      "revenue",
-      "funding",
-      "opportunity",
-      "organizational-improvement",
-    ]);
+    expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });

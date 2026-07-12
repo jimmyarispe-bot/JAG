@@ -9,8 +9,9 @@ export const OIOS_VERSION = "0.1.0";
 export const OIOS_INTELLIGENCE_DOMAINS = [
   "organization-dna", "organization-health", "financial", "founder", "executive",
   "executive-graph", "executive-decision", "predictive", "board-governance",
-  "human-capital", "revenue", "funding", "opportunity", "operations", "customer",
-  "knowledge", "document", "legal", "compliance", "risk", "market", "innovation", "impact",
+  "human-capital", "revenue", "funding", "opportunity", "organizational-improvement",
+  "operations", "customer", "knowledge", "document", "legal", "compliance", "risk",
+  "market", "innovation", "impact",
 ] as const;
 export type OiosIntelligenceDomain = (typeof OIOS_INTELLIGENCE_DOMAINS)[number];
 export type OiosDomainStatus = "registered" | "active" | "dormant" | "deprecated";

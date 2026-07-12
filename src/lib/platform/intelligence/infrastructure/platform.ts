@@ -85,6 +85,10 @@ import type {
   CreateOpportunityOptions,
   OpportunityStack,
 } from "@/lib/platform/intelligence/opportunity";
+import type {
+  CreateImprovementOptions,
+  ImprovementStack,
+} from "@/lib/platform/intelligence/organizational-improvement";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -132,6 +136,8 @@ export interface CreateIntelligencePlatformOptions
   funding?: FundingStack;
   opportunityOptions?: CreateOpportunityOptions;
   opportunity?: OpportunityStack;
+  organizationalImprovementOptions?: CreateImprovementOptions;
+  organizationalImprovement?: ImprovementStack;
 }
 
 /**
@@ -207,6 +213,8 @@ export function createIntelligencePlatform(
             fundingOptions: options.fundingOptions,
             opportunity: options.opportunity,
             opportunityOptions: options.opportunityOptions,
+            organizationalImprovement: options.organizationalImprovement,
+            organizationalImprovementOptions: options.organizationalImprovementOptions,
           }),
         ]);
 

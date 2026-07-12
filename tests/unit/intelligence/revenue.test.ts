@@ -181,6 +181,7 @@ describe("Revenue Intelligence (Sprint 033)", () => {
       "revenue",
       "funding",
       "opportunity",
+      "organizational-improvement",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

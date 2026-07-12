@@ -23,6 +23,7 @@ export const INTELLIGENCE_MODULE_IDS = [
   "revenue",
   "funding",
   "opportunity",
+  "organizational-improvement",
 ] as const;
 
 export type IntelligenceModuleId = (typeof INTELLIGENCE_MODULE_IDS)[number] | (string & {});

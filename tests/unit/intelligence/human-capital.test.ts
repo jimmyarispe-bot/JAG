@@ -178,6 +178,7 @@ describe("Human Capital Intelligence (Sprint 032)", () => {
       "revenue",
       "funding",
       "opportunity",
+      "organizational-improvement",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

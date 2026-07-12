@@ -70,6 +70,11 @@ import {
   type OpportunityStack,
 } from "@/lib/platform/intelligence/opportunity";
 import {
+  createOrganizationalImprovementIntelligence,
+  type CreateImprovementOptions,
+  type ImprovementStack,
+} from "@/lib/platform/intelligence/organizational-improvement";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -160,6 +165,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Opportunity Intelligence stack (Sprint 035). */
   opportunity?: OpportunityStack;
   opportunityOptions?: CreateOpportunityOptions;
+  /** Optional Organizational Improvement Engine stack (Sprint 036). */
+  organizationalImprovement?: ImprovementStack;
+  organizationalImprovementOptions?: CreateImprovementOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -561,7 +569,8 @@ function createDecisionDomainModule(
  * Sprint 028 Predictive Intelligence, Sprint 029 Board & Governance Intelligence,
  * Sprint 030 Organizational DNA & Company Builder, Sprint 031 OIOS Core,
  * Sprint 032 Human Capital Intelligence, Sprint 033 Revenue Intelligence,
- * Sprint 034 Funding Intelligence, and Sprint 035 Opportunity Intelligence.
+ * Sprint 034 Funding Intelligence, Sprint 035 Opportunity Intelligence,
+ * and Sprint 036 Organizational Improvement Engine.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
@@ -576,6 +585,7 @@ export function createIntelligenceService(
   revenue: RevenueStack;
   funding: FundingStack;
   opportunity: OpportunityStack;
+  organizationalImprovement: ImprovementStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -694,6 +704,20 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const organizationalImprovement =
+    options.organizationalImprovement ??
+    createOrganizationalImprovementIntelligence({
+      ...(options.organizationalImprovementOptions ?? {}),
+      organizationDna:
+        options.organizationalImprovementOptions?.organizationDna ??
+        organizationDna,
+      oios: options.organizationalImprovementOptions?.oios ?? oios,
+      opportunity:
+        options.organizationalImprovementOptions?.opportunity ?? opportunity,
+      wireOrganizationDna: false,
+      wireOios: false,
+      wireOpportunity: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -714,6 +738,9 @@ export function createIntelligenceService(
       revenue: options.intelligencePlatformOptions?.revenue ?? revenue,
       funding: options.intelligencePlatformOptions?.funding ?? funding,
       opportunity: options.intelligencePlatformOptions?.opportunity ?? opportunity,
+      organizationalImprovement:
+        options.intelligencePlatformOptions?.organizationalImprovement ??
+        organizationalImprovement,
     });
 
   if (!registry.get("success")) {
@@ -764,6 +791,7 @@ export function createIntelligenceService(
     revenue,
     funding,
     opportunity,
+    organizationalImprovement,
     intelligencePlatform,
   });
 }
