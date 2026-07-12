@@ -1,11 +1,12 @@
-/** Market Intelligence unit tests (Sprint 043 / 0.1.0). */
+/** Innovation Intelligence unit tests (Sprint 044 / 0.1.0). */
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  createMarketIntelligence,
-  MARKET_SIGNAL_KINDS,
-  MARKET_CAPABILITIES,
-  MARKET_INTELLIGENCE_VERSION,
-} from "@/lib/platform/intelligence/market";
+  createInnovationIntelligence,
+  TECHNOLOGY_RADAR_RINGS,
+  INNOVATION_HORIZONS,
+  INNOVATION_CAPABILITIES,
+  INNOVATION_INTELLIGENCE_VERSION,
+} from "@/lib/platform/intelligence/innovation";
 import { createIntelligenceService } from "@/lib/platform/intelligence";
 import { resetGraphEdgeSeqForTests } from "@/lib/platform/intelligence/executive-graph";
 import {
@@ -41,8 +42,8 @@ function graphInput() {
       priorities: [],
       risks: [
         {
-          id: "market-risk",
-          title: "Competitive pressure rising",
+          id: "innovation-risk",
+          title: "Experiment backlog stalling",
           severity: "high" as const,
           probability: 0.55,
           impact: 0.65,
@@ -50,8 +51,8 @@ function graphInput() {
       ],
       opportunities: [
         {
-          id: "market",
-          title: "Capture adjacent market white space",
+          id: "innovation",
+          title: "Scale validated AI tutoring pilot",
           estimatedValue: 320_000,
           confidence: 0.72,
         },
@@ -61,14 +62,14 @@ function graphInput() {
 }
 
 const LENS_KEYS = [
-  "marketOpportunityExists",
+  "innovationOpportunityExists",
   "evidenceSupports",
-  "competitorsInvolved",
-  "estimatedMarketSize",
-  "risksExist",
+  "problemSolved",
+  "expectedImpact",
   "investmentRequired",
-  "expectedReturn",
-  "organizationalCapabilitiesRequired",
+  "experimentsValidate",
+  "risksExist",
+  "capabilitiesRequired",
 ].sort();
 
 const PIPELINE_ORDER = [
@@ -98,16 +99,31 @@ const PIPELINE_ORDER = [
 ];
 
 function buildResult(seed: string) {
-  const { service } = createMarketIntelligence({
+  const { service } = createInnovationIntelligence({
     createId: (prefix) => `${prefix}-${seed}`,
     now: () => new Date("2026-07-12T15:00:00.000Z"),
     wireOrganizationDna: false,
     wireOios: false,
   });
   return service.build({
-    requestId: `mkt-${seed}`,
+    requestId: `inn-${seed}`,
     graphInput: graphInput(),
     scope: { organizationId: "org-1", schoolId: "school-1" },
+    marketResult: {
+      healthScore: { value: 74 },
+      competitivePositionScore: { value: 71 },
+      expansionOpportunityScore: { value: 68 },
+      baseline: {
+        whiteSpaceScore: 66,
+        opportunityDensity: 70,
+        technologyDisruptionPressure: 0.32,
+        signalDensity: 0.58,
+      },
+    },
+    opportunityResult: {
+      healthScore: { value: 70 },
+      baseline: { opportunityDensity: 68, captureReadiness: 66 },
+    },
     knowledgeResult: {
       healthScore: { value: 76 },
       coverageScore: { value: 74 },
@@ -125,37 +141,6 @@ function buildResult(seed: string) {
         documentCount: 48,
       },
     },
-    legalComplianceRiskResult: {
-      healthScore: { value: 74 },
-      riskScore: { value: 72 },
-      complianceHealthScore: { value: 76 },
-      baseline: {
-        riskPressure: 0.28,
-        complianceCoverage: 74,
-        regulatoryCoverage: 71,
-      },
-    },
-    revenueResult: {
-      healthScore: { value: 73 },
-      baseline: {
-        revenueDiversification: 68,
-        pricingPower: 70,
-        pipelineCoverage: 66,
-      },
-    },
-    fundingResult: {
-      healthScore: { value: 69 },
-      baseline: { grantReadiness: 65, pipelineCoverage: 67, fundingCapacity: 70 },
-    },
-    customerResult: {
-      healthScore: { value: 74 },
-      baseline: {
-        familyExperienceScore: 72,
-        demandMomentum: 71,
-        complaintBurden: 0.28,
-        communicationCoverage: 73,
-      },
-    },
     businessModelResult: {
       healthScore: { value: 71 },
       baseline: {
@@ -164,69 +149,110 @@ function buildResult(seed: string) {
         monetizationClarity: 66,
       },
     },
-    operationsResult: {
-      healthScore: { value: 72 },
-      workflowScore: { value: 70 },
-      baseline: { operationsScore: 75, processCoverage: 72, capacityScore: 70 },
+    improvementResult: {
+      healthScore: { value: 73 },
+      baseline: {
+        improvementMomentum: 70,
+        continuousImprovementScore: 72,
+        initiativeThroughput: 68,
+      },
     },
-    opportunityResult: {
-      healthScore: { value: 70 },
-      baseline: { opportunityDensity: 68, captureReadiness: 66 },
+    decisionResult: {
+      healthScore: { value: 74 },
+      baseline: {
+        decisionTraceability: 72,
+        decisionVelocity: 70,
+        decisionQuality: 73,
+      },
+    },
+    predictionResult: {
+      healthScore: { value: 72 },
+      baseline: { growthSignal: 70, scenarioCoverage: 68 },
     },
   });
 }
 
-describe("Market Intelligence (Sprint 043)", () => {
+describe("Innovation Intelligence (Sprint 044)", () => {
   beforeEach(() => {
     resetGraphEdgeSeqForTests();
     resetPlatformIdSeqForTests();
   });
 
-  it("builds a complete market result", () => {
+  it("builds a complete innovation result", () => {
     const result = buildResult("complete");
 
-    expect(result.version).toBe(MARKET_INTELLIGENCE_VERSION);
+    expect(result.version).toBe(INNOVATION_INTELLIGENCE_VERSION);
     expect(result.healthScore.value).toBeGreaterThan(0);
-    expect(result.competitivePositionScore.value).toBeGreaterThan(0);
-    expect(result.expansionOpportunityScore.value).toBeGreaterThan(0);
-    expect(result.marketRiskScore.value).toBeGreaterThan(0);
-    expect(result.industryScore.value).toBeGreaterThan(0);
-    expect(result.marketSizeScore.value).toBeGreaterThan(0);
-    expect(result.pricingScore.value).toBeGreaterThan(0);
-    expect(result.demandScore.value).toBeGreaterThan(0);
-    expect(result.demographicScore.value).toBeGreaterThan(0);
-    expect(result.geographicScore.value).toBeGreaterThan(0);
-    expect(result.economicScore.value).toBeGreaterThan(0);
-    expect(result.technologyScore.value).toBeGreaterThan(0);
-    expect(result.partnershipScore.value).toBeGreaterThan(0);
-    expect(result.maScore.value).toBeGreaterThan(0);
-    expect(result.whiteSpaceScore.value).toBeGreaterThan(0);
+    expect(result.pipelineScore.value).toBeGreaterThan(0);
+    expect(result.experimentScore.value).toBeGreaterThan(0);
+    expect(result.portfolioScore.value).toBeGreaterThan(0);
+    expect(result.radarScore.value).toBeGreaterThan(0);
+    expect(result.ideaScore.value).toBeGreaterThan(0);
+    expect(result.rdScore.value).toBeGreaterThan(0);
+    expect(result.productServiceScore.value).toBeGreaterThan(0);
+    expect(result.processScore.value).toBeGreaterThan(0);
+    expect(result.aiOpportunityScore.value).toBeGreaterThan(0);
+    expect(result.technologyAdoptionScore.value).toBeGreaterThan(0);
+    expect(result.emergingTechScore.value).toBeGreaterThan(0);
+    expect(result.pocScore.value).toBeGreaterThan(0);
+    expect(result.ipScore.value).toBeGreaterThan(0);
+    expect(result.continuousImprovementScore.value).toBeGreaterThan(0);
+    expect(result.roadmapScore.value).toBeGreaterThan(0);
     expect(result.knowledgeScore.value).toBeGreaterThan(0);
 
     expect(result.dashboard.headline.length).toBeGreaterThan(0);
-    expect(result.competitiveDashboard.narrative.length).toBeGreaterThan(0);
-    expect(result.expansionDashboard.narrative.length).toBeGreaterThan(0);
-    expect(result.trendDashboard.narrative.length).toBeGreaterThan(0);
+    expect(result.innovationPipeline.headline.length).toBeGreaterThan(0);
+    expect(result.ideaBacklog.headline.length).toBeGreaterThan(0);
+    expect(result.experimentDashboard.headline.length).toBeGreaterThan(0);
+    expect(result.innovationPortfolio.headline.length).toBeGreaterThan(0);
+    expect(result.technologyRadar.headline.length).toBeGreaterThan(0);
     expect(result.brief.headline.length).toBeGreaterThan(0);
     expect(result.projection.headline.length).toBeGreaterThan(0);
     expect(result.reasoning.answer.length).toBeGreaterThan(0);
   });
 
-  it("emits recommendations with the full 8-field market lens", () => {
+  it("covers technology radar rings and innovation horizons", () => {
+    const result = buildResult("radar");
+
+    expect(result.technologyRadar.items.length).toBeGreaterThan(0);
+    for (const item of result.technologyRadar.items) {
+      expect((TECHNOLOGY_RADAR_RINGS as readonly string[]).includes(item.ring)).toBe(
+        true
+      );
+    }
+    for (const ring of TECHNOLOGY_RADAR_RINGS) {
+      expect(result.technologyRadar.narrative).toContain(ring);
+    }
+    expect(
+      result.technologyRadar.adoptCount +
+        result.technologyRadar.trialCount +
+        result.technologyRadar.assessCount +
+        result.technologyRadar.holdCount
+    ).toBe(result.technologyRadar.items.length);
+
+    const horizons = [
+      ...new Set(result.innovationPortfolioSuite.items.map((item) => item.horizon)),
+    ].sort();
+    expect(horizons).toEqual([...INNOVATION_HORIZONS].sort());
+    expect(result.innovationPortfolio.h1Share).toBeGreaterThanOrEqual(0);
+    expect(result.innovationPortfolio.h2Share).toBeGreaterThanOrEqual(0);
+    expect(result.innovationPortfolio.h3Share).toBeGreaterThanOrEqual(0);
+  });
+
+  it("emits recommendations with the full 8-field innovation lens", () => {
     const result = buildResult("rec");
 
     expect(result.recommendations.length).toBeGreaterThan(0);
-    expect(MARKET_CAPABILITIES).toContain("recommendation_generation");
+    expect(INNOVATION_CAPABILITIES).toContain("recommendation_generation");
     for (const rec of result.recommendations) {
       expect(Object.keys(rec.lenses).sort()).toEqual(LENS_KEYS);
       expect(rec.title.length).toBeGreaterThan(0);
       expect(Array.isArray(rec.evidenceRefs)).toBe(true);
       expect(rec.confidenceScore).toBeGreaterThanOrEqual(0);
       expect(rec.riskScore).toBeGreaterThanOrEqual(0);
-      expect(rec.marketSizeEstimate).toBeGreaterThanOrEqual(0);
+      expect(rec.impactEstimate).toBeGreaterThanOrEqual(0);
       expect(rec.investmentEstimate).toBeGreaterThanOrEqual(0);
-      expect(rec.expectedReturnEstimate).toBeGreaterThanOrEqual(0);
-      expect(Array.isArray(rec.competitors)).toBe(true);
+      expect(Array.isArray(rec.experimentRefs)).toBe(true);
       expect(Array.isArray(rec.capabilitiesRequired)).toBe(true);
       expect(rec.owner.length).toBeGreaterThan(0);
       expect(rec.dueDate.length).toBeGreaterThan(0);
@@ -238,33 +264,6 @@ describe("Market Intelligence (Sprint 043)", () => {
     }
   });
 
-  it("covers all market signal kinds", () => {
-    const result = buildResult("signals");
-
-    const kinds = result.signals.signals.map((signal) => signal.kind).sort();
-    expect(kinds).toEqual([...MARKET_SIGNAL_KINDS].sort());
-    expect(Object.keys(result.signals.byKind).sort()).toEqual(
-      [...MARKET_SIGNAL_KINDS].sort()
-    );
-    expect((MARKET_SIGNAL_KINDS as readonly string[])).toContain(
-      result.signals.hottestKind
-    );
-  });
-
-  it("includes TAM / SAM / SOM market size estimates", () => {
-    const result = buildResult("size");
-
-    expect(result.marketSize.estimates.tam).toBeGreaterThan(0);
-    expect(result.marketSize.estimates.sam).toBeGreaterThan(0);
-    expect(result.marketSize.estimates.som).toBeGreaterThan(0);
-    expect(result.marketSize.estimates.sam).toBeLessThanOrEqual(
-      result.marketSize.estimates.tam
-    );
-    expect(result.marketSize.estimates.som).toBeLessThanOrEqual(
-      result.marketSize.estimates.sam
-    );
-  });
-
   it("contributes knowledge drafts", () => {
     const result = buildResult("knowledge");
 
@@ -274,32 +273,32 @@ describe("Market Intelligence (Sprint 043)", () => {
   });
 
   it("supports focused queries and repository persistence", () => {
-    const { service } = createMarketIntelligence({
+    const { service } = createInnovationIntelligence({
       createId: (prefix) => `${prefix}-q`,
       now: () => new Date("2026-07-12T15:00:00.000Z"),
       wireOrganizationDna: false,
       wireOios: false,
     });
     const result = service.build({
-      requestId: "mkt-query-1",
+      requestId: "inn-query-1",
       graphInput: graphInput(),
       scope: { organizationId: "org-1", schoolId: "school-1" },
     });
 
     for (const focus of [
-      "industry",
-      "competitive",
-      "market_size",
-      "pricing",
-      "demand",
-      "demographic",
-      "geographic",
-      "economic",
-      "technology",
-      "partnership",
-      "ma",
-      "white_space",
-      "signals",
+      "ideas",
+      "rd",
+      "product",
+      "process",
+      "ai",
+      "adoption",
+      "emerging",
+      "portfolio",
+      "experiments",
+      "poc",
+      "ip",
+      "improvement",
+      "roadmap",
       "recommendations",
       "reasoning",
     ] as const) {
@@ -310,15 +309,15 @@ describe("Market Intelligence (Sprint 043)", () => {
       expect(answer.answer.length).toBeGreaterThan(0);
     }
 
-    expect(service.repository().get("mkt-query-1")).toBeTruthy();
+    expect(service.repository().get("inn-query-1")).toBeTruthy();
     expect(service.repository().listHistory().length).toBeGreaterThan(0);
   });
 
-  it("wires through createIntelligenceService().market", () => {
+  it("wires through createIntelligenceService().innovation", () => {
     const service = createIntelligenceService();
-    expect(service.market).toBeTruthy();
-    const result = service.market.service.build({
-      requestId: "mkt-di-1",
+    expect(service.innovation).toBeTruthy();
+    const result = service.innovation.service.build({
+      requestId: "inn-di-1",
       graphInput: graphInput(),
       scope: { organizationId: "org-1", schoolId: "school-1" },
     });
@@ -326,7 +325,7 @@ describe("Market Intelligence (Sprint 043)", () => {
     expect(result.recommendations.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("runs before innovation in the platform pipeline", async () => {
+  it("runs as the terminal platform module after market", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T15:00:00.000Z"),

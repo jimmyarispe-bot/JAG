@@ -4,6 +4,9 @@
 
 Define how intelligence domains exist inside JAG OIOS — registration, status, dependency order, and future activation.
 
+Placement of domains across **Internal / External / Future** layers is documented in
+[INTELLIGENCE_LAYER_MODEL.md](./INTELLIGENCE_LAYER_MODEL.md).
+
 ## Canonical domain catalog
 
 `OIOS_INTELLIGENCE_DOMAINS` in `src/lib/platform/oios/types.ts`:
@@ -31,13 +34,13 @@ Define how intelligence domains exist inside JAG OIOS — registration, status, 
 - document
 - legal-compliance-risk
 - market
+- innovation
 
 ### Registered (future)
 
 - legal
 - compliance
 - risk
-- innovation
 - impact
 
 ## Domain descriptor
@@ -69,6 +72,8 @@ Note: this is distinct from the cognitive `IntelligenceDomainRegistry` in `intel
 2. Platform module DAG must agree with OIOS registry intent.
 3. Future domains should depend on `organization-dna` and typically consume `oios` context.
 4. Domains must not import sibling domain implementations.
+5. Prefer soft vs hard edges by layer — see
+   [INTELLIGENCE_LAYER_MODEL.md](./INTELLIGENCE_LAYER_MODEL.md).
 
 ## Future domain registration model
 

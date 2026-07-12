@@ -110,6 +110,11 @@ import {
   type MarketStack,
 } from "@/lib/platform/intelligence/market";
 import {
+  createInnovationIntelligence,
+  type CreateInnovationOptions,
+  type InnovationStack,
+} from "@/lib/platform/intelligence/innovation";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -224,6 +229,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Market Intelligence stack (Sprint 043). */
   market?: MarketStack;
   marketOptions?: CreateMarketOptions;
+  /** Optional Innovation Intelligence stack (Sprint 044). */
+  innovation?: InnovationStack;
+  innovationOptions?: CreateInnovationOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -651,6 +659,7 @@ export function createIntelligenceService(
   document: DocumentStack;
   legalComplianceRisk: LegalComplianceRiskStack;
   market: MarketStack;
+  innovation: InnovationStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -852,6 +861,15 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const innovation =
+    options.innovation ??
+    createInnovationIntelligence({
+      ...(options.innovationOptions ?? {}),
+      organizationDna: options.innovationOptions?.organizationDna ?? organizationDna,
+      oios: options.innovationOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -885,6 +903,7 @@ export function createIntelligenceService(
       legalComplianceRisk:
         options.intelligencePlatformOptions?.legalComplianceRisk ?? legalComplianceRisk,
       market: options.intelligencePlatformOptions?.market ?? market,
+      innovation: options.intelligencePlatformOptions?.innovation ?? innovation,
     });
 
   if (!registry.get("success")) {
@@ -943,6 +962,7 @@ export function createIntelligenceService(
     document,
     legalComplianceRisk,
     market,
+    innovation,
     intelligencePlatform,
   });
 }

@@ -117,6 +117,10 @@ import type {
   CreateMarketOptions,
   MarketStack,
 } from "@/lib/platform/intelligence/market";
+import type {
+  CreateInnovationOptions,
+  InnovationStack,
+} from "@/lib/platform/intelligence/innovation";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -180,6 +184,8 @@ export interface CreateIntelligencePlatformOptions
   legalComplianceRisk?: LegalComplianceRiskStack;
   marketOptions?: CreateMarketOptions;
   market?: MarketStack;
+  innovationOptions?: CreateInnovationOptions;
+  innovation?: InnovationStack;
 }
 
 /**
@@ -271,6 +277,8 @@ export function createIntelligencePlatform(
             legalComplianceRiskOptions: options.legalComplianceRiskOptions,
             market: options.market,
             marketOptions: options.marketOptions,
+            innovation: options.innovation,
+            innovationOptions: options.innovationOptions,
           }),
         ]);
 

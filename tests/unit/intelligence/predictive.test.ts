@@ -232,6 +232,7 @@ describe("Predictive Intelligence (Sprint 028)", () => {
       "document",
       "legal-compliance-risk",
       "market",
+      "innovation",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

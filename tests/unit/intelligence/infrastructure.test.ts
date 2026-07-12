@@ -120,12 +120,13 @@ describe("Intelligence Platform Infrastructure (Sprint 027)", () => {
       "document",
       "legal-compliance-risk",
       "market",
+      "innovation",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
 
     const health = await platform.checkHealth();
-    expect(health.modules.length).toBe(22);
+    expect(health.modules.length).toBe(23);
     expect(["healthy", "degraded", "unhealthy", "unknown"]).toContain(health.status);
 
     const diagnostics = await platform.collectDiagnostics();

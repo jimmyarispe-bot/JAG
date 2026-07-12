@@ -24,6 +24,7 @@ export { createKnowledgeModule } from "@/lib/platform/intelligence/infrastructur
 export { createDocumentModule } from "@/lib/platform/intelligence/infrastructure/modules/document";
 export { createLegalComplianceRiskModule } from "@/lib/platform/intelligence/infrastructure/modules/legal-compliance-risk";
 export { createMarketModule } from "@/lib/platform/intelligence/infrastructure/modules/market";
+export { createInnovationModule } from "@/lib/platform/intelligence/infrastructure/modules/innovation";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -41,6 +42,7 @@ import { createKnowledgeModule } from "@/lib/platform/intelligence/infrastructur
 import { createDocumentModule } from "@/lib/platform/intelligence/infrastructure/modules/document";
 import { createLegalComplianceRiskModule } from "@/lib/platform/intelligence/infrastructure/modules/legal-compliance-risk";
 import { createMarketModule } from "@/lib/platform/intelligence/infrastructure/modules/market";
+import { createInnovationModule } from "@/lib/platform/intelligence/infrastructure/modules/innovation";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -121,6 +123,10 @@ import type {
   CreateMarketOptions,
   MarketStack,
 } from "@/lib/platform/intelligence/market";
+import type {
+  CreateInnovationOptions,
+  InnovationStack,
+} from "@/lib/platform/intelligence/innovation";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -159,6 +165,8 @@ export interface CreateDefaultModulesOptions {
   legalComplianceRisk?: LegalComplianceRiskStack;
   marketOptions?: CreateMarketOptions;
   market?: MarketStack;
+  innovationOptions?: CreateInnovationOptions;
+  innovation?: InnovationStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -194,6 +202,7 @@ export function createDefaultIntelligenceModules(
       options.legalComplianceRisk
     ),
     createMarketModule(options.marketOptions, options.market),
+    createInnovationModule(options.innovationOptions, options.innovation),
   ];
 }
 

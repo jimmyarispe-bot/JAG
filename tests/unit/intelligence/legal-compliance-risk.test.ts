@@ -95,6 +95,7 @@ const PIPELINE_ORDER = [
   "document",
   "legal-compliance-risk",
   "market",
+  "innovation",
 ];
 
 function buildResult(seed: string) {
@@ -321,8 +322,9 @@ describe("Legal, Compliance & Risk Intelligence (Sprint 042)", () => {
     });
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
-    expect(result.moduleOrder.at(-2)).toBe("legal-compliance-risk");
-    expect(result.moduleOrder.at(-1)).toBe("market");
+    expect(result.moduleOrder.at(-3)).toBe("legal-compliance-risk");
+    expect(result.moduleOrder.at(-2)).toBe("market");
+    expect(result.moduleOrder.at(-1)).toBe("innovation");
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });
