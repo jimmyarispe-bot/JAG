@@ -93,3 +93,32 @@ export type {
   ScenarioSimulationResult,
   DecisionProjectionResult,
 } from "@/lib/platform/intelligence/executive-decision";
+export {
+  INTELLIGENCE_PLATFORM_VERSION,
+  createIntelligencePlatform,
+  createIntelligenceRegistry,
+  createIntelligencePipeline,
+  createDefaultIntelligenceModules,
+  IntelligenceRegistry,
+  IntelligencePipeline,
+  IntelligenceCache,
+  IntelligenceMetrics,
+  IntelligenceTelemetry,
+  IntelligenceLifecycle,
+  IntelligenceScheduler,
+  IntelligenceConfiguration,
+  IntelligenceHealth,
+  IntelligenceDiagnostics,
+  IntelligenceVersioning,
+  IntelligenceEvents,
+  IntelligenceProvider,
+} from "@/lib/platform/intelligence/infrastructure";
+export type {
+  CreateIntelligencePlatformOptions,
+  IntelligencePlatformStack,
+  IntelligenceModule,
+  IntelligenceExecutionRequest,
+  IntelligencePipelineResult,
+  IntelligencePlatformHealth,
+  IntelligenceDiagnosticsReport,
+} from "@/lib/platform/intelligence/infrastructure";

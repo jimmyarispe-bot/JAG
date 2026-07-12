@@ -30,6 +30,11 @@ import {
   type ExecutiveGraphAnalyzerStack,
 } from "@/lib/platform/intelligence/executive-graph";
 import {
+  createIntelligencePlatform,
+  type CreateIntelligencePlatformOptions,
+  type IntelligencePlatformStack,
+} from "@/lib/platform/intelligence/infrastructure";
+import {
   createExecutiveIntelligenceDomain,
   EXECUTIVE_INTELLIGENCE_VERSION,
   type ExecutiveRequest,
@@ -91,6 +96,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Executive Decision Intelligence stack (Sprint 026). */
   executiveDecision?: ExecutiveDecisionStack;
   executiveDecisionOptions?: CreateExecutiveDecisionOptions;
+  /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
+  intelligencePlatform?: IntelligencePlatformStack;
+  intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
 }
 
 /**
@@ -484,14 +492,15 @@ function createDecisionDomainModule(
  * Create a fully wired {@link IntelligenceService}.
  *
  * Registers Support (`success`), Executive (`executive`), Strategic (`strategic`),
- * and Decision (`decision`) domains. Optionally wires Sprint 025 Executive Graph Analyzer
- * and Sprint 026 Executive Decision Intelligence.
+ * and Decision (`decision`) domains. Optionally wires Sprint 025 Executive Graph Analyzer,
+ * Sprint 026 Executive Decision Intelligence, and Sprint 027 Platform Infrastructure.
  */
 export function createIntelligenceService(
   options: CreateIntelligenceServiceOptions = {}
 ): IntelligenceService & {
   executiveGraphAnalyzer: ExecutiveGraphAnalyzerStack;
   executiveDecision: ExecutiveDecisionStack;
+  intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
   const orchestrator =
@@ -517,6 +526,15 @@ export function createIntelligenceService(
       ...(options.executiveDecisionOptions ?? {}),
       graphAnalyzer:
         options.executiveDecisionOptions?.graphAnalyzer ?? executiveGraphAnalyzer,
+    });
+  const intelligencePlatform =
+    options.intelligencePlatform ??
+    createIntelligencePlatform({
+      ...(options.intelligencePlatformOptions ?? {}),
+      graphAnalyzer:
+        options.intelligencePlatformOptions?.graphAnalyzer ?? executiveGraphAnalyzer,
+      decision:
+        options.intelligencePlatformOptions?.decision ?? executiveDecision,
     });
 
   if (!registry.get("success")) {
@@ -556,7 +574,11 @@ export function createIntelligenceService(
   };
 
   const service = new IntelligenceService(dependencies);
-  return Object.assign(service, { executiveGraphAnalyzer, executiveDecision });
+  return Object.assign(service, {
+    executiveGraphAnalyzer,
+    executiveDecision,
+    intelligencePlatform,
+  });
 }
 
 /**
