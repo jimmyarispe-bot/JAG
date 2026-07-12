@@ -105,6 +105,10 @@ import type {
   CreateKnowledgeOptions,
   KnowledgeStack,
 } from "@/lib/platform/intelligence/knowledge";
+import type {
+  CreateDocumentOptions,
+  DocumentStack,
+} from "@/lib/platform/intelligence/document";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -162,6 +166,8 @@ export interface CreateIntelligencePlatformOptions
   customer?: CustomerStack;
   knowledgeOptions?: CreateKnowledgeOptions;
   knowledge?: KnowledgeStack;
+  documentOptions?: CreateDocumentOptions;
+  document?: DocumentStack;
 }
 
 /**
@@ -247,6 +253,8 @@ export function createIntelligencePlatform(
             customerOptions: options.customerOptions,
             knowledge: options.knowledge,
             knowledgeOptions: options.knowledgeOptions,
+            document: options.document,
+            documentOptions: options.documentOptions,
           }),
         ]);
 

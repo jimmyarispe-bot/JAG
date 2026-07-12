@@ -28,10 +28,10 @@ Define how intelligence domains exist inside JAG OIOS — registration, status, 
 - operations
 - customer
 - knowledge
+- document
 
 ### Registered (future)
 
-- document
 - legal
 - compliance
 - risk

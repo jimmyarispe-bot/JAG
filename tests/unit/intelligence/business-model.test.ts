@@ -91,6 +91,7 @@ const PIPELINE_ORDER = [
   "operations",
   "customer",
   "knowledge",
+  "document",
 ];
 
 describe("Business Model Intelligence (Sprint 037)", () => {

@@ -43,7 +43,7 @@ describe("Funding Intelligence (Sprint 034)", () => {
     const platform = createIntelligencePlatform({ clock: { now: () => new Date("2026-07-12T16:00:00.000Z"), createId: (prefix) => `${prefix}-test` } });
     const result = await platform.run({ scope: { organizationId: "org-1", schoolId: "school-1" }, bypassCache: true });
     expect(result.status).toBe("completed");
-    expect(result.moduleOrder).toEqual(["organization-dna", "oios-core", "organization-health", "financial", "founder", "executive", "executive-graph", "executive-decision", "predictive", "board-governance", "human-capital", "revenue", "funding", "opportunity", "organizational-improvement", "business-model", "operations", "customer", "knowledge"]);
+    expect(result.moduleOrder).toEqual(["organization-dna", "oios-core", "organization-health", "financial", "founder", "executive", "executive-graph", "executive-decision", "predictive", "board-governance", "human-capital", "revenue", "funding", "opportunity", "organizational-improvement", "business-model", "operations", "customer", "knowledge", "document"]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });

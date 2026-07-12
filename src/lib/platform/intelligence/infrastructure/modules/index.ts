@@ -21,6 +21,7 @@ export { createBusinessModelModule } from "@/lib/platform/intelligence/infrastru
 export { createOperationsModule } from "@/lib/platform/intelligence/infrastructure/modules/operations";
 export { createCustomerModule } from "@/lib/platform/intelligence/infrastructure/modules/customer";
 export { createKnowledgeModule } from "@/lib/platform/intelligence/infrastructure/modules/knowledge";
+export { createDocumentModule } from "@/lib/platform/intelligence/infrastructure/modules/document";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -35,6 +36,7 @@ import { createBusinessModelModule } from "@/lib/platform/intelligence/infrastru
 import { createOperationsModule } from "@/lib/platform/intelligence/infrastructure/modules/operations";
 import { createCustomerModule } from "@/lib/platform/intelligence/infrastructure/modules/customer";
 import { createKnowledgeModule } from "@/lib/platform/intelligence/infrastructure/modules/knowledge";
+import { createDocumentModule } from "@/lib/platform/intelligence/infrastructure/modules/document";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -103,6 +105,10 @@ import type {
   CreateKnowledgeOptions,
   KnowledgeStack,
 } from "@/lib/platform/intelligence/knowledge";
+import type {
+  CreateDocumentOptions,
+  DocumentStack,
+} from "@/lib/platform/intelligence/document";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -135,6 +141,8 @@ export interface CreateDefaultModulesOptions {
   customer?: CustomerStack;
   knowledgeOptions?: CreateKnowledgeOptions;
   knowledge?: KnowledgeStack;
+  documentOptions?: CreateDocumentOptions;
+  document?: DocumentStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -164,6 +172,7 @@ export function createDefaultIntelligenceModules(
     createOperationsModule(options.operationsOptions, options.operations),
     createCustomerModule(options.customerOptions, options.customer),
     createKnowledgeModule(options.knowledgeOptions, options.knowledge),
+    createDocumentModule(options.documentOptions, options.document),
   ];
 }
 

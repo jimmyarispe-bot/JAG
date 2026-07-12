@@ -112,6 +112,7 @@ const PIPELINE_ORDER = [
   "operations",
   "customer",
   "knowledge",
+  "document",
 ];
 
 describe("Knowledge Intelligence (Sprint 040)", () => {
@@ -378,7 +379,7 @@ describe("Knowledge Intelligence (Sprint 040)", () => {
     expect(result.quality.overallScore).toBeGreaterThan(0);
   });
 
-  it("runs as the terminal platform module after customer", async () => {
+  it("runs before the terminal document platform module", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T15:00:00.000Z"),

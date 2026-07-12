@@ -95,6 +95,11 @@ import {
   type KnowledgeStack,
 } from "@/lib/platform/intelligence/knowledge";
 import {
+  createDocumentIntelligence,
+  type CreateDocumentOptions,
+  type DocumentStack,
+} from "@/lib/platform/intelligence/document";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -200,6 +205,9 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Knowledge Intelligence stack (Sprint 040). */
   knowledge?: KnowledgeStack;
   knowledgeOptions?: CreateKnowledgeOptions;
+  /** Optional Document Intelligence stack (Sprint 041). */
+  document?: DocumentStack;
+  documentOptions?: CreateDocumentOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -624,6 +632,7 @@ export function createIntelligenceService(
   operations: OperationsStack;
   customer: CustomerStack;
   knowledge: KnowledgeStack;
+  document: DocumentStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -796,6 +805,16 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const document =
+    options.document ??
+    createDocumentIntelligence({
+      ...(options.documentOptions ?? {}),
+      organizationDna:
+        options.documentOptions?.organizationDna ?? organizationDna,
+      oios: options.documentOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -825,6 +844,7 @@ export function createIntelligenceService(
         options.intelligencePlatformOptions?.operations ?? operations,
       customer: options.intelligencePlatformOptions?.customer ?? customer,
       knowledge: options.intelligencePlatformOptions?.knowledge ?? knowledge,
+      document: options.intelligencePlatformOptions?.document ?? document,
     });
 
   if (!registry.get("success")) {
@@ -880,6 +900,7 @@ export function createIntelligenceService(
     operations,
     customer,
     knowledge,
+    document,
     intelligencePlatform,
   });
 }

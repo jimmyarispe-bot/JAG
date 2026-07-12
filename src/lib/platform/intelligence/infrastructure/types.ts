@@ -28,6 +28,7 @@ export const INTELLIGENCE_MODULE_IDS = [
   "operations",
   "customer",
   "knowledge",
+  "document",
 ] as const;
 
 export type IntelligenceModuleId = (typeof INTELLIGENCE_MODULE_IDS)[number] | (string & {});

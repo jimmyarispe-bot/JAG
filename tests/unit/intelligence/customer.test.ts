@@ -91,6 +91,7 @@ const PIPELINE_ORDER = [
   "operations",
   "customer",
   "knowledge",
+  "document",
 ];
 
 describe("Customer Intelligence (Sprint 039)", () => {
@@ -194,7 +195,7 @@ describe("Customer Intelligence (Sprint 039)", () => {
     expect(result.healthScore.value).toBeGreaterThan(0);
   });
 
-  it("runs as a platform module before knowledge", async () => {
+  it("runs as a platform module before knowledge and document", async () => {
     const platform = createIntelligencePlatform({
       clock: {
         now: () => new Date("2026-07-12T15:00:00.000Z"),

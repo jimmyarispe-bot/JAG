@@ -201,11 +201,15 @@ describe("similarity", () => {
   it("allows injecting a custom similarity engine", async () => {
     const custom = {
       score: vi.fn(() => 0.9),
+      // Mirror TokenOverlapSimilarityEngine: rank must return score-desc order.
+      // store.findMany is newest-first, so unsorted mocks flake when timestamps differ.
       rank: vi.fn((query, candidates) =>
-        candidates.map((c: { id: string }) => ({
-          id: c.id,
-          score: c.id === "preferred" ? 1 : 0.1,
-        }))
+        candidates
+          .map((c: { id: string }) => ({
+            id: c.id,
+            score: c.id === "preferred" ? 1 : 0.1,
+          }))
+          .sort((a, b) => b.score - a.score)
       ),
     };
 
