@@ -98,8 +98,15 @@ const APPLICATION_SELECT = `
 
 export async function getSchoolsForInquiry() {
   const supabase = await createAuthClient();
-  const { data } = await supabase.from("schools").select("id, name").order("name");
-  return data ?? [];
+  // Public /apply uses the anon key. Direct SELECT on schools is blocked by
+  // schools_access_controlled (CEO / can_access_school). Use the same
+  // SECURITY DEFINER pattern as submit_public_admissions_inquiry.
+  const { data, error } = await supabase.rpc("list_schools_for_public_inquiry");
+  if (error) {
+    console.error("[getSchoolsForInquiry]", error.message);
+    return [];
+  }
+  return (data ?? []) as { id: string; name: string }[];
 }
 
 export async function getCurrentSchoolYear(schoolId: string) {
