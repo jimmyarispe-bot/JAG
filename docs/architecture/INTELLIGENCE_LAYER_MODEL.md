@@ -21,6 +21,14 @@ Examples (active unless noted):
 - organizational-improvement, business-model, customer
 - board-governance, organization-health, organization-dna
 - financial, founder, executive, executive-graph, executive-decision
+- behavioral (Sprint 052) — Internal-facing behavioral intelligence after External reputation (how people respond to strategy)
+- cultural (Sprint 053) — Internal-facing cultural intelligence after behavioral (mission, values, engagement, psychological safety)
+- ethical (Sprint 054) - Internal/governance-adjacent ethical intelligence after cultural (fairness, transparency, AI ethics, human impact)
+- systems (Sprint 055) - Internal/cross-cutting systems dynamics after ethical (dependencies, feedback loops, cascading effects)
+- resilience (Sprint 056) - Internal/adaptive capacity after systems (readiness, recovery, continuity, long-term adaptability)
+- institutional-memory (Sprint 058) - Institutional memory layer after Ecosystem External network (synthesize, validate, redistribute organizational learning; Sprint 040 knowledge remains frozen mid-pipeline)
+- collective (Sprint 059) - Collaborative synthesis layer after institutional-memory (consensus, distributed expertise, multi-domain synthesis for executive recommendation quality)
+- wisdom (Sprint 060) - JAG v1.0 capstone terminal after collective (executive judgment, trade-offs, uncertainty, long-term impact)
 
 ### External Intelligence
 
@@ -30,9 +38,13 @@ walls.
 Examples:
 
 - market (Sprint 043) — shipped External domain
-- future economic intelligence
-- regulatory scan extensions beyond the consolidated legal-compliance-risk surface
-
+- economic (Sprint 046) — shipped External domain
+- competitive (Sprint 047) — shipped External domain
+- political (Sprint 048) — shipped External domain
+- environmental (Sprint 049) — shipped External domain
+- stakeholder (Sprint 050) — shipped External / relationship stakeholder layer (after environmental)
+- reputation (Sprint 051) — shipped External / relationship reputation layer (after stakeholder; Behavioral 052 hard-depends on reputation)
+- ecosystem (Sprint 057) - External/network layer after Resilience (partnerships, networks, dependencies, strategic position)
 ### Future Intelligence
 
 Innovation, scenarios, foresight, strategy — **what comes next**.
@@ -42,7 +54,7 @@ Examples:
 - innovation (Sprint 044) — first Future Intelligence domain
 - predictive (bridges toward Future)
 - opportunity (bridge between present capture and Future bets)
-- impact (reserved)
+- impact (Sprint 045) — shipped Future Intelligence domain
 - strategic roadmaps (capability within innovation; future standalone strategy domains)
 
 ## Why this taxonomy helps
@@ -62,7 +74,13 @@ Examples:
 flowchart TB
   subgraph External["External Intelligence"]
     market["market"]
-    economic["economic (future)"]
+    economic["economic (Sprint 046)"]
+    competitive["competitive (Sprint 047)"]
+    political["political (Sprint 048)"]
+    environmental["environmental (Sprint 049)"]
+    stakeholder["stakeholder (Sprint 050)"]
+    reputation["reputation (Sprint 051)"]
+    ecosystem["ecosystem (Sprint 057)"]
   end
 
   subgraph Future["Future Intelligence"]
@@ -79,6 +97,14 @@ flowchart TB
     improve["organizational-improvement"]
     bm["business-model"]
     gov["legal-compliance-risk / board"]
+    behavioral["behavioral (Sprint 052)"]
+    cultural["cultural (Sprint 053)"]
+    ethical["ethical (Sprint 054)"]
+    systems["systems (Sprint 055)"]
+    resilience["resilience (Sprint 056)"]
+    institutionalMemory["institutional-memory (Sprint 058)"]
+    collective["collective (Sprint 059)"]
+    wisdom["wisdom (Sprint 060)"]
   end
 
   market -->|"hard DAG"| innovation
@@ -90,11 +116,61 @@ flowchart TB
   opportunity -->|"foresight bridge"| innovation
   innovation -->|"Future outcomes feed Internal change"| improve
   innovation -->|"Future outcomes feed Knowledge"| know
+  reputation -->|"hard DAG: how people respond"| behavioral
+  behavioral -->|"hard DAG: how culture sustains"| cultural
+  cultural -->|"hard DAG: how ethics governs"| ethical
+  ethical -->|"hard DAG: how systems dynamics compound"| systems
+  systems -->|"hard DAG: how resilience hardens capacity"| resilience
+  resilience -->|"hard DAG: how ecosystem extends position"| ecosystem
+  ecosystem -->|"hard DAG: how institutional memory redistributes learning"| institutionalMemory
+  institutionalMemory -->|"hard DAG: how collective synthesizes multi-domain insight"| collective
+  collective -->|"hard DAG: how wisdom unifies judgment and long-term impact"| wisdom
 ```
 
 - **External → Future:** Outside signals (white space, disruption, demand)
   inform which bets Future should prioritize. Innovation hard-depends on
   `market` for this reason.
+- **External reputation → Internal behavioral:** Reputation (051) is the hard
+  predecessor of Behavioral (052). Behavioral soft-reads stakeholder, human-capital,
+  customer, decision, opportunity, predictive, and knowledge so leadership can
+  anticipate how people actually respond to strategy without circular imports.
+- **Internal behavioral → Internal cultural:** Behavioral (052) is the hard
+  predecessor of Cultural (053). Cultural soft-reads behavioral, stakeholder,
+  human-capital, decision, opportunity, knowledge, and predictive so leadership can
+  strengthen mission, values, engagement, and psychological safety without circular imports.
+- **Internal cultural -> Internal ethical:** Cultural (053) is the hard
+  predecessor of Ethical (054). Ethical soft-reads cultural, behavioral,
+  legal-compliance-risk, decision, opportunity, predictive, and reputation so leadership can
+  evaluate decisions and AI recommendations against fairness, transparency, and human impact without circular imports.
+- **Internal ethical -> Internal systems:** Ethical (054) is the hard
+  predecessor of Systems (055). Systems soft-reads operations, legal-compliance-risk,
+  predictive, decision, economic, behavioral, ethical, and opportunity so leadership can
+  anticipate second- and third-order consequences of strategy without circular imports.
+- **Internal systems -> Internal resilience:** Systems (055) is the hard
+  predecessor of Resilience (056). Resilience soft-reads systems, operations,
+  legal-compliance-risk, economic, decision, predictive, and opportunity so leadership can
+  strengthen readiness, recovery, and adaptive capacity without circular imports.
+  Technology/Security soft-reads use Operations and Legal Compliance Risk as proxies
+  (no standalone technology/security packages).
+- **Internal resilience -> External ecosystem:** Resilience (056) is the hard
+  predecessor of Ecosystem (057). Ecosystem soft-reads stakeholder, competitive,
+  market, systems, resilience, opportunity, decision, and predictive so leadership can
+  strengthen partnerships, networks, and strategic position without circular imports.
+- **External ecosystem -> Terminal institutional memory:** Ecosystem (057) is the hard
+  predecessor of Institutional Memory (058). Institutional Memory soft-reads Knowledge
+  (Sprint 040 frozen mid-pipeline), ecosystem, resilience, systems, stakeholder, cultural,
+  ethical, opportunity, executive-decision, and predictive so leadership can synthesize,
+  validate, and redistribute organizational learning without regenerating Sprint 040.
+- **Institutional memory -> Collective synthesis:** Institutional Memory (058) is the hard
+  predecessor of Collective (059). Collective soft-reads institutional-memory, knowledge,
+  executive-decision, predictive, behavioral, cultural, stakeholder, systems, opportunity,
+  ecosystem, resilience, ethical, market, competitive, human-capital, and operations so
+  leadership can combine multi-domain insights, consensus, and distributed expertise without
+  circular imports.
+- **Collective -> Wisdom terminal (JAG v1.0):** Collective (059) is the hard predecessor of
+  Wisdom (060). Wisdom soft-reads collective and upstream domains so leadership can unify
+  judgment, trade-offs, uncertainty, and long-term impact without circular imports. See
+  [JAG_V1_INTELLIGENCE_GRAPH.md](./JAG_V1_INTELLIGENCE_GRAPH.md).
 - **Internal → Future:** Capacity, knowledge coverage, improvement momentum, and
   business-model fit constrain what Future can execute. Soft reads only —
   Internal domains do not become hard predecessors of Future unless pipeline

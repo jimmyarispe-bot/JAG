@@ -13,7 +13,7 @@ export const OIOS_INTELLIGENCE_DOMAINS = [
   "business-model",
   "operations", "customer", "knowledge", "document", "legal-compliance-risk",
   "legal", "compliance", "risk",
-  "market", "innovation", "impact", "economic",
+  "market", "innovation", "impact", "economic", "competitive", "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
 ] as const;
 export type OiosIntelligenceDomain = (typeof OIOS_INTELLIGENCE_DOMAINS)[number];
 export type OiosDomainStatus = "registered" | "active" | "dormant" | "deprecated";

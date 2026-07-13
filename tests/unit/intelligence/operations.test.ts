@@ -96,6 +96,8 @@ const PIPELINE_ORDER = [
   "innovation",
   "impact",
   "economic",
+  "competitive",
+  "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
 ];
 
 describe("Operations Intelligence (Sprint 038)", () => {
@@ -205,3 +207,4 @@ describe("Operations Intelligence (Sprint 038)", () => {
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });
+

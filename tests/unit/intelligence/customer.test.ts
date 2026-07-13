@@ -97,6 +97,8 @@ const PIPELINE_ORDER = [
   "innovation",
   "impact",
   "economic",
+  "competitive",
+  "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
 ];
 
 describe("Customer Intelligence (Sprint 039)", () => {
@@ -216,3 +218,4 @@ describe("Customer Intelligence (Sprint 039)", () => {
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });
+

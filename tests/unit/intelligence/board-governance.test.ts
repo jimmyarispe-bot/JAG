@@ -218,7 +218,7 @@ describe("Board & Governance Intelligence (Sprint 029)", () => {
       "market",
       "innovation",
       "impact",
-      "economic",
+      "economic", "competitive", "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

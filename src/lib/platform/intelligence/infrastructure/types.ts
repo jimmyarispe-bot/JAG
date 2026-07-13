@@ -34,6 +34,20 @@ export const INTELLIGENCE_MODULE_IDS = [
   "innovation",
   "impact",
   "economic",
+  "competitive",
+  "political",
+  "environmental",
+  "stakeholder",
+  "reputation",
+  "behavioral",
+  "cultural",
+  "ethical",
+  "systems",
+  "resilience",
+  "ecosystem",
+  "institutional-memory",
+  "collective",
+  "wisdom",
 ] as const;
 
 export type IntelligenceModuleId = (typeof INTELLIGENCE_MODULE_IDS)[number] | (string & {});

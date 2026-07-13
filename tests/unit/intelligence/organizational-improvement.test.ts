@@ -95,6 +95,8 @@ const PIPELINE_ORDER = [
   "innovation",
   "impact",
   "economic",
+  "competitive",
+  "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
 ];
 
 describe("Organizational Improvement Engine (Sprint 036)", () => {
@@ -205,3 +207,4 @@ describe("Organizational Improvement Engine (Sprint 036)", () => {
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });
+

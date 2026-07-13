@@ -38,6 +38,20 @@ export function defaultRegisteredDomains(): DomainDescriptor[] {
     "innovation",
     "impact",
     "economic",
+    "competitive",
+    "political",
+    "environmental",
+    "stakeholder",
+    "reputation",
+    "behavioral",
+    "cultural",
+    "ethical",
+    "systems",
+    "resilience",
+    "ecosystem",
+    "institutional-memory",
+    "collective",
+    "wisdom",
   ]);
   return OIOS_INTELLIGENCE_DOMAINS.map((domain, index) => ({
     domain,
@@ -77,6 +91,34 @@ export function defaultRegisteredDomains(): DomainDescriptor[] {
                                       ? ["organization-dna", "innovation"]
                                       : domain === "economic"
                                         ? ["organization-dna", "impact"]
+                                        : domain === "competitive"
+                                          ? ["organization-dna", "economic"]
+                                          : domain === "political"
+                                            ? ["organization-dna", "competitive"]
+                                            : domain === "environmental"
+                                              ? ["organization-dna", "political"]
+                                              : domain === "stakeholder"
+                                                ? ["organization-dna", "environmental"]
+                                                : domain === "reputation"
+                                                  ? ["organization-dna", "stakeholder"]
+                                                  : domain === "behavioral"
+                                                    ? ["organization-dna", "reputation"]
+                                                    : domain === "cultural"
+                                                      ? ["organization-dna", "behavioral"]
+                                                      : domain === "ethical"
+                                                        ? ["organization-dna", "cultural"]
+                                                        : domain === "systems"
+                                                          ? ["organization-dna", "ethical"]
+                                                          : domain === "resilience"
+                                                            ? ["organization-dna", "systems"]
+                                                            : domain === "ecosystem"
+                                                              ? ["organization-dna", "resilience"]
+                                                              : domain === "institutional-memory"
+                                                                ? ["organization-dna", "ecosystem"]
+                                                                : domain === "collective"
+                                                                  ? ["organization-dna", "institutional-memory"]
+                                                                  : domain === "wisdom"
+                                                                    ? ["organization-dna", "collective"]
                                     : [],
     priority: index,
     description: `${domain} intelligence domain`,

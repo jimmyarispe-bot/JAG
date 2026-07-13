@@ -125,6 +125,76 @@ import {
   type EconomicStack,
 } from "@/lib/platform/intelligence/economic";
 import {
+  createCompetitiveIntelligence,
+  type CreateCompetitiveOptions,
+  type CompetitiveStack,
+} from "@/lib/platform/intelligence/competitive";
+import {
+  createPoliticalIntelligence,
+  type CreatePoliticalOptions,
+  type PoliticalStack,
+} from "@/lib/platform/intelligence/political";
+import {
+  createEnvironmentalIntelligence,
+  type CreateEnvironmentalOptions,
+  type EnvironmentalStack,
+} from "@/lib/platform/intelligence/environmental";
+import {
+  createStakeholderIntelligence,
+  type CreateStakeholderOptions,
+  type StakeholderStack,
+} from "@/lib/platform/intelligence/stakeholder";
+import {
+  createReputationIntelligence,
+  type CreateReputationOptions,
+  type ReputationStack,
+} from "@/lib/platform/intelligence/reputation";
+import {
+  createBehavioralIntelligence,
+  type CreateBehavioralOptions,
+  type BehavioralStack,
+} from "@/lib/platform/intelligence/behavioral";
+import {
+  createCulturalIntelligence,
+  type CreateCulturalOptions,
+  type CulturalStack,
+} from "@/lib/platform/intelligence/cultural";
+import {
+  createEthicalIntelligence,
+  type CreateEthicalOptions,
+  type EthicalStack,
+} from "@/lib/platform/intelligence/ethical";
+import {
+  createSystemsIntelligence,
+  type CreateSystemsOptions,
+  type SystemsStack,
+} from "@/lib/platform/intelligence/systems";
+import {
+  createResilienceIntelligence,
+  type CreateResilienceOptions,
+  type ResilienceStack,
+} from "@/lib/platform/intelligence/resilience";
+import {
+  createEcosystemIntelligence,
+  type CreateEcosystemOptions,
+  type EcosystemStack,
+} from "@/lib/platform/intelligence/ecosystem";
+import {
+  createInstitutionalMemoryIntelligence,
+  type CreateInstitutionalMemoryOptions,
+  type InstitutionalMemoryStack,
+} from "@/lib/platform/intelligence/institutional-memory";
+import {
+  createCollectiveIntelligence,
+  type CreateCollectiveOptions,
+  type CollectiveStack,
+} from "@/lib/platform/intelligence/collective";
+import {
+  createWisdomIntelligence,
+  type CreateWisdomOptions,
+  type WisdomStack,
+} from "@/lib/platform/intelligence/wisdom";
+import {
   createOiosOperatingSystem,
   type CreateOiosOptions,
   type OiosStack,
@@ -248,6 +318,48 @@ export interface CreateIntelligenceServiceOptions {
   /** Optional Economic Intelligence stack (Sprint 046). */
   economic?: EconomicStack;
   economicOptions?: CreateEconomicOptions;
+  /** Optional Competitive Intelligence stack (Sprint 047). */
+  competitive?: CompetitiveStack;
+  competitiveOptions?: CreateCompetitiveOptions;
+  /** Optional Political Intelligence stack (Sprint 048). */
+  political?: PoliticalStack;
+  politicalOptions?: CreatePoliticalOptions;
+  /** Optional Environmental Intelligence stack (Sprint 049). */
+  environmental?: EnvironmentalStack;
+  environmentalOptions?: CreateEnvironmentalOptions;
+  /** Optional Stakeholder Intelligence stack (Sprint 050). */
+  stakeholder?: StakeholderStack;
+  stakeholderOptions?: CreateStakeholderOptions;
+  /** Optional Reputation Intelligence stack (Sprint 051). */
+  reputation?: ReputationStack;
+  reputationOptions?: CreateReputationOptions;
+  /** Optional Behavioral Intelligence stack (Sprint 052). */
+  behavioral?: BehavioralStack;
+  behavioralOptions?: CreateBehavioralOptions;
+  /** Optional Cultural Intelligence stack (Sprint 053). */
+  cultural?: CulturalStack;
+  culturalOptions?: CreateCulturalOptions;
+  /** Optional Ethical Intelligence stack (Sprint 054). */
+  ethical?: EthicalStack;
+  ethicalOptions?: CreateEthicalOptions;
+  /** Optional Systems Intelligence stack (Sprint 055). */
+  systems?: SystemsStack;
+  systemsOptions?: CreateSystemsOptions;
+  /** Optional Resilience Intelligence stack (Sprint 056). */
+  resilience?: ResilienceStack;
+  resilienceOptions?: CreateResilienceOptions;
+  /** Optional Ecosystem Intelligence stack (Sprint 057). */
+  ecosystem?: EcosystemStack;
+  ecosystemOptions?: CreateEcosystemOptions;
+  /** Optional Institutional Memory Intelligence stack (Sprint 058). */
+  institutionalMemory?: InstitutionalMemoryStack;
+  institutionalMemoryOptions?: CreateInstitutionalMemoryOptions;
+  /** Optional Collective Intelligence stack (Sprint 059). */
+  collective?: CollectiveStack;
+  collectiveOptions?: CreateCollectiveOptions;
+  /** Optional Wisdom Intelligence stack (Sprint 060). */
+  wisdom?: WisdomStack;
+  wisdomOptions?: CreateWisdomOptions;
   /** Optional Intelligence Platform Infrastructure stack (Sprint 027). */
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
@@ -678,6 +790,20 @@ export function createIntelligenceService(
   innovation: InnovationStack;
   impact: ImpactStack;
   economic: EconomicStack;
+  competitive: CompetitiveStack;
+  political: PoliticalStack;
+  environmental: EnvironmentalStack;
+  stakeholder: StakeholderStack;
+  reputation: ReputationStack;
+  behavioral: BehavioralStack;
+  cultural: CulturalStack;
+  ethical: EthicalStack;
+  systems: SystemsStack;
+  resilience: ResilienceStack;
+  ecosystem: EcosystemStack;
+  institutionalMemory: InstitutionalMemoryStack;
+  collective: CollectiveStack;
+  wisdom: WisdomStack;
   intelligencePlatform: IntelligencePlatformStack;
 } {
   const registry = options.registry ?? createIntelligenceDomainRegistry();
@@ -906,6 +1032,132 @@ export function createIntelligenceService(
       wireOrganizationDna: false,
       wireOios: false,
     });
+  const competitive =
+    options.competitive ??
+    createCompetitiveIntelligence({
+      ...(options.competitiveOptions ?? {}),
+      organizationDna: options.competitiveOptions?.organizationDna ?? organizationDna,
+      oios: options.competitiveOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const political =
+    options.political ??
+    createPoliticalIntelligence({
+      ...(options.politicalOptions ?? {}),
+      organizationDna: options.politicalOptions?.organizationDna ?? organizationDna,
+      oios: options.politicalOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const environmental =
+    options.environmental ??
+    createEnvironmentalIntelligence({
+      ...(options.environmentalOptions ?? {}),
+      organizationDna: options.environmentalOptions?.organizationDna ?? organizationDna,
+      oios: options.environmentalOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const stakeholder =
+    options.stakeholder ??
+    createStakeholderIntelligence({
+      ...(options.stakeholderOptions ?? {}),
+      organizationDna: options.stakeholderOptions?.organizationDna ?? organizationDna,
+      oios: options.stakeholderOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const reputation =
+    options.reputation ??
+    createReputationIntelligence({
+      ...(options.reputationOptions ?? {}),
+      organizationDna: options.reputationOptions?.organizationDna ?? organizationDna,
+      oios: options.reputationOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const behavioral =
+    options.behavioral ??
+    createBehavioralIntelligence({
+      ...(options.behavioralOptions ?? {}),
+      organizationDna: options.behavioralOptions?.organizationDna ?? organizationDna,
+      oios: options.behavioralOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const cultural =
+    options.cultural ??
+    createCulturalIntelligence({
+      ...(options.culturalOptions ?? {}),
+      organizationDna: options.culturalOptions?.organizationDna ?? organizationDna,
+      oios: options.culturalOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const ethical =
+    options.ethical ??
+    createEthicalIntelligence({
+      ...(options.ethicalOptions ?? {}),
+      organizationDna: options.ethicalOptions?.organizationDna ?? organizationDna,
+      oios: options.ethicalOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const systems =
+    options.systems ??
+    createSystemsIntelligence({
+      ...(options.systemsOptions ?? {}),
+      organizationDna: options.systemsOptions?.organizationDna ?? organizationDna,
+      oios: options.systemsOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const resilience =
+    options.resilience ??
+    createResilienceIntelligence({
+      ...(options.resilienceOptions ?? {}),
+      organizationDna: options.resilienceOptions?.organizationDna ?? organizationDna,
+      oios: options.resilienceOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const ecosystem =
+    options.ecosystem ??
+    createEcosystemIntelligence({
+      ...(options.ecosystemOptions ?? {}),
+      organizationDna: options.ecosystemOptions?.organizationDna ?? organizationDna,
+      oios: options.ecosystemOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const institutionalMemory =
+    options.institutionalMemory ??
+    createInstitutionalMemoryIntelligence({
+      ...(options.institutionalMemoryOptions ?? {}),
+      organizationDna: options.institutionalMemoryOptions?.organizationDna ?? organizationDna,
+      oios: options.institutionalMemoryOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const collective =
+    options.collective ??
+    createCollectiveIntelligence({
+      ...(options.collectiveOptions ?? {}),
+      organizationDna: options.collectiveOptions?.organizationDna ?? organizationDna,
+      oios: options.collectiveOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
+  const wisdom =
+    options.wisdom ??
+    createWisdomIntelligence({
+      ...(options.wisdomOptions ?? {}),
+      organizationDna: options.wisdomOptions?.organizationDna ?? organizationDna,
+      oios: options.wisdomOptions?.oios ?? oios,
+      wireOrganizationDna: false,
+      wireOios: false,
+    });
   const intelligencePlatform =
     options.intelligencePlatform ??
     createIntelligencePlatform({
@@ -942,6 +1194,23 @@ export function createIntelligenceService(
       innovation: options.intelligencePlatformOptions?.innovation ?? innovation,
       impact: options.intelligencePlatformOptions?.impact ?? impact,
       economic: options.intelligencePlatformOptions?.economic ?? economic,
+      competitive: options.intelligencePlatformOptions?.competitive ?? competitive,
+      political: options.intelligencePlatformOptions?.political ?? political,
+      environmental: options.intelligencePlatformOptions?.environmental ?? environmental,
+      stakeholder: options.intelligencePlatformOptions?.stakeholder ?? stakeholder,
+      reputation: options.intelligencePlatformOptions?.reputation ?? reputation,
+      behavioral: options.intelligencePlatformOptions?.behavioral ?? behavioral,
+      cultural: options.intelligencePlatformOptions?.cultural ?? cultural,
+      ethical: options.intelligencePlatformOptions?.ethical ?? ethical,
+      systems: options.intelligencePlatformOptions?.systems ?? systems,
+      resilience: options.intelligencePlatformOptions?.resilience ?? resilience,
+      ecosystem: options.intelligencePlatformOptions?.ecosystem ?? ecosystem,
+      institutionalMemory:
+        options.intelligencePlatformOptions?.institutionalMemory ?? institutionalMemory,
+      collective:
+        options.intelligencePlatformOptions?.collective ?? collective,
+      wisdom: options.intelligencePlatformOptions?.wisdom ?? wisdom,
+      wisdomOptions: options.intelligencePlatformOptions?.wisdomOptions,
     });
 
   if (!registry.get("success")) {
@@ -1003,6 +1272,20 @@ export function createIntelligenceService(
     innovation,
     impact,
     economic,
+    competitive,
+    political,
+    environmental,
+    stakeholder,
+    reputation,
+    behavioral,
+    cultural,
+    ethical,
+    systems,
+    resilience,
+    ecosystem,
+    institutionalMemory,
+    collective,
+    wisdom,
     intelligencePlatform,
   });
 }

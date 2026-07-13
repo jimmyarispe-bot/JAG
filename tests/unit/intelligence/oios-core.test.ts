@@ -49,6 +49,20 @@ describe("JAG OIOS Core Architecture (Sprint 031)", () => {
     expect(stack.registry.get("innovation")?.status).toBe("active");
     expect(stack.registry.get("impact")?.status).toBe("active");
     expect(stack.registry.get("economic")?.status).toBe("active");
+    expect(stack.registry.get("competitive")?.status).toBe("active");
+    expect(stack.registry.get("political")?.status).toBe("active");
+    expect(stack.registry.get("environmental")?.status).toBe("active");
+    expect(stack.registry.get("stakeholder")?.status).toBe("active");
+    expect(stack.registry.get("reputation")?.status).toBe("active");
+    expect(stack.registry.get("behavioral")?.status).toBe("active");
+    expect(stack.registry.get("cultural")?.status).toBe("active");
+    expect(stack.registry.get("ethical")?.status).toBe("active");
+    expect(stack.registry.get("systems")?.status).toBe("active");
+    expect(stack.registry.get("resilience")?.status).toBe("active");
+    expect(stack.registry.get("ecosystem")?.status).toBe("active");
+    expect(stack.registry.get("institutional-memory")?.status).toBe("active");
+    expect(stack.registry.get("collective")?.status).toBe("active");
+    expect(stack.registry.get("wisdom")?.status).toBe("active");
     expect(stack.registry.get("organization-dna")?.status).toBe("active");
 
     const result = stack.service.build({
@@ -189,6 +203,8 @@ describe("JAG OIOS Core Architecture (Sprint 031)", () => {
       "innovation",
       "impact",
       "economic",
+      "competitive",
+      "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
     ]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });

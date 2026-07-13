@@ -27,6 +27,20 @@ export { createMarketModule } from "@/lib/platform/intelligence/infrastructure/m
 export { createInnovationModule } from "@/lib/platform/intelligence/infrastructure/modules/innovation";
 export { createImpactModule } from "@/lib/platform/intelligence/infrastructure/modules/impact";
 export { createEconomicModule } from "@/lib/platform/intelligence/infrastructure/modules/economic";
+export { createCompetitiveModule } from "@/lib/platform/intelligence/infrastructure/modules/competitive";
+export { createPoliticalModule } from "@/lib/platform/intelligence/infrastructure/modules/political";
+export { createEnvironmentalModule } from "@/lib/platform/intelligence/infrastructure/modules/environmental";
+export { createStakeholderModule } from "@/lib/platform/intelligence/infrastructure/modules/stakeholder";
+export { createReputationModule } from "@/lib/platform/intelligence/infrastructure/modules/reputation";
+export { createBehavioralModule } from "@/lib/platform/intelligence/infrastructure/modules/behavioral";
+export { createCulturalModule } from "@/lib/platform/intelligence/infrastructure/modules/cultural";
+export { createEthicalModule } from "@/lib/platform/intelligence/infrastructure/modules/ethical";
+export { createSystemsModule } from "@/lib/platform/intelligence/infrastructure/modules/systems";
+export { createResilienceModule } from "@/lib/platform/intelligence/infrastructure/modules/resilience";
+export { createEcosystemModule } from "@/lib/platform/intelligence/infrastructure/modules/ecosystem";
+export { createInstitutionalMemoryModule } from "@/lib/platform/intelligence/infrastructure/modules/institutional-memory";
+export { createCollectiveModule } from "@/lib/platform/intelligence/infrastructure/modules/collective";
+export { createWisdomModule } from "@/lib/platform/intelligence/infrastructure/modules/wisdom";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -47,6 +61,20 @@ import { createMarketModule } from "@/lib/platform/intelligence/infrastructure/m
 import { createInnovationModule } from "@/lib/platform/intelligence/infrastructure/modules/innovation";
 import { createImpactModule } from "@/lib/platform/intelligence/infrastructure/modules/impact";
 import { createEconomicModule } from "@/lib/platform/intelligence/infrastructure/modules/economic";
+import { createCompetitiveModule } from "@/lib/platform/intelligence/infrastructure/modules/competitive";
+import { createPoliticalModule } from "@/lib/platform/intelligence/infrastructure/modules/political";
+import { createEnvironmentalModule } from "@/lib/platform/intelligence/infrastructure/modules/environmental";
+import { createStakeholderModule } from "@/lib/platform/intelligence/infrastructure/modules/stakeholder";
+import { createReputationModule } from "@/lib/platform/intelligence/infrastructure/modules/reputation";
+import { createBehavioralModule } from "@/lib/platform/intelligence/infrastructure/modules/behavioral";
+import { createCulturalModule } from "@/lib/platform/intelligence/infrastructure/modules/cultural";
+import { createEthicalModule } from "@/lib/platform/intelligence/infrastructure/modules/ethical";
+import { createSystemsModule } from "@/lib/platform/intelligence/infrastructure/modules/systems";
+import { createResilienceModule } from "@/lib/platform/intelligence/infrastructure/modules/resilience";
+import { createEcosystemModule } from "@/lib/platform/intelligence/infrastructure/modules/ecosystem";
+import { createInstitutionalMemoryModule } from "@/lib/platform/intelligence/infrastructure/modules/institutional-memory";
+import { createCollectiveModule } from "@/lib/platform/intelligence/infrastructure/modules/collective";
+import { createWisdomModule } from "@/lib/platform/intelligence/infrastructure/modules/wisdom";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -139,6 +167,62 @@ import type {
   CreateEconomicOptions,
   EconomicStack,
 } from "@/lib/platform/intelligence/economic";
+import type {
+  CreateCompetitiveOptions,
+  CompetitiveStack,
+} from "@/lib/platform/intelligence/competitive";
+import type {
+  CreatePoliticalOptions,
+  PoliticalStack,
+} from "@/lib/platform/intelligence/political";
+import type {
+  CreateEnvironmentalOptions,
+  EnvironmentalStack,
+} from "@/lib/platform/intelligence/environmental";
+import type {
+  CreateStakeholderOptions,
+  StakeholderStack,
+} from "@/lib/platform/intelligence/stakeholder";
+import type {
+  CreateReputationOptions,
+  ReputationStack,
+} from "@/lib/platform/intelligence/reputation";
+import type {
+  CreateBehavioralOptions,
+  BehavioralStack,
+} from "@/lib/platform/intelligence/behavioral";
+import type {
+  CreateCulturalOptions,
+  CulturalStack,
+} from "@/lib/platform/intelligence/cultural";
+import type {
+  CreateEthicalOptions,
+  EthicalStack,
+} from "@/lib/platform/intelligence/ethical";
+import type {
+  CreateSystemsOptions,
+  SystemsStack,
+} from "@/lib/platform/intelligence/systems";
+import type {
+  CreateResilienceOptions,
+  ResilienceStack,
+} from "@/lib/platform/intelligence/resilience";
+import type {
+  CreateEcosystemOptions,
+  EcosystemStack,
+} from "@/lib/platform/intelligence/ecosystem";
+import type {
+  CreateInstitutionalMemoryOptions,
+  InstitutionalMemoryStack,
+} from "@/lib/platform/intelligence/institutional-memory";
+import type {
+  CreateCollectiveOptions,
+  CollectiveStack,
+} from "@/lib/platform/intelligence/collective";
+import type {
+  CreateWisdomOptions,
+  WisdomStack,
+} from "@/lib/platform/intelligence/wisdom";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -183,6 +267,34 @@ export interface CreateDefaultModulesOptions {
   impact?: ImpactStack;
   economicOptions?: CreateEconomicOptions;
   economic?: EconomicStack;
+  competitiveOptions?: CreateCompetitiveOptions;
+  competitive?: CompetitiveStack;
+  politicalOptions?: CreatePoliticalOptions;
+  political?: PoliticalStack;
+  environmentalOptions?: CreateEnvironmentalOptions;
+  environmental?: EnvironmentalStack;
+  stakeholderOptions?: CreateStakeholderOptions;
+  stakeholder?: StakeholderStack;
+  reputationOptions?: CreateReputationOptions;
+  reputation?: ReputationStack;
+  behavioralOptions?: CreateBehavioralOptions;
+  behavioral?: BehavioralStack;
+  culturalOptions?: CreateCulturalOptions;
+  cultural?: CulturalStack;
+  ethicalOptions?: CreateEthicalOptions;
+  ethical?: EthicalStack;
+  systemsOptions?: CreateSystemsOptions;
+  systems?: SystemsStack;
+  resilienceOptions?: CreateResilienceOptions;
+  resilience?: ResilienceStack;
+  ecosystemOptions?: CreateEcosystemOptions;
+  ecosystem?: EcosystemStack;
+  institutionalMemoryOptions?: CreateInstitutionalMemoryOptions;
+  institutionalMemory?: InstitutionalMemoryStack;
+  collectiveOptions?: CreateCollectiveOptions;
+  collective?: CollectiveStack;
+  wisdomOptions?: CreateWisdomOptions;
+  wisdom?: WisdomStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -221,6 +333,20 @@ export function createDefaultIntelligenceModules(
     createInnovationModule(options.innovationOptions, options.innovation),
     createImpactModule(options.impactOptions, options.impact),
     createEconomicModule(options.economicOptions, options.economic),
+    createCompetitiveModule(options.competitiveOptions, options.competitive),
+    createPoliticalModule(options.politicalOptions, options.political),
+    createEnvironmentalModule(options.environmentalOptions, options.environmental),
+    createStakeholderModule(options.stakeholderOptions, options.stakeholder),
+    createReputationModule(options.reputationOptions, options.reputation),
+    createBehavioralModule(options.behavioralOptions, options.behavioral),
+    createCulturalModule(options.culturalOptions, options.cultural),
+    createEthicalModule(options.ethicalOptions, options.ethical),
+    createSystemsModule(options.systemsOptions, options.systems),
+    createResilienceModule(options.resilienceOptions, options.resilience),
+    createEcosystemModule(options.ecosystemOptions, options.ecosystem),
+    createInstitutionalMemoryModule(options.institutionalMemoryOptions, options.institutionalMemory),
+    createCollectiveModule(options.collectiveOptions, options.collective),
+    createWisdomModule(options.wisdomOptions, options.wisdom),
   ];
 }
 

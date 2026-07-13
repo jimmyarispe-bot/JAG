@@ -129,6 +129,62 @@ import type {
   CreateEconomicOptions,
   EconomicStack,
 } from "@/lib/platform/intelligence/economic";
+import type {
+  CreateCompetitiveOptions,
+  CompetitiveStack,
+} from "@/lib/platform/intelligence/competitive";
+import type {
+  CreatePoliticalOptions,
+  PoliticalStack,
+} from "@/lib/platform/intelligence/political";
+import type {
+  CreateEnvironmentalOptions,
+  EnvironmentalStack,
+} from "@/lib/platform/intelligence/environmental";
+import type {
+  CreateStakeholderOptions,
+  StakeholderStack,
+} from "@/lib/platform/intelligence/stakeholder";
+import type {
+  CreateReputationOptions,
+  ReputationStack,
+} from "@/lib/platform/intelligence/reputation";
+import type {
+  CreateBehavioralOptions,
+  BehavioralStack,
+} from "@/lib/platform/intelligence/behavioral";
+import type {
+  CreateCulturalOptions,
+  CulturalStack,
+} from "@/lib/platform/intelligence/cultural";
+import type {
+  CreateEthicalOptions,
+  EthicalStack,
+} from "@/lib/platform/intelligence/ethical";
+import type {
+  CreateSystemsOptions,
+  SystemsStack,
+} from "@/lib/platform/intelligence/systems";
+import type {
+  CreateResilienceOptions,
+  ResilienceStack,
+} from "@/lib/platform/intelligence/resilience";
+import type {
+  CreateEcosystemOptions,
+  EcosystemStack,
+} from "@/lib/platform/intelligence/ecosystem";
+import type {
+  CreateInstitutionalMemoryOptions,
+  InstitutionalMemoryStack,
+} from "@/lib/platform/intelligence/institutional-memory";
+import type {
+  CreateCollectiveOptions,
+  CollectiveStack,
+} from "@/lib/platform/intelligence/collective";
+import type {
+  CreateWisdomOptions,
+  WisdomStack,
+} from "@/lib/platform/intelligence/wisdom";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -198,6 +254,34 @@ export interface CreateIntelligencePlatformOptions
   impact?: ImpactStack;
   economicOptions?: CreateEconomicOptions;
   economic?: EconomicStack;
+  competitiveOptions?: CreateCompetitiveOptions;
+  competitive?: CompetitiveStack;
+  politicalOptions?: CreatePoliticalOptions;
+  political?: PoliticalStack;
+  environmentalOptions?: CreateEnvironmentalOptions;
+  environmental?: EnvironmentalStack;
+  stakeholderOptions?: CreateStakeholderOptions;
+  stakeholder?: StakeholderStack;
+  reputationOptions?: CreateReputationOptions;
+  reputation?: ReputationStack;
+  behavioralOptions?: CreateBehavioralOptions;
+  behavioral?: BehavioralStack;
+  culturalOptions?: CreateCulturalOptions;
+  cultural?: CulturalStack;
+  ethicalOptions?: CreateEthicalOptions;
+  ethical?: EthicalStack;
+  systemsOptions?: CreateSystemsOptions;
+  systems?: SystemsStack;
+  resilienceOptions?: CreateResilienceOptions;
+  resilience?: ResilienceStack;
+  ecosystemOptions?: CreateEcosystemOptions;
+  ecosystem?: EcosystemStack;
+  institutionalMemoryOptions?: CreateInstitutionalMemoryOptions;
+  institutionalMemory?: InstitutionalMemoryStack;
+  collectiveOptions?: CreateCollectiveOptions;
+  collective?: CollectiveStack;
+  wisdomOptions?: CreateWisdomOptions;
+  wisdom?: WisdomStack;
 }
 
 /**
@@ -295,6 +379,34 @@ export function createIntelligencePlatform(
             impactOptions: options.impactOptions,
             economic: options.economic,
             economicOptions: options.economicOptions,
+            competitive: options.competitive,
+            competitiveOptions: options.competitiveOptions,
+            political: options.political,
+            politicalOptions: options.politicalOptions,
+            environmental: options.environmental,
+            environmentalOptions: options.environmentalOptions,
+            stakeholder: options.stakeholder,
+            stakeholderOptions: options.stakeholderOptions,
+            reputation: options.reputation,
+            reputationOptions: options.reputationOptions,
+            behavioral: options.behavioral,
+            behavioralOptions: options.behavioralOptions,
+            cultural: options.cultural,
+            culturalOptions: options.culturalOptions,
+            ethical: options.ethical,
+            ethicalOptions: options.ethicalOptions,
+            systems: options.systems,
+            systemsOptions: options.systemsOptions,
+            resilience: options.resilience,
+            resilienceOptions: options.resilienceOptions,
+            ecosystem: options.ecosystem,
+            ecosystemOptions: options.ecosystemOptions,
+            institutionalMemory: options.institutionalMemory,
+            institutionalMemoryOptions: options.institutionalMemoryOptions,
+            collective: options.collective,
+            collectiveOptions: options.collectiveOptions,
+            wisdom: options.wisdom,
+            wisdomOptions: options.wisdomOptions,
           }),
         ]);
 

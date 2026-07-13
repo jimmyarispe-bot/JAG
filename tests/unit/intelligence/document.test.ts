@@ -99,6 +99,8 @@ const PIPELINE_ORDER = [
   "innovation",
   "impact",
   "economic",
+  "competitive",
+  "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
 ];
 
 describe("Document Intelligence (Sprint 041)", () => {
@@ -358,10 +360,10 @@ describe("Document Intelligence (Sprint 041)", () => {
     });
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
-    expect(result.moduleOrder.at(-4)).toBe("market");
-    expect(result.moduleOrder.at(-3)).toBe("innovation");
-    expect(result.moduleOrder.at(-2)).toBe("impact");
-    expect(result.moduleOrder.at(-1)).toBe("economic");
+    expect(result.moduleOrder.at(-3)).toBe("institutional-memory");
+    expect(result.moduleOrder.at(-2)).toBe("collective");
+    expect(result.moduleOrder.at(-1)).toBe("wisdom");
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });
+
