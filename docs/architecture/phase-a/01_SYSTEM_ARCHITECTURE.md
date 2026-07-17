@@ -123,7 +123,7 @@ Layers (conceptual):
 
 - Exec Command Center loads stacks via `src/lib/exec/intelligence.ts` → process singleton  
 - Wisdom UI: `src/app/exec/wisdom/page.tsx` → `loadExecWisdom()`  
-- Default exec scope uses **`exec-demo-org`**; wisdom view model sets **`dataMode: "model-baseline"`**  
+- Default exec scope is resolved via `getExecRuntime()` (tenant-bound or explicit demo); wisdom provenance uses widget `dataMode` + shell banner (C-A2)  
 - AIP (`src/lib/intelligence-platform`) is a **separate** prompt/provider/queue governance product  
 
 ---
@@ -149,7 +149,7 @@ Constitutional rule: **permission-only** authorization; roles expand to permissi
 
 ## 7. Data architecture
 
-- **~171** SQL migrations under `supabase/migrations/`  
+- **~172** SQL migrations under `supabase/migrations/` (head: `172_b1_security_remediation.sql`)  
 - Domain tables generally school/org scoped with RLS helpers (`can_access_school`, finance-specific helpers post B.1, etc.)  
 - Platform persistence for workflow/events/decision/evidence/ULR/PAJ/graph  
 - **Gap:** OIOS domain assessment payloads largely **not** mirrored as durable org-scoped tables; repositories commonly wrap shared in-memory stores  
@@ -174,7 +174,7 @@ Connectors and hub under `src/lib/integration-hub/`, `src/lib/platform/integrati
 | Lint | ESLint (Next config) |
 | Registry integrity | `tsx scripts/validate-*.mts` on `build` |
 | Certification helpers | `src/lib/certification/*`, phase-e unit tests |
-| CI (GitHub Actions) | lint, typecheck, build+validators, **integration**, Playwright smoke — **does not run full unit suite** (see risk **H-A10**) |
+| CI (GitHub Actions) | lint, typecheck, build+validators, **unit**, **integration**, Playwright smoke |
 | Live RLS / authenticated E2E | Documented in Phase E; not fully executed as enterprise proof |
 
 ---

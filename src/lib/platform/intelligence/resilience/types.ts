@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const RESILIENCE_INTELLIGENCE_VERSION = "0.1.0";
 export const RESILIENCE_CAPABILITIES = [
@@ -58,7 +59,6 @@ export interface ResilienceLens {
 export interface ResilienceScore { key: string; label: string; value: number; status: ResilienceHealthStatus; band: ResiliencePriorityBand; narrative: string; }
 export interface ResilienceConfidenceScore { value: number; level: ResilienceConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface SystemsResultLight extends ResultLightBase {
   healthScore?: { value?: number };
   adaptability?: number;

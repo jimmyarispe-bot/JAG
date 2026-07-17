@@ -6,7 +6,7 @@
 import { cache } from "react";
 import { getIntegrationManagement } from "@/lib/exec/integration-platform";
 import { googleWorkspaceStore } from "@/lib/platform/integrations/connectors/google-workspace";
-import { DEFAULT_EXEC_SCOPE } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 
 export type EnsureGoogleWorkspaceResult = {
   snapshot: ReturnType<typeof googleWorkspaceStore.get>;
@@ -16,7 +16,8 @@ export type EnsureGoogleWorkspaceResult = {
 export const ensureGoogleWorkspaceSynced = cache(
   async (): Promise<EnsureGoogleWorkspaceResult> => {
     const management = await getIntegrationManagement();
-    const orgId = DEFAULT_EXEC_SCOPE.organizationId;
+    const { scope } = await getExecRuntime();
+    const orgId = scope.organizationId;
     const hadData = googleWorkspaceStore.hasLiveData(orgId);
 
     if (!hadData) {
@@ -25,7 +26,7 @@ export const ensureGoogleWorkspaceSynced = cache(
         management.platform.persistence.getConfiguration(instanceId) ??
         (await management.connections.register({
           connectorId: "google",
-          scope: { ...DEFAULT_EXEC_SCOPE },
+          scope: { ...scope },
           actor: "exec-google",
           settings: {
             domain: "jag-demo.edu",

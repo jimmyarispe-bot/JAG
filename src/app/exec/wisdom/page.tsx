@@ -1,7 +1,7 @@
 import { WisdomPage } from "@/components/exec/WisdomPage";
 import { loadExecWisdom } from "@/lib/exec/load-wisdom";
 
-export default function ExecWisdomRoute() {
-  const data = loadExecWisdom();
+export default async function ExecWisdomRoute() {
+  const data = await loadExecWisdom();
   return <WisdomPage data={data} />;
 }

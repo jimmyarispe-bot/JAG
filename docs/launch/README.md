@@ -42,7 +42,7 @@ Administrator, Teacher, Parent, Finance, HR, Admissions, Executive, Developer, A
 
 ## Production checklist
 
-1. Apply migrations through `131_v1_phase1_seed_password_reset_flag.sql`
+1. Apply migrations through `172_b1_security_remediation.sql` (include `171_a1_architecture_security_rls.sql`; authority: `supabase/migrations/`)
 2. Set production env vars — see `docs/launch/PRODUCTION_ENV.md` (`CRON_SECRET`, `NEXT_PUBLIC_APP_URL`, `VAULT_ENCRYPTION_KEY`, `SENDGRID_*`)
 3. Run full certification and review Platform Health Report
 4. Resolve Critical and High audit findings

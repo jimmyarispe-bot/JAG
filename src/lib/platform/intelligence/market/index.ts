@@ -80,6 +80,7 @@ export {
 } from "@/lib/platform/intelligence/market/types";
 
 export type {
+  MarketCompetitiveIntelligence as MarketCompetitiveIntelligenceContract,
   CompetitiveIntelligence as CompetitiveIntelligenceContract,
   CustomerDemandIntelligence as CustomerDemandIntelligenceContract,
   DemographicIntelligence as DemographicIntelligenceContract,
@@ -133,7 +134,10 @@ export {
 } from "@/lib/platform/intelligence/market/models";
 
 export { IndustryIntelligence } from "@/lib/platform/intelligence/market/industry-intelligence";
-export { CompetitiveIntelligence } from "@/lib/platform/intelligence/market/competitive-intelligence";
+export {
+  MarketCompetitiveIntelligence,
+  CompetitiveIntelligence,
+} from "@/lib/platform/intelligence/market/competitive-intelligence";
 export { MarketSizeIntelligence } from "@/lib/platform/intelligence/market/market-size-intelligence";
 export { PricingIntelligence } from "@/lib/platform/intelligence/market/pricing-intelligence";
 export { CustomerDemandIntelligence } from "@/lib/platform/intelligence/market/customer-demand-intelligence";

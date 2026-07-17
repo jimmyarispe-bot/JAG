@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const ETHICAL_INTELLIGENCE_VERSION = "0.1.0";
 export const ETHICAL_CAPABILITIES = [
@@ -68,7 +69,6 @@ export interface EthicalLens {
 export interface EthicalScore { key: string; label: string; value: number; status: EthicalHealthStatus; band: EthicalPriorityBand; narrative: string; }
 export interface EthicalConfidenceScore { value: number; level: EthicalConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface CulturalResultLight extends ResultLightBase {
   healthScore?: { value?: number };
   valuesAlignmentScore?: { value?: number };

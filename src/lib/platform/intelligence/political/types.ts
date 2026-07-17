@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const POLITICAL_INTELLIGENCE_VERSION = "0.1.0";
 export const POLITICAL_CAPABILITIES = [
@@ -68,7 +69,6 @@ export interface PoliticalLens {
 export interface PoliticalScore { key: string; label: string; value: number; status: PoliticalHealthStatus; band: PoliticalPriorityBand; narrative: string; }
 export interface PoliticalConfidenceScore { value: number; level: PoliticalConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface MarketResultLight extends ResultLightBase { marketScore?: { value?: number }; }
 export interface EconomicResultLight extends ResultLightBase { economicScore?: { value?: number }; inflationPressure?: { value?: number }; }
 export interface CompetitiveResultLight extends ResultLightBase { competitiveScore?: { value?: number }; competitivePressure?: { value?: number }; }

@@ -1,5 +1,9 @@
 # Architecture Scorecard — JAG v1.0
 
+> **HISTORICAL (H-A8).** Pre A1–A4 / pre Phase A scorecard. Do not use for release decisions.  
+> **Current scorecard:** [../phase-a/ARCHITECTURE_SCORECARD.md](../phase-a/ARCHITECTURE_SCORECARD.md).  
+> **Current truth index:** [../README.md](../README.md).
+
 > **Historical scorecard (pre A1–A4).** Maintainability scores reflected pre-stabilization duplication.  
 > See `../STABILIZATION_A5_CLEANUP.md` for post-stabilization status.
 

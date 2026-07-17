@@ -79,3 +79,5 @@ export type {
   PublisherRegistryContract,
   IntelligenceServiceFacadeContract,
 } from "@/lib/platform/intelligence/common/contract-conventions";
+
+export type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";

@@ -6,7 +6,7 @@
 import { cache } from "react";
 import { getIntegrationManagement } from "@/lib/exec/integration-platform";
 import { quickbooksStore } from "@/lib/platform/integrations/connectors/quickbooks";
-import { DEFAULT_EXEC_SCOPE } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 
 export type EnsureQuickBooksResult = {
   snapshot: ReturnType<typeof quickbooksStore.get>;
@@ -15,7 +15,8 @@ export type EnsureQuickBooksResult = {
 
 export const ensureQuickBooksSynced = cache(async (): Promise<EnsureQuickBooksResult> => {
   const management = await getIntegrationManagement();
-  const orgId = DEFAULT_EXEC_SCOPE.organizationId;
+  const { scope } = await getExecRuntime();
+  const orgId = scope.organizationId;
   const hadData = quickbooksStore.hasLiveData(orgId);
 
   if (!hadData) {
@@ -24,7 +25,7 @@ export const ensureQuickBooksSynced = cache(async (): Promise<EnsureQuickBooksRe
       management.platform.persistence.getConfiguration(instanceId) ??
       (await management.connections.register({
         connectorId: "quickbooks",
-        scope: { ...DEFAULT_EXEC_SCOPE },
+        scope: { ...scope },
         actor: "exec-quickbooks",
         settings: { environment: "sandbox" },
       }));

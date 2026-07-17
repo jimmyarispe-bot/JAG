@@ -3,7 +3,7 @@
 > Static reference copy. The authoritative report is regenerated on each full certification run and stored in the Certification Center (`launch_readiness_report` doc key). View at `/dashboard/certification/launch`.
 
 **Build status:** `npm run build` passes  
-**Migrations:** 129 (through `129_release_v1_doc_categories.sql`)  
+**Migrations:** 172 (through `172_b1_security_remediation.sql`; authority: `supabase/migrations/`)  
 **Readiness threshold:** 85%  
 
 > **Phase H (2026-07-17):** Formal GA decision is **NO-GO** (54/100). See [`docs/launch/phase-h/`](./phase-h/). This static launch report is superseded for go/no-go by the Phase H package.
@@ -83,13 +83,13 @@
 
 ## Production Checklist
 
-1. Apply migrations through `129_release_v1_doc_categories.sql`
+1. Apply migrations through `172_b1_security_remediation.sql` (include `171`; authority: `supabase/migrations/`)
 2. Set `CRON_SECRET` for `/api/platform/process-queues`
 3. Run **Full certification** at `/dashboard/certification/launch`
 4. Review Platform Health Report; resolve or accept Critical/High items
 5. Generate demo environment
 6. Complete University training for CS team
-7. Confirm CI runs `npm run build`
+7. Confirm CI runs `npm run build` and `npm run test:unit`
 
 ---
 

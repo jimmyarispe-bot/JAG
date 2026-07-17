@@ -1,5 +1,8 @@
 # Production Gap Analysis — JAG v1.0
 
+> **HISTORICAL (H-A8).** Prefer [../phase-a/](../phase-a/) + [../phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md](../phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md) for current production posture.  
+> **Current truth:** [../README.md](../README.md).
+
 > **Still relevant for product/ops gaps** (UI, persistence, integrations).  
 > Architecture duplication items were reduced by Stabilization A1–A4. See `../STABILIZATION_A5_CLEANUP.md`.
 

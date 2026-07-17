@@ -2,7 +2,8 @@ import { ensureQuickBooksSynced } from "@/lib/exec/ensure-quickbooks";
 import { ensureSquareSynced } from "@/lib/exec/ensure-square";
 import { quickBooksDataMode, resolveQuickBooksFeed } from "@/lib/exec/quickbooks-feed";
 import { resolveSquareFeed, squareDataMode } from "@/lib/exec/square-feed";
-import { DEFAULT_EXEC_SCOPE, getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 import type { ExecOpportunityTab, ExecOpportunityViewModel, ExecListItem } from "@/lib/exec/view-models";
 import type { OpportunityCategory, OpportunityExchangeRecord } from "@/lib/platform/intelligence/opportunity/types";
 
@@ -36,14 +37,16 @@ function toItem(o: OpportunityExchangeRecord, hint?: string): ExecListItem {
  * Opportunity Center — QB accounting + Square payment context when synced.
  */
 export async function loadExecOpportunities(): Promise<ExecOpportunityViewModel> {
+  const runtime = await getExecRuntime();
+  const orgId = runtime.scope.organizationId;
   const [sqEnsure, qbEnsure] = await Promise.all([ensureSquareSynced(), ensureQuickBooksSynced()]);
-  const square = resolveSquareFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const qb = resolveQuickBooksFeed(DEFAULT_EXEC_SCOPE.organizationId);
+  const square = resolveSquareFeed(orgId);
+  const qb = resolveQuickBooksFeed(orgId);
   const sqMode = squareDataMode(square, sqEnsure.freshlySynced);
   const qbMode = quickBooksDataMode(qb, qbEnsure.freshlySynced);
 
   const intelligence = getExecIntelligence();
-  const scope = { ...DEFAULT_EXEC_SCOPE };
+  const scope = { ...runtime.scope };
   const requestId = `exec-opp-${Date.now()}`;
 
   const opportunity = intelligence.opportunity.service.build({

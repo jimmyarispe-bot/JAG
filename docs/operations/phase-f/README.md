@@ -35,13 +35,16 @@ Do not duplicate — link:
 
 | Topic | Canonical path |
 |-------|----------------|
-| Current architecture | `docs/architecture/CURRENT_ARCHITECTURE_REPORT.md` |
+| Architecture truth index | `docs/architecture/README.md` |
+| Current architecture (Phase A) | `docs/architecture/phase-a/` |
 | Platform constitution | `docs/architecture/PLATFORM_CONSTITUTION.md` |
+| Production intelligence contract | `docs/architecture/phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md` |
 | Engineering standards | `docs/architecture/ENGINEERING_STANDARDS.md` |
 | Security model | `docs/architecture/SECURITY_MODEL.md` + `docs/security/phase-b/` |
 | UX / a11y | `docs/ux/phase-d/` |
 | Production env vars | `docs/launch/PRODUCTION_ENV.md` |
 | Env schema (code) | `src/lib/platform/env/schema.ts` |
+| Historical snapshot (do not use for release) | `docs/architecture/CURRENT_ARCHITECTURE_REPORT.md` |
 
 ## Document standard (all Phase F docs)
 

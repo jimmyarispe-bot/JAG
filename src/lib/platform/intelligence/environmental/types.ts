@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const ENVIRONMENTAL_INTELLIGENCE_VERSION = "0.1.0";
 export const ENVIRONMENTAL_CAPABILITIES = [
@@ -67,7 +68,6 @@ export interface EnvironmentalLens {
 export interface EnvironmentalScore { key: string; label: string; value: number; status: EnvironmentalHealthStatus; band: EnvironmentalPriorityBand; narrative: string; }
 export interface EnvironmentalConfidenceScore { value: number; level: EnvironmentalConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface PoliticalResultLight extends ResultLightBase { politicalScore?: { value?: number }; politicalStability?: { value?: number }; }
 export interface EconomicResultLight extends ResultLightBase { economicScore?: { value?: number }; inflationPressure?: { value?: number }; }
 export interface LegalComplianceRiskResultLight extends ResultLightBase {

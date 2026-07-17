@@ -60,7 +60,7 @@ Severity scale: **Critical · High · Medium · Low · Informational**
 | **Severity** | High |
 | **Description** | `platform/workflow` and `platform/workflows` both exist with similar names and different purposes. |
 | **Impact** | Incorrect engine usage; registry confusion. |
-| **Recommendation** | Rename executive workflows package; update imports and docs. |
+| **Recommendation** | Rename executive workflows package; update imports and docs. **Done (Phase B H-A2):** `executive-workflows` is canonical; `workflows/index.ts` re-exports. |
 | **Affected files** | `src/lib/platform/workflow/**`; `src/lib/platform/workflows/**` |
 
 ### H-A3 — CompetitiveIntelligence class name collision

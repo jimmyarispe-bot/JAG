@@ -24,6 +24,8 @@ Copy these into your Vercel project (or local `.env.local`). A template also exi
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Durable multi-instance rate limiting |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile for public admissions inquiry |
 | `ALLOW_SQUARE_PLANNED` | Dev-only simulated payments — **never** set in production |
+| `EXEC_OPERATING_MODE` | Exec Command Center: `demo` \| `tenant` (prefer unset / tenant in production) |
+| `ALLOW_EXEC_DEMO_MODE` | Production opt-in for exec demo mode — **unset** unless explicitly approved |
 
 ## Vercel cron
 

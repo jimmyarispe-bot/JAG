@@ -5,7 +5,7 @@
 | **Document** | Platform Constitution |
 | **Type** | Governing enterprise architecture |
 | **Status** | Canonical |
-| **Companions** | [PLATFORM_ARCHITECTURE.md](./PLATFORM_ARCHITECTURE.md) · [PLATFORM_ROADMAP.md](./PLATFORM_ROADMAP.md) · [ENGINEERING_STANDARDS.md](./ENGINEERING_STANDARDS.md) · [SECURITY_MODEL.md](./SECURITY_MODEL.md) |
+| **Companions** | [PLATFORM_ARCHITECTURE.md](./PLATFORM_ARCHITECTURE.md) · [PLATFORM_ROADMAP.md](./PLATFORM_ROADMAP.md) · [ENGINEERING_STANDARDS.md](./ENGINEERING_STANDARDS.md) · [SECURITY_MODEL.md](./SECURITY_MODEL.md) · [README.md](./README.md) (current truth index) · [phase-a/](./phase-a/) |
 | **Authority** | This constitution governs every future sprint. Where implementation diverges, implementation must be corrected to match this document. |
 
 ---

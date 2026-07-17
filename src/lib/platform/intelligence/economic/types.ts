@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const ECONOMIC_INTELLIGENCE_VERSION = "0.1.0";
 export const ECONOMIC_CAPABILITIES = [
@@ -68,7 +69,6 @@ export interface EconomicLens {
 export interface EconomicScore { key: string; label: string; value: number; status: EconomicHealthStatus; band: EconomicPriorityBand; narrative: string; }
 export interface EconomicConfidenceScore { value: number; level: EconomicConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface MarketResultLight extends ResultLightBase { marketScore?: { value?: number }; economicTrendScore?: { value?: number }; }
 export interface RevenueResultLight extends ResultLightBase { revenueScore?: { value?: number }; pricingPressure?: { value?: number }; }
 export interface FundingResultLight extends ResultLightBase { fundingScore?: { value?: number }; capitalAvailability?: { value?: number }; }

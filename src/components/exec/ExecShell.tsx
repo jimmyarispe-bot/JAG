@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { ExecNav } from "@/components/exec/ExecNav";
 import { cn } from "@/components/workspace-design-system/utils";
+import type { ExecOperatingMode } from "@/lib/exec/scope";
 
 type ExecShellProps = {
   fullName: string;
@@ -11,6 +12,9 @@ type ExecShellProps = {
   /** Tenant context from Organization Platform (optional). */
   organizationName?: string | null;
   locationName?: string | null;
+  operatingMode: ExecOperatingMode;
+  provenanceLabel: string;
+  provenanceDetail: string;
   children: React.ReactNode;
 };
 
@@ -19,11 +23,15 @@ export function ExecShell({
   roleLabel,
   organizationName,
   locationName,
+  operatingMode,
+  provenanceLabel,
+  provenanceDetail,
   children,
 }: ExecShellProps) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const openNav = useCallback(() => setOpen(true), []);
+  const isDemo = operatingMode === "demo";
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -104,6 +112,27 @@ export function ExecShell({
             </span>
           </div>
         </header>
+        <div
+          role="status"
+          aria-live="polite"
+          className={
+            isDemo
+              ? "border-b border-amber-200 bg-amber-50 px-4 py-2 sm:px-6"
+              : "border-b border-slate-200 bg-slate-100 px-4 py-2 sm:px-6"
+          }
+          title={provenanceDetail}
+        >
+          <p
+            className={
+              isDemo
+                ? "text-xs font-medium text-amber-900"
+                : "text-xs font-medium text-slate-700"
+            }
+          >
+            {provenanceLabel}
+            <span className="font-normal text-slate-600"> — {provenanceDetail}</span>
+          </p>
+        </div>
         <main id="exec-main" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
         </main>

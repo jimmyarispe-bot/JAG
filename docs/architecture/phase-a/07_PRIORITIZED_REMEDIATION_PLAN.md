@@ -66,7 +66,7 @@
 | Priority | ID | Action | Effort |
 |----------|----|--------|--------|
 | P0 | H-A1 | Publish Intelligence Surfaces map (OIOS / AIP / Network / EDI / FI / Exec) | S |
-| P0 | H-A2 | Rename `platform/workflows` → e.g. `executive-workflows` | M |
+| P0 | H-A2 | Rename `platform/workflows` → e.g. `executive-workflows` | M | **Done (Phase B):** canonical path `src/lib/platform/executive-workflows`; legacy `@/lib/platform/workflows` re-exports via shim. |
 | P0 | H-A3 | Rename market `CompetitiveIntelligence` | S |
 | P0 | H-A11 | Narrow intelligence public barrel; ban app-level mega-import | M |
 | P1 | H-A12 | Split `mission-control-compose` into facet ports | M |

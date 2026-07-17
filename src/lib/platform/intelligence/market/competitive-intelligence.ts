@@ -1,8 +1,10 @@
 /**
- * Competitive Intelligence — competitors, pricing and launch signals.
+ * Market competitive intelligence — competitors, pricing and launch signals.
+ * Named MarketCompetitiveIntelligence (Phase B / H-A3) to avoid collision with
+ * the competitive domain package class CompetitiveIntelligence.
  */
 
-import type { CompetitiveIntelligence as CompetitiveIntelligenceContract } from "@/lib/platform/intelligence/market/contracts";
+import type { MarketCompetitiveIntelligence as MarketCompetitiveIntelligenceContract } from "@/lib/platform/intelligence/market/contracts";
 import { clamp, clamp01 } from "@/lib/platform/intelligence/market/models";
 import type {
   CompetitorRecord,
@@ -22,7 +24,7 @@ const COMPETITOR_TEMPLATES = [
   { name: "Innovation Lab Academy", segment: "Specialty Academies", pricing: "premium" },
 ];
 
-export class CompetitiveIntelligence implements CompetitiveIntelligenceContract {
+export class MarketCompetitiveIntelligence implements MarketCompetitiveIntelligenceContract {
   assess(input: {
     baseline: MarketBaseline;
     industry: IndustrySuite;
@@ -80,3 +82,6 @@ export class CompetitiveIntelligence implements CompetitiveIntelligenceContract 
     };
   }
 }
+
+/** @deprecated Use MarketCompetitiveIntelligence — alias retained for compatibility. */
+export { MarketCompetitiveIntelligence as CompetitiveIntelligence };

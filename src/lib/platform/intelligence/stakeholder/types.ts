@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const STAKEHOLDER_INTELLIGENCE_VERSION = "0.1.0";
 export const STAKEHOLDER_CAPABILITIES = [
@@ -68,7 +69,6 @@ export interface StakeholderLens {
 export interface StakeholderScore { key: string; label: string; value: number; status: StakeholderHealthStatus; band: StakeholderPriorityBand; narrative: string; }
 export interface StakeholderConfidenceScore { value: number; level: StakeholderConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface CustomerResultLight extends ResultLightBase { customerScore?: { value?: number }; }
 export interface HumanCapitalResultLight extends ResultLightBase { humanCapitalScore?: { value?: number }; }
 export interface PoliticalResultLight extends ResultLightBase { politicalScore?: { value?: number }; politicalStability?: { value?: number }; }

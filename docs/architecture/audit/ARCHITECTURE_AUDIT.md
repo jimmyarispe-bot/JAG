@@ -1,5 +1,8 @@
 # JAG v1.0 Architecture Audit
 
+> **HISTORICAL (H-A8).** Pre-stabilization / pre Phase A baseline. Do not use for release decisions.  
+> **Current truth:** [../README.md](../README.md) → [../phase-a/](../phase-a/) + [../PLATFORM_CONSTITUTION.md](../PLATFORM_CONSTITUTION.md).
+
 > **Superseded in part by Stabilization A1–A4 (July 2026).**  
 > Shared primitives (`intelligence/common/`) and modular DI registration are now in place.  
 > Retained as the pre-stabilization baseline. See `../STABILIZATION_A5_CLEANUP.md` and `../V1_STABILIZATION_MASTER_PLAN.md`.  

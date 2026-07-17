@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const COLLECTIVE_INTELLIGENCE_VERSION = "0.1.0";
 export const COLLECTIVE_CAPABILITIES = [
@@ -58,7 +59,6 @@ export interface CollectiveLens {
 export interface CollectiveScore { key: string; label: string; value: number; status: CollectiveHealthStatus; band: CollectivePriorityBand; narrative: string; }
 export interface CollectiveConfidenceScore { value: number; level: CollectiveConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 /** Soft-read of Sprint 058 Institutional Memory Intelligence. */
 export interface InstitutionalMemoryResultLight extends ResultLightBase {
   healthScore?: { value?: number };

@@ -3,6 +3,10 @@
  *
  * Shared cognitive services for the autonomous intelligence layer.
  * See `docs/architecture/JAG_INTELLIGENCE_ARCHITECTURE.md`.
+ *
+ * Phase B / H-A11: Prefer subpath imports (`intelligence/wisdom`, `intelligence/registration`,
+ * `intelligence/create-service`, domain packages). This mega-barrel remains for compatibility
+ * but app/platform code should not add new deep dependencies through it.
  */
 
 export * from "@/lib/platform/intelligence/types";
@@ -977,6 +981,7 @@ export {
   MarketProjection,
   MarketQueries,
   IndustryIntelligence,
+  MarketCompetitiveIntelligence,
   CompetitiveIntelligence,
   MarketSizeIntelligence,
   PricingIntelligence,

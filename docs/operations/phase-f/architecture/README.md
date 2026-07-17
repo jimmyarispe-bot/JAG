@@ -21,13 +21,16 @@
 
 | Topic | Path |
 |-------|------|
-| Full architecture snapshot | `docs/architecture/CURRENT_ARCHITECTURE_REPORT.md` |
+| Architecture truth index | `docs/architecture/README.md` |
+| Phase A assessment | `docs/architecture/phase-a/` |
 | Constitution | `docs/architecture/PLATFORM_CONSTITUTION.md` |
+| Production intelligence contract | `docs/architecture/phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md` |
 | Platform architecture | `docs/architecture/PLATFORM_ARCHITECTURE.md` |
 | Contract / maturity | `docs/architecture/PLATFORM_CONTRACT.md` |
 | Platform services | `docs/architecture/platform-services.md` |
 | Security model | `docs/architecture/SECURITY_MODEL.md` |
 | IAM | `docs/architecture/IAM_FOUNDATION.md` |
+| Historical snapshot (superseded) | `docs/architecture/CURRENT_ARCHITECTURE_REPORT.md` |
 | Caching | `docs/architecture/CACHING_STRATEGY.md` |
 | Exec graph ADR | `docs/architecture/adr/ADR-A1-001-executive-graph-packages.md` |
 | Finance dual-stack ADR | `docs/architecture/adr/ADR-A1-002-platform-finance-vs-operational.md` |

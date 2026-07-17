@@ -6,7 +6,7 @@
 import { cache } from "react";
 import { getIntegrationManagement } from "@/lib/exec/integration-platform";
 import { plaidStore } from "@/lib/platform/integrations/connectors/plaid";
-import { DEFAULT_EXEC_SCOPE } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 
 export type EnsurePlaidResult = {
   snapshot: ReturnType<typeof plaidStore.get>;
@@ -15,7 +15,8 @@ export type EnsurePlaidResult = {
 
 export const ensurePlaidSynced = cache(async (): Promise<EnsurePlaidResult> => {
   const management = await getIntegrationManagement();
-  const orgId = DEFAULT_EXEC_SCOPE.organizationId;
+  const { scope } = await getExecRuntime();
+  const orgId = scope.organizationId;
   const hadData = plaidStore.hasLiveData(orgId);
 
   if (!hadData) {
@@ -24,7 +25,7 @@ export const ensurePlaidSynced = cache(async (): Promise<EnsurePlaidResult> => {
       management.platform.persistence.getConfiguration(instanceId) ??
       (await management.connections.register({
         connectorId: "plaid",
-        scope: { ...DEFAULT_EXEC_SCOPE },
+        scope: { ...scope },
         actor: "exec-plaid",
         settings: { environment: "sandbox" },
       }));

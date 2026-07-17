@@ -18,17 +18,23 @@ import { getIdentityContext } from "@/lib/platform/identity/context";
 import { requirePermission } from "@/lib/platform/identity/permissions";
 import {
   createDecisionIntelligenceDomain,
-  createExecutiveIntelligenceDomain,
-  createOrganizationalIntelligence,
-  createPersistentIntelligenceMemory,
-  createSharedIntelligenceContextBuilder,
-  createStrategicIntelligenceDomain,
   type DecisionIntelligenceResult,
+} from "@/lib/platform/intelligence/decision";
+import {
+  createExecutiveIntelligenceDomain,
   type ExecutiveIntelligenceResult,
+} from "@/lib/platform/intelligence/domains/executive";
+import {
+  createStrategicIntelligenceDomain,
+  type StrategicIntelligenceResult,
+} from "@/lib/platform/intelligence/domains/strategic";
+import {
+  createOrganizationalIntelligence,
   type OrganizationMetricSample,
   type OrganizationObservationResult,
-  type StrategicIntelligenceResult,
-} from "@/lib/platform/intelligence";
+} from "@/lib/platform/intelligence/organization";
+import { createPersistentIntelligenceMemory } from "@/lib/platform/intelligence/memory/index";
+import { createSharedIntelligenceContextBuilder } from "@/lib/platform/intelligence/context/builder";
 import type { IntelligencePersistentMemoryRecord } from "@/lib/platform/intelligence/memory/types";
 import {
   createJagCollaborationEngine,

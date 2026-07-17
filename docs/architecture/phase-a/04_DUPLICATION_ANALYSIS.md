@@ -110,7 +110,7 @@ What remains is mostly:
 
 - **Description:** `platform/workflow` (B-04 platform engine) vs `platform/workflows` (executive workflow engine).
 - **Impact:** Frequent wrong imports.
-- **Recommendation:** Rename executive package.
+- **Recommendation:** Rename executive package. **Done (Phase B H-A2):** canonical `@/lib/platform/executive-workflows`; `@/lib/platform/workflows` is a compatibility shim.
 - **Affected files:**  
   `src/lib/platform/workflow/**`  
   `src/lib/platform/workflows/**`

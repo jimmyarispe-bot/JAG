@@ -31,7 +31,7 @@
 
 1. Take/confirm backup snapshot (Supabase).  
 2. `supabase db push` (or approved migration pipeline) against **production** project.  
-3. Verify critical migrations (e.g. `171`) applied.  
+3. Verify critical migrations **171** and **172** applied (`supabase migration list` / schema_migrations).  
 4. Smoke RLS with a non-service-role user.
 
 ### Post-deployment validation

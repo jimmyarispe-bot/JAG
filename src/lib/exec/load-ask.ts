@@ -13,7 +13,8 @@ import {
   googleWorkspaceDataMode,
   resolveGoogleWorkspaceFeed,
 } from "@/lib/exec/google-workspace-feed";
-import { DEFAULT_EXEC_SCOPE, getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 import { plaidDataMode, resolvePlaidFeed } from "@/lib/exec/plaid-feed";
 import { quickBooksDataMode, resolveQuickBooksFeed } from "@/lib/exec/quickbooks-feed";
 import { resolveSquareFeed, squareDataMode } from "@/lib/exec/square-feed";
@@ -49,6 +50,8 @@ function mergeDataMode(modes: ExecDataMode[]): ExecDataMode {
 }
 
 export async function buildCopilotContext(): Promise<CopilotContext> {
+  const runtime = await getExecRuntime();
+  const orgId = runtime.scope.organizationId;
   const [, sqEnsure, qbEnsure, plaidEnsure, gwEnsure] = await Promise.all([
     ensureAcademyOsSynced(),
     ensureSquareSynced(),
@@ -57,7 +60,6 @@ export async function buildCopilotContext(): Promise<CopilotContext> {
     ensureGoogleWorkspaceSynced(),
   ]);
 
-  const orgId = DEFAULT_EXEC_SCOPE.organizationId;
   const feed = resolveAcademyOsFeed(orgId);
   const square = resolveSquareFeed(orgId);
   const qb = resolveQuickBooksFeed(orgId);
@@ -73,7 +75,7 @@ export async function buildCopilotContext(): Promise<CopilotContext> {
   ]);
 
   const intelligence = getExecIntelligence();
-  const scope = { ...DEFAULT_EXEC_SCOPE };
+  const scope = { ...runtime.scope };
   const requestId = `exec-ask-${Date.now()}`;
 
   const oios = intelligence.oios.service.build({ requestId: `${requestId}-oios`, scope });
@@ -162,27 +164,29 @@ export async function buildCopilotContext(): Promise<CopilotContext> {
   };
 }
 
-function softPredictive(question: string, kind?: DecisionScenarioKind) {
-  const intelligence = getExecIntelligence();
-  const resolved = resolveScenarioDefinition(question, kind);
-  const result = intelligence.predictiveIntelligence.service.predict({
-    requestId: `exec-ask-sim-${Date.now()}`,
-    question,
-    scenarios: [resolved.definition],
-    scope: { ...DEFAULT_EXEC_SCOPE },
-  });
-  const primary = result.scenarioForecasts[0];
-  return {
-    headline: result.projection?.headline ?? primary?.summary ?? question,
-    summary: primary?.summary ?? result.question,
-    confidence: primary?.confidence.value ?? 0.55,
-    domains: (primary?.domains ?? []).slice(0, 6).map((d) => ({
-      domain: d.domain,
-      direction: d.trend.direction,
-      narrative: d.summary || d.trend.narrative,
-      confidence: d.confidence.value,
-    })),
-    risks: (primary?.emergingRisks ?? []).slice(0, 4).map((r) => r.title),
+function createSoftPredictive(scope: { organizationId: string; schoolId: string | null }) {
+  return function softPredictive(question: string, kind?: DecisionScenarioKind) {
+    const intelligence = getExecIntelligence();
+    const resolved = resolveScenarioDefinition(question, kind);
+    const result = intelligence.predictiveIntelligence.service.predict({
+      requestId: `exec-ask-sim-${Date.now()}`,
+      question,
+      scenarios: [resolved.definition],
+      scope: { ...scope },
+    });
+    const primary = result.scenarioForecasts[0];
+    return {
+      headline: result.projection?.headline ?? primary?.summary ?? question,
+      summary: primary?.summary ?? result.question,
+      confidence: primary?.confidence.value ?? 0.55,
+      domains: (primary?.domains ?? []).slice(0, 6).map((d) => ({
+        domain: d.domain,
+        direction: d.trend.direction,
+        narrative: d.summary || d.trend.narrative,
+        confidence: d.confidence.value,
+      })),
+      risks: (primary?.emergingRisks ?? []).slice(0, 4).map((r) => r.title),
+    };
   };
 }
 
@@ -193,7 +197,12 @@ export async function loadExecAsk(): Promise<ExecAskViewModel> {
     executiveRole: context.executiveRole,
   });
   const brief = buildMorningBrief(context, session);
-  const engine = createCopilotEngine({ getPredictive: softPredictive });
+  const engine = createCopilotEngine({
+    getPredictive: createSoftPredictive({
+      organizationId: context.organizationId,
+      schoolId: null,
+    }),
+  });
   const opener = engine.ask(context, {
     question: "Daily brief",
     intentHint: "daily_brief",
@@ -249,6 +258,11 @@ export async function execAskQuestion(input: {
       organizationId: context.organizationId,
       executiveRole: context.executiveRole,
     },
-    { getPredictive: softPredictive }
+    {
+      getPredictive: createSoftPredictive({
+        organizationId: context.organizationId,
+        schoolId: null,
+      }),
+    }
   );
 }

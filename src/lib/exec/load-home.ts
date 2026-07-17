@@ -16,7 +16,8 @@ import { quickBooksDataMode, resolveQuickBooksFeed } from "@/lib/exec/quickbooks
 import { resolveSquareFeed, squareDataMode } from "@/lib/exec/square-feed";
 import { resolveSquareQuickBooksReconciliation } from "@/lib/exec/square-quickbooks-reconciliation";
 import { connectorDataMode } from "@/lib/exec/data-mode";
-import { DEFAULT_EXEC_SCOPE, getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 import type { ExecHomeViewModel } from "@/lib/exec/view-models";
 
 function round(n: number): number {
@@ -35,6 +36,8 @@ function moneyDollars(n: number): string {
  * Home dashboard — AcademyOS, Square, QuickBooks, Plaid, Google Workspace when synced.
  */
 export async function loadExecHome(): Promise<ExecHomeViewModel> {
+  const runtime = await getExecRuntime();
+  const orgId = runtime.scope.organizationId;
   const [, sqEnsure, qbEnsure, plaidEnsure, gwEnsure] = await Promise.all([
     ensureAcademyOsSynced(),
     ensureSquareSynced(),
@@ -42,22 +45,22 @@ export async function loadExecHome(): Promise<ExecHomeViewModel> {
     ensurePlaidSynced(),
     ensureGoogleWorkspaceSynced(),
   ]);
-  const feed = resolveAcademyOsFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const square = resolveSquareFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const qb = resolveQuickBooksFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const plaid = resolvePlaidFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const google = resolveGoogleWorkspaceFeed(DEFAULT_EXEC_SCOPE.organizationId);
+  const feed = resolveAcademyOsFeed(orgId);
+  const square = resolveSquareFeed(orgId);
+  const qb = resolveQuickBooksFeed(orgId);
+  const plaid = resolvePlaidFeed(orgId);
+  const google = resolveGoogleWorkspaceFeed(orgId);
   const sqMode = squareDataMode(square, sqEnsure.freshlySynced);
   const qbMode = quickBooksDataMode(qb, qbEnsure.freshlySynced);
   const plaidMode = plaidDataMode(plaid, plaidEnsure.freshlySynced);
   const gwMode = googleWorkspaceDataMode(google, gwEnsure.freshlySynced);
-  const recon = resolveSquareQuickBooksReconciliation();
-  const cashRecon = resolvePlaidCashReconciliation();
-  const gwCorr = resolveGoogleWorkspaceCorrelation();
+  const recon = resolveSquareQuickBooksReconciliation(orgId);
+  const cashRecon = resolvePlaidCashReconciliation(orgId);
+  const gwCorr = resolveGoogleWorkspaceCorrelation(orgId);
   const anyConnector = Boolean(feed || square || qb || plaid || google);
 
   const intelligence = getExecIntelligence();
-  const scope = { ...DEFAULT_EXEC_SCOPE };
+  const scope = { ...runtime.scope };
   const requestId = `exec-home-${Date.now()}`;
 
   const oios = intelligence.oios.service.build({ requestId: `${requestId}-oios`, scope });

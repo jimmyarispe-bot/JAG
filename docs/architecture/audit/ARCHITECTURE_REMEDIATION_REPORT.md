@@ -1,5 +1,8 @@
 # Architecture Remediation Report — Release Phase A.1
 
+> **Completed remediation log (H-A8).** For current architecture assessment see [../phase-a/](../phase-a/).  
+> **Current truth index:** [../README.md](../README.md) · Constitution: [../PLATFORM_CONSTITUTION.md](../PLATFORM_CONSTITUTION.md).
+
 **Date:** 2026-07-17  
 **Input:** `docs/architecture/audit/ARCHITECTURE_AUDIT.md` (+ companion debt reports) and Critical security/authz findings from Release readiness reviews  
 **Constraint:** No new business features  

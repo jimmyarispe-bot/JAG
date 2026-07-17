@@ -1,5 +1,7 @@
 # Duplicate Code Report — JAG v1.0
 
+> **HISTORICAL (H-A8).** Prefer [../phase-a/04_DUPLICATION_ANALYSIS.md](../phase-a/04_DUPLICATION_ANALYSIS.md). **Current truth:** [../README.md](../README.md).
+
 > **Superseded in part by Stabilization A1–A4 (July 2026).**  
 > Scoring helpers and in-memory repositories/registries were consolidated into `intelligence/common/`.  
 > Claims that `common/` does not exist, or that `create-service.ts` remains a ~1,300-line god factory, are historical.  

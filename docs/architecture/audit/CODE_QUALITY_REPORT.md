@@ -1,5 +1,7 @@
 # Code Quality Report — JAG v1.0
 
+> **HISTORICAL (H-A8).** Prefer [../phase-a/](../phase-a/). **Current truth:** [../README.md](../README.md).
+
 > **Superseded in part by Stabilization A1–A4 (July 2026).**  
 > Recommendations to split `create-service` and introduce `common/` were implemented.  
 > Retained as historical baseline. See `../STABILIZATION_A5_CLEANUP.md`.

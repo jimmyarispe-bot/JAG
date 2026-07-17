@@ -1,12 +1,14 @@
-import { DEFAULT_EXEC_SCOPE, getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 import type { ExecWisdomViewModel } from "@/lib/exec/view-models";
 
 /**
  * Wisdom Center — terminal organizational judgment from Wisdom Intelligence.
  */
-export function loadExecWisdom(): ExecWisdomViewModel {
+export async function loadExecWisdom(): Promise<ExecWisdomViewModel> {
+  const runtime = await getExecRuntime();
   const intelligence = getExecIntelligence();
-  const scope = { ...DEFAULT_EXEC_SCOPE };
+  const scope = { ...runtime.scope };
   const requestId = `exec-wisdom-${Date.now()}`;
 
   const oios = intelligence.oios.service.build({ requestId: `${requestId}-oios`, scope });
@@ -56,6 +58,6 @@ export function loadExecWisdom(): ExecWisdomViewModel {
       ) / 10,
       level: String(wisdom.confidence.level),
     },
-    dataMode: "model-baseline",
+    dataMode: runtime.mode === "demo" ? "synthetic" : "model-baseline",
   };
 }

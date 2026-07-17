@@ -20,7 +20,8 @@ export interface IndustryIntelligence {
   }): T.IndustrySuite;
 }
 
-export interface CompetitiveIntelligence {
+/** Market-domain competitive assessor (H-A3 — distinct from competitive package). */
+export interface MarketCompetitiveIntelligence {
   assess(input: {
     baseline: T.MarketBaseline;
     industry: T.IndustrySuite;
@@ -28,6 +29,9 @@ export interface CompetitiveIntelligence {
     createId: (prefix: string) => string;
   }): T.CompetitiveSuite;
 }
+
+/** @deprecated Use MarketCompetitiveIntelligence */
+export type CompetitiveIntelligence = MarketCompetitiveIntelligence;
 
 export interface MarketSizeIntelligence {
   assess(input: {
@@ -321,7 +325,7 @@ export type MarketService = MarketIntelligenceService;
 export interface MarketDependencies {
   engine?: MarketIntelligenceEngine;
   industryIntelligence?: IndustryIntelligence;
-  competitiveIntelligence?: CompetitiveIntelligence;
+  competitiveIntelligence?: MarketCompetitiveIntelligence;
   marketSizeIntelligence?: MarketSizeIntelligence;
   pricingIntelligence?: PricingIntelligence;
   customerDemandIntelligence?: CustomerDemandIntelligence;

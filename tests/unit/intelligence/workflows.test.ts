@@ -12,7 +12,7 @@ import {
   createFinanceWorkflow,
   createBoardWorkflow,
   getWorkflowDomainConfig,
-} from "@/lib/platform/workflows";
+} from "@/lib/platform/executive-workflows";
 import {
   createEmptyExecutiveContextSection,
   createEmptyFinanceContextSection,

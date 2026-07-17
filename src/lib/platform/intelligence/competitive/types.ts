@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const COMPETITIVE_INTELLIGENCE_VERSION = "0.1.0";
 export const COMPETITIVE_CAPABILITIES = [
@@ -70,7 +71,6 @@ export interface CompetitiveLens {
 export interface CompetitiveScore { key: string; label: string; value: number; status: CompetitiveHealthStatus; band: CompetitivePriorityBand; narrative: string; }
 export interface CompetitiveConfidenceScore { value: number; level: CompetitiveConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface MarketResultLight extends ResultLightBase { marketScore?: { value?: number }; competitivePositionScore?: { value?: number }; competitivePressure?: { value?: number }; competitorCount?: { value?: number }; }
 export interface RevenueResultLight extends ResultLightBase { revenueScore?: { value?: number }; pricingPressure?: { value?: number }; }
 export interface CustomerResultLight extends ResultLightBase { customerScore?: { value?: number }; satisfactionScore?: { value?: number }; }

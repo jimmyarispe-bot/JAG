@@ -6,7 +6,8 @@ import { resolvePlaidCashReconciliation } from "@/lib/exec/plaid-cash-reconcilia
 import { quickBooksDataMode, resolveQuickBooksFeed } from "@/lib/exec/quickbooks-feed";
 import { squareDataMode, resolveSquareFeed } from "@/lib/exec/square-feed";
 import { resolveSquareQuickBooksReconciliation } from "@/lib/exec/square-quickbooks-reconciliation";
-import { DEFAULT_EXEC_SCOPE, getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 import type { ExecRiskCategory, ExecRiskViewModel } from "@/lib/exec/view-models";
 
 const ECC_RISK_CATEGORIES: Array<{
@@ -30,22 +31,24 @@ const ECC_RISK_CATEGORIES: Array<{
  * Risk Center — LCR portfolio; Plaid cash + QB/Square reconciliations enrich financial pressure.
  */
 export async function loadExecRisks(): Promise<ExecRiskViewModel> {
+  const runtime = await getExecRuntime();
+  const orgId = runtime.scope.organizationId;
   const [sqEnsure, qbEnsure, plaidEnsure] = await Promise.all([
     ensureSquareSynced(),
     ensureQuickBooksSynced(),
     ensurePlaidSynced(),
   ]);
-  const square = resolveSquareFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const qb = resolveQuickBooksFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const plaid = resolvePlaidFeed(DEFAULT_EXEC_SCOPE.organizationId);
+  const square = resolveSquareFeed(orgId);
+  const qb = resolveQuickBooksFeed(orgId);
+  const plaid = resolvePlaidFeed(orgId);
   const sqMode = squareDataMode(square, sqEnsure.freshlySynced);
   const qbMode = quickBooksDataMode(qb, qbEnsure.freshlySynced);
   const plaidMode = plaidDataMode(plaid, plaidEnsure.freshlySynced);
-  const recon = resolveSquareQuickBooksReconciliation();
-  const cashRecon = resolvePlaidCashReconciliation();
+  const recon = resolveSquareQuickBooksReconciliation(orgId);
+  const cashRecon = resolvePlaidCashReconciliation(orgId);
 
   const intelligence = getExecIntelligence();
-  const scope = { ...DEFAULT_EXEC_SCOPE };
+  const scope = { ...runtime.scope };
   const requestId = `exec-risks-${Date.now()}`;
 
   const lcr = intelligence.legalComplianceRisk.service.build({

@@ -1,5 +1,8 @@
 # Technical Debt — JAG v1.0
 
+> **HISTORICAL (H-A8).** Prefer [../phase-a/03_TECHNICAL_DEBT_REPORT.md](../phase-a/03_TECHNICAL_DEBT_REPORT.md) for current debt.  
+> **Current truth:** [../README.md](../README.md).
+
 > **Superseded in part by Stabilization A1–A4 (July 2026).**  
 > TD items about scoring duplication (TD-C4) and the `create-service` god factory (TD-H1) were addressed.  
 > Retained as historical ranking. See `../STABILIZATION_A5_CLEANUP.md`.

@@ -19,6 +19,7 @@
     "validate:hierarchy": "tsx scripts/validate-platform-hierarchy-registry.mts",
     "validate:execution-engine": "tsx scripts/validate-platform-execution-engine.mts",
     "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:smoke": "playwright test",
     "cert:instructions": "node scripts/certification-run-instructions.mjs"

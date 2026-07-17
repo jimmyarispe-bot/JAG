@@ -1,5 +1,9 @@
 # Intelligence Domain Model
 
+> **HISTORICAL / PARTIAL (H-A8).** Catalog slices in this file may lag the live DAG.  
+> **Authority:** `INTELLIGENCE_MODULE_IDS` in `src/lib/platform/intelligence/infrastructure/types.ts`.  
+> **Current architecture truth:** [README.md](./README.md) → [phase-a/](./phase-a/) + [PLATFORM_CONSTITUTION.md](./PLATFORM_CONSTITUTION.md).
+
 ## Purpose
 
 Define how intelligence domains exist inside JAG OIOS — registration, status, dependency order, and future activation.

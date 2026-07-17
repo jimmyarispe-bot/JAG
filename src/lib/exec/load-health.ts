@@ -11,13 +11,16 @@ import {
 import { plaidDataMode, resolvePlaidFeed } from "@/lib/exec/plaid-feed";
 import { quickBooksDataMode, resolveQuickBooksFeed } from "@/lib/exec/quickbooks-feed";
 import { resolveSquareFeed, squareDataMode } from "@/lib/exec/square-feed";
-import { DEFAULT_EXEC_SCOPE, getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecIntelligence } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 import type { ExecHealthViewModel } from "@/lib/exec/view-models";
 
 /**
  * Organization Health — OIOS + AcademyOS + Square + QuickBooks + Plaid + Google Workspace.
  */
 export async function loadExecHealth(): Promise<ExecHealthViewModel> {
+  const runtime = await getExecRuntime();
+  const orgId = runtime.scope.organizationId;
   const [, sqEnsure, qbEnsure, plaidEnsure, gwEnsure] = await Promise.all([
     ensureAcademyOsSynced(),
     ensureSquareSynced(),
@@ -25,11 +28,11 @@ export async function loadExecHealth(): Promise<ExecHealthViewModel> {
     ensurePlaidSynced(),
     ensureGoogleWorkspaceSynced(),
   ]);
-  const feed = resolveAcademyOsFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const square = resolveSquareFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const qb = resolveQuickBooksFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const plaid = resolvePlaidFeed(DEFAULT_EXEC_SCOPE.organizationId);
-  const google = resolveGoogleWorkspaceFeed(DEFAULT_EXEC_SCOPE.organizationId);
+  const feed = resolveAcademyOsFeed(orgId);
+  const square = resolveSquareFeed(orgId);
+  const qb = resolveQuickBooksFeed(orgId);
+  const plaid = resolvePlaidFeed(orgId);
+  const google = resolveGoogleWorkspaceFeed(orgId);
   const sqMode = squareDataMode(square, sqEnsure.freshlySynced);
   const qbMode = quickBooksDataMode(qb, qbEnsure.freshlySynced);
   const plaidMode = plaidDataMode(plaid, plaidEnsure.freshlySynced);
@@ -37,7 +40,7 @@ export async function loadExecHealth(): Promise<ExecHealthViewModel> {
   const anyLive = Boolean(feed || square || qb || plaid || google);
 
   const intelligence = getExecIntelligence();
-  const scope = { ...DEFAULT_EXEC_SCOPE };
+  const scope = { ...runtime.scope };
   const requestId = `exec-health-${Date.now()}`;
 
   const oios = intelligence.oios.service.build({ requestId: `${requestId}-oios`, scope });

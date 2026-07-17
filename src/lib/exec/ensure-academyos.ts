@@ -6,11 +6,12 @@
 import { cache } from "react";
 import { getIntegrationManagement } from "@/lib/exec/integration-platform";
 import { academyOsStore } from "@/lib/platform/integrations/connectors/academyos";
-import { DEFAULT_EXEC_SCOPE } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 
 export const ensureAcademyOsSynced = cache(async () => {
   const management = await getIntegrationManagement();
-  const orgId = DEFAULT_EXEC_SCOPE.organizationId;
+  const { scope } = await getExecRuntime();
+  const orgId = scope.organizationId;
 
   if (!academyOsStore.hasLiveData(orgId)) {
     const instanceId = `academyos-${orgId}`;
@@ -18,7 +19,7 @@ export const ensureAcademyOsSynced = cache(async () => {
       management.platform.persistence.getConfiguration(instanceId) ??
       (await management.connections.register({
         connectorId: "academyos",
-        scope: { ...DEFAULT_EXEC_SCOPE },
+        scope: { ...scope },
         actor: "exec-academyos",
       }));
     await management.connections.authenticate(config.instanceId, "exec-academyos");

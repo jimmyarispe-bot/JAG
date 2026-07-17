@@ -2,7 +2,8 @@
 
 **Status:** Analysis only (no code or files modified)  
 **Stack:** Next.js 16.2.9 App Router · React 19 · Tailwind 4 · Supabase PostgreSQL (no ORM)  
-**Primary sources:** `docs/architecture/CURRENT_ARCHITECTURE_REPORT.md`, `docs/architecture/platform-services.md`, `src/lib/platform/`, `supabase/migrations/`, `package.json`
+**Primary sources:** `docs/architecture/CURRENT_ARCHITECTURE_REPORT.md`, `docs/architecture/platform-services.md`, `src/lib/platform/`, `supabase/migrations/`, `package.json`  
+**Intelligence product claims:** See ratified [phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md](./phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md) (C-A3).
 
 ---
 

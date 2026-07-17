@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const IMPACT_INTELLIGENCE_VERSION = "0.1.0";
 export const IMPACT_CAPABILITIES = [
@@ -49,7 +50,6 @@ export interface ImpactLens {
 export interface ImpactScore { key: string; label: string; value: number; status: ImpactHealthStatus; band: ImpactPriorityBand; narrative: string; }
 export interface ImpactConfidenceScore { value: number; level: ImpactConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface InnovationResultLight extends ResultLightBase { innovationScore?: { value?: number }; }
 export interface KnowledgeResultLight extends ResultLightBase { coverageScore?: { value?: number }; contributionScore?: { value?: number }; }
 export interface DocumentResultLight extends ResultLightBase { complianceScore?: { value?: number }; }

@@ -1,5 +1,7 @@
 # Dependency Graph Audit — JAG v1.0
 
+> **HISTORICAL (H-A8).** Prefer [../phase-a/02_MODULE_DEPENDENCY_REPORT.md](../phase-a/02_MODULE_DEPENDENCY_REPORT.md). **Current truth:** [../README.md](../README.md).
+
 > **Superseded in part by Stabilization A1 (July 2026).**  
 > DI wiring is now modular under `intelligence/registration/`; pipeline module IDs remain authoritative.  
 > Retained as historical baseline. See `../STABILIZATION_A5_CLEANUP.md`.

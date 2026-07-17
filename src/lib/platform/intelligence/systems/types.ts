@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const SYSTEMS_INTELLIGENCE_VERSION = "0.1.0";
 export const SYSTEMS_CAPABILITIES = [
@@ -57,7 +58,6 @@ export interface SystemsLens {
 export interface SystemsScore { key: string; label: string; value: number; status: SystemsHealthStatus; band: SystemsPriorityBand; narrative: string; }
 export interface SystemsConfidenceScore { value: number; level: SystemsConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface OperationsResultLight extends ResultLightBase {
   healthScore?: { value?: number };
   throughputScore?: { value?: number };

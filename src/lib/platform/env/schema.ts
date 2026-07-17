@@ -100,6 +100,18 @@ export const ENV_VAR_DEFINITIONS: readonly EnvVarDefinition[] = [
     optionalIn: ["development", "preview"],
   },
   {
+    name: "EXEC_OPERATING_MODE",
+    description: "Executive Command Center mode: demo | tenant (default: tenant when org context exists)",
+    requiredIn: [],
+    optionalIn: ["development", "preview", "production"],
+  },
+  {
+    name: "ALLOW_EXEC_DEMO_MODE",
+    description: "Allow EXEC_OPERATING_MODE=demo in production (explicit opt-in only)",
+    requiredIn: [],
+    optionalIn: ["development", "preview", "production"],
+  },
+  {
     name: "PLAYWRIGHT_BASE_URL",
     description: "Base URL for Playwright smoke tests (local tooling)",
     format: "url",

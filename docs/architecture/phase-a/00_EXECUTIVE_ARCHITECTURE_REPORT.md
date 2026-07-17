@@ -114,6 +114,9 @@ Dimension scores: `ARCHITECTURE_SCORECARD.md`.
 | 06 | `06_ARCHITECTURE_RISK_REGISTER.md` |
 | 07 | `07_PRIORITIZED_REMEDIATION_PLAN.md` |
 | — | `ARCHITECTURE_SCORECARD.md` |
+| — | `PRODUCTION_INTELLIGENCE_CONTRACT.md` (**ratified** Wave 0 / C-A3) |
+| — | `PHASE_A1_COMPLETION_REPORT.md` (Wave 0 complete) |
+| — | `H-A9_OPS_GATE_EVIDENCE.md` |
 
 ---
 

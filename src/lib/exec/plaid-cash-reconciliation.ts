@@ -4,12 +4,12 @@
 
 import { reconcilePlaidCash } from "@/lib/platform/integrations/connectors/plaid/reconciliation";
 import type { PlaidCashReconciliation } from "@/lib/platform/integrations/connectors/plaid/reconciliation";
-import { DEFAULT_EXEC_SCOPE } from "@/lib/exec/intelligence";
+import { DEMO_EXEC_ORGANIZATION_ID } from "@/lib/exec/scope";
 
 export type { PlaidCashReconciliation };
 
 export function resolvePlaidCashReconciliation(
-  organizationId: string = DEFAULT_EXEC_SCOPE.organizationId
+  organizationId: string = DEMO_EXEC_ORGANIZATION_ID
 ): PlaidCashReconciliation {
   return reconcilePlaidCash(organizationId);
 }

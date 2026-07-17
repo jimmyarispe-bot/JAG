@@ -47,7 +47,7 @@
 
 | Document | Issue | Remediation |
 |----------|-------|-------------|
-| Root `README.md` | Names “EduOS Phase 1”; migrations through **042** only; live **171** | Updated pointer (Phase F) |
+| Root `README.md` | Previously cited early Phase 1 migrations only; now points at head **172** | Updated (Phase F + M-A16) |
 | `docs/launch/PRODUCTION_ENV.md` | Claimed cron every 6h | Align to `vercel.json` `0 0 * * *` |
 | Migration counts in launch/architecture reports | 129 / 131 / 154 vs 171 | Cite `supabase/migrations/` as source of truth |
 | Certification auto-guides | Placeholder markdown in DB | Prefer Phase F guides |

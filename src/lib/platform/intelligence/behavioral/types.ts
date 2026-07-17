@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const BEHAVIORAL_INTELLIGENCE_VERSION = "0.1.0";
 export const BEHAVIORAL_CAPABILITIES = [
@@ -68,7 +69,6 @@ export interface BehavioralLens {
 export interface BehavioralScore { key: string; label: string; value: number; status: BehavioralHealthStatus; band: BehavioralPriorityBand; narrative: string; }
 export interface BehavioralConfidenceScore { value: number; level: BehavioralConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface StakeholderResultLight extends ResultLightBase {
   stakeholderScore?: { value?: number };
   trustLevel?: number;

@@ -1,5 +1,8 @@
 # The JAG OS — Current Architecture Report
 
+> **HISTORICAL (H-A8).** Snapshot dated **2026-07-05**. Do **not** use for release decisions, migration counts, or intelligence production claims.  
+> **Current truth:** [README.md](./README.md) → [PLATFORM_CONSTITUTION.md](./PLATFORM_CONSTITUTION.md) + [phase-a/](./phase-a/).
+
 **Document:** `CURRENT_ARCHITECTURE_REPORT.md`  
 **Prepared by:** Chief Software Architect  
 **Date:** July 5, 2026  

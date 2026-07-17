@@ -32,6 +32,12 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
 
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Security migrations present (H-A9)
+        run: node scripts/verify-security-migrations-present.mjs
+
       - name: Integration tests
         run: npm run test:integration
 

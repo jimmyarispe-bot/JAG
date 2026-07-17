@@ -4,12 +4,12 @@
 
 import { reconcileSquareQuickBooks } from "@/lib/platform/integrations/connectors/square/reconciliation";
 import type { SquareQuickBooksReconciliation } from "@/lib/platform/integrations/connectors/square/reconciliation";
-import { DEFAULT_EXEC_SCOPE } from "@/lib/exec/intelligence";
+import { DEMO_EXEC_ORGANIZATION_ID } from "@/lib/exec/scope";
 
 export type { SquareQuickBooksReconciliation };
 
 export function resolveSquareQuickBooksReconciliation(
-  organizationId: string = DEFAULT_EXEC_SCOPE.organizationId
+  organizationId: string = DEMO_EXEC_ORGANIZATION_ID
 ): SquareQuickBooksReconciliation {
   return reconcileSquareQuickBooks(organizationId);
 }

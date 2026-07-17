@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const REPUTATION_INTELLIGENCE_VERSION = "0.1.0";
 export const REPUTATION_CAPABILITIES = [
@@ -69,7 +70,6 @@ export interface ReputationLens {
 export interface ReputationScore { key: string; label: string; value: number; status: ReputationHealthStatus; band: ReputationPriorityBand; narrative: string; }
 export interface ReputationConfidenceScore { value: number; level: ReputationConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 export interface StakeholderResultLight extends ResultLightBase {
   stakeholderScore?: { value?: number };
   trustLevel?: number;

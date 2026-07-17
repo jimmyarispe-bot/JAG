@@ -121,13 +121,13 @@ ${section("Domain Scores", `| Domain | Score | Pass (≥${READINESS_THRESHOLD}%)
 |--------|-------|------|
 ${domainLines}`)}
 
-${section("Production Checklist", `1. Apply migrations through \`129_release_v1_doc_categories.sql\`
+${section("Production Checklist", `1. Apply migrations through \`172_b1_security_remediation.sql\` (include \`171\`; authority: \`supabase/migrations/\`)
 2. Set \`CRON_SECRET\` for Vercel cron \`/api/platform/process-queues\`
 3. Run **Full certification** on Launch Readiness dashboard
 4. Resolve Critical and High audit findings (or accept with documented risk)
 5. Generate demo environment for sales
 6. Complete University training paths for customer success team
-7. Verify \`npm run build\` in CI/CD pipeline`)}
+7. Verify \`npm run build\` and \`npm run test:unit\` in CI/CD pipeline`)}
 
 ---
 

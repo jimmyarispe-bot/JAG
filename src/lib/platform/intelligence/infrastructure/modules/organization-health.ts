@@ -23,7 +23,7 @@ export function createOrganizationHealthModule(): IntelligenceModule {
     id: "organization-health",
     name: "Organization Health",
     version: ORGANIZATION_HEALTH_MODULE_VERSION,
-    dependencies: [],
+    dependencies: ["oios-core"],
     capabilities: [
       { key: "health.enrollment", description: "Enrollment health evaluation" },
       { key: "health.financial", description: "Financial health evaluation" },

@@ -7,6 +7,7 @@
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
+import type { ResultLightBase } from "@/lib/platform/intelligence/common/result-lights";
 
 export const WISDOM_INTELLIGENCE_VERSION = "0.1.0";
 export const WISDOM_CAPABILITIES = [
@@ -70,7 +71,6 @@ export interface ExecutiveJudgmentFramework {
 export interface WisdomScore { key: string; label: string; value: number; status: WisdomHealthStatus; band: WisdomPriorityBand; narrative: string; }
 export interface WisdomConfidenceScore { value: number; level: WisdomConfidenceLevel; factors: Array<{ key: string; label: string; contribution: number }>; }
 
-interface ResultLightBase { requestId?: string; healthScore?: { value?: number }; baseline?: Record<string, number | undefined>; recommendations?: unknown[]; }
 /** Soft-read of Sprint 059 Collective Intelligence. */
 export interface CollectiveResultLight extends ResultLightBase {
   healthScore?: { value?: number };

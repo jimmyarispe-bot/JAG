@@ -3,7 +3,7 @@
  */
 
 import type {
-  CompetitiveIntelligence as CompetitiveIntelligenceContract,
+  MarketCompetitiveIntelligence as MarketCompetitiveIntelligenceContract,
   CustomerDemandIntelligence as CustomerDemandIntelligenceContract,
   DemographicIntelligence as DemographicIntelligenceContract,
   EconomicTrendIntelligence as EconomicTrendIntelligenceContract,
@@ -32,7 +32,7 @@ import type {
   TechnologyTrendIntelligence as TechnologyTrendIntelligenceContract,
   WhiteSpaceIntelligence as WhiteSpaceIntelligenceContract,
 } from "@/lib/platform/intelligence/market/contracts";
-import { CompetitiveIntelligence } from "@/lib/platform/intelligence/market/competitive-intelligence";
+import { MarketCompetitiveIntelligence } from "@/lib/platform/intelligence/market/competitive-intelligence";
 import { CustomerDemandIntelligence } from "@/lib/platform/intelligence/market/customer-demand-intelligence";
 import { DemographicIntelligence } from "@/lib/platform/intelligence/market/demographic-intelligence";
 import { EconomicTrendIntelligence } from "@/lib/platform/intelligence/market/economic-trend-intelligence";
@@ -81,7 +81,7 @@ export type MarketEngineDependencies = MarketDependencies;
 
 export class MarketIntelligenceEngineImpl implements MarketEngineContract {
   private readonly industryIntelligence: IndustryIntelligenceContract;
-  private readonly competitiveIntelligence: CompetitiveIntelligenceContract;
+  private readonly competitiveIntelligence: MarketCompetitiveIntelligenceContract;
   private readonly marketSizeIntelligence: MarketSizeIntelligenceContract;
   private readonly pricingIntelligence: PricingIntelligenceContract;
   private readonly customerDemandIntelligence: CustomerDemandIntelligenceContract;
@@ -113,7 +113,7 @@ export class MarketIntelligenceEngineImpl implements MarketEngineContract {
     this.createId = d.createId ?? defaultCreateId;
     this.now = d.now ?? (() => new Date());
     this.industryIntelligence = d.industryIntelligence ?? new IndustryIntelligence();
-    this.competitiveIntelligence = d.competitiveIntelligence ?? new CompetitiveIntelligence();
+    this.competitiveIntelligence = d.competitiveIntelligence ?? new MarketCompetitiveIntelligence();
     this.marketSizeIntelligence = d.marketSizeIntelligence ?? new MarketSizeIntelligence();
     this.pricingIntelligence = d.pricingIntelligence ?? new PricingIntelligence();
     this.customerDemandIntelligence = d.customerDemandIntelligence ?? new CustomerDemandIntelligence();

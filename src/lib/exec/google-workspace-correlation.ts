@@ -4,12 +4,12 @@
 
 import { correlateGoogleWorkspace } from "@/lib/platform/integrations/connectors/google-workspace/correlation";
 import type { GoogleWorkspaceCorrelation } from "@/lib/platform/integrations/connectors/google-workspace/correlation";
-import { DEFAULT_EXEC_SCOPE } from "@/lib/exec/intelligence";
+import { DEMO_EXEC_ORGANIZATION_ID } from "@/lib/exec/scope";
 
 export type { GoogleWorkspaceCorrelation };
 
 export function resolveGoogleWorkspaceCorrelation(
-  organizationId: string = DEFAULT_EXEC_SCOPE.organizationId
+  organizationId: string = DEMO_EXEC_ORGANIZATION_ID
 ): GoogleWorkspaceCorrelation {
   return correlateGoogleWorkspace(organizationId);
 }

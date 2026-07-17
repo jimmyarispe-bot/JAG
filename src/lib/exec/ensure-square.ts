@@ -6,7 +6,7 @@
 import { cache } from "react";
 import { getIntegrationManagement } from "@/lib/exec/integration-platform";
 import { squareStore } from "@/lib/platform/integrations/connectors/square";
-import { DEFAULT_EXEC_SCOPE } from "@/lib/exec/intelligence";
+import { getExecRuntime } from "@/lib/exec/scope";
 
 export type EnsureSquareResult = {
   snapshot: ReturnType<typeof squareStore.get>;
@@ -15,7 +15,8 @@ export type EnsureSquareResult = {
 
 export const ensureSquareSynced = cache(async (): Promise<EnsureSquareResult> => {
   const management = await getIntegrationManagement();
-  const orgId = DEFAULT_EXEC_SCOPE.organizationId;
+  const { scope } = await getExecRuntime();
+  const orgId = scope.organizationId;
   const hadData = squareStore.hasLiveData(orgId);
 
   if (!hadData) {
@@ -24,7 +25,7 @@ export const ensureSquareSynced = cache(async (): Promise<EnsureSquareResult> =>
       management.platform.persistence.getConfiguration(instanceId) ??
       (await management.connections.register({
         connectorId: "square",
-        scope: { ...DEFAULT_EXEC_SCOPE },
+        scope: { ...scope },
         actor: "exec-square",
         settings: { environment: "sandbox" },
       }));
