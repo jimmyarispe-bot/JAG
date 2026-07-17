@@ -82,6 +82,53 @@ describe("SharedIntelligenceContextBuilder", () => {
     expect(context.builtAt).toEqual(expect.any(String));
   });
 
+  it("loads independent providers concurrently", async () => {
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let inFlight = 0;
+    let maxInFlight = 0;
+
+    const delayProvider = <T>(
+      key: string,
+      section: T
+    ): SharedIntelligenceContextProvider<T> => ({
+      key,
+      async load() {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await sleep(25);
+        inFlight -= 1;
+        return section;
+      },
+    });
+
+    const req = makeRequest();
+    const builder = new SharedIntelligenceContextBuilder({
+      executive: delayProvider("executive", {
+        ...createEmptyExecutiveContextSection(req),
+        available: true,
+      }),
+      finance: delayProvider("finance", {
+        ...createEmptyFinanceContextSection(req),
+        available: true,
+      }),
+      student: delayProvider("student", {
+        ...createEmptyStudentContextSection(req),
+        available: true,
+      }),
+      organization: delayProvider("organization", {
+        ...createEmptyOrganizationContextSection(req),
+        available: true,
+      }),
+    });
+
+    const context = await builder.build(req);
+
+    expect(context.errors).toEqual([]);
+    expect(context.executive?.available).toBe(true);
+    expect(context.finance?.available).toBe(true);
+    expect(maxInFlight).toBe(4);
+  });
+
   it("supports dependency injection of providers", async () => {
     const executiveLoad = vi.fn(async (request: SharedIntelligenceContextRequest) => ({
       ...createEmptyExecutiveContextSection(request),

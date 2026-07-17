@@ -64,6 +64,70 @@ describe("Intelligence Platform Infrastructure (Sprint 027)", () => {
 
     expect(registry.resolveOrder()).toEqual(["a", "b", "c"]);
     expect(registry.resolveOrder(["c"])).toEqual(["a", "b", "c"]);
+    expect(registry.resolveWaves()).toEqual([["a"], ["b"], ["c"]]);
+  });
+
+  it("groups independent siblings into concurrent Kahn waves", () => {
+    const registry = createIntelligenceRegistry();
+    registry.register(makeModule("root"));
+    registry.register(makeModule("left", ["root"]));
+    registry.register(makeModule("right", ["root"]));
+    registry.register(makeModule("leaf", ["left", "right"]));
+
+    expect(registry.resolveWaves()).toEqual([
+      ["root"],
+      ["left", "right"],
+      ["leaf"],
+    ]);
+    expect(registry.resolveOrder()).toEqual(["root", "left", "right", "leaf"]);
+  });
+
+  it("executes sibling modules concurrently within a wave", async () => {
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let inFlight = 0;
+    let maxInFlight = 0;
+
+    const slowSibling = (id: string, deps: string[]): IntelligenceModule => ({
+      ...makeModule(id, deps),
+      async execute(context) {
+        const startedAt = new Date().toISOString();
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await sleep(25);
+        inFlight -= 1;
+        context.set(`result:${id}`, { id });
+        return {
+          moduleId: id,
+          ok: true,
+          startedAt,
+          completedAt: new Date().toISOString(),
+          durationMs: 25,
+          data: { id },
+        };
+      },
+    });
+
+    const platform = createIntelligencePlatform({
+      registerDefaults: false,
+      providers: [
+        createIntelligenceProvider("siblings", [
+          makeModule("root"),
+          slowSibling("left", ["root"]),
+          slowSibling("right", ["root"]),
+        ]),
+      ],
+      clock: {
+        now: () => new Date(),
+        createId: (prefix) => `${prefix}-wave`,
+      },
+    });
+
+    const result = await platform.run({ bypassCache: true });
+
+    expect(result.status).toBe("completed");
+    expect(result.moduleOrder).toEqual(["root", "left", "right"]);
+    expect(maxInFlight).toBe(2);
+    expect(result.metadata?.maxWaveWidth).toBe(2);
   });
 
   it("detects duplicate, missing, and cyclic dependencies", () => {
@@ -211,7 +275,12 @@ describe("Intelligence Platform Infrastructure (Sprint 027)", () => {
       bypassCache: true,
       scope: { organizationId: "org-1" },
     });
-    expect(partial.moduleOrder).toEqual(["organization-health", "financial"]);
+    expect(partial.moduleOrder).toEqual([
+      "organization-dna",
+      "oios-core",
+      "organization-health",
+      "financial",
+    ]);
     expect(partial.status).toBe("completed");
   });
 

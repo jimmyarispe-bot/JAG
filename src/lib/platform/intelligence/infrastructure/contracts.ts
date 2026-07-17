@@ -75,6 +75,11 @@ export interface IntelligenceRegistry {
   list(): IntelligenceModule[];
   ids(): IntelligenceModuleId[];
   resolveOrder(moduleIds?: IntelligenceModuleId[]): IntelligenceModuleId[];
+  /**
+   * Kahn topological waves — modules within a wave have no mutual dependencies
+   * and may execute concurrently.
+   */
+  resolveWaves(moduleIds?: IntelligenceModuleId[]): IntelligenceModuleId[][];
   clear(): void;
   size(): number;
 }

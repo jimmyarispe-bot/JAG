@@ -41,8 +41,8 @@ await platform.run({ moduleIds: ["founder", "executive-graph"] });
 |------------|-----------|
 | Module contract | `IntelligenceModule` |
 | Automatic registration | `IntelligenceProvider` + `registerProviders` |
-| Dependency ordering | `IntelligenceRegistry.resolveOrder` |
-| Execution pipeline | `IntelligencePipeline` |
+| Dependency ordering | `IntelligenceRegistry.resolveOrder` / `resolveWaves` |
+| Execution pipeline | `IntelligencePipeline` (concurrent Kahn waves) |
 | Execution context | `IntelligenceExecutionContext` |
 | Lifecycle management | `IntelligenceLifecycle` |
 | Execution timing / metrics | `IntelligenceMetrics` |

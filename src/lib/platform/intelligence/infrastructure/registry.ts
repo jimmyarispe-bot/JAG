@@ -129,6 +129,14 @@ export class IntelligenceRegistryImpl implements IntelligenceRegistryContract {
    * When `moduleIds` is provided, only those modules (plus their transitive deps) are included.
    */
   resolveOrder(moduleIds?: IntelligenceModuleId[]): IntelligenceModuleId[] {
+    return this.resolveWaves(moduleIds).flat();
+  }
+
+  /**
+   * Resolve Kahn waves for concurrent-safe sibling execution.
+   * Modules in the same wave have no dependencies on each other.
+   */
+  resolveWaves(moduleIds?: IntelligenceModuleId[]): IntelligenceModuleId[][] {
     const targetIds =
       moduleIds && moduleIds.length > 0
         ? this.collectWithDependencies(moduleIds)
@@ -171,26 +179,32 @@ export class IntelligenceRegistryImpl implements IntelligenceRegistryContract {
       }
     }
 
-    const queue = [...targetIds]
+    let ready = [...targetIds]
       .filter((id) => (indegree.get(id) ?? 0) === 0)
       .sort((a, b) => a.localeCompare(b));
-    const ordered: IntelligenceModuleId[] = [];
+    const waves: IntelligenceModuleId[][] = [];
+    let scheduled = 0;
 
-    while (queue.length > 0) {
-      const id = queue.shift()!;
-      ordered.push(id);
-      const next = (adjacency.get(id) ?? []).slice().sort((a, b) => a.localeCompare(b));
-      for (const child of next) {
-        const nextDegree = (indegree.get(child) ?? 0) - 1;
-        indegree.set(child, nextDegree);
-        if (nextDegree === 0) {
-          queue.push(child);
-          queue.sort((a, b) => a.localeCompare(b));
+    while (ready.length > 0) {
+      const wave = ready.slice() as IntelligenceModuleId[];
+      waves.push(wave);
+      scheduled += wave.length;
+      const nextReady: string[] = [];
+      for (const id of wave) {
+        const next = (adjacency.get(id) ?? []).slice().sort((a, b) => a.localeCompare(b));
+        for (const child of next) {
+          const nextDegree = (indegree.get(child) ?? 0) - 1;
+          indegree.set(child, nextDegree);
+          if (nextDegree === 0) {
+            nextReady.push(child);
+          }
         }
       }
+      ready = nextReady.sort((a, b) => a.localeCompare(b));
     }
 
-    if (ordered.length !== targetIds.length) {
+    if (scheduled !== targetIds.length) {
+      const ordered = waves.flat();
       const remaining = targetIds.filter((id) => !ordered.includes(id));
       throw new IntelligenceRegistryError({
         code: "CYCLIC_DEPENDENCY",
@@ -199,7 +213,7 @@ export class IntelligenceRegistryImpl implements IntelligenceRegistryContract {
       });
     }
 
-    return ordered;
+    return waves;
   }
 
   private collectWithDependencies(

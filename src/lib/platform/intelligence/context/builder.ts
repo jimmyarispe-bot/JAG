@@ -115,30 +115,18 @@ export class SharedIntelligenceContextBuilder {
     const cache = this.createCache();
     const errors: SharedContextProviderError[] = [];
 
-    const executive = await this.loadSection(
-      cache,
-      this.executive.key,
-      () => this.executive.load(request),
-      errors
-    );
-    const finance = await this.loadSection(
-      cache,
-      this.finance.key,
-      () => this.finance.load(request),
-      errors
-    );
-    const student = await this.loadSection(
-      cache,
-      this.student.key,
-      () => this.student.load(request),
-      errors
-    );
-    const organization = await this.loadSection(
-      cache,
-      this.organization.key,
-      () => this.organization.load(request),
-      errors
-    );
+    // Providers are independent — load in parallel (Phase D).
+    const [executive, finance, student, organization] = await Promise.all([
+      this.loadSection(cache, this.executive.key, () => this.executive.load(request), errors),
+      this.loadSection(cache, this.finance.key, () => this.finance.load(request), errors),
+      this.loadSection(cache, this.student.key, () => this.student.load(request), errors),
+      this.loadSection(
+        cache,
+        this.organization.key,
+        () => this.organization.load(request),
+        errors
+      ),
+    ]);
 
     const context: SharedIntelligenceContext = {
       requestId: request.runId ?? `shared-ctx-${Date.now()}`,
