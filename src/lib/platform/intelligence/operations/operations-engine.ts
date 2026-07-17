@@ -66,7 +66,7 @@ import {
   type OperationsResult,
 } from "@/lib/platform/intelligence/operations/types";
 
-export interface OperationsEngineDependencies extends OperationsDependencies {}
+export type OperationsEngineDependencies = OperationsDependencies;
 
 /**
  * OperationsIntelligenceEngine — core orchestrator for operations outputs.

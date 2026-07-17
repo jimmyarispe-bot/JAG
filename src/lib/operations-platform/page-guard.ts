@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { canAccessOperationsCenter } from "@/lib/operations-platform/access";
+import { hasAnyPermission, hasPermission } from "@/lib/platform/identity/authorization-service";
 import type { PermissionKey } from "@/lib/platform/identity/types";
 
 export async function requireOperationsPermission(permission?: PermissionKey | PermissionKey[]) {
@@ -9,8 +10,10 @@ export async function requireOperationsPermission(permission?: PermissionKey | P
 
   if (permission) {
     const keys = Array.isArray(permission) ? permission : [permission];
-    const isSuper = ctx.isEnterpriseAdmin || ctx.permissions.includes("operations.manage") || ctx.permissions.includes("cloud.admin");
-    const allowed = isSuper || keys.some((k) => ctx.permissions.includes(k));
+    const allowed =
+      hasPermission(ctx, "operations.manage") ||
+      hasPermission(ctx, "cloud.admin") ||
+      hasAnyPermission(ctx, keys);
     if (!allowed) redirect("/operations");
   }
 

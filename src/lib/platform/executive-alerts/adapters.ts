@@ -148,14 +148,14 @@ const ACTIVITY_ALERT_TYPES = new Set([
 ]);
 
 function categoryFromActivity(event: ActivityAlertLike): ExecutiveAlertCategory {
-  const module = (event.module_key ?? "").toLowerCase();
+  const domainModule = (event.module_key ?? "").toLowerCase();
   const type = (event.event_type ?? "").toLowerCase();
-  if (module === "finance" || type.startsWith("fi.")) return "Financial";
-  if (module === "admissions" || type.startsWith("admissions.")) return "Admissions";
-  if (module === "hr" || type.startsWith("hr.")) return "Staffing";
-  if (module === "compliance" || type.startsWith("compliance.")) return "Compliance";
-  if (module === "identity" || type.includes("security")) return "Security";
-  if (module === "sis" || type.includes("enrollment")) return "Enrollment";
+  if (domainModule === "finance" || type.startsWith("fi.")) return "Financial";
+  if (domainModule === "admissions" || type.startsWith("admissions.")) return "Admissions";
+  if (domainModule === "hr" || type.startsWith("hr.")) return "Staffing";
+  if (domainModule === "compliance" || type.startsWith("compliance.")) return "Compliance";
+  if (domainModule === "identity" || type.includes("security")) return "Security";
+  if (domainModule === "sis" || type.includes("enrollment")) return "Enrollment";
   if (type.startsWith("executive.")) return "Executive";
   return "Operations";
 }
@@ -266,6 +266,7 @@ export interface MissionControlItemLike {
   title: string;
   body?: string | null;
   severity?: string | null;
+  /** Source platform module key (e.g. finance, admissions). */
   module?: string | null;
   item_type?: string | null;
   entity_type?: string | null;
@@ -277,8 +278,8 @@ export interface MissionControlItemLike {
   metadata?: Record<string, unknown> | null;
 }
 
-function categoryFromMcModule(module: string | null | undefined): ExecutiveAlertCategory {
-  switch ((module ?? "").toLowerCase()) {
+function categoryFromMcModule(domainModule: string | null | undefined): ExecutiveAlertCategory {
+  switch ((domainModule ?? "").toLowerCase()) {
     case "finance":
     case "financial_intelligence":
       return "Financial";

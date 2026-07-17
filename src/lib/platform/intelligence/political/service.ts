@@ -2,7 +2,7 @@ import type { PoliticalDependencies, PoliticalIntelligenceService as Contract, P
 import { PoliticalIntelligenceEngineImpl } from "@/lib/platform/intelligence/political/political-engine";
 import type { PoliticalQueryRequest, PoliticalQueryResult, PoliticalRequest, PoliticalResult } from "@/lib/platform/intelligence/political/types";
 
-export interface PoliticalServiceDependencies extends PoliticalDependencies {}
+export type PoliticalServiceDependencies = PoliticalDependencies;
 
 export class PoliticalIntelligenceServiceImpl implements Contract {
   private engine: PoliticalIntelligenceEngineImpl;

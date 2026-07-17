@@ -66,8 +66,7 @@ import {
   type BusinessModelResult,
 } from "@/lib/platform/intelligence/business-model/types";
 
-export interface BusinessModelEngineDependencies
-  extends BusinessModelDependencies {}
+export type BusinessModelEngineDependencies = BusinessModelDependencies;
 
 /**
  * BusinessModelIntelligenceEngine — core orchestrator for business model outputs.

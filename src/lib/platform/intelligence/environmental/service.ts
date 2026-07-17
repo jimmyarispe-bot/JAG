@@ -2,7 +2,7 @@ import type { EnvironmentalDependencies, EnvironmentalIntelligenceService as Con
 import { EnvironmentalIntelligenceEngineImpl } from "@/lib/platform/intelligence/environmental/environmental-engine";
 import type { EnvironmentalQueryRequest, EnvironmentalQueryResult, EnvironmentalRequest, EnvironmentalResult } from "@/lib/platform/intelligence/environmental/types";
 
-export interface EnvironmentalServiceDependencies extends EnvironmentalDependencies {}
+export type EnvironmentalServiceDependencies = EnvironmentalDependencies;
 
 export class EnvironmentalIntelligenceServiceImpl implements Contract {
   private engine: EnvironmentalIntelligenceEngineImpl;

@@ -60,12 +60,12 @@ export class IntelligenceLifecycleImpl implements IntelligenceLifecycleContract 
     this.platformPhase = "initializing";
     const order = this.registry.resolveOrder();
     for (const moduleId of order) {
-      const module = this.registry.get(moduleId);
-      if (!module) continue;
+      const domainModule = this.registry.get(moduleId);
+      if (!domainModule) continue;
       this.setPhase(moduleId, "initializing");
       try {
-        if (module.initialize) {
-          await module.initialize(context);
+        if (domainModule.initialize) {
+          await domainModule.initialize(context);
         }
         this.setPhase(moduleId, "ready");
         this.telemetry?.emit("module.initialized", {
@@ -91,12 +91,12 @@ export class IntelligenceLifecycleImpl implements IntelligenceLifecycleContract 
     this.platformPhase = "shutting_down";
     const order = [...this.registry.resolveOrder()].reverse();
     for (const moduleId of order) {
-      const module = this.registry.get(moduleId);
-      if (!module) continue;
+      const domainModule = this.registry.get(moduleId);
+      if (!domainModule) continue;
       this.setPhase(moduleId, "shutting_down");
       try {
-        if (module.shutdown) {
-          await module.shutdown();
+        if (domainModule.shutdown) {
+          await domainModule.shutdown();
         }
         this.setPhase(moduleId, "stopped");
         this.telemetry?.emit("module.shutdown", { moduleId });

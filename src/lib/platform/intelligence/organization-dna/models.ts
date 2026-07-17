@@ -23,6 +23,15 @@ import {
   COMPANY_BUILDER_ARTIFACT_KINDS,
   ORGANIZATION_STAGES,
 } from "@/lib/platform/intelligence/organization-dna/types";
+import {
+  clamp01 as sharedClamp01,
+  clampUnchecked,
+  emptyGraphScope,
+  levelFromValueFunding,
+  priorityFromRisk as sharedPriorityFromRisk,
+  priorityFromScoreHighHealthy,
+} from "@/lib/platform/intelligence/common";
+
 
 /** Default baseline when no upstream signals are supplied. */
 export function defaultOrganizationDnaBaseline(): OrganizationDnaBaseline {
@@ -216,38 +225,17 @@ export function readinessFromScore(score: number): ReadinessStatus {
 }
 
 /** Map numeric score (0–100) to priority band (higher score = healthier = lower urgency). */
-export function priorityFromScore(score: number): DnaPriorityBand {
-  if (score >= 85) return "monitor";
-  if (score >= 70) return "low";
-  if (score >= 55) return "medium";
-  if (score >= 40) return "high";
-  return "critical";
-}
+export function priorityFromScore(score: number): DnaPriorityBand { return priorityFromScoreHighHealthy(score); }
 
 /** Map risk score (0–1) to priority band. */
-export function priorityFromRisk(score: number): DnaPriorityBand {
-  if (score >= 0.75) return "critical";
-  if (score >= 0.55) return "high";
-  if (score >= 0.35) return "medium";
-  if (score >= 0.2) return "low";
-  return "monitor";
-}
+export function priorityFromRisk(risk: number): DnaPriorityBand { return sharedPriorityFromRisk(risk); }
 
 /** Confidence level from 0–1 value. */
-export function levelFromValue(value: number): DnaConfidenceLevel {
-  if (value >= 0.8) return "high";
-  if (value >= 0.55) return "medium";
-  if (value >= 0.25) return "low";
-  return "unknown";
-}
+export function levelFromValue(value: number): DnaConfidenceLevel { return levelFromValueFunding(value); }
 
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
+export const clamp = clampUnchecked;
 
-export function clamp01(value: number): number {
-  return clamp(value, 0, 1);
-}
+export const clamp01 = sharedClamp01;
 
 /** Stage index helpers. */
 export function stageIndex(stage: OrganizationStage): number {
@@ -295,9 +283,7 @@ export function detectStageFromSignals(
   return "startup";
 }
 
-export function emptyDnaScope(): GraphScope {
-  return { organizationId: null, schoolId: null };
-}
+export const emptyDnaScope = (): GraphScope => emptyGraphScope();
 
 /** Aggregated model helpers for consumers. */
 export const organizationDnaModels = {

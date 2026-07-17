@@ -1,10 +1,14 @@
 /**
- * 24 — MFA architecture readiness (no enforcement yet).
- * Tables: user_mfa_settings. Future: wire to Supabase Auth MFA or custom provider.
+ * MFA settings + privileged permission policy.
+ * Enforcement: `mfa-enforce.ts` via dashboard route guard (B.1).
  */
 
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import type { MfaMethod } from "@/lib/platform/identity/types";
+import {
+  buildAuthzSnapshot,
+  hasAnyPermission,
+} from "@/lib/platform/identity/authorization-service";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -18,6 +22,17 @@ export interface MfaSettings {
   passkey_enabled: boolean;
 }
 
+/** Privileged catalog permissions that imply MFA readiness policy. */
+export const MFA_REQUIRED_PERMISSIONS = [
+  "SYSTEM_ADMIN_ACCESS",
+  "FINANCE_ACCESS",
+  "HR_ACCESS",
+  "AUDIT_ACCESS",
+  "USER_MANAGEMENT_ACCESS",
+  "JAG_ACCESS",
+] as const;
+
+/** @deprecated Use MFA_REQUIRED_PERMISSIONS — role lists are not authorization inputs. */
 export const MFA_EXECUTIVE_ROLES = ["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR", "FINANCE", "HR"] as const;
 
 export async function getMfaSettings(supabase: AuthClient, userId: string) {
@@ -30,7 +45,7 @@ export async function getMfaSettings(supabase: AuthClient, userId: string) {
   return data as MfaSettings | null;
 }
 
-/** Future sprint: enforce before sensitive actions */
+/** Whether MFA policy applies to this user (settings flag or privileged permissions). */
 export async function isMfaRequiredForUser(
   supabase: AuthClient,
   userId: string,
@@ -38,7 +53,7 @@ export async function isMfaRequiredForUser(
 ): Promise<boolean> {
   const settings = await getMfaSettings(supabase, userId);
   if (settings?.mfa_required) return true;
-  return roles.some((r) => MFA_EXECUTIVE_ROLES.includes(r as (typeof MFA_EXECUTIVE_ROLES)[number]));
+  return hasAnyPermission(buildAuthzSnapshot(userId, roles), MFA_REQUIRED_PERMISSIONS);
 }
 
 export async function markMfaMethodEnabled(

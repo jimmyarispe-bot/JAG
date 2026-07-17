@@ -293,13 +293,6 @@ export interface MarketQueries {
   ask(result: T.MarketResult, request: T.MarketQueryRequest): T.MarketQueryResult;
 }
 
-export interface MarketRegistry {
-  register(domain: string, capability: string): void;
-  list(): T.MarketPublisher[];
-  isRegistered(domain: string): boolean;
-  clear(): void;
-}
-
 export interface MarketRepository {
   save(result: T.MarketResult): T.MarketResult;
   get(requestId: string): T.MarketResult | null;
@@ -307,6 +300,13 @@ export interface MarketRepository {
   remove(requestId: string): boolean;
   saveHistory(record: T.MarketHistoryRecord): T.MarketHistoryRecord;
   listHistory(scope?: Partial<T.GraphScope>): T.MarketHistoryRecord[];
+  clear(): void;
+}
+
+export interface MarketRegistry {
+  register(domain: string, capability: string): void;
+  list(): T.MarketPublisher[];
+  isRegistered(domain: string): boolean;
   clear(): void;
 }
 

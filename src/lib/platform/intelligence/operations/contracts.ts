@@ -192,13 +192,6 @@ export interface OperationsQueries {
   ): T.OperationsQueryResult;
 }
 
-export interface OperationsRegistry {
-  register(domain: string, capability: string): void;
-  list(): T.OperationsPublisher[];
-  isRegistered(domain: string): boolean;
-  clear(): void;
-}
-
 export interface OperationsRepository {
   save(result: T.OperationsResult): T.OperationsResult;
   get(requestId: string): T.OperationsResult | null;
@@ -208,6 +201,13 @@ export interface OperationsRepository {
     record: T.OperationsHistoryRecord
   ): T.OperationsHistoryRecord;
   listHistory(scope?: Partial<T.GraphScope>): T.OperationsHistoryRecord[];
+  clear(): void;
+}
+
+export interface OperationsRegistry {
+  register(domain: string, capability: string): void;
+  list(): T.OperationsPublisher[];
+  isRegistered(domain: string): boolean;
   clear(): void;
 }
 

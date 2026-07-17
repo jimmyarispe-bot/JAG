@@ -6,6 +6,7 @@ export interface OrganizationalImprovementEngine {
 }
 export type ImprovementEngine = OrganizationalImprovementEngine;
 
+/** Legacy public Improvement* names; package is organizational-improvement. */
 export interface ImprovementIntelligenceService {
   build(request: T.ImprovementRequest): T.ImprovementResult;
   query(result: T.ImprovementResult, request: T.ImprovementQueryRequest): T.ImprovementQueryResult;
@@ -13,6 +14,7 @@ export interface ImprovementIntelligenceService {
 }
 export type ImprovementService = ImprovementIntelligenceService;
 
+/** Legacy public Improvement* names; package is organizational-improvement. */
 export interface ImprovementRepository {
   save(result: T.ImprovementResult): T.ImprovementResult;
   get(requestId: string): T.ImprovementResult | null;
@@ -32,16 +34,16 @@ export interface SourceAnalyzer {
   }): T.ImprovementRecord[];
 }
 
-export interface OrganizationHealthSource extends SourceAnalyzer {}
-export interface ExecutiveGraphSource extends SourceAnalyzer {}
-export interface ExecutiveDecisionSource extends SourceAnalyzer {}
-export interface PredictiveSource extends SourceAnalyzer {}
-export interface HumanCapitalSource extends SourceAnalyzer {}
-export interface RevenueSource extends SourceAnalyzer {}
-export interface FundingSource extends SourceAnalyzer {}
-export interface OpportunitySource extends SourceAnalyzer {}
-export interface BoardGovernanceSource extends SourceAnalyzer {}
-export interface FutureDomainsSource extends SourceAnalyzer {}
+export type OrganizationHealthSource = SourceAnalyzer;
+export type ExecutiveGraphSource = SourceAnalyzer;
+export type ExecutiveDecisionSource = SourceAnalyzer;
+export type PredictiveSource = SourceAnalyzer;
+export type HumanCapitalSource = SourceAnalyzer;
+export type RevenueSource = SourceAnalyzer;
+export type FundingSource = SourceAnalyzer;
+export type OpportunitySource = SourceAnalyzer;
+export type BoardGovernanceSource = SourceAnalyzer;
+export type FutureDomainsSource = SourceAnalyzer;
 
 export interface ImprovementSourceEngine {
   discover(input: BaselineInput & {

@@ -25,7 +25,7 @@ import {
   getSubstitutes,
   getVolunteers,
 } from "@/lib/hr/queries";
-import { canAccessHrAdmin } from "@/lib/hr/access";
+import { canAccessHrAdmin, canRunPayroll } from "@/lib/hr/access";
 import { getRecruitingPipeline, getComplianceCenter } from "@/lib/hr/employee-profile";
 import { getWorkforceAnalytics, getOrgChart } from "@/lib/hr/analytics";
 import { executeWorkspace } from "@/lib/platform/execution-engine";
@@ -106,7 +106,7 @@ async function HrLegacyView({ view, ctx }: { view: string; ctx: NonNullable<Awai
         orgChart={orgChart}
         substitutes={substitutes}
         volunteers={volunteers}
-        canRunPayroll={ctx.permissions.includes("payroll.run") || ctx.permissions.includes("finance.payroll") || ctx.isEnterpriseAdmin}
+        canRunPayroll={canRunPayroll(ctx)}
       />
     </div>
   );

@@ -78,7 +78,7 @@ import {
   type KnowledgeResult,
 } from "@/lib/platform/intelligence/knowledge/types";
 
-export interface KnowledgeEngineDependencies extends KnowledgeDependencies {}
+export type KnowledgeEngineDependencies = KnowledgeDependencies;
 
 /**
  * KnowledgeIntelligenceEngine — core orchestrator for knowledge outputs.

@@ -192,7 +192,7 @@ function resolveVisibility(
   snapshot: JagOrgHierarchySnapshot
 ): JagOrganizationContext["visibility"] {
   const accessibleSchoolIds = identity.accessibleSchoolIds;
-  const hasUnrestricted = identity.hasUnrestrictedSchoolAccess || identity.isEnterpriseAdmin;
+  const hasUnrestricted = identity.hasUnrestrictedSchoolAccess;
 
   const schoolSet = new Set(accessibleSchoolIds);
   const campusIds = snapshot.campuses
@@ -236,7 +236,7 @@ function resolveAuthority(identity: IdentityContext): JagOrganizationContext["au
     }
   }
 
-  if (identity.isEnterpriseAdmin) {
+  if (identity.hasUnrestrictedSchoolAccess) {
     for (const p of identity.permissions) {
       inherited.add(p);
     }
@@ -311,7 +311,7 @@ export function buildJagOrganizationContextFromIdentity(
   const visibleTree = filterVisibleOrganizationTree(
     tree,
     identity.accessibleSchoolIds,
-    identity.hasUnrestrictedSchoolAccess || identity.isEnterpriseAdmin
+    identity.hasUnrestrictedSchoolAccess
   );
 
   return {
@@ -352,7 +352,7 @@ export async function resolveJagOrganizationContext(
     const visibleTree = filterVisibleOrganizationTree(
       tree,
       identity.accessibleSchoolIds,
-      identity.hasUnrestrictedSchoolAccess || identity.isEnterpriseAdmin
+      identity.hasUnrestrictedSchoolAccess
     );
 
     const userId = options.employeeUserId ?? identity.effectiveUserId;

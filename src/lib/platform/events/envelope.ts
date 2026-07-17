@@ -33,6 +33,8 @@ export function buildEventEnvelope(input: BuildEventEnvelopeInput): PlatformEven
     deliveryMode: input.dispatchMode,
     scope: input.scope,
     busVersion: EVENT_BUS_VERSION,
+    requestId: input.requestId ?? input.metadata?.requestId,
+    applicationId: input.applicationId ?? input.metadata?.applicationId,
   };
 
   return {

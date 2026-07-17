@@ -1,25 +1,24 @@
 import type { IdentityContext } from "@/lib/platform/identity/context";
+import { hasAnyPermission } from "@/lib/platform/identity/authorization-service";
 
 export function canViewEdi(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("edi.view") ||
-    ctx.permissions.includes("edi.executive") ||
-    ctx.permissions.includes("edi.manage") ||
-    ctx.permissions.includes("edi.board") ||
-    ctx.permissions.includes("executive.intelligence") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, [
+    "edi.view",
+    "edi.executive",
+    "edi.manage",
+    "edi.board",
+    "executive.intelligence",
+  ]);
 }
 
 export function canManageEdi(ctx: IdentityContext) {
-  return ctx.permissions.includes("edi.manage") || ctx.permissions.includes("edi.executive") || ctx.isEnterpriseAdmin;
+  return hasAnyPermission(ctx, ["edi.manage", "edi.executive"]);
 }
 
 export function canAccessEdiBoard(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("edi.board") ||
-    ctx.permissions.includes("executive.board_reports") ||
-    ctx.permissions.includes("edi.executive") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, [
+    "edi.board",
+    "executive.board_reports",
+    "edi.executive",
+  ]);
 }

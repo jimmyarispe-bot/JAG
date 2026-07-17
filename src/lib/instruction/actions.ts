@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { hasAnyPermission } from "@/lib/platform/identity/authorization-service";
 import { getTeacherEmployeeId } from "@/lib/teacher/queries";
 import { writePlatformAudit } from "@/lib/platform/automation/audit";
 import { ensureInstructionalTeam, updateGrowthGoalProgress } from "@/lib/instruction/growth-plan";
@@ -15,9 +16,8 @@ import { enqueueGrowthGoalReviewReminder } from "@/lib/instruction/automation";
 async function requireInstructionPermission(permission: string) {
   const ctx = await getIdentityContext();
   if (
-    !ctx?.permissions.includes(permission) &&
-    !ctx?.permissions.includes("teacher.manage") &&
-    !ctx?.isEnterpriseAdmin
+    !ctx ||
+    !hasAnyPermission(ctx, [permission, "instruction.executive", "SYSTEM_ADMIN_ACCESS"])
   ) {
     return { error: "Permission denied" as const, ctx: null };
   }

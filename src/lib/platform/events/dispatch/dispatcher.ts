@@ -2,7 +2,12 @@ import {
   buildEventAuditEntry,
   recordEventAuditEntry,
 } from "@/lib/platform/events/audit/audit";
-import { resolveEventSubscribers } from "@/lib/platform/events/subscriber/subscribe";
+import { getEventBusAnalytics } from "@/lib/platform/events/analytics";
+import { invokeWithRetry } from "@/lib/platform/events/dispatch/delivery";
+import {
+  resolveEventSubscribers,
+  unsubscribeFromEvents,
+} from "@/lib/platform/events/subscriber/subscribe";
 import type {
   EventDispatchResult,
   EventHandlerResult,
@@ -19,6 +24,15 @@ type AsyncQueueItem = {
 
 const ASYNC_QUEUE: AsyncQueueItem[] = [];
 let asyncProcessing = false;
+let maxRetryAttempts = 1;
+
+export function setEventDispatchMaxRetries(attempts: number): void {
+  maxRetryAttempts = Math.max(1, attempts);
+}
+
+export function getEventDispatchMaxRetries(): number {
+  return maxRetryAttempts;
+}
 
 export interface EventDispatcher {
   dispatchSync(
@@ -40,19 +54,20 @@ async function invokeSubscriber(
   envelope: PlatformEventEnvelope,
   subscriberKey: string,
   handler: (envelope: PlatformEventEnvelope) => void | Promise<void>,
-  dispatchMode: "sync" | "async"
+  dispatchMode: "sync" | "async",
+  once?: boolean
 ): Promise<EventHandlerResult> {
-  try {
-    await handler(envelope);
-    return { subscriberKey, success: true, dispatchMode };
-  } catch (error) {
-    return {
-      subscriberKey,
-      success: false,
-      dispatchMode,
-      error: error instanceof Error ? error.message : String(error),
-    };
+  const result = await invokeWithRetry(
+    envelope,
+    subscriberKey,
+    handler,
+    dispatchMode,
+    { maxAttempts: maxRetryAttempts }
+  );
+  if (result.success && once) {
+    unsubscribeFromEvents(subscriberKey);
   }
+  return result;
 }
 
 /** Default in-memory event dispatcher — no external message broker. */
@@ -66,16 +81,19 @@ export const defaultEventDispatcher: EventDispatcher = {
         envelope,
         subscriber.subscriberKey,
         subscriber.handler,
-        "sync"
+        "sync",
+        subscriber.once
       );
       results.push(result);
     }
 
+    getEventBusAnalytics().setQueueDepth(ASYNC_QUEUE.length);
     return results;
   },
 
   async dispatchAsync(envelope, scope, domain, subscriberKeys) {
     ASYNC_QUEUE.push({ envelope, scope, domain, subscriberKeys });
+    getEventBusAnalytics().setQueueDepth(ASYNC_QUEUE.length);
   },
 
   async flushAsyncQueue() {
@@ -83,6 +101,7 @@ export const defaultEventDispatcher: EventDispatcher = {
 
     while (ASYNC_QUEUE.length > 0) {
       const item = ASYNC_QUEUE.shift()!;
+      getEventBusAnalytics().setQueueDepth(ASYNC_QUEUE.length);
       const subscribers = resolveEventSubscribers(
         item.envelope,
         "async",
@@ -95,7 +114,8 @@ export const defaultEventDispatcher: EventDispatcher = {
           item.envelope,
           subscriber.subscriberKey,
           subscriber.handler,
-          "async"
+          "async",
+          subscriber.once
         );
         allResults.push(result);
       }
@@ -192,6 +212,7 @@ export function getAsyncEventQueueLength(): number {
 export function clearAsyncEventQueue(): void {
   ASYNC_QUEUE.length = 0;
   asyncProcessing = false;
+  getEventBusAnalytics().setQueueDepth(0);
 }
 
 export function isAsyncEventProcessing(): boolean {

@@ -9,12 +9,27 @@ function deriveKey(secret: string): Buffer {
   return scryptSync(secret, "academyos-vault-v1", KEY_LENGTH);
 }
 
+/**
+ * B.1 — Vault key must be dedicated. Service role fallback removed in production.
+ */
 function getVaultKey(): Buffer {
-  const secret = process.env.VAULT_ENCRYPTION_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!secret) {
+  const dedicated = process.env.VAULT_ENCRYPTION_KEY;
+  if (dedicated && dedicated.length >= 32) {
+    return deriveKey(dedicated);
+  }
+
+  const isProd = process.env.NODE_ENV === "production";
+  if (isProd || process.env.ENFORCE_VAULT_KEY === "true") {
+    throw new Error(
+      "VAULT_ENCRYPTION_KEY (min 32 chars) is required — service role must not be used for vault crypto"
+    );
+  }
+
+  const fallback = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!fallback) {
     throw new Error("VAULT_ENCRYPTION_KEY or SUPABASE_SERVICE_ROLE_KEY required for credential vault");
   }
-  return deriveKey(secret);
+  return deriveKey(fallback);
 }
 
 /** Encrypt a credential secret for storage in encrypted_ref (prefixed enc:v1:). */

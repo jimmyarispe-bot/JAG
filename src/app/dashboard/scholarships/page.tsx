@@ -12,8 +12,11 @@ import {
   getScholarshipFunds,
   getScholarshipStats,
 } from "@/lib/scholarships/queries";
+import { requireFinanceAccess } from "@/lib/platform/identity/page-guard";
 
 export default async function ScholarshipsPage() {
+  // Sprint 008 — Financial Security.
+  await requireFinanceAccess();
   const [applications, stats, funds, awards, schools] = await Promise.all([
     getScholarshipApplications(),
     getScholarshipStats(),

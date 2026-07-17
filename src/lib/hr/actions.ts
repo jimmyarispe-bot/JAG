@@ -8,8 +8,9 @@ import { allocatePayrollFromScheduling } from "@/lib/finance/payroll-allocation"
 import { seedDefaultOnboardingTasks } from "@/lib/hr/automation";
 import { recordFinancialTransaction } from "@/lib/finance/ledger";
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
-import { requirePermission } from "@/lib/platform/identity/permissions";
+import { requirePermission, userHasPermission } from "@/lib/platform/identity/permissions";
 import { resolveSchoolContext } from "@/lib/platform/shared/context";
+import { getTeacherEmployeeId } from "@/lib/teacher/queries";
 
 async function assertHrManage() {
   const supabase = await createAuthClient();
@@ -303,8 +304,23 @@ export async function submitLeaveRequestAction(formData: FormData) {
   const auth = await assertHrSelfServiceOrManage();
   if ("error" in auth) return auth;
   const supabase = auth.supabase;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const requestedEmployeeId = formData.get("employee_id") as string;
+  const canManage = await userHasPermission(supabase, "hr.manage", user.id);
+  if (!canManage) {
+    // A.1 — self-service may only submit for the caller's linked employee record.
+    const selfEmployeeId = await getTeacherEmployeeId(supabase, user.id);
+    if (!selfEmployeeId || selfEmployeeId !== requestedEmployeeId) {
+      return { error: "Forbidden" };
+    }
+  }
+
   const { error } = await supabase.from("leave_requests").insert({
-    employee_id: formData.get("employee_id") as string,
+    employee_id: requestedEmployeeId,
     school_id: formData.get("school_id") as string,
     leave_type: formData.get("leave_type") as string,
     start_date: formData.get("start_date") as string,
@@ -322,10 +338,31 @@ export async function completeOnboardingTaskAction(formData: FormData) {
   const auth = await assertHrSelfServiceOrManage();
   if ("error" in auth) return auth;
   const supabase = auth.supabase;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const taskId = formData.get("task_id") as string;
+  const { data: task } = await supabase
+    .from("hr_onboarding_tasks")
+    .select("id, employee_id")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!task) return { error: "Not found" };
+
+  const canManage = await userHasPermission(supabase, "hr.manage", user.id);
+  if (!canManage) {
+    const selfEmployeeId = await getTeacherEmployeeId(supabase, user.id);
+    if (!selfEmployeeId || selfEmployeeId !== task.employee_id) {
+      return { error: "Forbidden" };
+    }
+  }
+
   const { error } = await supabase
     .from("hr_onboarding_tasks")
     .update({ status: "completed", completed_at: new Date().toISOString() })
-    .eq("id", formData.get("task_id") as string);
+    .eq("id", taskId);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/employee");
   revalidatePath("/dashboard/hr");

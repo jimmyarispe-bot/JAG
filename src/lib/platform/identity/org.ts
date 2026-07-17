@@ -1,46 +1,56 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { resolvePrimaryOrganizationId } from "@/lib/platform/identity/org-membership";
 
-export async function getOrganizationHierarchy() {
+export async function getOrganizationHierarchy(organizationId?: string | null) {
   const supabase = await createAuthClient();
 
-  const { data: org } = await supabase
-    .from("org_organizations")
-    .select("*")
-    .eq("slug", "the-academy-way")
-    .maybeSingle();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data: regions } = await supabase
-    .from("org_regions")
-    .select("*")
-    .order("name");
+  const resolvedOrgId =
+    organizationId ?? (await resolvePrimaryOrganizationId(user?.id, supabase));
 
-  const { data: schools } = await supabase
-    .from("schools")
-    .select("id, name, organization_id, region_id, timezone")
-    .order("name");
+  const orgQuery = resolvedOrgId
+    ? supabase.from("org_organizations").select("*").eq("id", resolvedOrgId)
+    : supabase.from("org_organizations").select("*").eq("slug", "the-academy-way");
 
-  const { data: campuses } = await supabase
-    .from("campuses")
-    .select("id, school_id, name, code, is_primary, status")
-    .order("name");
+  const { data: org } = await orgQuery.maybeSingle();
 
-  const { data: programs } = await supabase
-    .from("org_programs")
-    .select("id, school_id, name, code, status")
-    .order("name");
+  const orgId = org?.id ?? null;
 
-  const { data: departments } = await supabase
-    .from("org_departments")
-    .select("id, school_id, campus_id, name, code, status")
-    .order("name");
+  const [{ data: regions }, { data: schools }, { data: campuses }, { data: programs }, { data: departments }] =
+    await Promise.all([
+      orgId
+        ? supabase.from("org_regions").select("*").eq("organization_id", orgId).order("name")
+        : supabase.from("org_regions").select("*").order("name"),
+      orgId
+        ? supabase
+            .from("schools")
+            .select("id, name, organization_id, region_id, timezone")
+            .eq("organization_id", orgId)
+            .order("name")
+        : supabase
+            .from("schools")
+            .select("id, name, organization_id, region_id, timezone")
+            .order("name"),
+      supabase.from("campuses").select("id, school_id, name, code, is_primary, status").order("name"),
+      supabase.from("org_programs").select("id, school_id, name, code, status").order("name"),
+      supabase
+        .from("org_departments")
+        .select("id, school_id, campus_id, name, code, status")
+        .order("name"),
+    ]);
+
+  const schoolIds = new Set((schools ?? []).map((s) => s.id));
 
   return {
     organization: org,
     regions: regions ?? [],
     schools: schools ?? [],
-    campuses: campuses ?? [],
-    programs: programs ?? [],
-    departments: departments ?? [],
+    campuses: (campuses ?? []).filter((c) => schoolIds.has(c.school_id)),
+    programs: (programs ?? []).filter((p) => schoolIds.has(p.school_id)),
+    departments: (departments ?? []).filter((d) => schoolIds.has(d.school_id)),
   };
 }
 

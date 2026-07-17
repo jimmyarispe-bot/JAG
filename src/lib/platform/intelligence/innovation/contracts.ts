@@ -308,13 +308,6 @@ export interface InnovationQueries {
   ask(result: T.InnovationResult, request: T.InnovationQueryRequest): T.InnovationQueryResult;
 }
 
-export interface InnovationRegistry {
-  register(domain: string, capability: string): void;
-  list(): T.InnovationPublisher[];
-  isRegistered(domain: string): boolean;
-  clear(): void;
-}
-
 export interface InnovationRepository {
   save(result: T.InnovationResult): T.InnovationResult;
   get(requestId: string): T.InnovationResult | null;
@@ -322,6 +315,13 @@ export interface InnovationRepository {
   remove(requestId: string): boolean;
   saveHistory(record: T.InnovationHistoryRecord): T.InnovationHistoryRecord;
   listHistory(scope?: Partial<T.GraphScope>): T.InnovationHistoryRecord[];
+  clear(): void;
+}
+
+export interface InnovationRegistry {
+  register(domain: string, capability: string): void;
+  list(): T.InnovationPublisher[];
+  isRegistered(domain: string): boolean;
   clear(): void;
 }
 

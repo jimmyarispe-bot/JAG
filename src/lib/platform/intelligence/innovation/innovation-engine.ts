@@ -82,7 +82,7 @@ import {
   type PredictiveResultLight,
 } from "@/lib/platform/intelligence/innovation/types";
 
-export interface InnovationEngineDependencies extends InnovationDependencies {}
+export type InnovationEngineDependencies = InnovationDependencies;
 
 export class InnovationIntelligenceEngineImpl implements InnovationEngineContract {
   private readonly ideaManagementIntelligence: IdeaManagementIntelligenceContract;

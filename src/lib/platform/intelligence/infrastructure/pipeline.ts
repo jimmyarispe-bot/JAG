@@ -110,8 +110,8 @@ export class IntelligencePipelineImpl implements IntelligencePipelineContract {
       true;
 
     for (const moduleId of order) {
-      const module = this.registry.get(moduleId);
-      if (!module) {
+      const domainModule = this.registry.get(moduleId);
+      if (!domainModule) {
         errors.push({ moduleId, message: `Unknown module "${moduleId}"` });
         if (failFast) break;
         continue;
@@ -142,13 +142,13 @@ export class IntelligencePipelineImpl implements IntelligencePipelineContract {
               runId: context.runId,
               payload: { key },
             });
-            result = await this.executeModule(module, context);
+            result = await this.executeModule(domainModule, context);
             if (result.ok) {
               this.cache.set(key, result, cacheTtlMs, moduleId);
             }
           }
         } else {
-          result = await this.executeModule(module, context);
+          result = await this.executeModule(domainModule, context);
           if (result.ok && this.cache && !context.bypassCache) {
             this.cache.set(key, result, cacheTtlMs, moduleId);
           }
@@ -251,10 +251,10 @@ export class IntelligencePipelineImpl implements IntelligencePipelineContract {
   }
 
   private async executeModule(
-    module: IntelligenceModule,
+    domainModule: IntelligenceModule,
     context: ReturnType<typeof createExecutionContext>
   ): Promise<IntelligenceModuleResult> {
-    return module.execute(context, context.input);
+    return domainModule.execute(context, context.input);
   }
 }
 

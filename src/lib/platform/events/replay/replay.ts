@@ -34,6 +34,20 @@ export const defaultEventReplayer: EventReplayer = {
     const filtered = envelopes.filter((envelope) => {
       if (options.fromTimestamp && envelope.timestamp < options.fromTimestamp) return false;
       if (options.toTimestamp && envelope.timestamp > options.toTimestamp) return false;
+      if (
+        options.organizationId !== undefined &&
+        envelope.organizationId !== options.organizationId
+      ) {
+        return false;
+      }
+      if (options.applicationId) {
+        const appId = envelope.metadata.applicationId;
+        if (appId !== options.applicationId) return false;
+      }
+      if (options.eventType && envelope.eventType !== options.eventType) return false;
+      if (options.eventTypes?.length && !options.eventTypes.includes(envelope.eventType)) {
+        return false;
+      }
       return true;
     });
 

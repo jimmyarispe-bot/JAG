@@ -1,6 +1,8 @@
 /** Improvement Registry — tracks which OIOS domains publish improvements (Sprint 036). */
+
 import type * as C from "@/lib/platform/intelligence/organizational-improvement/contracts";
 import type { ImprovementSourceDomain } from "@/lib/platform/intelligence/organizational-improvement/types";
+import { PublisherRegistryMap } from "@/lib/platform/intelligence/common";
 
 const DEFAULT_PUBLISHERS: Array<{ domain: ImprovementSourceDomain; capability: string }> = [
   { domain: "organization-health", capability: "improvement.health_signals" },
@@ -15,27 +17,11 @@ const DEFAULT_PUBLISHERS: Array<{ domain: ImprovementSourceDomain; capability: s
   { domain: "future-domains", capability: "improvement.future_adapters" },
 ];
 
-export class ImprovementRegistryStore implements C.ImprovementRegistry {
-  private readonly publishers = new Map<ImprovementSourceDomain, string>();
-
+export class ImprovementRegistryStore
+  extends PublisherRegistryMap<ImprovementSourceDomain>
+  implements C.ImprovementRegistry {
   constructor(seed = DEFAULT_PUBLISHERS) {
-    for (const item of seed) this.register(item.domain, item.capability);
-  }
-
-  register(domain: ImprovementSourceDomain, capability: string): void {
-    this.publishers.set(domain, capability);
-  }
-
-  list(): Array<{ domain: ImprovementSourceDomain; capability: string }> {
-    return [...this.publishers.entries()].map(([domain, capability]) => ({ domain, capability }));
-  }
-
-  isRegistered(domain: ImprovementSourceDomain): boolean {
-    return this.publishers.has(domain);
-  }
-
-  clear(): void {
-    this.publishers.clear();
+    super(seed);
   }
 }
 

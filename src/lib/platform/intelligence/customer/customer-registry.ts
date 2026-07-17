@@ -4,6 +4,7 @@
 
 import type { CustomerRegistry as CustomerRegistryContract } from "@/lib/platform/intelligence/customer/contracts";
 import type { CustomerPublisher } from "@/lib/platform/intelligence/customer/types";
+import { PublisherRegistryMap } from "@/lib/platform/intelligence/common";
 
 const DEFAULT_PUBLISHERS: CustomerPublisher[] = [
   { domain: "organization-dna", capability: "customer.dna_personas" },
@@ -13,30 +14,11 @@ const DEFAULT_PUBLISHERS: CustomerPublisher[] = [
   { domain: "oios-core", capability: "customer.execution_baseline" },
 ];
 
-export class CustomerRegistryStore implements CustomerRegistryContract {
-  private readonly publishers = new Map<string, string>();
-
+export class CustomerRegistryStore
+  extends PublisherRegistryMap
+  implements CustomerRegistryContract {
   constructor(seed = DEFAULT_PUBLISHERS) {
-    for (const item of seed) this.register(item.domain, item.capability);
-  }
-
-  register(domain: string, capability: string): void {
-    this.publishers.set(domain, capability);
-  }
-
-  list(): CustomerPublisher[] {
-    return [...this.publishers.entries()].map(([domain, capability]) => ({
-      domain,
-      capability,
-    }));
-  }
-
-  isRegistered(domain: string): boolean {
-    return this.publishers.has(domain);
-  }
-
-  clear(): void {
-    this.publishers.clear();
+    super(seed);
   }
 }
 

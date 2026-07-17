@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 export function useKeyboardShortcuts(bindings: Record<string, () => void>) {
   useEffect(() => {
@@ -22,9 +22,13 @@ export function useKeyboardShortcuts(bindings: Record<string, () => void>) {
   }, [bindings]);
 }
 
+/** D.1 — Trap focus inside an open dialog; restore focus on close. */
 export function useFocusTrap(active: boolean, containerRef: React.RefObject<HTMLElement | null>) {
+  const previousFocus = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!active || !containerRef.current) return;
+    previousFocus.current = document.activeElement as HTMLElement | null;
     const root = containerRef.current;
     const focusable = root.querySelectorAll<HTMLElement>(
       'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
@@ -44,7 +48,10 @@ export function useFocusTrap(active: boolean, containerRef: React.RefObject<HTML
       }
     };
     root.addEventListener("keydown", onKeyDown);
-    return () => root.removeEventListener("keydown", onKeyDown);
+    return () => {
+      root.removeEventListener("keydown", onKeyDown);
+      previousFocus.current?.focus?.();
+    };
   }, [active, containerRef]);
 }
 
@@ -73,6 +80,9 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(open, dialogRef);
+
   const onKey = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel();
@@ -90,26 +100,40 @@ export function ConfirmDialog({
 
   return (
     <>
-      <button type="button" className="fixed inset-0 z-50 bg-slate-900/40" aria-label="Close dialog" onClick={onCancel} />
+      <button
+        type="button"
+        className="fixed inset-0 z-50 bg-slate-900/40"
+        aria-label="Close dialog"
+        onClick={onCancel}
+      />
       <div
+        ref={dialogRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="xes-confirm-title"
         aria-describedby="xes-confirm-message"
         className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
       >
-        <h2 id="xes-confirm-title" className="text-lg font-semibold text-slate-900">{title}</h2>
-        <p id="xes-confirm-message" className="mt-2 text-sm text-slate-600">{message}</p>
+        <h2 id="xes-confirm-title" className="text-lg font-semibold text-slate-900">
+          {title}
+        </h2>
+        <p id="xes-confirm-message" className="mt-2 text-sm text-slate-600">
+          {message}
+        </p>
         <div className="mt-6 flex justify-end gap-2">
-          <button type="button" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" onClick={onCancel}>
+          <button
+            type="button"
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            onClick={onCancel}
+          >
             {cancelLabel}
           </button>
           <button
             type="button"
             className={
               tone === "danger"
-                ? "rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700"
-                : "rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                ? "rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
+                : "rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
             }
             onClick={onConfirm}
           >

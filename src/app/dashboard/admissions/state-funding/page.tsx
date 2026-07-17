@@ -8,8 +8,11 @@ import {
   getFundingProgramCatalog,
   getStateFundingAwards,
 } from "@/lib/admissions/state-funding";
+import { requireFinanceAccess } from "@/lib/platform/identity/page-guard";
 
 export default async function StateFundingPage() {
+  // Sprint 008 — Financial Security.
+  await requireFinanceAccess();
   const [awards, programs, schools] = await Promise.all([
     getStateFundingAwards(),
     getFundingProgramCatalog(),

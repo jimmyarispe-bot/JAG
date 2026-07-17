@@ -1,7 +1,7 @@
 import type { ImpactDependencies, ImpactIntelligenceService as Contract, ImpactRepository as Repository } from "@/lib/platform/intelligence/impact/contracts";
 import { ImpactIntelligenceEngineImpl } from "@/lib/platform/intelligence/impact/impact-engine";
 import type { ImpactQueryRequest, ImpactQueryResult, ImpactRequest, ImpactResult } from "@/lib/platform/intelligence/impact/types";
-export interface ImpactServiceDependencies extends ImpactDependencies {}
+export type ImpactServiceDependencies = ImpactDependencies;
 export class ImpactIntelligenceServiceImpl implements Contract {
   private engine: ImpactIntelligenceEngineImpl;
   constructor(d: ImpactServiceDependencies={}) { this.engine=(d.engine as ImpactIntelligenceEngineImpl|undefined)??new ImpactIntelligenceEngineImpl(d); }

@@ -77,7 +77,7 @@ import {
   type PredictiveResultLight,
 } from "@/lib/platform/intelligence/market/types";
 
-export interface MarketEngineDependencies extends MarketDependencies {}
+export type MarketEngineDependencies = MarketDependencies;
 
 export class MarketIntelligenceEngineImpl implements MarketEngineContract {
   private readonly industryIntelligence: IndustryIntelligenceContract;

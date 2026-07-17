@@ -2,7 +2,7 @@ import type { InstitutionalMemoryDependencies, InstitutionalMemoryIntelligenceSe
 import { InstitutionalMemoryIntelligenceEngineImpl } from "@/lib/platform/intelligence/institutional-memory/institutional-memory-engine";
 import type { InstitutionalMemoryQueryRequest, InstitutionalMemoryQueryResult, InstitutionalMemoryRequest, InstitutionalMemoryResult } from "@/lib/platform/intelligence/institutional-memory/types";
 
-export interface InstitutionalMemoryServiceDependencies extends InstitutionalMemoryDependencies {}
+export type InstitutionalMemoryServiceDependencies = InstitutionalMemoryDependencies;
 
 export class InstitutionalMemoryIntelligenceServiceImpl implements Contract {
   private engine: InstitutionalMemoryIntelligenceEngineImpl;

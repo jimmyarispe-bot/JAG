@@ -2,7 +2,7 @@ import type { EcosystemDependencies, EcosystemIntelligenceService as Contract, E
 import { EcosystemIntelligenceEngineImpl } from "@/lib/platform/intelligence/ecosystem/ecosystem-engine";
 import type { EcosystemQueryRequest, EcosystemQueryResult, EcosystemRequest, EcosystemResult } from "@/lib/platform/intelligence/ecosystem/types";
 
-export interface EcosystemServiceDependencies extends EcosystemDependencies {}
+export type EcosystemServiceDependencies = EcosystemDependencies;
 
 export class EcosystemIntelligenceServiceImpl implements Contract {
   private engine: EcosystemIntelligenceEngineImpl;

@@ -1,3 +1,9 @@
+/**
+ * Reputation Intelligence — shared types / DTOs.
+ *
+ * Leaf module: no imports from engine implementations (avoids cycles).
+ */
+
 import type { OrganizationDNA, OrganizationDnaResult } from "@/lib/platform/intelligence/organization-dna/types";
 import type { OiosResult } from "@/lib/platform/oios/types";
 import type { Graph, GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";

@@ -209,7 +209,7 @@ describe("similarity", () => {
             id: c.id,
             score: c.id === "preferred" ? 1 : 0.1,
           }))
-          .sort((a, b) => b.score - a.score)
+          .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
       ),
     };
 

@@ -2,7 +2,7 @@ import type { StakeholderDependencies, StakeholderIntelligenceService as Contrac
 import { StakeholderIntelligenceEngineImpl } from "@/lib/platform/intelligence/stakeholder/stakeholder-engine";
 import type { StakeholderQueryRequest, StakeholderQueryResult, StakeholderRequest, StakeholderResult } from "@/lib/platform/intelligence/stakeholder/types";
 
-export interface StakeholderServiceDependencies extends StakeholderDependencies {}
+export type StakeholderServiceDependencies = StakeholderDependencies;
 
 export class StakeholderIntelligenceServiceImpl implements Contract {
   private engine: StakeholderIntelligenceEngineImpl;

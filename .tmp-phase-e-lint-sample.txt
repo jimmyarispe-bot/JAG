@@ -1,0 +1,40 @@
+﻿    + FullyQualifiedErrorId : NativeCommandError
+  65:3  error  Error: Cannot access refs during render
+  365:10  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  151:3  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  67:7  error  'query' is never reassigned. Use 'const' instead  prefer-const
+  182:10  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  388:11  error  'rows' is never reassigned. Use 'const' instead  prefer-const
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+   60:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  151:9   error  'graphInput' is never reassigned. Use 'const' instead             prefer-const
+  69:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  97:3  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  68:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  70:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  38:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  16:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  168:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  4:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  45:5   error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  80:10  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  63:7  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  94:7  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  113:7  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  57:10  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  157:7  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  219:7  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  85:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  81:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  81:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  80:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  69:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  32:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type

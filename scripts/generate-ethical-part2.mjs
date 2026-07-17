@@ -21,12 +21,11 @@ const scripts = [
   "scripts/_write-docs.mjs",
 ];
 
-// Ensure areas script exists (inline if missing)
+// Areas script is required; live file ships with the repo (no .bak fallback).
 const areasPath = path.join(root, "scripts/generate-ethical-part2-areas.mjs");
 if (!fs.existsSync(areasPath)) {
-  fs.writeFileSync(areasPath, fs.readFileSync(path.join(root, "scripts/generate-ethical-part2.mjs.bak"), "utf8").includes("AREA_META")
-    ? fs.readFileSync(path.join(root, "scripts/generate-ethical-part2.mjs.bak"), "utf8")
-    : "", "utf8");
+  console.error("missing required script:", areasPath);
+  process.exit(1);
 }
 
 for (const rel of scripts) {

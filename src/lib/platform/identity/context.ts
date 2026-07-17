@@ -2,8 +2,13 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 import { getAuthUser, getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import {
+  hasPermission,
+  toAuthzSnapshot,
+} from "@/lib/platform/identity/authorization-service";
 import { loadUserPermissions } from "@/lib/platform/identity/permissions";
 import type { ImpersonationState, OrgAssignment, UserPreferences } from "@/lib/platform/identity/types";
+import type { PermissionKey } from "@/lib/platform/identity/types";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -15,9 +20,11 @@ export interface IdentityContext extends SessionUser {
   orgAssignments: OrgAssignment[];
   /** School ids the user is explicitly assigned to. Empty when unrestricted. */
   accessibleSchoolIds: string[];
-  /** True for CEO/Founder/Executive Director — may access any school. */
+  /** True when permission schools.access_all / org.manage / founder.override is granted. */
   hasUnrestrictedSchoolAccess: boolean;
+  /** @deprecated Prefer hasPermission(ctx, "JAG_ACCESS") — derived from permissions. */
   isFounder: boolean;
+  /** @deprecated Prefer hasPermission(ctx, "SYSTEM_ADMIN_ACCESS"). */
   isEnterpriseAdmin: boolean;
   impersonation: ImpersonationState | null;
   preferences: UserPreferences | null;
@@ -43,7 +50,7 @@ export const getIdentityContext = cache(async (): Promise<IdentityContext | null
       .eq("actor_user_id", sessionUser.id)
       .maybeSingle();
 
-  if (impSession) {
+    if (impSession) {
       const { data: targetUser } = await supabase
         .from("users")
         .select("full_name")
@@ -67,23 +74,32 @@ export const getIdentityContext = cache(async (): Promise<IdentityContext | null
     loadPreferences(supabase, effectiveUserId),
   ]);
 
-  const { accessibleSchoolIds, hasUnrestrictedSchoolAccess } = resolveSchoolAccess(
-    sessionUser,
-    orgAssignments
-  );
-  const effectiveRoles = sessionUser.roles;
+  const permissionList = [...permissions];
+  const subject = {
+    permissions: permissionList,
+    roles: sessionUser.roles,
+    effectiveUserId,
+    id: sessionUser.id,
+  };
+
+  const hasUnrestrictedSchoolAccess =
+    hasPermission(subject, "schools.access_all") ||
+    hasPermission(subject, "org.manage") ||
+    hasPermission(subject, "founder.override");
+
+  const accessibleSchoolIds = hasUnrestrictedSchoolAccess
+    ? []
+    : [...new Set(orgAssignments.map((a) => a.school_id))];
 
   return {
     ...sessionUser,
     effectiveUserId,
-    permissions: [...permissions],
+    permissions: permissionList,
     orgAssignments,
     accessibleSchoolIds,
     hasUnrestrictedSchoolAccess,
-    isFounder: effectiveRoles.includes("FOUNDER"),
-    isEnterpriseAdmin: effectiveRoles.some((r) =>
-      ["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR"].includes(r)
-    ),
+    isFounder: hasPermission(subject, "JAG_ACCESS"),
+    isEnterpriseAdmin: hasPermission(subject, "SYSTEM_ADMIN_ACCESS"),
     impersonation,
     preferences,
   };
@@ -130,25 +146,12 @@ async function loadPreferences(
   return data as UserPreferences | null;
 }
 
-function resolveSchoolAccess(
-  sessionUser: SessionUser,
-  assignments: OrgAssignment[]
-): { accessibleSchoolIds: string[]; hasUnrestrictedSchoolAccess: boolean } {
-  if (
-    sessionUser.roles.includes("CEO") ||
-    sessionUser.roles.includes("FOUNDER") ||
-    sessionUser.roles.includes("EXECUTIVE_DIRECTOR")
-  ) {
-    return { accessibleSchoolIds: [], hasUnrestrictedSchoolAccess: true };
-  }
-  return {
-    accessibleSchoolIds: [...new Set(assignments.map((a) => a.school_id))],
-    hasUnrestrictedSchoolAccess: false,
-  };
-}
-
-export function hasIdentityPermission(ctx: IdentityContext, key: string): boolean {
-  return ctx.permissions.includes(key);
+/** Permission check for identity context — delegates to the permission engine. */
+export function hasIdentityPermission(
+  ctx: IdentityContext,
+  key: PermissionKey | string
+): boolean {
+  return hasPermission(toAuthzSnapshot(ctx), key);
 }
 
 export { IMPERSONATION_COOKIE };

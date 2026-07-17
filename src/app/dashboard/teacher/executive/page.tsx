@@ -4,15 +4,15 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { formatCount } from "@/lib/format";
 import { getExecutiveInstructionDashboard } from "@/lib/instruction/executive";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { hasAnyPermission } from "@/lib/platform/identity/authorization-service";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { redirect } from "next/navigation";
 
 export default async function ExecutiveInstructionPage() {
   const ctx = await getIdentityContext();
   const canView =
-    ctx?.permissions.includes("instruction.executive") ||
-    ctx?.permissions.includes("teacher.manage") ||
-    ctx?.isEnterpriseAdmin;
+    !!ctx &&
+    hasAnyPermission(ctx, ["instruction.executive", "TEACHER_ACCESS", "SYSTEM_ADMIN_ACCESS"]);
 
   if (!canView) {
     redirect("/dashboard/teacher");

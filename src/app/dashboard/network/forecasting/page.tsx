@@ -1,12 +1,13 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
-import { requirePagePermission } from "@/lib/platform/identity/page-guard";
+import { requireFinanceAccess } from "@/lib/platform/identity/page-guard";
 import { getPrimaryOrganizationId } from "@/lib/intelligence-network/context";
 import { getForecasts } from "@/lib/intelligence-network/forecast-engine";
 import { AinShell } from "@/components/intelligence-network/AinNav";
 import { PrivacyNotice } from "@/components/intelligence-network/AinPanels";
 
 export default async function NetworkForecastingPage() {
-  await requirePagePermission(["network.view", "network.manage", "network.admin"]);
+  // Sprint 008 — Financial Security (forecasting / cash-flow surfaces).
+  await requireFinanceAccess();
   const supabase = await createAuthClient();
   const orgId = await getPrimaryOrganizationId(supabase);
   if (!orgId) return null;

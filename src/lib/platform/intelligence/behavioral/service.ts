@@ -2,7 +2,7 @@ import type { BehavioralDependencies, BehavioralIntelligenceService as Contract,
 import { BehavioralIntelligenceEngineImpl } from "@/lib/platform/intelligence/behavioral/behavioral-engine";
 import type { BehavioralQueryRequest, BehavioralQueryResult, BehavioralRequest, BehavioralResult } from "@/lib/platform/intelligence/behavioral/types";
 
-export interface BehavioralServiceDependencies extends BehavioralDependencies {}
+export type BehavioralServiceDependencies = BehavioralDependencies;
 
 export class BehavioralIntelligenceServiceImpl implements Contract {
   private engine: BehavioralIntelligenceEngineImpl;

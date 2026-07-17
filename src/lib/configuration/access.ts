@@ -1,33 +1,29 @@
 import type { IdentityContext } from "@/lib/platform/identity/context";
+import { hasAnyPermission, hasPermission } from "@/lib/platform/identity/authorization-service";
 
 export function canViewConfiguration(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("configuration.view") ||
-    ctx.permissions.includes("configuration.manage") ||
-    ctx.permissions.includes("configuration.admin") ||
-    ctx.permissions.includes("org.view") ||
-    ctx.permissions.includes("school.configure") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, [
+    "configuration.view",
+    "configuration.manage",
+    "configuration.admin",
+    "org.view",
+    "school.configure",
+    "SYSTEM_ADMIN_ACCESS",
+  ]);
 }
 
 export function canManageConfiguration(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("configuration.manage") ||
-    ctx.permissions.includes("configuration.admin") ||
-    ctx.permissions.includes("school.configure") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, [
+    "configuration.manage",
+    "configuration.admin",
+    "school.configure",
+  ]);
 }
 
 export function canAdminConfiguration(ctx: IdentityContext) {
-  return ctx.permissions.includes("configuration.admin") || ctx.isEnterpriseAdmin;
+  return hasPermission(ctx, "configuration.admin");
 }
 
 export function canLaunchOrganization(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("configuration.launch") ||
-    ctx.permissions.includes("configuration.admin") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, ["configuration.launch", "configuration.admin"]);
 }

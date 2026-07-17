@@ -11,6 +11,9 @@ import {
   createPosition,
 } from "@/lib/hr/actions";
 import type { EmployeeRecord, Position } from "@/lib/hr/types";
+import { FormField } from "@/components/experience-system/forms";
+import { ErrorBanner, SuccessBanner } from "@/components/experience-system/feedback";
+import { useAnnounce } from "@/components/experience-system/feedback/LiveAnnouncer";
 
 interface HrFormsProps {
   employees: EmployeeRecord[];
@@ -19,51 +22,90 @@ interface HrFormsProps {
 }
 
 export function HrForms({ employees, schools, positions }: HrFormsProps) {
+  const announce = useAnnounce();
   const [message, setMessage] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const inputClass = "mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm";
+  const inputClass = "w-full rounded-xl border border-slate-200 px-3 py-2 text-sm";
   const labelClass = "block text-sm font-medium text-slate-700";
 
   function wrap(action: (fd: FormData) => Promise<{ error?: string; success?: boolean; id?: string }>) {
     return (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       setMessage(null);
+      setIsError(false);
       startTransition(async () => {
         const result = await action(new FormData(e.currentTarget));
-        setMessage(result.error ?? "Saved successfully.");
-        if (!result.error) e.currentTarget.reset();
+        if (result.error) {
+          setIsError(true);
+          setMessage(result.error);
+          announce(result.error, "assertive");
+          return;
+        }
+        setIsError(false);
+        setMessage("Saved successfully.");
+        announce("Saved successfully.", "polite");
+        e.currentTarget.reset();
       });
     };
   }
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      {message && <div className="lg:col-span-2 rounded-xl bg-slate-50 px-4 py-3 text-sm">{message}</div>}
+      {message && (
+        <div className="lg:col-span-2">
+          {isError ? <ErrorBanner message={message} /> : <SuccessBanner message={message} />}
+        </div>
+      )}
 
-      <form onSubmit={wrap(createEmployee)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
+      <form
+        onSubmit={wrap(createEmployee)}
+        className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-5"
+        aria-label="Hire employee"
+      >
         <h3 className="font-semibold text-slate-900">Employee (triggers onboarding)</h3>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div><label className={labelClass}>First Name</label><input name="first_name" required className={inputClass} /></div>
-          <div><label className={labelClass}>Last Name</label><input name="last_name" required className={inputClass} /></div>
+          <FormField label="First Name" htmlFor="hr_first_name" required>
+            <input id="hr_first_name" name="first_name" required className={inputClass} autoComplete="given-name" />
+          </FormField>
+          <FormField label="Last Name" htmlFor="hr_last_name" required>
+            <input id="hr_last_name" name="last_name" required className={inputClass} autoComplete="family-name" />
+          </FormField>
         </div>
-        <div><label className={labelClass}>Job Title</label><input name="job_title" className={inputClass} /></div>
-        <div><label className={labelClass}>School</label>
-          <select name="school_id" required className={inputClass}>{schools.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-        </div>
+        <FormField label="Job Title" htmlFor="hr_job_title">
+          <input id="hr_job_title" name="job_title" className={inputClass} />
+        </FormField>
+        <FormField label="School" htmlFor="hr_school_id" required>
+          <select id="hr_school_id" name="school_id" required className={inputClass}>
+            {schools.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div><label className={labelClass}>Department</label><input name="department" className={inputClass} /></div>
-          <div><label className={labelClass}>Hire Date</label><input name="hire_date" type="date" className={inputClass} /></div>
+          <FormField label="Department" htmlFor="hr_department">
+            <input id="hr_department" name="department" className={inputClass} />
+          </FormField>
+          <FormField label="Hire Date" htmlFor="hr_hire_date">
+            <input id="hr_hire_date" name="hire_date" type="date" className={inputClass} />
+          </FormField>
         </div>
-        <div><label className={labelClass}>Type</label>
-          <select name="employee_type" className={inputClass}>
+        <FormField label="Type" htmlFor="hr_employee_type">
+          <select id="hr_employee_type" name="employee_type" className={inputClass}>
             <option value="teacher">Teacher</option>
             <option value="staff">Staff</option>
             <option value="admin">Admin</option>
             <option value="contractor">Contractor</option>
           </select>
-        </div>
-        <div><label className={labelClass}>Emergency Contact</label><input name="emergency_contact_name" className={inputClass} /></div>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Hire Employee</button>
+        </FormField>
+        <FormField label="Emergency Contact" htmlFor="hr_emergency_contact">
+          <input id="hr_emergency_contact" name="emergency_contact_name" className={inputClass} />
+        </FormField>
+        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white" aria-busy={isPending}>
+          Hire Employee
+        </button>
       </form>
 
       <form onSubmit={wrap(createCertification)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">

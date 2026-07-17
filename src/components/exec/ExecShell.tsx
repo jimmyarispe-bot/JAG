@@ -8,20 +8,26 @@ import { cn } from "@/components/workspace-design-system/utils";
 type ExecShellProps = {
   fullName: string;
   roleLabel: string;
+  /** Tenant context from Organization Platform (optional). */
+  organizationName?: string | null;
+  locationName?: string | null;
   children: React.ReactNode;
 };
 
-export function ExecShell({ fullName, roleLabel, children }: ExecShellProps) {
+export function ExecShell({
+  fullName,
+  roleLabel,
+  organizationName,
+  locationName,
+  children,
+}: ExecShellProps) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const openNav = useCallback(() => setOpen(true), []);
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <a
-        href="#exec-main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow-lg"
-      >
+      <a href="#exec-main" className="skip-link">
         Skip to main content
       </a>
 
@@ -55,9 +61,14 @@ export function ExecShell({ fullName, roleLabel, children }: ExecShellProps) {
           <ExecNav />
         </div>
         <div className="border-t border-sidebar-border px-5 py-4">
-          <Link href="/dashboard" className="text-xs text-slate-400 hover:text-white">
-            ← Back to dashboard
-          </Link>
+          <div className="space-y-2">
+            <Link href="/dashboard/executive" className="block text-xs text-slate-400 hover:text-white">
+              Executive Intelligence →
+            </Link>
+            <Link href="/dashboard" className="block text-xs text-slate-400 hover:text-white">
+              ← AcademyOS dashboard
+            </Link>
+          </div>
         </div>
       </aside>
 
@@ -73,7 +84,11 @@ export function ExecShell({ fullName, roleLabel, children }: ExecShellProps) {
             </button>
             <div>
               <p className="text-sm font-semibold text-slate-900">Executive Command Center</p>
-              <p className="text-xs text-slate-500">OIOS · situational awareness</p>
+              <p className="text-xs text-slate-500">
+                {organizationName
+                  ? `${organizationName}${locationName ? ` · ${locationName}` : ""}`
+                  : "OIOS · situational awareness"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-right">

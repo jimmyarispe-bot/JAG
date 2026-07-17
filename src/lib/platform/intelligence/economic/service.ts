@@ -2,7 +2,7 @@ import type { EconomicDependencies, EconomicIntelligenceService as Contract, Eco
 import { EconomicIntelligenceEngineImpl } from "@/lib/platform/intelligence/economic/economic-engine";
 import type { EconomicQueryRequest, EconomicQueryResult, EconomicRequest, EconomicResult } from "@/lib/platform/intelligence/economic/types";
 
-export interface EconomicServiceDependencies extends EconomicDependencies {}
+export type EconomicServiceDependencies = EconomicDependencies;
 
 export class EconomicIntelligenceServiceImpl implements Contract {
   private engine: EconomicIntelligenceEngineImpl;

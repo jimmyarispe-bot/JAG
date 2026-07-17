@@ -35,7 +35,7 @@ import type {
   GraphAnalysisResult,
 } from "@/lib/platform/intelligence/executive-graph/types";
 
-export interface DecisionEngineDependencies extends ExecutiveDecisionDependencies {}
+export type DecisionEngineDependencies = ExecutiveDecisionDependencies;
 
 /**
  * DecisionEngine — core orchestrator for executive what-if decision intelligence.

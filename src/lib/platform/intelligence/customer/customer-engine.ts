@@ -65,7 +65,7 @@ import {
   type CustomerResult,
 } from "@/lib/platform/intelligence/customer/types";
 
-export interface CustomerEngineDependencies extends CustomerDependencies {}
+export type CustomerEngineDependencies = CustomerDependencies;
 
 /**
  * CustomerIntelligenceEngine — core orchestrator for customer outputs.

@@ -2,7 +2,7 @@ import type { WisdomDependencies, WisdomIntelligenceService as Contract, WisdomR
 import { WisdomIntelligenceEngineImpl } from "@/lib/platform/intelligence/wisdom/wisdom-engine";
 import type { WisdomQueryRequest, WisdomQueryResult, WisdomRequest, WisdomResult } from "@/lib/platform/intelligence/wisdom/types";
 
-export interface WisdomServiceDependencies extends WisdomDependencies {}
+export type WisdomServiceDependencies = WisdomDependencies;
 
 export class WisdomIntelligenceServiceImpl implements Contract {
   private engine: WisdomIntelligenceEngineImpl;

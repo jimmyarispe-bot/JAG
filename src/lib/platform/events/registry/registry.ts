@@ -1,4 +1,5 @@
 import type {
+  EventCategory,
   EventDefinition,
   EventRegistrySnapshot,
 } from "@/lib/platform/events/types";
@@ -13,7 +14,12 @@ export function registerEventDefinition(definition: EventDefinition): void {
     DUPLICATE_EVENT_TYPES.push(definition.eventType);
     return;
   }
-  EVENT_REGISTRY.set(definition.eventType, definition);
+  EVENT_REGISTRY.set(definition.eventType, { ...definition });
+}
+
+/** Replace an existing definition (version upgrade / docs update). */
+export function upsertEventDefinition(definition: EventDefinition): void {
+  EVENT_REGISTRY.set(definition.eventType, { ...definition });
 }
 
 export function registerEventDefinitions(definitions: EventDefinition[]): void {
@@ -75,4 +81,50 @@ export function isKnownEventType(eventType: string): boolean {
 
 export function getEventCatalogEntries(): EventDefinition[] {
   return getAllEventDefinitions();
+}
+
+/** Sprint 024 — discovery helpers. */
+export function getEventDefinitionsByCategory(
+  category: EventCategory
+): EventDefinition[] {
+  return getAllEventDefinitions().filter((def) => def.category === category);
+}
+
+export function getDeprecatedEventDefinitions(): EventDefinition[] {
+  return getAllEventDefinitions().filter(
+    (def) => def.deprecated === true || def.status === "deprecated"
+  );
+}
+
+export function deprecateEventDefinition(
+  eventType: string,
+  options: { replacedBy?: string; documentation?: string } = {}
+): EventDefinition | undefined {
+  const existing = EVENT_REGISTRY.get(eventType);
+  if (!existing) return undefined;
+  const updated: EventDefinition = {
+    ...existing,
+    status: "deprecated",
+    deprecated: true,
+    deprecatedAt: new Date().toISOString(),
+    replacedBy: options.replacedBy ?? existing.replacedBy,
+    documentation: options.documentation ?? existing.documentation,
+  };
+  EVENT_REGISTRY.set(eventType, updated);
+  return updated;
+}
+
+export function discoverEventDefinitions(query?: {
+  category?: EventCategory;
+  domain?: string;
+  includeDeprecated?: boolean;
+}): EventDefinition[] {
+  return getAllEventDefinitions().filter((def) => {
+    if (query?.category && def.category !== query.category) return false;
+    if (query?.domain && def.domain !== query.domain) return false;
+    if (!query?.includeDeprecated && (def.deprecated || def.status === "deprecated")) {
+      return false;
+    }
+    return true;
+  });
 }

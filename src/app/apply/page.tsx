@@ -16,7 +16,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ApplyInquiryPage() {
   const schools = await getSchoolsForInquiry();
-
+  console.log(
+    "Schools loaded:",
+    schools.map((s) => ({
+      id: s.id,
+      name: s.name,
+    }))
+  );
   return (
     <ApplyShell>
       <div className="space-y-6">

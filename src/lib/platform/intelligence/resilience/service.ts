@@ -2,7 +2,7 @@ import type { ResilienceDependencies, ResilienceIntelligenceService as Contract,
 import { ResilienceIntelligenceEngineImpl } from "@/lib/platform/intelligence/resilience/resilience-engine";
 import type { ResilienceQueryRequest, ResilienceQueryResult, ResilienceRequest, ResilienceResult } from "@/lib/platform/intelligence/resilience/types";
 
-export interface ResilienceServiceDependencies extends ResilienceDependencies {}
+export type ResilienceServiceDependencies = ResilienceDependencies;
 
 export class ResilienceIntelligenceServiceImpl implements Contract {
   private engine: ResilienceIntelligenceEngineImpl;

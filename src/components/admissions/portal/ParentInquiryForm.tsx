@@ -35,8 +35,16 @@ export function ParentInquiryForm({ schools }: ParentInquiryFormProps) {
   return (
     <form onSubmit={handleSubmit} className={`${portalSectionClass} space-y-8`}>
       {error && (
-        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          {error}
+        </div>
       )}
+
+      {/* B.1 honeypot — leave empty */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label htmlFor="company_website">Company website</label>
+        <input id="company_website" name="company_website" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
 
       <section className="space-y-4">
         <div>

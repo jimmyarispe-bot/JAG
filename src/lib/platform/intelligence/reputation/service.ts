@@ -2,7 +2,7 @@ import type { ReputationDependencies, ReputationIntelligenceService as Contract,
 import { ReputationIntelligenceEngineImpl } from "@/lib/platform/intelligence/reputation/reputation-engine";
 import type { ReputationQueryRequest, ReputationQueryResult, ReputationRequest, ReputationResult } from "@/lib/platform/intelligence/reputation/types";
 
-export interface ReputationServiceDependencies extends ReputationDependencies {}
+export type ReputationServiceDependencies = ReputationDependencies;
 
 export class ReputationIntelligenceServiceImpl implements Contract {
   private engine: ReputationIntelligenceEngineImpl;

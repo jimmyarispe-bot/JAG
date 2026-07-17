@@ -10,7 +10,7 @@ Copy these into your Vercel project (or local `.env.local`). A template also exi
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (client + server auth) |
 | `NEXT_PUBLIC_APP_URL` | Production app URL for admissions email merge links |
 | `CRON_SECRET` | Bearer token for Vercel cron `/api/platform/process-queues` |
-| `VAULT_ENCRYPTION_KEY` | 32+ char secret for credential vault AES-256-GCM encryption |
+| `VAULT_ENCRYPTION_KEY` | 32+ char secret for credential vault AES-256-GCM (required in production; do not use service role) |
 | `SENDGRID_API_KEY` | SendGrid API key for admissions transactional email |
 | `SENDGRID_FROM_EMAIL` | Verified sender address (e.g. `noreply@your-domain.com`) |
 
@@ -18,12 +18,16 @@ Copy these into your Vercel project (or local `.env.local`). A template also exi
 
 | Variable | Purpose |
 |----------|---------|
-| `SUPABASE_SERVICE_ROLE_KEY` | Server admin scripts only — never expose to client |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server admin scripts only — never expose to client; never use as vault key in production |
 | `SENDGRID_FROM_NAME` | Display name for outbound email (default: AcademyOS) |
+| `ENFORCE_MFA` | `true`/`false` — force MFA for privileged users (defaults on in production) |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Durable multi-instance rate limiting |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile for public admissions inquiry |
+| `ALLOW_SQUARE_PLANNED` | Dev-only simulated payments — **never** set in production |
 
 ## Vercel cron
 
-`vercel.json` schedules `GET /api/platform/process-queues` every 6 hours. Set `CRON_SECRET` in Vercel; the route accepts `Authorization: Bearer <CRON_SECRET>`.
+`vercel.json` schedules `GET /api/platform/process-queues` daily at midnight UTC (`0 0 * * *`). Set `CRON_SECRET` in Vercel; the route accepts `Authorization: Bearer <CRON_SECRET>`. Manual drain and recovery: `docs/operations/phase-f/runbooks/15_QUEUE_RECOVERY.md`.
 
 ## Local template
 

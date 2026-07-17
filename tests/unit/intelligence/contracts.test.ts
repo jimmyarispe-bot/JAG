@@ -52,11 +52,11 @@ describe("Intelligence contracts", () => {
 
   it("accepts an IntelligenceDomainModule for every known domain key", () => {
     for (const domain of INTELLIGENCE_DOMAINS) {
-      const module = makeValidModule(domain);
-      const result = validateIntelligenceDomain(module);
+      const domainModule = makeValidModule(domain);
+      const result = validateIntelligenceDomain(domainModule);
       expect(result.ok).toBe(true);
       expect(result.issues).toEqual([]);
-      expect(() => assertIntelligenceDomain(module)).not.toThrow();
+      expect(() => assertIntelligenceDomain(domainModule)).not.toThrow();
     }
   });
 
@@ -92,8 +92,8 @@ describe("Intelligence contracts", () => {
   });
 
   it("verifies IntelligenceResult required shape", async () => {
-    const module = makeValidModule("success");
-    const result: IntelligenceResult = await module.handle(makeRequest("success"));
+    const domainModule = makeValidModule("success");
+    const result: IntelligenceResult = await domainModule.handle(makeRequest("success"));
 
     expect(isIntelligenceResult(result)).toBe(true);
     expect(result.runId).toEqual(expect.any(String));

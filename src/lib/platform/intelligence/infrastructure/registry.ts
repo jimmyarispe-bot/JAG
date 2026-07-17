@@ -31,46 +31,46 @@ export class IntelligenceRegistryError extends Error {
   }
 }
 
-function assertModule(module: IntelligenceModule): void {
-  if (!module || typeof module !== "object") {
+function assertModule(domainModule: IntelligenceModule): void {
+  if (!domainModule || typeof domainModule !== "object") {
     throw new IntelligenceRegistryError({
       code: "INVALID_MODULE",
       message: "Module candidate must be a non-null object",
     });
   }
-  if (!module.id || typeof module.id !== "string") {
+  if (!domainModule.id || typeof domainModule.id !== "string") {
     throw new IntelligenceRegistryError({
       code: "INVALID_MODULE",
       message: "Module must declare a non-empty string id",
-      moduleId: module?.id ? String(module.id) : null,
+      moduleId: domainModule?.id ? String(domainModule.id) : null,
     });
   }
-  if (!module.name || typeof module.name !== "string") {
+  if (!domainModule.name || typeof domainModule.name !== "string") {
     throw new IntelligenceRegistryError({
       code: "INVALID_MODULE",
-      message: `Module "${module.id}" must declare a name`,
-      moduleId: module.id,
+      message: `Module "${domainModule.id}" must declare a name`,
+      moduleId: domainModule.id,
     });
   }
-  if (!module.version || typeof module.version !== "string") {
+  if (!domainModule.version || typeof domainModule.version !== "string") {
     throw new IntelligenceRegistryError({
       code: "INVALID_MODULE",
-      message: `Module "${module.id}" must declare a version`,
-      moduleId: module.id,
+      message: `Module "${domainModule.id}" must declare a version`,
+      moduleId: domainModule.id,
     });
   }
-  if (typeof module.execute !== "function") {
+  if (typeof domainModule.execute !== "function") {
     throw new IntelligenceRegistryError({
       code: "INVALID_MODULE",
-      message: `Module "${module.id}" must implement execute()`,
-      moduleId: module.id,
+      message: `Module "${domainModule.id}" must implement execute()`,
+      moduleId: domainModule.id,
     });
   }
-  if (!Array.isArray(module.dependencies)) {
+  if (!Array.isArray(domainModule.dependencies)) {
     throw new IntelligenceRegistryError({
       code: "INVALID_MODULE",
-      message: `Module "${module.id}" must declare dependencies[]`,
-      moduleId: module.id,
+      message: `Module "${domainModule.id}" must declare dependencies[]`,
+      moduleId: domainModule.id,
     });
   }
 }
@@ -82,16 +82,16 @@ function assertModule(module: IntelligenceModule): void {
 export class IntelligenceRegistryImpl implements IntelligenceRegistryContract {
   private readonly modules = new Map<string, IntelligenceModule>();
 
-  register(module: IntelligenceModule): void {
-    assertModule(module);
-    if (this.modules.has(module.id)) {
+  register(domainModule: IntelligenceModule): void {
+    assertModule(domainModule);
+    if (this.modules.has(domainModule.id)) {
       throw new IntelligenceRegistryError({
         code: "DUPLICATE_MODULE",
-        message: `Intelligence module "${module.id}" is already registered`,
-        moduleId: module.id,
+        message: `Intelligence domainModule "${domainModule.id}" is already registered`,
+        moduleId: domainModule.id,
       });
     }
-    this.modules.set(module.id, module);
+    this.modules.set(domainModule.id, domainModule);
   }
 
   unregister(moduleId: IntelligenceModuleId): boolean {
@@ -109,11 +109,11 @@ export class IntelligenceRegistryImpl implements IntelligenceRegistryContract {
   list(): IntelligenceModule[] {
     return [...this.modules.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([, module]) => module);
+      .map(([, domainModule]) => domainModule);
   }
 
   ids(): IntelligenceModuleId[] {
-    return this.list().map((module) => module.id);
+    return this.list().map((domainModule) => domainModule.id);
   }
 
   size(): number {
@@ -154,8 +154,8 @@ export class IntelligenceRegistryImpl implements IntelligenceRegistryContract {
     }
 
     for (const id of targetIds) {
-      const module = this.modules.get(id)!;
-      for (const dep of module.dependencies) {
+      const domainModule = this.modules.get(id)!;
+      for (const dep of domainModule.dependencies) {
         if (!this.modules.has(dep)) {
           throw new IntelligenceRegistryError({
             code: "MISSING_DEPENDENCY",
@@ -216,8 +216,8 @@ export class IntelligenceRegistryImpl implements IntelligenceRegistryContract {
         });
       }
       collected.add(id);
-      const module = this.modules.get(id)!;
-      for (const dep of module.dependencies) {
+      const domainModule = this.modules.get(id)!;
+      for (const dep of domainModule.dependencies) {
         visit(dep);
       }
     };

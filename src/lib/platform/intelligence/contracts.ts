@@ -94,7 +94,7 @@ export function validateIntelligenceDomain(
     };
   }
 
-  const module = candidate as Partial<IntelligenceDomainModule>;
+  const domainModule = candidate as Partial<IntelligenceDomainModule>;
   const domainKey = (candidate as { domainKey?: unknown }).domainKey;
 
   if (domainKey === undefined || domainKey === null || domainKey === "") {
@@ -109,26 +109,26 @@ export function validateIntelligenceDomain(
     });
   }
 
-  if (typeof module.name !== "string" || module.name.trim().length === 0) {
+  if (typeof domainModule.name !== "string" || domainModule.name.trim().length === 0) {
     issues.push({
       code: "missing_name",
       message: "Domain module is missing name",
     });
   }
 
-  if (typeof module.version !== "string" || module.version.trim().length === 0) {
+  if (typeof domainModule.version !== "string" || domainModule.version.trim().length === 0) {
     issues.push({
       code: "missing_version",
       message: "Domain module is missing version",
     });
   }
 
-  if (module.handle === undefined || module.handle === null) {
+  if (domainModule.handle === undefined || domainModule.handle === null) {
     issues.push({
       code: "missing_handle",
       message: "Domain module is missing handle()",
     });
-  } else if (typeof module.handle !== "function") {
+  } else if (typeof domainModule.handle !== "function") {
     issues.push({
       code: "invalid_handle",
       message: "Domain module handle must be a function",

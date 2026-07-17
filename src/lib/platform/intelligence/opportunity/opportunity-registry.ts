@@ -1,6 +1,8 @@
 /** Opportunity Registry — tracks which OIOS domains publish into the exchange (Sprint 035). */
+
 import type * as C from "@/lib/platform/intelligence/opportunity/contracts";
 import type { OpportunityOriginatingDomain } from "@/lib/platform/intelligence/opportunity/types";
+import { PublisherRegistryMap } from "@/lib/platform/intelligence/common";
 
 const DEFAULT_PUBLISHERS: Array<{ domain: OpportunityOriginatingDomain; capability: string }> = [
   { domain: "organization-dna", capability: "opportunity.dna_alignment" },
@@ -17,27 +19,11 @@ const DEFAULT_PUBLISHERS: Array<{ domain: OpportunityOriginatingDomain; capabili
   { domain: "continuous-improvement", capability: "opportunity.improvement_cycle" },
 ];
 
-export class OpportunityRegistryStore implements C.OpportunityRegistry {
-  private readonly publishers = new Map<OpportunityOriginatingDomain, string>();
-
+export class OpportunityRegistryStore
+  extends PublisherRegistryMap<OpportunityOriginatingDomain>
+  implements C.OpportunityRegistry {
   constructor(seed = DEFAULT_PUBLISHERS) {
-    for (const item of seed) this.register(item.domain, item.capability);
-  }
-
-  register(domain: OpportunityOriginatingDomain, capability: string): void {
-    this.publishers.set(domain, capability);
-  }
-
-  list(): Array<{ domain: OpportunityOriginatingDomain; capability: string }> {
-    return [...this.publishers.entries()].map(([domain, capability]) => ({ domain, capability }));
-  }
-
-  isRegistered(domain: OpportunityOriginatingDomain): boolean {
-    return this.publishers.has(domain);
-  }
-
-  clear(): void {
-    this.publishers.clear();
+    super(seed);
   }
 }
 

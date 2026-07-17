@@ -33,7 +33,16 @@ export async function provisionOrganization(
   const slug = input.targetOrgName.toLowerCase().replace(/\s+/g, "-").slice(0, 50);
   const { data: org, error: orgError } = await supabase
     .from("org_organizations")
-    .insert({ name: input.targetOrgName, slug: `${slug}-${Date.now()}` })
+    .insert({
+      name: input.targetOrgName,
+      slug: `${slug}-${Date.now()}`,
+      org_type: "school_network",
+      owner_user_id: input.createdBy ?? null,
+      subscription_status: "trial",
+      status: "provisioning",
+      timezone: "America/New_York",
+      branding: {},
+    })
     .select("id")
     .single();
 
@@ -59,6 +68,46 @@ export async function provisionOrganization(
       modules_enabled: blueprint.modules,
       is_white_label: "whiteLabel" in blueprint && blueprint.whiteLabel === true,
     }).eq("id", input.customerId);
+
+    const { data: subscription } = await supabase
+      .from("cloud_subscriptions")
+      .select("plan_key, status")
+      .eq("customer_id", input.customerId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (subscription) {
+      await supabase
+        .from("org_organizations")
+        .update({
+          subscription_plan_key: subscription.plan_key,
+          subscription_status:
+            subscription.status === "cancelled" ? "canceled" : subscription.status,
+          status: "active",
+        })
+        .eq("id", org.id);
+    }
+  } else {
+    await supabase
+      .from("org_organizations")
+      .update({ status: "active" })
+      .eq("id", org.id);
+  }
+
+  if (input.createdBy) {
+    await supabase.from("user_organization_memberships").upsert(
+      {
+        organization_id: org.id,
+        user_id: input.createdBy,
+        membership_role: "owner",
+        status: "active",
+        is_primary: false,
+        permissions: ["org.view", "org.manage", "users.view", "users.manage"],
+        joined_at: new Date().toISOString(),
+      },
+      { onConflict: "organization_id,user_id" }
+    );
   }
 
   await supabase.from("cloud_provisioning_jobs").update({

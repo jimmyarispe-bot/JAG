@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { ExecutiveAlertStream } from "@/lib/platform/executive-alerts";
+import type { ExecutiveDecisionQueue } from "@/lib/platform/executive-decisions";
 import { mapWorkspaceToFounderDashboard } from "@/lib/platform/executive-intelligence/map-founder-dashboard";
 import type { ExecutiveIntelligenceWorkspace } from "@/lib/platform/executive-intelligence/workspace";
 import type { IdentityContext } from "@/lib/platform/identity/context";
@@ -140,14 +142,14 @@ function mockWorkspace(
       ],
       bySeverity: { Critical: [], High: [], Medium: [], Low: [] },
       byCategory: {},
-    } as ExecutiveIntelligenceWorkspace["alerts"],
+    } as unknown as ExecutiveAlertStream,
     decisions: {
       scope: sources.scope,
       generatedAt: sources.loadedAt,
       decisions: [],
       byStatus: {},
       bySource: {},
-    } as ExecutiveIntelligenceWorkspace["decisions"],
+    } as unknown as ExecutiveDecisionQueue,
     kpiPair: { current: [], prior: [], currentDate: null, priorDate: null },
     missionControlFeed: [],
     missionControlCritical: [],

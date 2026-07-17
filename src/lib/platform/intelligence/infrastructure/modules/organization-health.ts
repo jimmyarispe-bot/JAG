@@ -51,17 +51,19 @@ export function createOrganizationHealthModule(): IntelligenceModule {
           evaluateAcademicHealth(),
         ]);
 
-        const scores = [
-          enrollment.score,
-          financial.score,
-          workforce.score,
-          operations.score,
-          compliance.score,
-          academic.score,
-        ];
-        const overallScore = Math.round(
-          scores.reduce((sum, score) => sum + score, 0) / scores.length
-        );
+        // A.1 — exclude academic stub from overall so unavailable does not force critical/zero.
+        const measured = [
+          enrollment,
+          financial,
+          workforce,
+          operations,
+          compliance,
+          academic,
+        ].filter((item) => !("stub" in item && item.stub));
+        const scores = measured.map((item) => item.score);
+        const overallScore = scores.length
+          ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+          : 0;
 
         const data = {
           overallScore,

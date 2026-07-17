@@ -20,6 +20,7 @@ function mockIdentity(overrides: Partial<IdentityContext> = {}): IdentityContext
     fullName: "Test Teacher",
     roleLabel: "Teacher",
     roles: ["TEACHER"],
+    primaryRole: null,
     permissions: ["teacher.view"],
     orgAssignments: [{ id: "a1", school_id: "school-1", campus_id: null, program_id: null, department_id: null, all_campuses: true, all_programs: true, is_primary: true, schools: { name: "Test School" } }],
     accessibleSchoolIds: ["school-1"],

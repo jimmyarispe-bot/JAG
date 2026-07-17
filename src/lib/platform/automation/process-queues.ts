@@ -12,69 +12,183 @@ import { syncTeacherComplianceToMissionControl } from "@/lib/teacher/compliance"
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
+type NamedJob = { name: string; run: () => Promise<unknown> };
+
+/**
+ * Run independent jobs concurrently. Failures are collected; callers still receive success
+ * after best-effort processing (same jobs as before, higher throughput).
+ */
+async function runParallelJobs(jobs: NamedJob[]): Promise<{ name: string; error: string }[]> {
+  const settled = await Promise.allSettled(jobs.map((job) => job.run()));
+  const failures: { name: string; error: string }[] = [];
+  settled.forEach((result, index) => {
+    if (result.status === "rejected") {
+      const reason = result.reason;
+      failures.push({
+        name: jobs[index]!.name,
+        error: reason instanceof Error ? reason.message : String(reason),
+      });
+    }
+  });
+  return failures;
+}
+
 /** Orchestrates all module queue processors — the platform job runner */
 export async function processAllPlatformQueues(supabase: AuthClient) {
-  await processWorkflowQueue(supabase);
-  await processCommunicationQueue(supabase);
-  await syncAdmissionsQueueToPlatform(supabase);
-  await syncFailedAutomationsToMissionControl(supabase);
-  await processSpedReviewReminders(supabase);
-  await processMedicalDocumentExpiryAlerts(supabase);
-  await processDisengagedFamilies(supabase);
-  await processAttendanceParentNotifications(supabase);
-  await processSchedulingIntelligenceQueue(supabase);
-  await syncTeacherComplianceToMissionControl(supabase);
+  // Wave 1 — independent domain processors (no cross-job ordering requirements).
+  await runParallelJobs([
+    { name: "admissions.workflow", run: () => processWorkflowQueue(supabase) },
+    { name: "admissions.communication", run: () => processCommunicationQueue(supabase) },
+    { name: "admissions.syncPlatform", run: () => syncAdmissionsQueueToPlatform(supabase) },
+    { name: "automation.missionControl", run: () => syncFailedAutomationsToMissionControl(supabase) },
+    { name: "sis.spedReminders", run: () => processSpedReviewReminders(supabase) },
+    { name: "ssis.medicalAlerts", run: () => processMedicalDocumentExpiryAlerts(supabase) },
+    { name: "ssis.disengagedFamilies", run: () => processDisengagedFamilies(supabase) },
+    { name: "ssis.attendanceNotifications", run: () => processAttendanceParentNotifications(supabase) },
+    { name: "scheduling.intelligence", run: () => processSchedulingIntelligenceQueue(supabase) },
+    { name: "teacher.compliance", run: () => syncTeacherComplianceToMissionControl(supabase) },
+  ]);
+
+  // Wave 2 — ordered pairs (sync-then-process) kept sequential within each pair; pairs parallel.
   const { syncInstructionReminderJobs, processInstructionReminders } = await import(
     "@/lib/instruction/automation"
   );
-  await syncInstructionReminderJobs(supabase);
-  await processInstructionReminders(supabase);
   const { syncFinanceAlertsToMissionControl, processFinanceQueueJobs } = await import(
     "@/lib/finance/automation"
   );
-  await syncFinanceAlertsToMissionControl(supabase);
-  await processFinanceQueueJobs(supabase);
-  const { syncHrComplianceToMissionControl } = await import("@/lib/hr/automation");
-  await syncHrComplianceToMissionControl(supabase);
-  const { syncComplianceToMissionControl } = await import("@/lib/compliance/automation");
-  await syncComplianceToMissionControl(supabase);
-  const { syncWorkToMissionControl } = await import("@/lib/work/automation");
-  await syncWorkToMissionControl(supabase);
-  const { syncFinancialIntelligence } = await import("@/lib/financial-intelligence/automation");
-  await syncFinancialIntelligence(supabase);
-  const { syncExecutiveDecisionIntelligence } = await import("@/lib/edi/automation");
-  await syncExecutiveDecisionIntelligence(supabase);
-  const { syncEnterpriseDataPlatform } = await import("@/lib/enterprise-data/automation");
-  await syncEnterpriseDataPlatform(supabase);
-  const { syncIntelligencePlatform } = await import("@/lib/intelligence-platform/automation");
-  await syncIntelligencePlatform(supabase);
-  const { syncCloudPlatform } = await import("@/lib/cloud-platform/hub");
-  await syncCloudPlatform(supabase);
-  const { syncCertificationPlatform } = await import("@/lib/certification/automation");
-  await syncCertificationPlatform(supabase);
-  const { syncIntegrationHub } = await import("@/lib/integration-hub/automation");
-  await syncIntegrationHub(supabase);
-  const { syncOperationsPlatform } = await import("@/lib/operations-platform/hub");
-  await syncOperationsPlatform(supabase);
-  const { syncIntelligenceNetwork } = await import("@/lib/intelligence-network/automation");
-  await syncIntelligenceNetwork(supabase);
+
+  await runParallelJobs([
+    {
+      name: "instruction.reminders",
+      run: async () => {
+        await syncInstructionReminderJobs(supabase);
+        await processInstructionReminders(supabase);
+      },
+    },
+    {
+      name: "finance.queue",
+      run: async () => {
+        await syncFinanceAlertsToMissionControl(supabase);
+        await processFinanceQueueJobs(supabase);
+      },
+    },
+  ]);
+
+  // Wave 3 — independent platform sync jobs.
+  await runParallelJobs([
+    {
+      name: "hr.compliance",
+      run: async () => {
+        const { syncHrComplianceToMissionControl } = await import("@/lib/hr/automation");
+        return syncHrComplianceToMissionControl(supabase);
+      },
+    },
+    {
+      name: "compliance.missionControl",
+      run: async () => {
+        const { syncComplianceToMissionControl } = await import("@/lib/compliance/automation");
+        return syncComplianceToMissionControl(supabase);
+      },
+    },
+    {
+      name: "work.missionControl",
+      run: async () => {
+        const { syncWorkToMissionControl } = await import("@/lib/work/automation");
+        return syncWorkToMissionControl(supabase);
+      },
+    },
+    {
+      name: "financialIntelligence.sync",
+      run: async () => {
+        const { syncFinancialIntelligence } = await import("@/lib/financial-intelligence/automation");
+        return syncFinancialIntelligence(supabase);
+      },
+    },
+    {
+      name: "edi.sync",
+      run: async () => {
+        const { syncExecutiveDecisionIntelligence } = await import("@/lib/edi/automation");
+        return syncExecutiveDecisionIntelligence(supabase);
+      },
+    },
+    {
+      name: "enterpriseData.sync",
+      run: async () => {
+        const { syncEnterpriseDataPlatform } = await import("@/lib/enterprise-data/automation");
+        return syncEnterpriseDataPlatform(supabase);
+      },
+    },
+    {
+      name: "intelligencePlatform.sync",
+      run: async () => {
+        const { syncIntelligencePlatform } = await import("@/lib/intelligence-platform/automation");
+        return syncIntelligencePlatform(supabase);
+      },
+    },
+    {
+      name: "cloud.sync",
+      run: async () => {
+        const { syncCloudPlatform } = await import("@/lib/cloud-platform/hub");
+        return syncCloudPlatform(supabase);
+      },
+    },
+    {
+      name: "certification.sync",
+      run: async () => {
+        const { syncCertificationPlatform } = await import("@/lib/certification/automation");
+        return syncCertificationPlatform(supabase);
+      },
+    },
+    {
+      name: "integrationHub.sync",
+      run: async () => {
+        const { syncIntegrationHub } = await import("@/lib/integration-hub/automation");
+        return syncIntegrationHub(supabase);
+      },
+    },
+    {
+      name: "operations.sync",
+      run: async () => {
+        const { syncOperationsPlatform } = await import("@/lib/operations-platform/hub");
+        return syncOperationsPlatform(supabase);
+      },
+    },
+    {
+      name: "intelligenceNetwork.sync",
+      run: async () => {
+        const { syncIntelligenceNetwork } = await import("@/lib/intelligence-network/automation");
+        return syncIntelligenceNetwork(supabase);
+      },
+    },
+  ]);
+
+  // Wave 4 — school insights in parallel (same limit(20) set as before).
   const { generateExecutiveInsights } = await import("@/lib/executive/insights");
   const { data: schools } = await supabase.from("schools").select("id").limit(20);
-  for (const school of schools ?? []) {
-    await generateExecutiveInsights(supabase, school.id);
-  }
-  if (!schools?.length) {
+  if (schools?.length) {
+    await runParallelJobs(
+      schools.map((school) => ({
+        name: `executive.insights.${school.id}`,
+        run: () => generateExecutiveInsights(supabase, school.id),
+      }))
+    );
+  } else {
     await generateExecutiveInsights(supabase);
   }
 
-  // Sprint 002 Task 2 — daily executive KPI snapshots (aggregation layer only).
-  // Duplicate period keys are skipped; safe to run on the existing process-queues cron.
+  // Wave 5 — org snapshot first (activity event), then school snapshots in parallel.
   const { captureDailyExecutiveSnapshot } = await import("@/lib/platform/kpi-snapshots");
   await captureDailyExecutiveSnapshot(supabase, { recordActivityEvent: true });
-  for (const school of schools ?? []) {
-    await captureDailyExecutiveSnapshot(supabase, {
-      filters: { schoolId: school.id },
-      recordActivityEvent: false,
-    });
+  if (schools?.length) {
+    await runParallelJobs(
+      schools.map((school) => ({
+        name: `kpi.snapshot.${school.id}`,
+        run: () =>
+          captureDailyExecutiveSnapshot(supabase, {
+            filters: { schoolId: school.id },
+            recordActivityEvent: false,
+          }),
+      }))
+    );
   }
 }

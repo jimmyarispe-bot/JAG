@@ -50,6 +50,9 @@ export function PortalShell({
 
   return (
     <div className="portal-root min-h-screen bg-slate-50 text-slate-900">
+      <a href="#portal-main" className="skip-link">
+        Skip to main content
+      </a>
       <PortalAccessibilityBar />
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
@@ -102,7 +105,9 @@ export function PortalShell({
           </ul>
         </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+      <main id="portal-main" className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        {children}
+      </main>
     </div>
   );
 }

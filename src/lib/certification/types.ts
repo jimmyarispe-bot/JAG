@@ -39,6 +39,7 @@ export const CERT_NAV = [
   { href: "/dashboard/certification/documentation", label: "Documentation" },
   { href: "/dashboard/certification/demo", label: "Demo" },
   { href: "/dashboard/certification/training", label: "Training" },
+  { href: "/dashboard/certification/governance", label: "Release Governance" },
   { href: "/dashboard/certification/launch", label: "Launch Readiness" },
 ] as const;
 

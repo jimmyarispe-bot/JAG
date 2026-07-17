@@ -1,23 +1,23 @@
 import type { IdentityContext } from "@/lib/platform/identity/context";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { hasAnyPermission } from "@/lib/platform/identity/authorization-service";
 import { userHasPermission } from "@/lib/platform/identity/permissions";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
 export function canViewCertification(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("certification.view") ||
-    ctx.permissions.includes("certification.manage") ||
-    ctx.permissions.includes("certification.admin") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, [
+    "certification.view",
+    "certification.manage",
+    "certification.admin",
+  ]);
 }
 
 export async function requireCertificationAccess(
   supabase: AuthClient,
   ctx: IdentityContext
 ): Promise<boolean> {
-  if (ctx.isEnterpriseAdmin || ctx.isFounder) return true;
+  if (canViewCertification(ctx)) return true;
 
   return (
     (await userHasPermission(supabase, "certification.view", ctx.effectiveUserId)) ||
@@ -27,9 +27,9 @@ export async function requireCertificationAccess(
 }
 
 export function canManageCertification(ctx: IdentityContext) {
-  return ctx.permissions.includes("certification.manage") || ctx.permissions.includes("certification.admin") || ctx.isEnterpriseAdmin;
+  return hasAnyPermission(ctx, ["certification.manage", "certification.admin"]);
 }
 
 export function canAdminCertification(ctx: IdentityContext) {
-  return ctx.permissions.includes("certification.admin") || ctx.isEnterpriseAdmin;
+  return hasAnyPermission(ctx, ["certification.admin"]);
 }

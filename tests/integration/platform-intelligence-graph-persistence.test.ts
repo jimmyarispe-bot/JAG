@@ -19,7 +19,7 @@ function createGraphMockStore() {
   const supabase = createMockSupabase(({ table, operation, payload, filters }) => {
     if (table === "platform_graph_edges") {
       if (operation === "insert" || operation === "upsert" || operation === "single") {
-        const row = {
+        const row: Record<string, unknown> = {
           id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5",
           recorded_at: new Date().toISOString(),
           status: "active",

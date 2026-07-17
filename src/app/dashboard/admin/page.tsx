@@ -1,18 +1,19 @@
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AdminHub } from "@/components/platform/admin/AdminHub";
-import { requirePagePermission } from "@/lib/platform/identity/page-guard";
+import { requirePlatformAdministrationAccess } from "@/lib/platform/identity/page-guard";
 
-export default async function AdminHubPage() {
-  const ctx = await requirePagePermission(["org.view", "users.view", "roles.view", "security.view"]);
+export default async function PlatformAdministrationPage() {
+  // Sprint 009 — hub entry via centralized authorization.
+  const ctx = await requirePlatformAdministrationAccess();
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Administration"
-        subtitle="Enterprise identity, organizations, permissions, and security"
+        title="Platform Administration"
+        subtitle="Organizations, users, roles, permissions, subscriptions, audit, support, and security"
         backHref="/dashboard"
       />
-      <AdminHub permissions={ctx.permissions} />
+      <AdminHub permissions={ctx} />
     </div>
   );
 }

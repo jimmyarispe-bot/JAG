@@ -4,7 +4,9 @@
 
 **Build status:** `npm run build` passes  
 **Migrations:** 129 (through `129_release_v1_doc_categories.sql`)  
-**Readiness threshold:** 85%
+**Readiness threshold:** 85%  
+
+> **Phase H (2026-07-17):** Formal GA decision is **NO-GO** (54/100). See [`docs/launch/phase-h/`](./phase-h/). This static launch report is superseded for go/no-go by the Phase H package.
 
 ---
 

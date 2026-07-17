@@ -316,7 +316,7 @@ describe("Strategic Intelligence — resolver orchestration", () => {
 
   it("satisfies IntelligenceDomainModule with domainKey strategic", () => {
     const resolver = createStrategicIntelligenceDomain();
-    const module = {
+    const domainModule = {
       domainKey: "strategic" as const,
       name: "Strategic Intelligence",
       version: STRATEGIC_INTELLIGENCE_VERSION,
@@ -346,10 +346,10 @@ describe("Strategic Intelligence — resolver orchestration", () => {
       },
     };
 
-    expect(validateIntelligenceDomain(module).ok).toBe(true);
+    expect(validateIntelligenceDomain(domainModule).ok).toBe(true);
 
     const registry = createIntelligenceDomainRegistry();
-    registry.register(module);
+    registry.register(domainModule);
     expect(registry.get("strategic")?.domainKey).toBe("strategic");
   });
 

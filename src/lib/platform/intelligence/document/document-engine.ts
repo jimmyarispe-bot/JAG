@@ -67,7 +67,7 @@ import {
   type DocumentResult,
 } from "@/lib/platform/intelligence/document/types";
 
-export interface DocumentEngineDependencies extends DocumentDependencies {}
+export type DocumentEngineDependencies = DocumentDependencies;
 
 export class DocumentIntelligenceEngineImpl implements DocumentEngineContract {
   private readonly documentParser: DocumentParserContract;

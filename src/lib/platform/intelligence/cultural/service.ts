@@ -2,7 +2,7 @@ import type { CulturalDependencies, CulturalIntelligenceService as Contract, Cul
 import { CulturalIntelligenceEngineImpl } from "@/lib/platform/intelligence/cultural/cultural-engine";
 import type { CulturalQueryRequest, CulturalQueryResult, CulturalRequest, CulturalResult } from "@/lib/platform/intelligence/cultural/types";
 
-export interface CulturalServiceDependencies extends CulturalDependencies {}
+export type CulturalServiceDependencies = CulturalDependencies;
 
 export class CulturalIntelligenceServiceImpl implements Contract {
   private engine: CulturalIntelligenceEngineImpl;

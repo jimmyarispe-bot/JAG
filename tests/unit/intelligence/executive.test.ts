@@ -56,7 +56,7 @@ describe("Executive Intelligence domain", () => {
 
   it("satisfies IntelligenceDomainModule when adapted for the registry", () => {
     const resolver = createExecutiveIntelligenceDomain();
-    const module = {
+    const domainModule = {
       domainKey: "executive" as const,
       name: "Executive Intelligence",
       version: EXECUTIVE_INTELLIGENCE_VERSION,
@@ -85,10 +85,10 @@ describe("Executive Intelligence domain", () => {
       },
     };
 
-    expect(validateIntelligenceDomain(module).ok).toBe(true);
+    expect(validateIntelligenceDomain(domainModule).ok).toBe(true);
 
     const registry = createIntelligenceDomainRegistry();
-    registry.register(module);
+    registry.register(domainModule);
     expect(registry.get("executive")?.domainKey).toBe("executive");
   });
 

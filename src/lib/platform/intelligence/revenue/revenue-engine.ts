@@ -165,7 +165,7 @@ import {
   type RevenueResult,
 } from "@/lib/platform/intelligence/revenue/types";
 
-export interface RevenueEngineDependencies extends RevenueDependencies {}
+export type RevenueEngineDependencies = RevenueDependencies;
 
 /**
  * RevenueIntelligenceEngine — core orchestrator for revenue outputs.

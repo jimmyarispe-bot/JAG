@@ -1,5 +1,6 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { hasPermission } from "@/lib/platform/identity/authorization-service";
 import { hasUnrestrictedSchoolAccess } from "@/lib/platform/identity/school-access";
 import { userHasPermission } from "@/lib/platform/identity/permissions";
 import type { GlobalSearchResult } from "@/lib/platform/identity/types";
@@ -15,8 +16,10 @@ export async function globalSearch(
   const ctx = await getIdentityContext();
   if (!ctx) return [];
 
-  const allowed = await userHasPermission(supabase, "search.global", ctx.effectiveUserId);
-  if (!allowed && !ctx.roles.includes("FOUNDER") && !ctx.roles.includes("CEO")) {
+  const allowed =
+    (await userHasPermission(supabase, "search.global", ctx.effectiveUserId)) ||
+    hasPermission(ctx, "search.global");
+  if (!allowed) {
     return [];
   }
 
@@ -27,7 +30,7 @@ export async function globalSearch(
   const pattern = `%${term}%`;
   const schoolFilter = ctx.accessibleSchoolIds;
 
-  if (ctx.permissions.includes("students.view") || ctx.roles.some((r) => ["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR"].includes(r))) {
+  if (hasPermission(ctx, "students.view") || hasPermission(ctx, "SIS_ACCESS")) {
     let studentQuery = supabase
       .from("students")
       .select("id, first_name, last_name, school_id, schools(name)")

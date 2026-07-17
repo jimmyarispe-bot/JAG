@@ -1,11 +1,31 @@
-/** Funding Intelligence contracts (Sprint 034). Leaf module: implementation-free. */
+/**
+ * Funding Intelligence — contracts / interfaces only (Sprint 034).
+ *
+ * Leaf module: no imports from engine implementations (avoids cycles).
+ * Canonical order: Engine → sub-engines → Repository → Registry → Service → Dependencies.
+ */
+
 import type * as T from "@/lib/platform/intelligence/funding/types";
 
-export interface FundingIntelligenceEngine { build(request: T.FundingRequest): T.FundingResult; }
+export interface FundingIntelligenceEngine {
+  build(request: T.FundingRequest): T.FundingResult;
+}
 export type FundingEngine = FundingIntelligenceEngine;
-export interface FundingIntelligenceService { build(request: T.FundingRequest): T.FundingResult; query(result: T.FundingResult, request: T.FundingQueryRequest): T.FundingQueryResult; repository(): FundingRepository; }
+export interface FundingRepository {
+  save(result: T.FundingResult): T.FundingResult;
+  get(requestId: string): T.FundingResult | null;
+  list(scope?: Partial<T.GraphScope>): T.FundingResult[];
+  remove(requestId: string): boolean;
+  saveHistory(record: T.FundingHistoryRecord): T.FundingHistoryRecord;
+  listHistory(scope?: Partial<T.GraphScope>): T.FundingHistoryRecord[];
+  clear(): void;
+}
+export interface FundingIntelligenceService {
+  build(request: T.FundingRequest): T.FundingResult;
+  query(result: T.FundingResult, request: T.FundingQueryRequest): T.FundingQueryResult;
+  repository(): FundingRepository;
+}
 export type FundingService = FundingIntelligenceService;
-export interface FundingRepository { save(result: T.FundingResult): T.FundingResult; get(requestId: string): T.FundingResult | null; list(scope?: Partial<T.GraphScope>): T.FundingResult[]; remove(requestId: string): boolean; saveHistory(record: T.FundingHistoryRecord): T.FundingHistoryRecord; listHistory(scope?: Partial<T.GraphScope>): T.FundingHistoryRecord[]; clear(): void; }
 
 export type BaselineInput = { baseline: T.FundingBaseline; now: Date };
 export interface FederalFunding { analyze(input: BaselineInput): T.FederalFundingRecord[]; }

@@ -1,6 +1,25 @@
 import type { OrganizationBranding } from "@/lib/branding/types";
 
-/** Founder's Edition platform footer links — routes preserved; labels resolved from branding. */
+/**
+ * Founder-only home destinations — FOUNDER role exclusively.
+ * Do not expose these widgets/links to any other role.
+ */
+/**
+ * D.1 — Dual executive surfaces (intentional):
+ * - `/exec/*` = JAG Command Center (operating brief / health / ask)
+ * - `/dashboard/executive` = AcademyOS Executive Intelligence module
+ */
+export const FOUNDER_DASHBOARD_NAV = [
+  { href: "/dashboard", label: "Founder & CEO", exact: true },
+  { href: "/dashboard/mission-control", label: "Mission Control" },
+  { href: "/exec", label: "Command Center (JAG)" },
+  { href: "/dashboard/executive", label: "Executive Intelligence" },
+  { href: "/exec/graph", label: "Executive Graph" },
+  { href: "/exec/brief", label: "Executive Brief" },
+  { href: "/dashboard/admin", label: "Platform Administration" },
+] as const;
+
+/** @deprecated Use FOUNDER_DASHBOARD_NAV for founder surfaces. Kept for non-breaking imports. */
 export const FOUNDERS_PLATFORM_NAV = [
   { href: "/dashboard/mission-control", labelKey: "missionControlLabel" as const },
   { href: "/dashboard/executive", labelKey: "intelligenceEngineLabel" as const },

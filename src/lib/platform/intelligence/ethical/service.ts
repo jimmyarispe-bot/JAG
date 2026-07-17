@@ -2,7 +2,7 @@ import type { EthicalDependencies, EthicalIntelligenceService as Contract, Ethic
 import { EthicalIntelligenceEngineImpl } from "@/lib/platform/intelligence/ethical/ethical-engine";
 import type { EthicalQueryRequest, EthicalQueryResult, EthicalRequest, EthicalResult } from "@/lib/platform/intelligence/ethical/types";
 
-export interface EthicalServiceDependencies extends EthicalDependencies {}
+export type EthicalServiceDependencies = EthicalDependencies;
 
 export class EthicalIntelligenceServiceImpl implements Contract {
   private engine: EthicalIntelligenceEngineImpl;

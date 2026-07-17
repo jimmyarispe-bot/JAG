@@ -5,24 +5,38 @@ import type {
   WisdomRequest,
 } from "@/lib/platform/intelligence/wisdom/types";
 import { WISDOM_AREAS } from "@/lib/platform/intelligence/wisdom/types";
+import {
+  OUTLOOK_THRESHOLDS_ELEVATED,
+  buildConfidenceAverage,
+  clamp as sharedClamp,
+  defaultCreateId as sharedDefaultCreateId,
+  emptyGraphScope,
+  levelFromValue as sharedLevelFromValue,
+  lightScoreClamped as sharedLightScore,
+  outlookFromScoreConfigured,
+  periodLabelIsoMonth,
+  priorityFromScoreLowUrgent,
+  statusFromScore as sharedStatusFromScore,
+} from "@/lib/platform/intelligence/common";
 
-export const clamp = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
-export function statusFromScore(score: number): WisdomHealthStatus {
-  if (score >= 85) return "excellent"; if (score >= 70) return "healthy"; if (score >= 50) return "warning"; return "critical";
-}
-export function priorityFromScore(score: number): WisdomPriorityBand {
-  if (score < 35) return "critical"; if (score < 50) return "high"; if (score < 65) return "medium"; if (score < 80) return "low"; return "monitor";
-}
-export function levelFromValue(value: number): WisdomConfidenceLevel {
-  if (value >= .8) return "high"; if (value >= .55) return "medium"; if (value >= .3) return "low"; return "unknown";
-}
+
+export const clamp = sharedClamp;
+export function statusFromScore(score: number): WisdomHealthStatus { return sharedStatusFromScore(score); }
+export function priorityFromScore(score: number): WisdomPriorityBand { return priorityFromScoreLowUrgent(score); }
+export function levelFromValue(value: number): WisdomConfidenceLevel { return sharedLevelFromValue(value); }
 export function outlookFromScore(score: number, volatility = 0): WisdomOutlook {
-  if (volatility >= 25) return "volatile";
-  if (score >= 82) return "wise"; if (score >= 68) return "stable"; if (score >= 50) return "shortsighted"; return "uncertain";
+  return outlookFromScoreConfigured(score, volatility, {
+    volatileLabel: "volatile",
+    high: { min: OUTLOOK_THRESHOLDS_ELEVATED.high, label: "wise" },
+    mid: { min: OUTLOOK_THRESHOLDS_ELEVATED.mid, label: "stable" },
+    low: { min: OUTLOOK_THRESHOLDS_ELEVATED.low, label: "shortsighted" },
+    fallback: "uncertain",
+  });
 }
-export function buildConfidence(factors: Array<{ key: string; label: string; contribution: number }>): WisdomConfidenceScore {
-  const value = Math.min(1, Math.max(0, factors.reduce((s, f) => s + f.contribution, 0) / Math.max(1, factors.length)));
-  return { value, level: levelFromValue(value), factors };
+export function buildConfidence(
+  factors: Array<{ key: string; label: string; contribution: number }>
+): WisdomConfidenceScore {
+  return buildConfidenceAverage(factors) as WisdomConfidenceScore;
 }
 export function buildLens(partial: Partial<WisdomLens> = {}): WisdomLens {
   return {
@@ -36,9 +50,9 @@ export function buildLens(partial: Partial<WisdomLens> = {}): WisdomLens {
     wisdomScore: partial.wisdomScore ?? "Wisdom score requires confirmation.",
   };
 }
-export const defaultCreateId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-export const defaultPeriodLabel = (now = new Date()) => now.toISOString().slice(0, 7);
-export const emptyWisdomScope = (): GraphScope => ({ organizationId: null, schoolId: null });
+export const defaultCreateId = sharedDefaultCreateId;
+export const defaultPeriodLabel = periodLabelIsoMonth;
+export const emptyWisdomScope = (): GraphScope => emptyGraphScope();
 
 export function defaultWisdomBaseline(): WisdomBaseline {
   const areaScores = Object.fromEntries(WISDOM_AREAS.map(a => [a, 68])) as WisdomBaseline["areaScores"];
@@ -60,8 +74,7 @@ export function defaultWisdomBaseline(): WisdomBaseline {
   };
 }
 
-const lightScore = (value: unknown, fallback: number) =>
-  typeof value === "number" ? clamp(value <= 1 ? value * 100 : value) : fallback;
+const lightScore = sharedLightScore;
 
 export function deriveWisdomBaseline(request: WisdomRequest): WisdomBaseline {
   const base = defaultWisdomBaseline();

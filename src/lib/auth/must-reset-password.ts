@@ -34,6 +34,8 @@ const PUBLIC_API_PATHS = new Set([
   "/api/data/docs",
   "/api/intelligence/docs",
   "/api/certification/reports",
+  "/api/health",
+  "/api/ready",
 ]);
 
 export function isPublicApiPath(pathname: string): boolean {

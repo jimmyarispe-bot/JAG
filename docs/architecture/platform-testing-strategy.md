@@ -70,3 +70,11 @@ npm run build
 - No authenticated Playwright fixtures for full profile UI E2E
 - Platform service tests mock Supabase rather than exercising RLS policies
 - Student legacy `?tab=` URLs are remapped server-side without HTTP redirect (employee uses 302)
+
+## Phase E certification package
+
+Release Phase E inventory, gate results, defect register, and readiness score live under:
+
+`docs/testing/phase-e/`
+
+Certification unit packs: `tests/unit/certification/phase-e-*.test.ts`.

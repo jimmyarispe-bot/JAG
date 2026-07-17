@@ -10,8 +10,10 @@ export type EduRoleName =
   | "EXECUTIVE_DIRECTOR"
   | "REGIONAL_DIRECTOR"
   | "SCHOOL_LEADER"
+  | "ADMINISTRATOR"
   | "ADMISSIONS"
   | "FINANCE"
+  | "ACCOUNTING"
   | "HR"
   | "SCHOLARSHIP_MANAGER"
   | "STATE_FUNDING_MANAGER"
@@ -14621,33 +14623,59 @@ export type Database = {
       }
       org_organizations: {
         Row: {
+          branding: Json
           created_at: string
           id: string
           name: string
+          org_type: string
+          owner_user_id: string | null
           settings: Json
           slug: string
           status: string
+          subscription_plan_key: string | null
+          subscription_status: string
+          timezone: string
           updated_at: string
         }
         Insert: {
+          branding?: Json
           created_at?: string
           id?: string
           name: string
+          org_type?: string
+          owner_user_id?: string | null
           settings?: Json
           slug: string
           status?: string
+          subscription_plan_key?: string | null
+          subscription_status?: string
+          timezone?: string
           updated_at?: string
         }
         Update: {
+          branding?: Json
           created_at?: string
           id?: string
           name?: string
+          org_type?: string
+          owner_user_id?: string | null
           settings?: Json
           slug?: string
           status?: string
+          subscription_plan_key?: string | null
+          subscription_status?: string
+          timezone?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "org_organizations_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       org_programs: {
         Row: {
@@ -23723,6 +23751,63 @@ export type Database = {
           },
           {
             foreignKeyName: "user_org_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_organization_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          invited_at: string | null
+          is_primary: boolean
+          joined_at: string | null
+          membership_role: string
+          organization_id: string
+          permissions: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          is_primary?: boolean
+          joined_at?: string | null
+          membership_role?: string
+          organization_id: string
+          permissions?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          is_primary?: boolean
+          joined_at?: string | null
+          membership_role?: string
+          organization_id?: string
+          permissions?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_organization_memberships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_organization_memberships_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"

@@ -42,9 +42,9 @@ export class IntelligenceHealthImpl implements IntelligenceHealthContract {
   }
 
   async checkModule(moduleId: IntelligenceModuleId): Promise<IntelligenceModuleHealth> {
-    const module = this.registry.get(moduleId);
+    const domainModule = this.registry.get(moduleId);
     const checkedAt = new Date().toISOString();
-    if (!module) {
+    if (!domainModule) {
       return {
         moduleId,
         status: "unknown",
@@ -54,8 +54,8 @@ export class IntelligenceHealthImpl implements IntelligenceHealthContract {
       };
     }
 
-    if (module.health) {
-      const custom = await module.health();
+    if (domainModule.health) {
+      const custom = await domainModule.health();
       return custom;
     }
 
@@ -69,16 +69,16 @@ export class IntelligenceHealthImpl implements IntelligenceHealthContract {
       moduleId,
       status,
       phase,
-      message: `${module.name} is ${status}`,
+      message: `${domainModule.name} is ${status}`,
       checkedAt,
-      details: { version: module.version },
+      details: { version: domainModule.version },
     };
   }
 
   async checkAll(): Promise<IntelligencePlatformHealth> {
     const modules: IntelligenceModuleHealth[] = [];
-    for (const module of this.registry.list()) {
-      modules.push(await this.checkModule(module.id));
+    for (const domainModule of this.registry.list()) {
+      modules.push(await this.checkModule(domainModule.id));
     }
     const status = worstStatus(modules.map((m) => m.status));
     const checkedAt = new Date().toISOString();

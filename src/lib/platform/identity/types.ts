@@ -11,6 +11,14 @@ export const PERMISSION_KEYS = [
   "impersonate.users",
   "students.view",
   "students.edit",
+  "students.attendance",
+  "students.behavior",
+  "students.services",
+  "teacher.view",
+  "teacher.manage",
+  "teacher.attendance",
+  "teacher.communicate",
+  "teacher.compliance",
   "admissions.view",
   "admissions.accept",
   "admissions.manage",
@@ -136,6 +144,29 @@ export const PERMISSION_KEYS = [
   "approvals.configure",
   "approvals.review",
   "search.global",
+  /** Cross-school access within the user's organization(s). */
+  "schools.access_all",
+  // Sprint 004 — official permission catalog (coarse access gates)
+  "JAG_ACCESS",
+  "ACADEMYOS_ACCESS",
+  "FINANCE_ACCESS",
+  "BANKING_ACCESS",
+  "ACCOUNTING_ACCESS",
+  "PAYROLL_ACCESS",
+  "HR_ACCESS",
+  "ADMISSIONS_ACCESS",
+  "SIS_ACCESS",
+  "TEACHER_ACCESS",
+  "PARENT_ACCESS",
+  "STUDENT_ACCESS",
+  "USER_MANAGEMENT_ACCESS",
+  "SYSTEM_ADMIN_ACCESS",
+  "AUDIT_ACCESS",
+  "REPORTING_ACCESS",
+  /** @deprecated Prefer SYSTEM_ADMIN_ACCESS */
+  "SYSTEM_CONFIGURATION_ACCESS",
+  /** @deprecated Prefer AUDIT_ACCESS */
+  "AUDIT_LOG_ACCESS",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

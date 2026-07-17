@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 type Row = Record<string, unknown>;
 
 interface MockQueryResult {
@@ -72,18 +74,18 @@ function createFilterChain(
   return chain;
 }
 
-export function createMockSupabase(handler: QueryHandler) {
+export function createMockSupabase(handler: QueryHandler): SupabaseClient {
   return {
     from: (table: string) => ({
       select: (_columns?: string, _options?: unknown) =>
         createFilterChain(table, "select", handler),
       insert: (rows: Row | Row[]) => createFilterChain(table, "insert", handler, rows),
       update: (patch: Row) => createFilterChain(table, "update", handler, patch),
-      upsert: (rows: Row | Row[], options?: unknown) =>
+      upsert: (rows: Row | Row[], _options?: unknown) =>
         createFilterChain(table, "upsert", handler, rows),
       delete: () => createFilterChain(table, "delete", handler),
     }),
-  };
+  } as unknown as SupabaseClient;
 }
 
 export const TEST_UUIDS = {

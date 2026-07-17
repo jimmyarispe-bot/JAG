@@ -29,28 +29,28 @@ export interface CategoryAnalyzer {
   analyze(input: BaselineInput): T.CategoryOpportunityRecord[];
 }
 
-export interface RevenueOpportunities extends CategoryAnalyzer {}
-export interface FundingOpportunities extends CategoryAnalyzer {}
-export interface CostReductionOpportunities extends CategoryAnalyzer {}
-export interface PricingOpportunities extends CategoryAnalyzer {}
-export interface MarketExpansionOpportunities extends CategoryAnalyzer {}
-export interface GeographicExpansionOpportunities extends CategoryAnalyzer {}
-export interface CustomerGrowthOpportunities extends CategoryAnalyzer {}
-export interface RetentionOpportunities extends CategoryAnalyzer {}
-export interface PartnershipOpportunities extends CategoryAnalyzer {}
-export interface StrategicAllianceOpportunities extends CategoryAnalyzer {}
-export interface AcquisitionOpportunities extends CategoryAnalyzer {}
-export interface MergerOpportunities extends CategoryAnalyzer {}
-export interface TechnologyOpportunities extends CategoryAnalyzer {}
-export interface AutomationOpportunities extends CategoryAnalyzer {}
-export interface VendorOptimizationOpportunities extends CategoryAnalyzer {}
-export interface ProcurementSavingsOpportunities extends CategoryAnalyzer {}
-export interface RealEstateOpportunities extends CategoryAnalyzer {}
-export interface AssetOptimizationOpportunities extends CategoryAnalyzer {}
-export interface LicensingOpportunities extends CategoryAnalyzer {}
-export interface IntellectualPropertyOpportunities extends CategoryAnalyzer {}
-export interface InnovationOpportunities extends CategoryAnalyzer {}
-export interface MissionImpactOpportunities extends CategoryAnalyzer {}
+export type RevenueOpportunities = CategoryAnalyzer;
+export type FundingOpportunities = CategoryAnalyzer;
+export type CostReductionOpportunities = CategoryAnalyzer;
+export type PricingOpportunities = CategoryAnalyzer;
+export type MarketExpansionOpportunities = CategoryAnalyzer;
+export type GeographicExpansionOpportunities = CategoryAnalyzer;
+export type CustomerGrowthOpportunities = CategoryAnalyzer;
+export type RetentionOpportunities = CategoryAnalyzer;
+export type PartnershipOpportunities = CategoryAnalyzer;
+export type StrategicAllianceOpportunities = CategoryAnalyzer;
+export type AcquisitionOpportunities = CategoryAnalyzer;
+export type MergerOpportunities = CategoryAnalyzer;
+export type TechnologyOpportunities = CategoryAnalyzer;
+export type AutomationOpportunities = CategoryAnalyzer;
+export type VendorOptimizationOpportunities = CategoryAnalyzer;
+export type ProcurementSavingsOpportunities = CategoryAnalyzer;
+export type RealEstateOpportunities = CategoryAnalyzer;
+export type AssetOptimizationOpportunities = CategoryAnalyzer;
+export type LicensingOpportunities = CategoryAnalyzer;
+export type IntellectualPropertyOpportunities = CategoryAnalyzer;
+export type InnovationOpportunities = CategoryAnalyzer;
+export type MissionImpactOpportunities = CategoryAnalyzer;
 
 export interface OpportunityCategoryEngine {
   discover(input: BaselineInput): Record<T.OpportunityCategory, T.CategoryOpportunityRecord[]>;

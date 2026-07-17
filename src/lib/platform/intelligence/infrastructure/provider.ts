@@ -21,7 +21,7 @@ export class IntelligenceProviderImpl implements IntelligenceProviderContract {
   constructor(id: string, modules: IntelligenceModule[]) {
     this.id = id;
     this.modules = modules;
-    this.moduleIds = modules.map((module) => module.id);
+    this.moduleIds = modules.map((domainModule) => domainModule.id);
   }
 
   provide(): IntelligenceModule[] {
@@ -54,18 +54,18 @@ export function registerProviders(
 ): IntelligenceModuleId[] {
   const registered: IntelligenceModuleId[] = [];
   for (const provider of providers) {
-    for (const module of provider.provide()) {
-      if (registry.has(module.id)) {
+    for (const domainModule of provider.provide()) {
+      if (registry.has(domainModule.id)) {
         if (options.skipDuplicates) continue;
       }
       try {
-        registry.register(module);
-        options.versioning?.record(module);
+        registry.register(domainModule);
+        options.versioning?.record(domainModule);
         options.telemetry?.emit("module.registered", {
-          moduleId: module.id,
-          payload: { providerId: provider.id, version: module.version },
+          moduleId: domainModule.id,
+          payload: { providerId: provider.id, version: domainModule.version },
         });
-        registered.push(module.id);
+        registered.push(domainModule.id);
       } catch (error) {
         if (options.skipDuplicates) continue;
         throw error;

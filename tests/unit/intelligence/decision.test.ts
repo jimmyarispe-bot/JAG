@@ -275,7 +275,7 @@ describe("Decision Intelligence — resolver orchestration", () => {
 
   it("satisfies IntelligenceDomainModule with domainKey decision", () => {
     const resolver = createDecisionIntelligenceDomain();
-    const module = {
+    const domainModule = {
       domainKey: "decision" as const,
       name: "Decision Intelligence",
       version: DECISION_INTELLIGENCE_VERSION,
@@ -304,9 +304,9 @@ describe("Decision Intelligence — resolver orchestration", () => {
       },
     };
 
-    expect(validateIntelligenceDomain(module).ok).toBe(true);
+    expect(validateIntelligenceDomain(domainModule).ok).toBe(true);
     const registry = createIntelligenceDomainRegistry();
-    registry.register(module);
+    registry.register(domainModule);
     expect(registry.get("decision")?.domainKey).toBe("decision");
   });
 

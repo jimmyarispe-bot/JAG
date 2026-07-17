@@ -249,13 +249,6 @@ export interface DocumentQueries {
   ask(result: T.DocumentResult, request: T.DocumentQueryRequest): T.DocumentQueryResult;
 }
 
-export interface DocumentRegistry {
-  register(domain: string, capability: string): void;
-  list(): T.DocumentPublisher[];
-  isRegistered(domain: string): boolean;
-  clear(): void;
-}
-
 export interface DocumentRepository {
   save(result: T.DocumentResult): T.DocumentResult;
   get(requestId: string): T.DocumentResult | null;
@@ -263,6 +256,13 @@ export interface DocumentRepository {
   remove(requestId: string): boolean;
   saveHistory(record: T.DocumentHistoryRecord): T.DocumentHistoryRecord;
   listHistory(scope?: Partial<T.GraphScope>): T.DocumentHistoryRecord[];
+  clear(): void;
+}
+
+export interface DocumentRegistry {
+  register(domain: string, capability: string): void;
+  list(): T.DocumentPublisher[];
+  isRegistered(domain: string): boolean;
   clear(): void;
 }
 

@@ -17,6 +17,7 @@ export * from "@/lib/certification/support-readiness";
 export * from "@/lib/certification/health-reports";
 export * from "@/lib/certification/platform-audit";
 export * from "@/lib/certification/launch-readiness-report";
+export * from "@/lib/certification/release-governance";
 export * from "@/lib/certification/automation";
 export { runFullCertification, runNightlyHealthScan, getCertHubData } from "@/lib/certification/certification-engine";
 export {

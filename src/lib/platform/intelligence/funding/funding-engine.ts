@@ -13,7 +13,7 @@ import { FundingRepositoryStore } from "@/lib/platform/intelligence/funding/repo
 import { defaultPeriodLabel, deriveFundingBaseline, emptyFundingScope } from "@/lib/platform/intelligence/funding/models";
 import { FUNDING_INTELLIGENCE_VERSION, type FundingRequest, type FundingResult } from "@/lib/platform/intelligence/funding/types";
 
-export interface FundingEngineDependencies extends C.FundingDependencies {}
+export type FundingEngineDependencies = C.FundingDependencies;
 export class FundingIntelligenceEngineImpl implements C.FundingIntelligenceEngine {
   private readonly federal: C.FederalFunding; private readonly state: C.StateFunding; private readonly county: C.CountyFunding; private readonly city: C.CityFunding;
   private readonly education: C.EducationFunding; private readonly healthcare: C.HealthcareFunding; private readonly infrastructure: C.InfrastructureFunding;

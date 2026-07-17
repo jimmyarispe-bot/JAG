@@ -117,11 +117,18 @@ export async function getStudentDashboardSummary(studentId: string): Promise<Stu
   };
 }
 
-export async function getStudentMedicalProfile(studentId: string) {
+/** B.1 — Parent-safe medical projection (no diagnoses/insurance/plans). */
+const PARENT_SAFE_MEDICAL_FIELDS = "student_id, allergies, health_alerts" as const;
+
+export async function getStudentMedicalProfile(
+  studentId: string,
+  options?: { audience?: "staff" | "parent" }
+) {
   const supabase = await createAuthClient();
+  const audience = options?.audience ?? "staff";
   const { data } = await supabase
     .from("student_medical_profiles")
-    .select("*")
+    .select(audience === "parent" ? PARENT_SAFE_MEDICAL_FIELDS : "*")
     .eq("student_id", studentId)
     .maybeSingle();
   return data;

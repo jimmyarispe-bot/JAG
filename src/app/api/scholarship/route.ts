@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { guardApiRoute } from "@/lib/platform/identity/api-guard";
-import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/platform/api-rate-limit";
+import { checkRateLimitAsync, getClientIp, rateLimitResponse } from "@/lib/platform/api-rate-limit";
 
 /** Secured scholarship estimate — requires auth; use admissions portal for public applications */
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const limited = checkRateLimit(`scholarship:${ip}`, 10, 60_000);
+  const limited = await checkRateLimitAsync(`scholarship:${ip}`, 10, 60_000);
   if (!limited.ok) return rateLimitResponse(limited.retryAfter);
 
   const supabase = await createAuthClient();

@@ -1,32 +1,23 @@
 import type { IdentityContext } from "@/lib/platform/identity/context";
+import { hasAnyPermission, hasPermission } from "@/lib/platform/identity/authorization-service";
 
 export function canViewWork(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("work.view") ||
-    ctx.permissions.includes("work.manage") ||
-    ctx.permissions.includes("work.admin") ||
-    ctx.permissions.includes("work.executive") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, [
+    "work.view",
+    "work.manage",
+    "work.admin",
+    "work.executive",
+  ]);
 }
 
 export function canManageWork(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("work.manage") ||
-    ctx.permissions.includes("work.admin") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, ["work.manage", "work.admin"]);
 }
 
 export function canAdminWork(ctx: IdentityContext) {
-  return ctx.permissions.includes("work.admin") || ctx.isEnterpriseAdmin;
+  return hasPermission(ctx, "work.admin");
 }
 
 export function canViewWorkReports(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("work.reports") ||
-    ctx.permissions.includes("work.executive") ||
-    ctx.permissions.includes("work.admin") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, ["work.reports", "work.executive", "work.admin"]);
 }

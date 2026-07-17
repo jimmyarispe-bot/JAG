@@ -4,6 +4,7 @@
 
 import type { LegalComplianceRiskRegistry as LegalComplianceRiskRegistryContract } from "@/lib/platform/intelligence/legal-compliance-risk/contracts";
 import type { LegalComplianceRiskPublisher } from "@/lib/platform/intelligence/legal-compliance-risk/types";
+import { PublisherRegistryMap } from "@/lib/platform/intelligence/common";
 
 const DEFAULT_PUBLISHERS: LegalComplianceRiskPublisher[] = [
   { domain: "organization-dna", capability: "legal_compliance_risk.dna_context" },
@@ -18,27 +19,11 @@ const DEFAULT_PUBLISHERS: LegalComplianceRiskPublisher[] = [
   { domain: "organizational-improvement", capability: "legal_compliance_risk.corrective_actions" },
 ];
 
-export class LegalComplianceRiskRegistryStore implements LegalComplianceRiskRegistryContract {
-  private readonly publishers = new Map<string, string>();
-
+export class LegalComplianceRiskRegistryStore
+  extends PublisherRegistryMap
+  implements LegalComplianceRiskRegistryContract {
   constructor(seed = DEFAULT_PUBLISHERS) {
-    for (const publisher of seed) this.register(publisher.domain, publisher.capability);
-  }
-
-  register(domain: string, capability: string): void {
-    this.publishers.set(domain, capability);
-  }
-
-  list(): LegalComplianceRiskPublisher[] {
-    return [...this.publishers.entries()].map(([domain, capability]) => ({ domain, capability }));
-  }
-
-  isRegistered(domain: string): boolean {
-    return this.publishers.has(domain);
-  }
-
-  clear(): void {
-    this.publishers.clear();
+    super(seed);
   }
 }
 

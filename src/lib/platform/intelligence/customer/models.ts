@@ -20,63 +20,45 @@ import type {
   OperationsResultLight,
   RevenueResultLight,
 } from "@/lib/platform/intelligence/customer/types";
+import {
+  buildConfidenceAverageEmptyHalf,
+  clamp01 as sharedClamp01,
+  clampUnchecked,
+  defaultCreateId as sharedDefaultCreateId,
+  emptyGraphScope,
+  levelFromValue as sharedLevelFromValue,
+  periodLabelQuarter,
+  priorityFromRisk as sharedPriorityFromRisk,
+  priorityFromScoreLowUrgent,
+  scoreNarrative as sharedScoreNarrative,
+  statusFromScore as sharedStatusFromScore,
+} from "@/lib/platform/intelligence/common";
 
-export function clamp(value: number, min = 0, max = 100): number {
-  return Math.min(max, Math.max(min, value));
-}
 
-export function clamp01(value: number): number {
-  return clamp(value, 0, 1);
-}
+export const clamp = clampUnchecked;
 
-export function statusFromScore(score: number): CustomerHealthStatus {
-  if (score >= 85) return "excellent";
-  if (score >= 70) return "healthy";
-  if (score >= 50) return "warning";
-  return "critical";
-}
+export const clamp01 = sharedClamp01;
 
-export function priorityFromScore(score: number): CustomerPriorityBand {
-  if (score < 35) return "critical";
-  if (score < 50) return "high";
-  if (score < 65) return "medium";
-  if (score < 80) return "low";
-  return "monitor";
-}
+export function statusFromScore(score: number): CustomerHealthStatus { return sharedStatusFromScore(score); }
 
-export function priorityFromRisk(risk: number): CustomerPriorityBand {
-  if (risk >= 0.75) return "critical";
-  if (risk >= 0.55) return "high";
-  if (risk >= 0.35) return "medium";
-  if (risk >= 0.2) return "low";
-  return "monitor";
-}
+export function priorityFromScore(score: number): CustomerPriorityBand { return priorityFromScoreLowUrgent(score); }
 
-export function levelFromValue(value: number): CustomerConfidenceLevel {
-  if (value >= 0.8) return "high";
-  if (value >= 0.55) return "medium";
-  if (value >= 0.3) return "low";
-  return "unknown";
-}
+export function priorityFromRisk(risk: number): CustomerPriorityBand { return sharedPriorityFromRisk(risk); }
+
+export function levelFromValue(value: number): CustomerConfidenceLevel { return sharedLevelFromValue(value); }
 
 export function scoreNarrative(
   label: string,
   value: number,
   status: CustomerHealthStatus
 ): string {
-  return `${label} is ${status} at ${Math.round(value)}.`;
+  return sharedScoreNarrative(label, value, status);
 }
 
 export function buildConfidence(
   factors: Array<{ key: string; label: string; contribution: number }>
 ): CustomerConfidenceScore {
-  const value =
-    factors.length === 0
-      ? 0.5
-      : clamp01(
-          factors.reduce((sum, f) => sum + f.contribution, 0) / factors.length
-        );
-  return { value, level: levelFromValue(value), factors };
+  return buildConfidenceAverageEmptyHalf(factors) as CustomerConfidenceScore;
 }
 
 export function buildLenses(
@@ -101,17 +83,11 @@ export function buildLenses(
   };
 }
 
-export function defaultCreateId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
+export const defaultCreateId = sharedDefaultCreateId;
 
-export function defaultPeriodLabel(now = new Date()): string {
-  return `${now.getUTCFullYear()}-Q${Math.floor(now.getUTCMonth() / 3) + 1}`;
-}
+export const defaultPeriodLabel = periodLabelQuarter;
 
-export function emptyCustomerScope(): GraphScope {
-  return { organizationId: null, schoolId: null };
-}
+export const emptyCustomerScope = (): GraphScope => emptyGraphScope();
 
 export function defaultCustomerBaseline(): CustomerBaseline {
   return {

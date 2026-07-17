@@ -2,7 +2,7 @@ import type { SystemsDependencies, SystemsIntelligenceService as Contract, Syste
 import { SystemsIntelligenceEngineImpl } from "@/lib/platform/intelligence/systems/systems-engine";
 import type { SystemsQueryRequest, SystemsQueryResult, SystemsRequest, SystemsResult } from "@/lib/platform/intelligence/systems/types";
 
-export interface SystemsServiceDependencies extends SystemsDependencies {}
+export type SystemsServiceDependencies = SystemsDependencies;
 
 export class SystemsIntelligenceServiceImpl implements Contract {
   private engine: SystemsIntelligenceEngineImpl;

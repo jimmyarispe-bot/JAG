@@ -367,13 +367,6 @@ export interface KnowledgeQueries {
   ): T.KnowledgeQueryResult;
 }
 
-export interface KnowledgeRegistry {
-  register(domain: string, capability: string): void;
-  list(): T.KnowledgePublisher[];
-  isRegistered(domain: string): boolean;
-  clear(): void;
-}
-
 export interface KnowledgeRepository {
   save(result: T.KnowledgeResult): T.KnowledgeResult;
   get(requestId: string): T.KnowledgeResult | null;
@@ -383,6 +376,13 @@ export interface KnowledgeRepository {
     record: T.KnowledgeHistoryRecord
   ): T.KnowledgeHistoryRecord;
   listHistory(scope?: Partial<T.GraphScope>): T.KnowledgeHistoryRecord[];
+  clear(): void;
+}
+
+export interface KnowledgeRegistry {
+  register(domain: string, capability: string): void;
+  list(): T.KnowledgePublisher[];
+  isRegistered(domain: string): boolean;
   clear(): void;
 }
 

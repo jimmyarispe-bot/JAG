@@ -179,13 +179,13 @@ export class FinanceEngine {
       "executive",
     ] as const;
 
-    for (const module of modules) {
-      modulesProcessed.push(module);
+    for (const domainModule of modules) {
+      modulesProcessed.push(domainModule);
       this.audit.record({
         kind: "recommendation",
         entityId: cycleId,
         entityType: "engine-cycle",
-        action: `cycle.module.${module}`,
+        action: `cycle.module.${domainModule}`,
         dimensions: {
           organizationId: null,
           schoolId: null,
@@ -205,7 +205,7 @@ export class FinanceEngine {
           approvalRef: null,
           auditRef: cycleId,
         },
-        details: { cycleId, module, ranAt },
+        details: { cycleId, module: domainModule, ranAt },
       });
     }
 

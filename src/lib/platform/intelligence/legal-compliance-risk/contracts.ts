@@ -280,13 +280,6 @@ export interface LegalComplianceRiskQueries {
   ask(result: T.LegalComplianceRiskResult, request: T.LegalComplianceRiskQueryRequest): T.LegalComplianceRiskQueryResult;
 }
 
-export interface LegalComplianceRiskRegistry {
-  register(domain: string, capability: string): void;
-  list(): T.LegalComplianceRiskPublisher[];
-  isRegistered(domain: string): boolean;
-  clear(): void;
-}
-
 export interface LegalComplianceRiskRepository {
   save(result: T.LegalComplianceRiskResult): T.LegalComplianceRiskResult;
   get(requestId: string): T.LegalComplianceRiskResult | null;
@@ -294,6 +287,13 @@ export interface LegalComplianceRiskRepository {
   remove(requestId: string): boolean;
   saveHistory(record: T.LegalComplianceRiskHistoryRecord): T.LegalComplianceRiskHistoryRecord;
   listHistory(scope?: Partial<T.GraphScope>): T.LegalComplianceRiskHistoryRecord[];
+  clear(): void;
+}
+
+export interface LegalComplianceRiskRegistry {
+  register(domain: string, capability: string): void;
+  list(): T.LegalComplianceRiskPublisher[];
+  isRegistered(domain: string): boolean;
   clear(): void;
 }
 

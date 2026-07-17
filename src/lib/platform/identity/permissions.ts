@@ -1,28 +1,38 @@
+/**
+ * Permission loading + async checks.
+ * Authorization decisions always go through authorize() / hasPermission().
+ * Roles are used only to load/grant permissions — never as authz shortcuts.
+ */
+
 import { NextResponse } from "next/server";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import {
+  authorize,
+  buildAuthzSnapshot,
+  hasPermission as engineHasPermission,
+} from "@/lib/platform/identity/authorization-service";
+import {
+  permissionsForMappedRoles,
+  roleMappingGrantsPermission,
+} from "@/lib/platform/identity/permission-groups";
 import type { PermissionKey } from "@/lib/platform/identity/types";
 import type { EduRoleName } from "@/types/database";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
-const SUPER_ROLES: EduRoleName[] = ["CEO", "FOUNDER"];
-const UNRESTRICTED_ROLES: EduRoleName[] = ["CEO", "FOUNDER", "EXECUTIVE_DIRECTOR"];
-const ENTERPRISE_ADMIN_ROLES: EduRoleName[] = ["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR"];
-
-/** Used when enterprise permission tables/RPC are not deployed yet (runtime-verified fallback). */
+/** Used when enterprise permission tables/RPC are not deployed yet. */
 const ROLE_PERMISSION_FALLBACK: Partial<Record<EduRoleName, PermissionKey[]>> = {
   CEO: ["certification.view", "certification.manage", "certification.admin"],
   FOUNDER: ["certification.view", "certification.manage", "certification.admin"],
-  EXECUTIVE_DIRECTOR: ["certification.view", "certification.manage", "certification.admin"],
+  EXECUTIVE_DIRECTOR: ["certification.view", "certification.manage"],
   SCHOOL_LEADER: ["certification.view"],
 };
 
-function hasUnrestrictedRole(roles: string[]): boolean {
-  return roles.some((r) => UNRESTRICTED_ROLES.includes(r as EduRoleName));
-}
-
 function roleFallbackHasPermission(roles: string[], permissionKey: PermissionKey): boolean {
-  return roles.some((role) => ROLE_PERMISSION_FALLBACK[role as EduRoleName]?.includes(permissionKey));
+  if (roles.some((role) => ROLE_PERMISSION_FALLBACK[role as EduRoleName]?.includes(permissionKey))) {
+    return true;
+  }
+  return roleMappingGrantsPermission(roles, permissionKey);
 }
 
 function collectRoleFallbackPermissions(roles: string[]): Set<string> {
@@ -31,6 +41,9 @@ function collectRoleFallbackPermissions(roles: string[]): Set<string> {
     for (const key of ROLE_PERMISSION_FALLBACK[role as EduRoleName] ?? []) {
       allowed.add(key);
     }
+  }
+  for (const key of permissionsForMappedRoles(roles)) {
+    allowed.add(key);
   }
   return allowed;
 }
@@ -45,15 +58,20 @@ function isMissingPermissionInfraError(message: string | undefined): boolean {
   );
 }
 
+/** @deprecated Use hasPermission(subject, "JAG_ACCESS") — do not check roles. */
 export function isFounderRole(roles: string[]): boolean {
-  return roles.includes("FOUNDER");
+  return engineHasPermission(buildAuthzSnapshot("", roles), "JAG_ACCESS");
 }
 
+/** @deprecated Use hasPermission(subject, "SYSTEM_ADMIN_ACCESS"). */
 export function isEnterpriseAdminRole(roles: string[]): boolean {
-  return roles.some((r) => ENTERPRISE_ADMIN_ROLES.includes(r as EduRoleName));
+  return engineHasPermission(
+    buildAuthzSnapshot("", roles),
+    "SYSTEM_ADMIN_ACCESS"
+  );
 }
 
-/** Server-side permission check — mirrors has_permission() SQL function */
+/** Server-side permission check — goes through the permission engine. */
 export async function userHasPermission(
   supabase: AuthClient,
   permissionKey: PermissionKey,
@@ -66,19 +84,24 @@ export async function userHasPermission(
   if (!sessionUserId) return false;
 
   const roles = await loadUserRoleNames(supabase, sessionUserId);
+  const snapshot = buildAuthzSnapshot(sessionUserId, roles);
+
+  // Prefer mapped grants (deterministic) before RPC so role→permission is source of truth.
+  if (authorize(snapshot, permissionKey)) return true;
 
   if (sessionUserId === resolvedAuthUserId) {
     const { data, error } = await supabase.rpc("has_permission", {
       permission_key: permissionKey,
     });
-    if (!error) return data === true;
+    if (!error) {
+      if (data === true) return true;
+      return false;
+    }
     if (isMissingPermissionInfraError(error.message)) {
       return roleFallbackHasPermission(roles, permissionKey);
     }
     return false;
   }
-
-  if (hasUnrestrictedRole(roles)) return true;
 
   const roleIds = await loadExpandedRoleIds(supabase, sessionUserId);
   if (!roleIds.length) return roleFallbackHasPermission(roles, permissionKey);
@@ -94,7 +117,8 @@ export async function userHasPermission(
   }
 
   if (perms?.some((p) => p.effect === "deny")) return false;
-  return perms?.some((p) => p.effect === "allow") ?? roleFallbackHasPermission(roles, permissionKey);
+  if (perms?.some((p) => p.effect === "allow")) return true;
+  return roleFallbackHasPermission(roles, permissionKey);
 }
 
 export async function requirePermission(
@@ -115,11 +139,9 @@ export async function loadUserPermissions(
     authUserId === undefined ? (await supabase.auth.getUser()).data.user?.id : authUserId;
   const roles = await loadUserRoleNames(supabase, userId);
 
-  if (hasUnrestrictedRole(roles)) {
-    const { data: all, error } = await supabase.from("platform_permissions").select("permission_key");
-    if (!error) return new Set(all?.map((p) => p.permission_key) ?? []);
-    return collectRoleFallbackPermissions(roles);
-  }
+  // Always start from role→permission mapping (no role-name superuser bypass).
+  const mapped = permissionsForMappedRoles(roles);
+  const granted = new Set<string>(mapped);
 
   if (userId === resolvedAuthUserId) {
     const { data: all, error } = await supabase.from("platform_permissions").select("permission_key");
@@ -134,11 +156,16 @@ export async function loadUserPermissions(
           : null
       )
     );
-    return new Set(allowed.filter((key): key is string => Boolean(key)));
+    for (const key of allowed) {
+      if (key) granted.add(key);
+    }
+    return granted;
   }
 
   const roleIds = await loadExpandedRoleIds(supabase, userId);
-  if (!roleIds.length) return collectRoleFallbackPermissions(roles);
+  if (!roleIds.length) {
+    return collectRoleFallbackPermissions(roles);
+  }
 
   const { data: perms, error } = await supabase
     .from("platform_role_permissions")
@@ -150,34 +177,58 @@ export async function loadUserPermissions(
   }
 
   const denied = new Set(perms?.filter((p) => p.effect === "deny").map((p) => p.permission_key));
-  const allowed = new Set(
-    perms?.filter((p) => p.effect === "allow" && !denied.has(p.permission_key)).map((p) => p.permission_key)
-  );
-  return allowed;
+  for (const p of perms ?? []) {
+    if (p.effect === "allow" && !denied.has(p.permission_key)) {
+      granted.add(p.permission_key);
+    }
+  }
+  for (const key of mapped) {
+    if (denied.has(key)) granted.delete(key);
+  }
+  return granted;
 }
 
 export async function getMissionControlModulesForUser(
   supabase: AuthClient,
   userId: string
 ): Promise<string[] | null> {
-  const roles = await loadUserRoleNames(supabase, userId);
-  if (roles.some((r) => SUPER_ROLES.includes(r as EduRoleName) || r === "EXECUTIVE_DIRECTOR")) {
+  const permissions = await loadUserPermissions(supabase, userId);
+  const subject = { permissions, userId };
+
+  if (!engineHasPermission(subject, "mission_control.access")) return [];
+
+  // Broad operating access → all modules (permission-based, not role-based).
+  if (
+    engineHasPermission(subject, "schools.access_all") ||
+    engineHasPermission(subject, "org.manage") ||
+    engineHasPermission(subject, "founder.override")
+  ) {
     return null;
   }
 
-  const permissions = await loadUserPermissions(supabase, userId);
-  if (!permissions.has("mission_control.access")) return [];
-
   const modules: string[] = [];
-  if (permissions.has("admissions.view") || permissions.has("admissions.manage")) modules.push("admissions");
-  if (permissions.has("finance.view")) modules.push("finance");
-  if (permissions.has("hr.view") || permissions.has("hr.manage")) modules.push("hr");
-  if (permissions.has("executive.intelligence") || permissions.has("executive.dashboard")) modules.push("executive");
-  if (permissions.has("scholarships.view")) modules.push("scholarships");
-  if (permissions.has("funding.view")) modules.push("state_funding");
-  if (permissions.has("students.view")) modules.push("sis");
-  if (permissions.has("work.view") || permissions.has("work.manage")) modules.push("work");
-  if (permissions.has("executive.dashboard")) modules.push("executive");
+  if (
+    engineHasPermission(subject, "admissions.view") ||
+    engineHasPermission(subject, "admissions.manage")
+  ) {
+    modules.push("admissions");
+  }
+  if (engineHasPermission(subject, "finance.view")) modules.push("finance");
+  if (engineHasPermission(subject, "hr.view") || engineHasPermission(subject, "hr.manage")) {
+    modules.push("hr");
+  }
+  if (
+    engineHasPermission(subject, "executive.intelligence") ||
+    engineHasPermission(subject, "executive.dashboard")
+  ) {
+    modules.push("executive");
+  }
+  if (engineHasPermission(subject, "scholarships.view")) modules.push("scholarships");
+  if (engineHasPermission(subject, "funding.view")) modules.push("state_funding");
+  if (engineHasPermission(subject, "students.view")) modules.push("sis");
+  if (engineHasPermission(subject, "work.view") || engineHasPermission(subject, "work.manage")) {
+    modules.push("work");
+  }
   return modules;
 }
 

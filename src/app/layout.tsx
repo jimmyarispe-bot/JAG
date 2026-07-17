@@ -1,4 +1,5 @@
 import "./globals.css";
+import { LiveAnnouncerProvider } from "@/components/experience-system/feedback/LiveAnnouncer";
 
 export const metadata = {
   title: "School Platform",
@@ -12,7 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <LiveAnnouncerProvider>{children}</LiveAnnouncerProvider>
+      </body>
     </html>
   );
 }

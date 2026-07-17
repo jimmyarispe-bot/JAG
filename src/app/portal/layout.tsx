@@ -26,11 +26,12 @@ export default async function PortalLayout({ children }: { children: React.React
     loadOrganizationBranding(supabase),
   ]);
 
-  if (!isParent && !isStudent && studentIds.length === 0 && !selfId) {
+  // A.1 — permission gate only (linkage is data scope, not an alternate entry path).
+  if (!isParent && !isStudent) {
     redirect("/apply/portal");
   }
 
-  const mode = isStudent && !isParent && !studentIds.length ? "student" : "parent";
+  const mode = isStudent && !isParent ? "student" : "parent";
 
   let students: { id: string; first_name: string; last_name: string }[] = [];
   if (studentIds.length) {

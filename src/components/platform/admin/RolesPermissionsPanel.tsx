@@ -118,7 +118,7 @@ export function RolesPermissionsPanel({
                       <input
                         type="checkbox"
                         checked={enabled}
-                        disabled={isPending || selectedRole?.name === "CEO" || selectedRole?.name === "FOUNDER"}
+                        disabled={isPending || selectedRole?.is_system === true}
                         onChange={() => {
                           startTransition(async () => {
                             const fd = new FormData();

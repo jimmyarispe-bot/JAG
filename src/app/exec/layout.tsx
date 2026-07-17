@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { ExecShell } from "@/components/exec/ExecShell";
 import { redirectIfPasswordResetRequired } from "@/lib/auth/must-reset-password";
 import { getAuthUser, getSessionUser } from "@/lib/auth/session";
-import { canAccessExecutiveIntelligence } from "@/lib/executive/access";
-import { getIdentityContext } from "@/lib/platform/identity/context";
+import { requireJagAccess } from "@/lib/platform/identity/page-guard";
+import { resolveExecutiveContextForIdentity } from "@/lib/platform/organization-platform";
 
 export const metadata = {
   title: "Executive Command Center · JAG",
@@ -19,17 +19,18 @@ export default async function ExecLayout({ children }: { children: React.ReactNo
 
   redirectIfPasswordResetRequired(user, "/exec");
 
-  const ctx = await getIdentityContext();
-  if (!ctx) {
-    redirect("/login");
-  }
+  // Sprint 007 — Founder Protection (JAG_ACCESS via permission engine).
+  const ctx = await requireJagAccess();
 
-  if (!canAccessExecutiveIntelligence(ctx)) {
-    redirect("/dashboard");
-  }
+  const tenant = resolveExecutiveContextForIdentity(ctx);
 
   return (
-    <ExecShell fullName={ctx.fullName} roleLabel={ctx.roleLabel}>
+    <ExecShell
+      fullName={ctx.fullName}
+      roleLabel={ctx.roleLabel}
+      organizationName={tenant?.organizationName}
+      locationName={tenant?.locationName}
+    >
       {children}
     </ExecShell>
   );

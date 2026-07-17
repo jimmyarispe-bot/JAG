@@ -2,7 +2,7 @@ import type { CollectiveDependencies, CollectiveIntelligenceService as Contract,
 import { CollectiveIntelligenceEngineImpl } from "@/lib/platform/intelligence/collective/collective-engine";
 import type { CollectiveQueryRequest, CollectiveQueryResult, CollectiveRequest, CollectiveResult } from "@/lib/platform/intelligence/collective/types";
 
-export interface CollectiveServiceDependencies extends CollectiveDependencies {}
+export type CollectiveServiceDependencies = CollectiveDependencies;
 
 export class CollectiveIntelligenceServiceImpl implements Contract {
   private engine: CollectiveIntelligenceEngineImpl;

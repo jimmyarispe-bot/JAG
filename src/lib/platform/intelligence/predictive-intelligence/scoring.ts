@@ -8,25 +8,21 @@ import type {
   PredictionConfidenceLevel,
   TrendAnalysisResult,
 } from "@/lib/platform/intelligence/predictive-intelligence/types";
+import {
+  clamp01NaNSafe,
+  levelFromValue01,
+  priorityBandFromScore01,
+} from "@/lib/platform/intelligence/common";
 
-export function clamp01(value: number): number {
-  if (Number.isNaN(value)) return 0;
-  return Math.min(1, Math.max(0, value));
-}
+
+export const clamp01 = clamp01NaNSafe;
 
 export function levelFromValue(value: number): PredictionConfidenceLevel {
-  if (value >= 0.75) return "high";
-  if (value >= 0.45) return "medium";
-  if (value > 0) return "low";
-  return "unknown";
+  return levelFromValue01(value);
 }
 
 export function priorityBandFromScore(score: number): ForecastPriorityBand {
-  if (score >= 0.85) return "critical";
-  if (score >= 0.7) return "high";
-  if (score >= 0.5) return "medium";
-  if (score >= 0.3) return "low";
-  return "monitor";
+  return priorityBandFromScore01(score);
 }
 
 /**

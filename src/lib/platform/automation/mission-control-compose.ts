@@ -1,6 +1,6 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import type { IdentityContext } from "@/lib/platform/identity/context";
-import { EXECUTIVE_LEADERSHIP_ROLES } from "@/lib/executive/access";
+import { hasPermission } from "@/lib/platform/identity/authorization-service";
 import { resolvePrimarySchoolId } from "@/lib/platform/identity/school-access";
 import { getMissionControlFeed } from "@/lib/platform/automation/mission-control";
 import { getPlatformQueueMetrics } from "@/lib/platform/automation/queue";
@@ -368,8 +368,9 @@ export async function composeMissionControlCommandCenter(
   if (!ctx) return empty;
 
   const canAccess =
-    ctx.permissions.includes("mission_control.access") ||
-    ctx.roles.some((r) => (EXECUTIVE_LEADERSHIP_ROLES as readonly string[]).includes(r));
+    hasPermission(ctx, "mission_control.access") ||
+    hasPermission(ctx, "executive.dashboard") ||
+    hasPermission(ctx, "JAG_ACCESS");
 
   if (!canAccess) {
     return { ...empty, userRole: ctx.primaryRole, accessDenied: true };

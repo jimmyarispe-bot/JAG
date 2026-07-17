@@ -21,6 +21,10 @@ import type {
   WorkspaceNavItemDefinition,
 } from "@/lib/platform/execution-engine/types";
 import type { IdentityContext } from "@/lib/platform/identity/context";
+import {
+  hasAnyPermission,
+  hasPermission,
+} from "@/lib/platform/identity/authorization-service";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 
 function trace(
@@ -31,21 +35,11 @@ function trace(
   return { stepId, status, detail };
 }
 
-function hasPermission(identity: IdentityContext, permission: string): boolean {
-  return identity.isEnterpriseAdmin || identity.permissions.includes(permission);
-}
-
-function hasAnyPermission(identity: IdentityContext, permissions: string[]): boolean {
-  if (identity.isEnterpriseAdmin) return true;
-  return permissions.some((p) => identity.permissions.includes(p));
-}
-
 function isCapabilityGranted(
   identity: IdentityContext,
   workspace: WorkspaceDefinition,
   binding: JagCapabilityBinding
 ): { granted: boolean; denyReason?: string } {
-  if (identity.isEnterpriseAdmin) return { granted: true };
   if (workspace.managePermission && hasPermission(identity, workspace.managePermission)) {
     return { granted: true };
   }
@@ -69,7 +63,7 @@ function filterNavigation(
   const canManage = managePermission ? hasPermission(identity, managePermission) : false;
 
   return navigation.filter((item) => {
-    if (item.permission && !identity.isEnterpriseAdmin && !canManage && !hasPermission(identity, item.permission)) {
+    if (item.permission && !canManage && !hasPermission(identity, item.permission)) {
       return false;
     }
     if (item.capabilityKey && !grantedCapabilityKeys.has(item.capabilityKey)) {

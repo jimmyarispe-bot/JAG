@@ -3,11 +3,13 @@
  * Key Metrics: single getExecutiveKPIsAction via getFounderDashboardData.
  * Today's Brief: rule-based generateFounderMorningBrief from the same KPI object.
  */
-import { hasExecutiveLeadershipRole } from "@/lib/executive/access";
+import { canAccessExecutiveIntelligence } from "@/lib/executive/access";
+import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-access";
 import {
   getFounderDashboardData,
   type FounderDashboardData,
 } from "@/lib/dashboard/founder-dashboard";
+import { emptyFounderDashboardData } from "@/lib/dashboard/map-executive-kpis";
 import type { IdentityContext } from "@/lib/platform/identity/context";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { loadOrganizationBranding } from "@/lib/branding";
@@ -103,10 +105,16 @@ function applyGeneratedMorningBrief(
   };
 }
 
-/** Compose founder home data — KPIs loaded once via getExecutiveKPIsAction. */
+/** Compose founder home data — KPIs loaded once via getExecutiveKPIsAction. FOUNDER only. */
 export async function getFounderMorningBrief(ctx: IdentityContext): Promise<FounderMorningBrief> {
-  if (!hasExecutiveLeadershipRole(ctx)) {
-    // Single getExecutiveKPIsAction inside getFounderDashboardData.
+  if (!canViewFounderDashboard(ctx)) {
+    return {
+      founderDashboard: emptyFounderDashboardData(ctx, []),
+      executive: null,
+    };
+  }
+
+  if (!canAccessExecutiveIntelligence(ctx)) {
     return {
       founderDashboard: await getFounderDashboardData(ctx),
       executive: null,

@@ -1,30 +1,26 @@
 import type { IdentityContext } from "@/lib/platform/identity/context";
+import { hasAnyPermission, hasPermission } from "@/lib/platform/identity/authorization-service";
 
 export function canViewFi(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("fi.view") ||
-    ctx.permissions.includes("fi.executive") ||
-    ctx.permissions.includes("fi.manage") ||
-    ctx.permissions.includes("finance.executive") ||
-    ctx.permissions.includes("finance.view") ||
-    ctx.permissions.includes("executive.intelligence") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, [
+    "fi.view",
+    "fi.executive",
+    "fi.manage",
+    "finance.executive",
+    "finance.view",
+    "executive.intelligence",
+    "FINANCE_ACCESS",
+  ]);
 }
 
 export function canManageFi(ctx: IdentityContext) {
-  return ctx.permissions.includes("fi.manage") || ctx.isEnterpriseAdmin;
+  return hasPermission(ctx, "fi.manage");
 }
 
 export function canRunScenarios(ctx: IdentityContext) {
-  return (
-    ctx.permissions.includes("fi.scenarios") ||
-    ctx.permissions.includes("fi.executive") ||
-    ctx.permissions.includes("fi.manage") ||
-    ctx.isEnterpriseAdmin
-  );
+  return hasAnyPermission(ctx, ["fi.scenarios", "fi.executive", "fi.manage"]);
 }
 
 export function canImportFi(ctx: IdentityContext) {
-  return ctx.permissions.includes("fi.import") || ctx.permissions.includes("fi.manage") || ctx.isEnterpriseAdmin;
+  return hasAnyPermission(ctx, ["fi.import", "fi.manage"]);
 }

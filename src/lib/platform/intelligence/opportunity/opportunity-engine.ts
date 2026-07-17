@@ -32,7 +32,7 @@ import {
   type OpportunityResult,
 } from "@/lib/platform/intelligence/opportunity/types";
 
-export interface OpportunityEngineDependencies extends C.OpportunityDependencies {}
+export type OpportunityEngineDependencies = C.OpportunityDependencies;
 
 export class OpportunityIntelligenceEngineImpl implements C.OpportunityIntelligenceEngine {
   private readonly categories: C.OpportunityCategoryEngine;

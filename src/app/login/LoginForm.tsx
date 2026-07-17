@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { assertLoginNotThrottled } from "@/lib/auth/login-throttle";
 import type { OrganizationBranding } from "@/lib/branding/types";
 
 interface LoginFormProps {
@@ -23,6 +24,13 @@ export default function LoginForm({ branding }: LoginFormProps) {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+
+    const throttle = await assertLoginNotThrottled(email);
+    if (!throttle.ok) {
+      setMessage(throttle.error);
+      setLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -50,13 +58,16 @@ export default function LoginForm({ branding }: LoginFormProps) {
     : branding.productName;
 
   return (
-    <main className="mx-auto mt-24 max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <main id="login-main" className="relative mx-auto mt-24 max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <a href="#login-form" className="skip-link">
+        Skip to sign-in form
+      </a>
       <h1 className="text-2xl font-bold text-slate-900">{signInTitle}</h1>
       <p className="mt-1 text-sm text-slate-500">
         Staff dashboard and parent application portal
       </p>
 
-      <form onSubmit={handleLogin} className="mt-6 space-y-4" aria-label="Sign in form">
+      <form id="login-form" onSubmit={handleLogin} className="mt-6 space-y-4" aria-label="Sign in form">
         <div>
           <label htmlFor="login-email" className="block text-sm font-medium text-slate-700">
             Email address

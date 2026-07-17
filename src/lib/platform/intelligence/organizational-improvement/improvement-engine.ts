@@ -34,7 +34,7 @@ import {
   type OpportunityResultLight,
 } from "@/lib/platform/intelligence/organizational-improvement/types";
 
-export interface ImprovementEngineDependencies extends C.ImprovementDependencies {}
+export type ImprovementEngineDependencies = C.ImprovementDependencies;
 
 function flattenAndDedupe(
   sources: Record<string, ImprovementRecord[]>,

@@ -4,6 +4,7 @@
 
 import type { BusinessModelRegistry as BusinessModelRegistryContract } from "@/lib/platform/intelligence/business-model/contracts";
 import type { BusinessModelPublisher } from "@/lib/platform/intelligence/business-model/types";
+import { PublisherRegistryMap } from "@/lib/platform/intelligence/common";
 
 const DEFAULT_PUBLISHERS: BusinessModelPublisher[] = [
   { domain: "organization-dna", capability: "business-model.dna_archetype" },
@@ -19,31 +20,10 @@ const DEFAULT_PUBLISHERS: BusinessModelPublisher[] = [
 ];
 
 export class BusinessModelRegistryStore
-  implements BusinessModelRegistryContract
-{
-  private readonly publishers = new Map<string, string>();
-
+  extends PublisherRegistryMap
+  implements BusinessModelRegistryContract {
   constructor(seed = DEFAULT_PUBLISHERS) {
-    for (const item of seed) this.register(item.domain, item.capability);
-  }
-
-  register(domain: string, capability: string): void {
-    this.publishers.set(domain, capability);
-  }
-
-  list(): BusinessModelPublisher[] {
-    return [...this.publishers.entries()].map(([domain, capability]) => ({
-      domain,
-      capability,
-    }));
-  }
-
-  isRegistered(domain: string): boolean {
-    return this.publishers.has(domain);
-  }
-
-  clear(): void {
-    this.publishers.clear();
+    super(seed);
   }
 }
 

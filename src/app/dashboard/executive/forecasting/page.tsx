@@ -1,14 +1,15 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
-import { getIdentityContext } from "@/lib/platform/identity/context";
+import { requireFinanceAccess } from "@/lib/platform/identity/page-guard";
 import { getForecastingCenter } from "@/lib/executive/forecasting";
 import { getSchools } from "@/lib/hr/queries";
 import { ForecastingPanel } from "@/components/executive/ExecutivePanels";
 
 export default async function ExecutiveForecastingPage() {
-  const ctx = await getIdentityContext();
+  // Sprint 008 — Financial Security (FINANCE_ACCESS via permission engine).
+  const ctx = await requireFinanceAccess();
   const schoolId =
-    ctx?.orgAssignments.find((a) => a.is_primary)?.school_id ||
-    ctx?.accessibleSchoolIds[0] ||
+    ctx.orgAssignments.find((a) => a.is_primary)?.school_id ||
+    ctx.accessibleSchoolIds[0] ||
     "";
 
   const supabase = await createAuthClient();

@@ -7,9 +7,9 @@
 -- Schools
 insert into public.schools (id, name, address, timezone)
 values
-  ('a1000000-0000-4000-8000-000000000001', 'Academy FL', 'Florida, USA', 'America/New_York'),
-  ('a1000000-0000-4000-8000-000000000002', 'Academy GA', 'Georgia, USA', 'America/New_York'),
-  ('a1000000-0000-4000-8000-000000000003', 'Academy HS', 'Global', 'America/New_York'),
+  ('a1000000-0000-4000-8000-000000000001', 'The Academy FL', 'Florida, USA', 'America/New_York'),
+  ('a1000000-0000-4000-8000-000000000002', 'The Academy GA', 'Georgia, USA', 'America/New_York'),
+  ('a1000000-0000-4000-8000-000000000003', 'The Academy HS', 'Global', 'America/New_York'),
   ('a1000000-0000-4000-8000-000000000004', 'Academy Virtual', 'Global', 'America/New_York')
 on conflict (id) do nothing;
 
@@ -45,9 +45,9 @@ begin
     select *
     from (
       values
-        ('jimmy@academyos.org', 'Jimmy Arispe'),
-        ('danni@academyos.org', 'Danni Treu')
-    ) as leadership(email, full_name)
+        ('jimmy@academyos.org', 'Jimmy Arispe', 'Founder & CEO'),
+        ('danni@academyos.org', 'Danni Treu', 'Executive Director of Schools')
+    ) as leadership(email, full_name, title)
   loop
     select au.id
     into v_user_id
@@ -87,7 +87,13 @@ begin
         now(),
         now(),
         '{"provider":"email","providers":["email"]}'::jsonb,
-        jsonb_build_object('full_name', seed.full_name, 'must_reset_password', true),
+        jsonb_strip_nulls(
+          jsonb_build_object(
+            'full_name', seed.full_name,
+            'title', seed.title,
+            'must_reset_password', true
+          )
+        ),
         now(),
         now(),
         '',
@@ -144,6 +150,30 @@ begin
       );
     end if;
   end loop;
+
+  -- Jimmy Arispe only: keep name/title in sync on re-seed (do not touch other users).
+  update auth.users
+  set
+    raw_user_meta_data =
+      coalesce(raw_user_meta_data, '{}'::jsonb)
+      || jsonb_build_object(
+        'full_name', 'Jimmy Arispe',
+        'title', 'Founder & CEO'
+      ),
+    updated_at = now()
+  where lower(email) = 'jimmy@academyos.org';
+
+  -- Danni Treu only: keep name/title in sync (CEO role unchanged; not FOUNDER).
+  update auth.users
+  set
+    raw_user_meta_data =
+      coalesce(raw_user_meta_data, '{}'::jsonb)
+      || jsonb_build_object(
+        'full_name', 'Danni Treu',
+        'title', 'Executive Director of Schools'
+      ),
+    updated_at = now()
+  where lower(email) = 'danni@academyos.org';
 end $$;
 
 -- Leadership profiles: public.users.id must match auth.users.id (users_auth_fk).
@@ -163,16 +193,28 @@ inner join auth.users au
 on conflict (id) do update
   set full_name = excluded.full_name;
 
--- Jimmy Arispe (Founder): SCHOOL_LEADER across all schools
+-- Ensure FOUNDER exists before Jimmy's assignment (enriched later in 074).
+insert into public.roles (name)
+values ('FOUNDER')
+on conflict (name) do nothing;
+
+-- Jimmy Arispe: Founder & CEO — platform role FOUNDER only
+delete from public.user_roles ur
+using public.users u, public.roles r
+where ur.user_id = u.id
+  and ur.role_id = r.id
+  and lower(u.email) = 'jimmy@academyos.org'
+  and r.name = 'SCHOOL_LEADER';
+
 insert into public.user_roles (user_id, role_id)
 select u.id, r.id
 from public.users u
 cross join public.roles r
 where lower(u.email) = 'jimmy@academyos.org'
-  and r.name = 'SCHOOL_LEADER'
+  and r.name = 'FOUNDER'
 on conflict do nothing;
 
--- Danni Treu (CEO)
+-- Danni Treu: CEO role (permissions); display title = Executive Director of Schools
 insert into public.user_roles (user_id, role_id)
 select u.id, r.id
 from public.users u

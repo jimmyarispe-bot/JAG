@@ -20,21 +20,43 @@ interface ProgressVisualizationPanelProps {
 
 function BarChart({ records, title }: { records: { label: string; value: number }[]; title: string }) {
   const max = Math.max(...records.map((r) => r.value), 1);
+  const summary = records.map((r) => `${r.label}: ${r.value}`).join("; ");
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h3 className="font-semibold text-slate-900">{title}</h3>
       {records.length === 0 ? (
         <p className="mt-4 text-sm text-slate-500">No data yet.</p>
       ) : (
-        <div className="mt-4 flex items-end gap-2 h-32">
+        <div
+          className="mt-4 flex h-32 items-end gap-2"
+          role="img"
+          aria-label={`${title}. ${summary}`}
+        >
+          <table className="sr-only">
+            <caption>{title}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Label</th>
+                <th scope="col">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((r) => (
+                <tr key={r.label}>
+                  <td>{r.label}</td>
+                  <td>{r.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           {records.map((r) => (
-            <div key={r.label} className="flex flex-1 flex-col items-center gap-1">
+            <div key={r.label} className="flex flex-1 flex-col items-center gap-1" aria-hidden>
               <div
                 className="w-full rounded-t bg-brand-500"
                 style={{ height: `${(r.value / max) * 100}%`, minHeight: "8px" }}
                 title={String(r.value)}
               />
-              <span className="text-[10px] text-slate-400 text-center leading-tight">{r.label}</span>
+              <span className="text-center text-[10px] leading-tight text-slate-400">{r.label}</span>
             </div>
           ))}
         </div>

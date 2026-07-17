@@ -18,6 +18,16 @@ import type {
 import {
   BOARD_PACKET_KINDS,
 } from "@/lib/platform/intelligence/board-governance/types";
+import {
+  clamp01 as sharedClamp01,
+  clampUnchecked,
+  emptyGraphScope,
+  levelFromValueFunding,
+  periodLabelLocaleMonthUtcYear,
+  priorityFromRisk as sharedPriorityFromRisk,
+  priorityFromScoreHighHealthy,
+} from "@/lib/platform/intelligence/common";
+
 
 /** Default baseline when no upstream signals are supplied. */
 export function defaultGovernanceBaseline(): GovernanceBaseline {
@@ -126,38 +136,17 @@ export function resolvePacketKinds(
 }
 
 /** Map numeric score (0–100) to priority band. */
-export function priorityFromScore(score: number): GovernancePriorityBand {
-  if (score >= 85) return "monitor";
-  if (score >= 70) return "low";
-  if (score >= 55) return "medium";
-  if (score >= 40) return "high";
-  return "critical";
-}
+export function priorityFromScore(score: number): GovernancePriorityBand { return priorityFromScoreHighHealthy(score); }
 
 /** Map risk score (0–1) to priority band. */
-export function priorityFromRisk(score: number): GovernancePriorityBand {
-  if (score >= 0.75) return "critical";
-  if (score >= 0.55) return "high";
-  if (score >= 0.35) return "medium";
-  if (score >= 0.2) return "low";
-  return "monitor";
-}
+export function priorityFromRisk(risk: number): GovernancePriorityBand { return sharedPriorityFromRisk(risk); }
 
 /** Confidence level from 0–1 value. */
-export function levelFromValue(value: number): GovernanceConfidenceLevel {
-  if (value >= 0.8) return "high";
-  if (value >= 0.55) return "medium";
-  if (value >= 0.25) return "low";
-  return "unknown";
-}
+export function levelFromValue(value: number): GovernanceConfidenceLevel { return levelFromValueFunding(value); }
 
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
+export const clamp = clampUnchecked;
 
-export function clamp01(value: number): number {
-  return clamp(value, 0, 1);
-}
+export const clamp01 = sharedClamp01;
 
 /** Build default board KPIs from a governance baseline. */
 export function buildBoardKpis(
@@ -299,16 +288,12 @@ export function buildBoardKpis(
 
 /** Period label helper. */
 export function defaultPeriodLabel(now: Date): string {
-  const month = now.toLocaleString("en-US", {
-    month: "long",
-    timeZone: "UTC",
-  });
-  return `${month} ${now.getUTCFullYear()}`;
+  return periodLabelLocaleMonthUtcYear(now);
 }
 
 /** Empty graph scope for governance artifacts. */
 export function emptyGovernanceScope(): import("@/lib/platform/intelligence/board-governance/types").GraphScope {
-  return { organizationId: null, schoolId: null };
+  return emptyGraphScope();
 }
 
 /** Governance models façade. */

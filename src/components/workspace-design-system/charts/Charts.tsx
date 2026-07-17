@@ -18,17 +18,40 @@ function ChartShell({ title, subtitle, children, className }: ChartShellProps) {
   );
 }
 
-function BarChart({ points, color = "#6366f1" }: { points: WdsChartPoint[]; color?: string }) {
+function BarChart({ points, color = "#6366f1", title }: { points: WdsChartPoint[]; color?: string; title?: string }) {
   const max = Math.max(...points.map((p) => p.value), 1);
 
   if (!points.length) {
     return <p className="text-sm text-slate-500">No data available.</p>;
   }
 
+  const summary = points.map((p) => `${p.label}: ${p.value}`).join("; ");
+
   return (
-    <div className="flex h-36 items-end gap-2">
+    <div
+      className="flex h-36 items-end gap-2"
+      role="img"
+      aria-label={title ? `${title}. ${summary}` : `Bar chart. ${summary}`}
+    >
+      <table className="sr-only">
+        <caption>{title ?? "Chart data"}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Label</th>
+            <th scope="col">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {points.map((point) => (
+            <tr key={point.label}>
+              <td>{point.label}</td>
+              <td>{point.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       {points.map((point) => (
-        <div key={point.label} className="flex flex-1 flex-col items-center gap-1">
+        <div key={point.label} className="flex flex-1 flex-col items-center gap-1" aria-hidden>
           <div
             className="w-full rounded-t transition-all"
             style={{ height: `${(point.value / max) * 100}%`, minHeight: "4px", backgroundColor: color }}
@@ -73,7 +96,7 @@ function DonutChart({ value, color = "#6366f1" }: { value: number; color?: strin
 export function MasteryProgressChart({ points, title = "Mastery Progress" }: { points: WdsChartPoint[]; title?: string }) {
   return (
     <ChartShell title={title} subtitle="Level progression over time">
-      <BarChart points={points} color="#4f46e5" />
+      <BarChart points={points} color="#4f46e5" title={title} />
     </ChartShell>
   );
 }
@@ -81,7 +104,7 @@ export function MasteryProgressChart({ points, title = "Mastery Progress" }: { p
 export function EvidenceQualityChart({ points, title = "Evidence Quality" }: { points: WdsChartPoint[]; title?: string }) {
   return (
     <ChartShell title={title} subtitle="Quality scores by artifact type">
-      <BarChart points={points} color="#0ea5e9" />
+      <BarChart points={points} color="#0ea5e9" title={title} />
     </ChartShell>
   );
 }
@@ -97,7 +120,7 @@ export function CompetencyCompletionChart({ value, title = "Competency Completio
 export function AiConfidenceChart({ points, title = "AI Confidence" }: { points: WdsChartPoint[]; title?: string }) {
   return (
     <ChartShell title={title} subtitle="Model confidence across insight categories">
-      <BarChart points={points} color="#8b5cf6" />
+      <BarChart points={points} color="#8b5cf6" title={title} />
     </ChartShell>
   );
 }

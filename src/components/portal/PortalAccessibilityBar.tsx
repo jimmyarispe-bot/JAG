@@ -37,7 +37,7 @@ export function PortalAccessibilityBar() {
           <input type="checkbox" checked={reducedMotion} onChange={(e) => { setReducedMotion(e.target.checked); }} onBlur={persist} />
           Reduce motion
         </label>
-        <span className="text-slate-400">Language: English (i18n-ready)</span>
+        <span className="text-slate-400">Language: English</span>
       </div>
       <style jsx global>{`
         .portal-high-contrast { --tw-bg-opacity: 1; }

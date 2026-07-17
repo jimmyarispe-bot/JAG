@@ -166,3 +166,25 @@ export type ExecOpportunityViewModel = {
   }>;
   dataMode: ExecDataMode;
 };
+
+export type ExecAskViewModel = {
+  generatedAt: string;
+  dataMode: ExecDataMode;
+  organizationId: string;
+  executiveRole: string;
+  brief: {
+    headline: string;
+    cash: string;
+    revenue: string;
+    workforce: string;
+    topOpportunities: string[];
+    topRisks: string[];
+    meetings: string[];
+    deadlines: string[];
+  };
+  systemsPresent: string[];
+  systemsMissing: string[];
+  opener: import("@/lib/platform/copilot").CopilotAskResult;
+  session: import("@/lib/platform/copilot").SessionMemory;
+  suggestedPrompts: string[];
+};

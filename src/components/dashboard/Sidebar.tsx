@@ -7,11 +7,8 @@ import {
   getBrandedDashboardModules,
   isModuleActive,
 } from "@/lib/dashboard/navigation";
-import {
-  FOUNDERS_PLATFORM_NAV,
-  FOUNDERS_UTILITY_NAV,
-  resolvePlatformNavLabel,
-} from "@/lib/dashboard/founders-navigation";
+import { FOUNDER_DASHBOARD_NAV, FOUNDERS_UTILITY_NAV } from "@/lib/dashboard/founders-navigation";
+import { EXECUTIVE_DIRECTOR_DASHBOARD_NAV } from "@/lib/dashboard/executive-director-dashboard";
 import { useBranding } from "@/components/branding/BrandingContext";
 import { cn } from "@/components/workspace-design-system/utils";
 import { ModuleIcon } from "./ModuleIcons";
@@ -19,12 +16,17 @@ import { ModuleIcon } from "./ModuleIcons";
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
+  /** Founder-only nav — never pass true for non-FOUNDER roles. */
+  isFounder?: boolean;
+  /** Executive Director operating nav — never shows Founder widgets. */
+  isExecutiveDirector?: boolean;
 }
 
-function isPlatformActive(pathname: string, href: string): boolean {
+function isPlatformActive(pathname: string, href: string, exact?: boolean): boolean {
+  if (exact) return pathname === href;
   if (href === "/dashboard/admin") return pathname.startsWith("/dashboard/admin");
-  if (href === "/dashboard/data") return pathname.startsWith("/dashboard/data");
-  if (href === "/dashboard/integrations") return pathname.startsWith("/dashboard/integrations");
+  if (href === "/exec/graph") return pathname.startsWith("/exec/graph");
+  if (href === "/exec/brief") return pathname.startsWith("/exec/brief");
   return pathname.startsWith(href);
 }
 
@@ -36,15 +38,34 @@ const navLinkClass = (active: boolean) =>
       : "text-slate-300 hover:bg-sidebar-hover hover:text-white"
   );
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+export function Sidebar({
+  open,
+  onClose,
+  isFounder = false,
+  isExecutiveDirector = false,
+}: SidebarProps) {
   const pathname = usePathname();
   const branding = useBranding();
-  const modules = getBrandedDashboardModules(branding);
+  const modules = getBrandedDashboardModules(branding).map((module) =>
+    !isFounder && module.id === "executive"
+      ? {
+          ...module,
+          sidebarLabel: isExecutiveDirector ? "Executive Director" : "Home",
+          pageTitle: isExecutiveDirector ? "Executive Director" : "Home",
+          pageSubtitle: isExecutiveDirector
+            ? "School operations command center"
+            : "Your AcademyOS workspace",
+        }
+      : module
+  );
   const footerTagline = branding.editionLabel
     ? `${branding.productName} — ${branding.editionLabel}`
     : branding.productName;
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     onCloseRef.current();
@@ -101,21 +122,56 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-sidebar-border px-3 py-4">
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Platform
+          {isFounder && (
+            <>
+              <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Founder
+              </p>
+              {FOUNDER_DASHBOARD_NAV.map((item, index) => {
+                const active = isPlatformActive(
+                  pathname,
+                  item.href,
+                  "exact" in item ? item.exact : false
+                );
+                return (
+                  <Link
+                    key={item.href + item.label}
+                    href={item.href}
+                    className={cn(index > 0 && "mt-1", navLinkClass(active))}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </>
+          )}
+          {isExecutiveDirector && !isFounder && (
+            <>
+              <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Executive Director
+              </p>
+              {EXECUTIVE_DIRECTOR_DASHBOARD_NAV.map((item, index) => {
+                const active = isPlatformActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={cn(index > 0 && "mt-1", navLinkClass(active))}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </>
+          )}
+          <p
+            className={cn(
+              "mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500",
+              (isFounder || isExecutiveDirector) && "mt-4"
+            )}
+          >
+            Account
           </p>
-          {FOUNDERS_PLATFORM_NAV.map((item, index) => {
-            const active = isPlatformActive(pathname, item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(index > 0 && "mt-1", navLinkClass(active))}
-              >
-                {resolvePlatformNavLabel(item.labelKey, branding)}
-              </Link>
-            );
-          })}
           {FOUNDERS_UTILITY_NAV.map((item) => (
             <Link
               key={item.href}

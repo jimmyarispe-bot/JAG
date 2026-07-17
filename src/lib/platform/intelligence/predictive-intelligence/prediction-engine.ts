@@ -58,8 +58,7 @@ import type {
   GraphAnalysisResult,
 } from "@/lib/platform/intelligence/executive-graph/types";
 
-export interface PredictionEngineDependencies
-  extends PredictiveIntelligenceDependencies {}
+export type PredictionEngineDependencies = PredictiveIntelligenceDependencies;
 
 /**
  * PredictionEngine — core orchestrator for predictive organizational forecasts.

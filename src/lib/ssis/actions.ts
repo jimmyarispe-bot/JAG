@@ -11,8 +11,13 @@ async function requireStudentsEdit() {
   return assertPermission("students.edit");
 }
 
+async function requireStudentsAttendance() {
+  return assertPermission("students.attendance");
+}
+
 export async function recordStudentAttendance(formData: FormData) {
-  const auth = await requireStudentsEdit();
+  // A.1 — attendance is not a general student edit capability.
+  const auth = await requireStudentsAttendance();
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
 

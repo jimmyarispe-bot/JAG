@@ -362,13 +362,13 @@ export class AccountingEngine {
       "exports",
     ] as const;
 
-    for (const module of modules) {
+    for (const domainModule of modules) {
       this.audit.record({
         kind: "control",
         entityId: cycleId,
         entityType: "accounting-engine-cycle",
-        action: `cycle.module.${module}`,
-        details: { cycleId, module, ranAt },
+        action: `cycle.module.${domainModule}`,
+        details: { cycleId, module: domainModule, ranAt },
       });
     }
 

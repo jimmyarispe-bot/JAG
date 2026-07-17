@@ -1,0 +1,536 @@
+[
+  {
+    "file": "C:\\Projects\\JAG\\src\\components\\dashboard\\Sidebar.tsx",
+    "rule": "react-hooks/refs",
+    "line": 65,
+    "msg": "Error: Cannot access refs during render\n\nReact refs are values that are not need"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\accounting\\engine.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 365,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\executive-alerts\\adapters.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 151,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\executive-decisions\\sources.ts",
+    "rule": "prefer-const",
+    "line": 67,
+    "msg": "'query' is never reassigned. Use 'const' instead."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\finance\\engine.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 182,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\integrations\\connectors\\quickbooks\\client.ts",
+    "rule": "prefer-const",
+    "line": 388,
+    "msg": "'rows' is never reassigned. Use 'const' instead."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\behavioral\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\board-governance\\board-intelligence-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 60,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\board-governance\\board-intelligence-engine.ts",
+    "rule": "prefer-const",
+    "line": 151,
+    "msg": "'graphInput' is never reassigned. Use 'const' instead."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\business-model\\business-model-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 69,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\collective\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\competitive\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\contracts.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 97,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\cultural\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\customer\\customer-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 68,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\document\\document-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 70,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\economic\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\ecosystem\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\environmental\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\ethical\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\executive-decision\\engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 38,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\funding\\funding-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 16,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\human-capital\\human-capital-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 168,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\impact\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 4,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\infrastructure\\health.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 45,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\infrastructure\\health.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 80,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\infrastructure\\lifecycle.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 63,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\infrastructure\\lifecycle.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 94,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\infrastructure\\pipeline.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 113,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\infrastructure\\provider.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 57,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\infrastructure\\registry.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 157,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\infrastructure\\registry.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 219,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\innovation\\innovation-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 85,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\institutional-memory\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\knowledge\\knowledge-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 81,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\legal-compliance-risk\\legal-compliance-risk-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 81,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\market\\market-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 80,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\operations\\operations-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 69,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 32,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 33,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 34,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 35,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 36,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 37,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 38,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 39,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 40,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 41,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 42,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 43,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 44,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 45,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 46,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 47,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 48,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 49,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 50,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 51,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 52,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 53,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\opportunity\\opportunity-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 35,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organization-dna\\organization-dna-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 94,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organization-dna\\organization-dna-engine.ts",
+    "rule": "prefer-const",
+    "line": 226,
+    "msg": "'graphInput' is never reassigned. Use 'const' instead."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 37,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 38,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 39,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 40,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 41,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 42,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 43,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 44,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 45,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\contracts.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 46,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\organizational-improvement\\improvement-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 37,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\political\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\predictive-intelligence\\prediction-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 61,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\reputation\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\resilience\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\revenue\\revenue-engine.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 168,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\router.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 63,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\stakeholder\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\systems\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\src\\lib\\platform\\intelligence\\wisdom\\service.ts",
+    "rule": "@typescript-eslint/no-empty-object-type",
+    "line": 5,
+    "msg": "An interface declaring no members is equivalent to its supertype."
+  },
+  {
+    "file": "C:\\Projects\\JAG\\tests\\unit\\intelligence\\contracts.test.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 55,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\tests\\unit\\intelligence\\contracts.test.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 95,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\tests\\unit\\intelligence\\decision.test.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 278,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\tests\\unit\\intelligence\\executive.test.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 59,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\tests\\unit\\intelligence\\registry.test.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 54,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  },
+  {
+    "file": "C:\\Projects\\JAG\\tests\\unit\\intelligence\\strategic.test.ts",
+    "rule": "@next/next/no-assign-module-variable",
+    "line": 319,
+    "msg": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no"
+  }
+]

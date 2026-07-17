@@ -4,24 +4,38 @@ import type {
   ReputationHealthStatus, ReputationLens, ReputationOutlook, ReputationPriorityBand,
   ReputationRequest,
 } from "@/lib/platform/intelligence/reputation/types";
+import {
+  OUTLOOK_THRESHOLDS_STANDARD,
+  buildConfidenceAverage,
+  clamp as sharedClamp,
+  defaultCreateId as sharedDefaultCreateId,
+  emptyGraphScope,
+  levelFromValue as sharedLevelFromValue,
+  lightScore as sharedLightScore,
+  outlookFromScoreConfigured,
+  periodLabelQuarter,
+  priorityFromScoreLowUrgent,
+  statusFromScore as sharedStatusFromScore,
+} from "@/lib/platform/intelligence/common";
 
-export const clamp = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
-export function statusFromScore(score: number): ReputationHealthStatus {
-  if (score >= 85) return "excellent"; if (score >= 70) return "healthy"; if (score >= 50) return "warning"; return "critical";
-}
-export function priorityFromScore(score: number): ReputationPriorityBand {
-  if (score < 35) return "critical"; if (score < 50) return "high"; if (score < 65) return "medium"; if (score < 80) return "low"; return "monitor";
-}
-export function levelFromValue(value: number): ReputationConfidenceLevel {
-  if (value >= .8) return "high"; if (value >= .55) return "medium"; if (value >= .3) return "low"; return "unknown";
-}
+
+export const clamp = sharedClamp;
+export function statusFromScore(score: number): ReputationHealthStatus { return sharedStatusFromScore(score); }
+export function priorityFromScore(score: number): ReputationPriorityBand { return priorityFromScoreLowUrgent(score); }
+export function levelFromValue(value: number): ReputationConfidenceLevel { return sharedLevelFromValue(value); }
 export function outlookFromScore(score: number, volatility = 0): ReputationOutlook {
-  if (volatility >= 25) return "volatile";
-  if (score >= 78) return "ascending"; if (score >= 62) return "stable"; if (score >= 45) return "fragile"; return "uncertain";
+  return outlookFromScoreConfigured(score, volatility, {
+    volatileLabel: "volatile",
+    high: { min: OUTLOOK_THRESHOLDS_STANDARD.high, label: "ascending" },
+    mid: { min: OUTLOOK_THRESHOLDS_STANDARD.mid, label: "stable" },
+    low: { min: OUTLOOK_THRESHOLDS_STANDARD.low, label: "fragile" },
+    fallback: "uncertain",
+  });
 }
-export function buildConfidence(factors: Array<{ key: string; label: string; contribution: number }>): ReputationConfidenceScore {
-  const value = Math.min(1, Math.max(0, factors.reduce((s, f) => s + f.contribution, 0) / Math.max(1, factors.length)));
-  return { value, level: levelFromValue(value), factors };
+export function buildConfidence(
+  factors: Array<{ key: string; label: string; contribution: number }>
+): ReputationConfidenceScore {
+  return buildConfidenceAverage(factors) as ReputationConfidenceScore;
 }
 export function buildLens(lens: ReputationLens): ReputationLens {
   return {
@@ -35,10 +49,10 @@ export function buildLens(lens: ReputationLens): ReputationLens {
     longTermReputationOutlook: lens.longTermReputationOutlook,
   };
 }
-export const defaultCreateId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-export const defaultPeriodLabel = (now = new Date()) => `${now.getUTCFullYear()}-Q${Math.floor(now.getUTCMonth() / 3) + 1}`;
-export const emptyReputationScope = (): GraphScope => ({ organizationId: null, schoolId: null });
-const lightScore = (value: unknown, fallback: number) => typeof value === "number" ? (value <= 1 ? value * 100 : value) : fallback;
+export const defaultCreateId = sharedDefaultCreateId;
+export const defaultPeriodLabel = periodLabelQuarter;
+export const emptyReputationScope = (): GraphScope => emptyGraphScope();
+const lightScore = sharedLightScore;
 
 export function defaultReputationBaseline(): ReputationBaseline {
   return {

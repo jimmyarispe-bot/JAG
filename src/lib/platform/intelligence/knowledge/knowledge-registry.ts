@@ -4,6 +4,7 @@
 
 import type { KnowledgeRegistry as KnowledgeRegistryContract } from "@/lib/platform/intelligence/knowledge/contracts";
 import type { KnowledgePublisher } from "@/lib/platform/intelligence/knowledge/types";
+import { PublisherRegistryMap } from "@/lib/platform/intelligence/common";
 
 const DEFAULT_PUBLISHERS: KnowledgePublisher[] = [
   { domain: "organization-dna", capability: "knowledge.dna_facts" },
@@ -15,30 +16,11 @@ const DEFAULT_PUBLISHERS: KnowledgePublisher[] = [
   { domain: "executive-decision", capability: "knowledge.decision_lineage" },
 ];
 
-export class KnowledgeRegistryStore implements KnowledgeRegistryContract {
-  private readonly publishers = new Map<string, string>();
-
+export class KnowledgeRegistryStore
+  extends PublisherRegistryMap
+  implements KnowledgeRegistryContract {
   constructor(seed = DEFAULT_PUBLISHERS) {
-    for (const item of seed) this.register(item.domain, item.capability);
-  }
-
-  register(domain: string, capability: string): void {
-    this.publishers.set(domain, capability);
-  }
-
-  list(): KnowledgePublisher[] {
-    return [...this.publishers.entries()].map(([domain, capability]) => ({
-      domain,
-      capability,
-    }));
-  }
-
-  isRegistered(domain: string): boolean {
-    return this.publishers.has(domain);
-  }
-
-  clear(): void {
-    this.publishers.clear();
+    super(seed);
   }
 }
 

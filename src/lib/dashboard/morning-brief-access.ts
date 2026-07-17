@@ -1,6 +1,7 @@
 import type { IdentityContext } from "@/lib/platform/identity/context";
-import { hasIdentityPermission } from "@/lib/platform/identity/context";
+import { hasAnyPermission, hasPermission } from "@/lib/platform/identity/authorization-service";
 import { canAccessExecutiveIntelligence } from "@/lib/executive/access";
+import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-access";
 import type { DashboardMetrics } from "@/lib/dashboard/metrics";
 import type { ModuleId } from "@/lib/dashboard/navigation";
 import { FOUNDERS_QUICK_LAUNCH_MODULE_IDS } from "@/lib/dashboard/founders-navigation";
@@ -29,11 +30,6 @@ const QUICK_LAUNCH_PERMISSIONS: Record<
   hr: ["hr.view", "hr.manage", "employee.self_service"],
 };
 
-function hasAnyPermission(ctx: IdentityContext, keys: PermissionKey[]): boolean {
-  if (ctx.isEnterpriseAdmin) return true;
-  return keys.some((key) => hasIdentityPermission(ctx, key));
-}
-
 export function canViewMorningBriefMetric(
   ctx: IdentityContext,
   key: MorningBriefMetricKey
@@ -48,11 +44,12 @@ export function getVisibleMorningBriefMetrics(ctx: IdentityContext): MorningBrie
 }
 
 export function canViewQuickLaunchModule(ctx: IdentityContext, moduleId: ModuleId): boolean {
-  if (moduleId === "executive") return true;
+  // Founder home module is FOUNDER-only; other roles use AcademyOS module launchers.
+  if (moduleId === "executive") return canViewFounderDashboard(ctx);
 
   const permissions =
     QUICK_LAUNCH_PERMISSIONS[moduleId as keyof typeof QUICK_LAUNCH_PERMISSIONS];
-  if (!permissions) return ctx.isEnterpriseAdmin;
+  if (!permissions) return false;
   return hasAnyPermission(ctx, permissions);
 }
 
@@ -61,12 +58,9 @@ export function getVisibleQuickLaunchModuleIds(ctx: IdentityContext): ModuleId[]
 }
 
 export function canViewMissionControlLink(ctx: IdentityContext): boolean {
-  return (
-    hasAnyPermission(ctx, ["mission_control.access"]) ||
-    ctx.isEnterpriseAdmin
-  );
+  return canViewFounderDashboard(ctx) && hasPermission(ctx, "mission_control.access");
 }
 
 export function canViewExecutiveIntelligenceLink(ctx: IdentityContext): boolean {
-  return canAccessExecutiveIntelligence(ctx);
+  return canViewFounderDashboard(ctx) && canAccessExecutiveIntelligence(ctx);
 }

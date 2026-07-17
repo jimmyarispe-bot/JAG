@@ -1,3 +1,10 @@
+/**
+ * Ethical Intelligence — contracts / interfaces only.
+ *
+ * Leaf module: no imports from engine implementations (avoids cycles).
+ * Canonical order: Engine → sub-engines → Repository → Registry → Service → Dependencies.
+ */
+
 import type * as T from "@/lib/platform/intelligence/ethical/types";
 
 export interface EthicalIntelligenceEngine { build(request: T.EthicalRequest): T.EthicalResult; }

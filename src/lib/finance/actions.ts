@@ -337,6 +337,17 @@ export async function addBillingPayerAction(formData: FormData) {
 export async function addPaymentMethodAction(formData: FormData) {
   const auth = await requireFinanceOrPortal();
   if ("error" in auth) return { error: auth.error };
+
+  // B.1 — Simulated Square path must not settle in production
+  const allowSimulated =
+    process.env.ALLOW_SQUARE_PLANNED === "true" && process.env.NODE_ENV !== "production";
+  if (!allowSimulated) {
+    return {
+      error:
+        "Simulated payment methods (square_planned) are disabled. Configure a live payment connector.",
+    };
+  }
+
   const supabase = auth.supabase;
   const { error } = await supabase.from("family_payment_methods").insert({
     billing_account_id: formData.get("billing_account_id") as string,

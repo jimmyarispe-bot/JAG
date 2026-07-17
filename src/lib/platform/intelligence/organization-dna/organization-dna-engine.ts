@@ -91,8 +91,7 @@ import type {
   GraphAnalysisResult,
 } from "@/lib/platform/intelligence/executive-graph/types";
 
-export interface OrganizationDnaEngineDependencies
-  extends OrganizationDnaDependencies {}
+export type OrganizationDnaEngineDependencies = OrganizationDnaDependencies;
 
 /**
  * OrganizationDnaEngine — orchestrates Company Builder + Organizational DNA outputs.
@@ -223,7 +222,7 @@ export class OrganizationDnaEngineImpl implements OrganizationDnaEngineContract 
   build(request: OrganizationDnaRequest): OrganizationDnaResult {
     const now = this.now();
     let analysis = request.analysis ?? null;
-    let graphInput = request.graphInput;
+    const graphInput = request.graphInput;
 
     if (!analysis && graphInput && this.buildAndAnalyze) {
       const built = this.buildAndAnalyze(graphInput);

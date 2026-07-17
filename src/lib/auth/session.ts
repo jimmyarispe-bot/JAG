@@ -4,6 +4,10 @@ import type { EduRoleName } from "@/types/database";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { loadOrganizationBranding, resolveRoleLabel } from "@/lib/branding";
 import { FALLBACK_ROLE_LABELS } from "@/lib/branding/defaults";
+import {
+  buildAuthzSnapshot,
+  hasPermission,
+} from "@/lib/platform/identity/authorization-service";
 
 export interface SessionUser {
   id: string;
@@ -60,12 +64,31 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     primaryRoleDisplayName = roleRows?.[0]?.display_name ?? null;
   }
 
-  const primaryRole = roles[0] ?? null;
+  // Prefer executive label when the permission engine grants executive entry — never role-string gates.
+  const authz = buildAuthzSnapshot(user.id, roles);
+  const hasExecutiveAccess = hasPermission(authz, "JAG_ACCESS");
+  const primaryRole: EduRoleName | null =
+    (hasExecutiveAccess
+      ? (roles.find((r) => hasPermission(buildAuthzSnapshot(user.id, [r]), "JAG_ACCESS")) ??
+        roles[0])
+      : roles[0]) ?? null;
   const email = profile?.email ?? user.email ?? "";
   const fullName =
     profile?.full_name?.trim() ||
     email.split("@")[0]?.replace(/\./g, " ") ||
     "User";
+
+  const personalTitle =
+    typeof user.user_metadata?.title === "string"
+      ? user.user_metadata.title.trim()
+      : "";
+
+  const roleLabel = hasExecutiveAccess
+    ? branding.roleTitles.FOUNDER?.trim() ||
+      resolveRoleLabel(primaryRole, branding, primaryRoleDisplayName) ||
+      "Executive"
+    : personalTitle ||
+      resolveRoleLabel(primaryRole, branding, primaryRoleDisplayName);
 
   return {
     id: user.id,
@@ -73,6 +96,6 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     fullName,
     roles,
     primaryRole,
-    roleLabel: resolveRoleLabel(primaryRole, branding, primaryRoleDisplayName),
+    roleLabel,
   };
 });

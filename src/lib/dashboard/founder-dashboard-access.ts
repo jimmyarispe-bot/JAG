@@ -1,8 +1,16 @@
 import type { IdentityContext } from "@/lib/platform/identity/context";
-import { hasIdentityPermission } from "@/lib/platform/identity/context";
+import {
+  hasAnyPermission,
+  hasPermission,
+} from "@/lib/platform/identity/authorization-service";
 import { canAccessExecutiveIntelligence } from "@/lib/executive/access";
 import { canViewFi } from "@/lib/financial-intelligence/access";
 import type { PermissionKey } from "@/lib/platform/identity/types";
+
+/** Founder dashboard + widgets require JAG_ACCESS (granted by FOUNDER role). */
+export function canViewFounderDashboard(ctx: IdentityContext): boolean {
+  return hasPermission(ctx, "JAG_ACCESS");
+}
 
 export type FounderDashboardCardKey =
   | "activeEnrollment"
@@ -36,30 +44,25 @@ const CARD_PERMISSIONS: Record<FounderDashboardCardKey, PermissionKey[]> = {
 
 const RBAC_LOG_PREFIX = "[founder-dashboard:rbac]";
 
-function hasAnyPermission(ctx: IdentityContext, keys: PermissionKey[]): boolean {
-  if (ctx.isEnterpriseAdmin) return true;
-  return keys.some((key) => hasIdentityPermission(ctx, key));
-}
-
 function matchingPermissions(ctx: IdentityContext, keys: PermissionKey[]): PermissionKey[] {
-  if (ctx.isEnterpriseAdmin) return keys;
-  return keys.filter((key) => hasIdentityPermission(ctx, key));
+  if (!canViewFounderDashboard(ctx)) return [];
+  return keys.filter((key) => hasPermission(ctx, key));
 }
 
 function explainCardAccess(
   ctx: IdentityContext,
   key: FounderDashboardCardKey
 ): { included: boolean; reason: string } {
+  if (!canViewFounderDashboard(ctx)) {
+    return { included: false, reason: "JAG_ACCESS permission required" };
+  }
+
   if (key === "executiveAlerts") {
     const included = canAccessExecutiveIntelligence(ctx);
     const checks = {
-      hasExecutiveLeadershipRole: ctx.roles.some((role) =>
-        ["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR", "PRESIDENT", "SUPERINTENDENT"].includes(role)
-      ),
-      executiveIntelligence: hasIdentityPermission(ctx, "executive.intelligence"),
-      executiveDashboard: hasIdentityPermission(ctx, "executive.dashboard"),
-      globalReporting: hasIdentityPermission(ctx, "global.reporting"),
-      isEnterpriseAdmin: ctx.isEnterpriseAdmin,
+      executiveIntelligence: hasPermission(ctx, "executive.intelligence"),
+      executiveDashboard: hasPermission(ctx, "executive.dashboard"),
+      globalReporting: hasPermission(ctx, "global.reporting"),
     };
     return {
       included,
@@ -72,13 +75,12 @@ function explainCardAccess(
   if (key === "financialIntelligence") {
     const included = canViewFi(ctx);
     const checks = {
-      fiView: hasIdentityPermission(ctx, "fi.view"),
-      fiExecutive: hasIdentityPermission(ctx, "fi.executive"),
-      fiManage: hasIdentityPermission(ctx, "fi.manage"),
-      financeExecutive: hasIdentityPermission(ctx, "finance.executive"),
-      financeView: hasIdentityPermission(ctx, "finance.view"),
-      executiveIntelligence: hasIdentityPermission(ctx, "executive.intelligence"),
-      isEnterpriseAdmin: ctx.isEnterpriseAdmin,
+      fiView: hasPermission(ctx, "fi.view"),
+      fiExecutive: hasPermission(ctx, "fi.executive"),
+      fiManage: hasPermission(ctx, "fi.manage"),
+      financeExecutive: hasPermission(ctx, "finance.executive"),
+      financeView: hasPermission(ctx, "finance.view"),
+      executiveIntelligence: hasPermission(ctx, "executive.intelligence"),
     };
     return {
       included,
@@ -89,13 +91,6 @@ function explainCardAccess(
   }
 
   const required = CARD_PERMISSIONS[key];
-  if (ctx.isEnterpriseAdmin) {
-    return {
-      included: true,
-      reason: `isEnterpriseAdmin=true bypasses permission check (needs any of ${required.join(", ")})`,
-    };
-  }
-
   const matched = matchingPermissions(ctx, required);
   if (matched.length > 0) {
     return {
@@ -118,6 +113,16 @@ export function canViewFounderDashboardCard(
 }
 
 export function getVisibleFounderDashboardCards(ctx: IdentityContext): FounderDashboardCardKey[] {
+  if (!canViewFounderDashboard(ctx)) {
+    console.log(RBAC_LOG_PREFIX, {
+      userId: ctx.id,
+      permissions: [...ctx.permissions].sort(),
+      visibleCards: [],
+      reason: "JAG_ACCESS required — widgets hidden",
+    });
+    return [];
+  }
+
   const cardKeys = Object.keys(CARD_PERMISSIONS) as FounderDashboardCardKey[];
   const decisions = cardKeys.map((key) => ({
     card: key,
@@ -129,11 +134,9 @@ export function getVisibleFounderDashboardCards(ctx: IdentityContext): FounderDa
     userId: ctx.id,
     email: ctx.email,
     effectiveUserId: ctx.effectiveUserId,
-    roles: ctx.roles,
-    isFounder: ctx.isFounder,
-    isEnterpriseAdmin: ctx.isEnterpriseAdmin,
     permissions: [...ctx.permissions].sort(),
     permissionCount: ctx.permissions.length,
+    hasAnyCardPerm: hasAnyPermission(ctx, Object.values(CARD_PERMISSIONS).flat()),
     cardDecisions: decisions,
     visibleCards,
   });

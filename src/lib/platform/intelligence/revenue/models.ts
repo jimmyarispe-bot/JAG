@@ -19,6 +19,19 @@ import type {
   RevenueLensImpact,
   RevenuePriorityBand,
 } from "@/lib/platform/intelligence/revenue/types";
+import {
+  buildConfidenceAverageFunding,
+  clamp01 as sharedClamp01,
+  clampUnchecked,
+  emptyGraphScope,
+  levelFromValueFunding,
+  periodLabelLocaleMonthYear,
+  priorityFromRisk as sharedPriorityFromRisk,
+  priorityFromScoreHighHealthy,
+  scoreNarrative as sharedScoreNarrative,
+  statusFromScore as sharedStatusFromScore,
+} from "@/lib/platform/intelligence/common";
+
 
 /** Default baseline when no upstream signals are supplied. */
 export function defaultRevenueBaseline(): RevenueBaseline {
@@ -203,60 +216,28 @@ export function deriveRevenueBaseline(
   };
 }
 
-export function emptyRevenueScope(): GraphScope {
-  return { organizationId: null, schoolId: null };
-}
+export const emptyRevenueScope = (): GraphScope => emptyGraphScope();
 
 export function defaultPeriodLabel(now: Date): string {
-  return now.toLocaleString("en-US", { month: "long", year: "numeric" });
+  return periodLabelLocaleMonthYear(now);
 }
 
-export function clamp(value: number, min = 0, max = 100): number {
-  return Math.min(max, Math.max(min, value));
-}
+export const clamp = clampUnchecked;
 
-export function clamp01(value: number): number {
-  return clamp(value, 0, 1);
-}
+export const clamp01 = sharedClamp01;
 
-export function statusFromScore(score: number): RevenueHealthStatus {
-  if (score >= 85) return "excellent";
-  if (score >= 70) return "healthy";
-  if (score >= 50) return "warning";
-  return "critical";
-}
+export function statusFromScore(score: number): RevenueHealthStatus { return sharedStatusFromScore(score); }
 
-export function priorityFromScore(score: number): RevenuePriorityBand {
-  if (score >= 85) return "monitor";
-  if (score >= 70) return "low";
-  if (score >= 55) return "medium";
-  if (score >= 40) return "high";
-  return "critical";
-}
+export function priorityFromScore(score: number): RevenuePriorityBand { return priorityFromScoreHighHealthy(score); }
 
-export function priorityFromRisk(score: number): RevenuePriorityBand {
-  if (score >= 0.75) return "critical";
-  if (score >= 0.55) return "high";
-  if (score >= 0.35) return "medium";
-  if (score >= 0.2) return "low";
-  return "monitor";
-}
+export function priorityFromRisk(risk: number): RevenuePriorityBand { return sharedPriorityFromRisk(risk); }
 
-export function levelFromValue(value: number): RevenueConfidenceLevel {
-  if (value >= 0.8) return "high";
-  if (value >= 0.55) return "medium";
-  if (value >= 0.25) return "low";
-  return "unknown";
-}
+export function levelFromValue(value: number): RevenueConfidenceLevel { return levelFromValueFunding(value); }
 
 export function buildConfidence(
   factors: Array<{ key: string; label: string; contribution: number }>
 ): RevenueConfidenceScore {
-  const value = clamp01(
-    factors.reduce((sum, f) => sum + f.contribution, 0) /
-      Math.max(1, factors.length)
-  );
-  return { value, level: levelFromValue(value), factors };
+  return buildConfidenceAverageFunding(factors) as RevenueConfidenceScore;
 }
 
 export function scoreNarrative(
@@ -264,7 +245,7 @@ export function scoreNarrative(
   value: number,
   status: RevenueHealthStatus
 ): string {
-  return `${label} is ${status} at ${Math.round(value)}.`;
+  return sharedScoreNarrative(label, value, status);
 }
 
 /** Build a five-lens impact block for recommendations and analyses. */

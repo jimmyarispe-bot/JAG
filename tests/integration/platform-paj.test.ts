@@ -193,7 +193,7 @@ function createPajMockStore() {
 
     if (table === "platform_graph_edges") {
       if (operation === "upsert" || operation === "single") {
-        const row = {
+        const row: Record<string, unknown> = {
           id: nextId("ffffffff"),
           recorded_at: new Date().toISOString(),
           status: "active",

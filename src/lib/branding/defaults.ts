@@ -21,13 +21,16 @@ export const FALLBACK_ROLE_LABELS: Record<string, string> = {
   EXECUTIVE_DIRECTOR: "Executive Director",
   REGIONAL_DIRECTOR: "Regional Director",
   SCHOOL_LEADER: "School Leader",
+  ADMINISTRATOR: "Administrator",
   ADMISSIONS: "Admissions",
   FINANCE: "Finance",
+  ACCOUNTING: "Accounting",
   HR: "Human Resources",
   TEACHER: "Teacher",
   PARENT: "Parent",
   STUDENT: "Student",
   EMPLOYEE: "Employee",
+  BOARD_MEMBER: "Board Member",
 };
 
 export function buildFallbackBranding(organizationId: string, organizationName: string): OrganizationBranding {

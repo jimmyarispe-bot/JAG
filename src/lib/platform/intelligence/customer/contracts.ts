@@ -192,13 +192,6 @@ export interface CustomerQueries {
   ): T.CustomerQueryResult;
 }
 
-export interface CustomerRegistry {
-  register(domain: string, capability: string): void;
-  list(): T.CustomerPublisher[];
-  isRegistered(domain: string): boolean;
-  clear(): void;
-}
-
 export interface CustomerRepository {
   save(result: T.CustomerResult): T.CustomerResult;
   get(requestId: string): T.CustomerResult | null;
@@ -208,6 +201,13 @@ export interface CustomerRepository {
     record: T.CustomerHistoryRecord
   ): T.CustomerHistoryRecord;
   listHistory(scope?: Partial<T.GraphScope>): T.CustomerHistoryRecord[];
+  clear(): void;
+}
+
+export interface CustomerRegistry {
+  register(domain: string, capability: string): void;
+  list(): T.CustomerPublisher[];
+  isRegistered(domain: string): boolean;
   clear(): void;
 }
 

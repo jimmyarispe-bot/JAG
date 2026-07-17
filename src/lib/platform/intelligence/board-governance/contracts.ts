@@ -199,6 +199,7 @@ export interface GovernanceProjection {
   }): GovernanceProjectionResult;
 }
 
+/** Governance* façade names; Board* used for packet/KPI DTOs. */
 export interface GovernanceRepository {
   save(packet: BoardPacket): BoardPacket;
   get(packetId: string): BoardPacket | null;
@@ -209,6 +210,7 @@ export interface GovernanceRepository {
   clear(): void;
 }
 
+/** Governance* façade names; Board* used for packet/KPI DTOs. */
 export interface GovernanceService {
   generate(request: GovernanceRequest): GovernanceResult;
   generatePacket(

@@ -1,17 +1,49 @@
 import type { GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
 import type { ImpactBaseline, ImpactConfidenceLevel, ImpactConfidenceScore, ImpactHealthStatus, ImpactLens, ImpactPriorityBand, ImpactRequest } from "@/lib/platform/intelligence/impact/types";
 import { IMPACT_AREAS } from "@/lib/platform/intelligence/impact/types";
+import {
+  buildConfidenceAverage,
+  clamp as sharedClamp,
+  defaultCreateId as sharedDefaultCreateId,
+  emptyGraphScope,
+  levelFromValue as sharedLevelFromValue,
+  lightScore as sharedLightScore,
+  periodLabelQuarter,
+  priorityFromScoreLowUrgent,
+  statusFromScore as sharedStatusFromScore,
+} from "@/lib/platform/intelligence/common";
 
-export const clamp = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
-export function statusFromScore(score: number): ImpactHealthStatus { if (score >= 85) return "excellent"; if (score >= 70) return "healthy"; if (score >= 50) return "warning"; return "critical"; }
-export function priorityFromScore(score: number): ImpactPriorityBand { if (score < 35) return "critical"; if (score < 50) return "high"; if (score < 65) return "medium"; if (score < 80) return "low"; return "monitor"; }
-export function levelFromValue(value: number): ImpactConfidenceLevel { if (value >= .8) return "high"; if (value >= .55) return "medium"; if (value >= .3) return "low"; return "unknown"; }
-export function buildConfidence(factors: Array<{ key: string; label: string; contribution: number }>): ImpactConfidenceScore { const value = Math.min(1, Math.max(0, factors.reduce((s, f) => s + f.contribution, 0) / Math.max(1, factors.length))); return { value, level: levelFromValue(value), factors }; }
-export function buildLens(lens: ImpactLens): ImpactLens { return { outcomeAchieved: lens.outcomeAchieved, evidenceSupports: lens.evidenceSupports, baselineUsed: lens.baselineUsed, whatChanged: lens.whatChanged, confidenceLevel: lens.confidenceLevel, causeAttribution: lens.causeAttribution, goalsImproved: lens.goalsImproved, nextImprovement: lens.nextImprovement }; }
-export const defaultCreateId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-export const defaultPeriodLabel = (now = new Date()) => `${now.getUTCFullYear()}-Q${Math.floor(now.getUTCMonth() / 3) + 1}`;
-export const emptyImpactScope = (): GraphScope => ({ organizationId: null, schoolId: null });
-const lightScore = (value: unknown, fallback: number) => typeof value === "number" ? (value <= 1 ? value * 100 : value) : fallback;
+export const clamp = sharedClamp;
+export function statusFromScore(score: number): ImpactHealthStatus {
+  return sharedStatusFromScore(score);
+}
+export function priorityFromScore(score: number): ImpactPriorityBand {
+  return priorityFromScoreLowUrgent(score);
+}
+export function levelFromValue(value: number): ImpactConfidenceLevel {
+  return sharedLevelFromValue(value);
+}
+export function buildConfidence(
+  factors: Array<{ key: string; label: string; contribution: number }>
+): ImpactConfidenceScore {
+  return buildConfidenceAverage(factors) as ImpactConfidenceScore;
+}
+export function buildLens(lens: ImpactLens): ImpactLens {
+  return {
+    outcomeAchieved: lens.outcomeAchieved,
+    evidenceSupports: lens.evidenceSupports,
+    baselineUsed: lens.baselineUsed,
+    whatChanged: lens.whatChanged,
+    confidenceLevel: lens.confidenceLevel,
+    causeAttribution: lens.causeAttribution,
+    goalsImproved: lens.goalsImproved,
+    nextImprovement: lens.nextImprovement,
+  };
+}
+export const defaultCreateId = sharedDefaultCreateId;
+export const defaultPeriodLabel = periodLabelQuarter;
+export const emptyImpactScope = (): GraphScope => emptyGraphScope();
+const lightScore = sharedLightScore;
 export function defaultImpactBaseline(): ImpactBaseline {
   return { organizationHealthScore: 72, executionScore: 68, areaScores: { mission: 70, customer: 68, employee: 66, student: 72, community: 64, financial: 69, grant: 63, program_effectiveness: 67, strategic_goal_achievement: 65, operational: 68, innovation: 66, long_term_organizational: 64 }, measurementMaturity: 62, outcomeMaturity: 65, roiMaturity: 58, knowledgeMaturity: 63, evidenceCoverage: 61 };
 }

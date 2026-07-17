@@ -6,17 +6,16 @@ import { formatCurrency } from "@/lib/format";
 import { getFinanceExecutiveDashboard } from "@/lib/finance/dashboards";
 import { exportLedgerForGl } from "@/lib/finance/ledger";
 import { getLatestForecast } from "@/lib/finance/forecasting";
-import { getIdentityContext } from "@/lib/platform/identity/context";
+import { requireFinanceAccess } from "@/lib/platform/identity/page-guard";
+import { hasPermission } from "@/lib/platform/identity/authorization-service";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 
 export default async function FinanceExecutivePage() {
-  const ctx = await getIdentityContext();
-  const canView =
-    ctx?.permissions.includes("finance.executive") ||
-    ctx?.permissions.includes("finance.view") ||
-    ctx?.isEnterpriseAdmin;
-
-  if (!canView) redirect("/dashboard/finance");
+  // Sprint 008 — Financial Security (layout + defense in depth).
+  const ctx = await requireFinanceAccess();
+  if (!hasPermission(ctx, "finance.executive") && !hasPermission(ctx, "finance.view")) {
+    redirect("/dashboard/finance");
+  }
 
   const schoolId =
     ctx?.orgAssignments.find((a) => a.is_primary)?.school_id ||

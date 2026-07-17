@@ -22,57 +22,46 @@ import type {
   OperationsResultLight,
   RevenueResultLight,
 } from "@/lib/platform/intelligence/document/types";
+import {
+  buildConfidenceAverageEmptyHalf,
+  clamp as sharedClamp,
+  defaultCreateId as sharedDefaultCreateId,
+  emptyGraphScope,
+  levelFromValue as sharedLevelFromValue,
+  periodLabelQuarter,
+  priorityFromRisk as sharedPriorityFromRisk,
+  priorityFromScoreLowUrgent,
+  scoreNarrative as sharedScoreNarrative,
+  statusFromScore as sharedStatusFromScore,
+} from "@/lib/platform/intelligence/common";
 
-export function clamp(value: number, min = 0, max = 100): number {
-  return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
-}
+
+export const clamp = sharedClamp;
 
 export function clamp01(value: number): number {
   return clamp(value, 0, 1);
 }
 
-export function statusFromScore(score: number): DocumentHealthStatus {
-  if (score >= 85) return "excellent";
-  if (score >= 70) return "healthy";
-  if (score >= 50) return "warning";
-  return "critical";
-}
+export function statusFromScore(score: number): DocumentHealthStatus { return sharedStatusFromScore(score); }
 
-export function priorityFromScore(score: number): DocumentPriorityBand {
-  if (score < 35) return "critical";
-  if (score < 50) return "high";
-  if (score < 65) return "medium";
-  if (score < 80) return "low";
-  return "monitor";
-}
+export function priorityFromScore(score: number): DocumentPriorityBand { return priorityFromScoreLowUrgent(score); }
 
-export function priorityFromRisk(risk: number): DocumentPriorityBand {
-  if (risk >= 0.75) return "critical";
-  if (risk >= 0.55) return "high";
-  if (risk >= 0.35) return "medium";
-  if (risk >= 0.2) return "low";
-  return "monitor";
-}
+export function priorityFromRisk(risk: number): DocumentPriorityBand { return sharedPriorityFromRisk(risk); }
 
-export function levelFromValue(value: number): DocumentConfidenceLevel {
-  if (value >= 0.8) return "high";
-  if (value >= 0.55) return "medium";
-  if (value >= 0.3) return "low";
-  return "unknown";
-}
+export function levelFromValue(value: number): DocumentConfidenceLevel { return sharedLevelFromValue(value); }
 
-export function scoreNarrative(label: string, value: number, status: DocumentHealthStatus): string {
-  return `${label} is ${status} at ${Math.round(value)}.`;
+export function scoreNarrative(
+  label: string,
+  value: number,
+  status: DocumentHealthStatus
+): string {
+  return sharedScoreNarrative(label, value, status);
 }
 
 export function buildConfidence(
   factors: Array<{ key: string; label: string; contribution: number }>
 ): DocumentConfidenceScore {
-  const value =
-    factors.length === 0
-      ? 0.5
-      : clamp01(factors.reduce((sum, f) => sum + f.contribution, 0) / factors.length);
-  return { value, level: levelFromValue(value), factors };
+  return buildConfidenceAverageEmptyHalf(factors) as DocumentConfidenceScore;
 }
 
 export function buildLenses(
@@ -99,17 +88,11 @@ export function buildLenses(
   };
 }
 
-export function defaultCreateId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
+export const defaultCreateId = sharedDefaultCreateId;
 
-export function defaultPeriodLabel(now = new Date()): string {
-  return `${now.getUTCFullYear()}-Q${Math.floor(now.getUTCMonth() / 3) + 1}`;
-}
+export const defaultPeriodLabel = periodLabelQuarter;
 
-export function emptyDocumentScope(): GraphScope {
-  return { organizationId: null, schoolId: null };
-}
+export const emptyDocumentScope = (): GraphScope => emptyGraphScope();
 
 export function defaultDocumentBaseline(): DocumentBaseline {
   return {

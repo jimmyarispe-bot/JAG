@@ -1,5 +1,8 @@
-import type { ReactNode } from "react";
 import { cn } from "@/components/workspace-design-system/utils";
+
+/** D.1 — Single EmptyState primitive (re-export). */
+export { EmptyState } from "@/components/ui/EmptyState";
+export { LiveAnnouncerProvider, useAnnounce } from "./LiveAnnouncer";
 
 export function SuccessBanner({ message, className }: { message: string; className?: string }) {
   return (
@@ -28,29 +31,30 @@ export function ErrorBanner({ message, title = "Error", className }: { message: 
 
 export function LoadingState({ label = "Loading…", className }: { label?: string; className?: string }) {
   return (
-    <div className={cn("flex items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 p-10", className)} role="status" aria-live="polite">
+    <div
+      className={cn("flex items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 p-10", className)}
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" aria-hidden />
       <span className="text-sm text-slate-600">{label}</span>
     </div>
   );
 }
 
-export function EmptyState({
-  title,
-  description,
-  action,
-  className,
-}: {
-  title: string;
-  description?: string;
-  action?: ReactNode;
-  className?: string;
-}) {
+/** D.1 — Route-level skeleton with accessible busy state */
+export function RouteLoadingSkeleton({ label = "Loading page…" }: { label?: string }) {
   return (
-    <div className={cn("rounded-2xl border border-dashed border-slate-200 p-10 text-center", className)}>
-      <p className="font-medium text-slate-900">{title}</p>
-      {description && <p className="mt-2 text-sm text-slate-500">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+    <div className="mx-auto max-w-6xl space-y-4 p-6" role="status" aria-live="polite" aria-busy="true" aria-label={label}>
+      <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" />
+      <div className="h-4 w-full max-w-xl animate-pulse rounded bg-slate-100" />
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />
+        <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />
+        <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />
+      </div>
+      <span className="sr-only">{label}</span>
     </div>
   );
 }

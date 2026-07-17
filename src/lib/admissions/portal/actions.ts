@@ -1,8 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
+import {
+  checkRateLimitAsync,
+  getClientIpFromHeaders,
+} from "@/lib/platform/api-rate-limit";
 import type { GradeValue } from "@/lib/constants/grades";
 import type { ProgramValue } from "@/lib/constants/programs";
 import { parseFundingSourcesFromForm } from "@/lib/funding/helpers";
@@ -26,6 +31,37 @@ import {
 } from "@/lib/admissions/communications/triggers";
 
 export async function submitPublicInquiry(formData: FormData) {
+  // B.1 — honeypot (bots fill hidden fields)
+  const honeypot = String(formData.get("company_website") ?? "").trim();
+  if (honeypot) {
+    return { error: "Unable to submit inquiry." };
+  }
+
+  const headerStore = await headers();
+  const ip = getClientIpFromHeaders(headerStore);
+  const limited = await checkRateLimitAsync(`admissions-inquiry:${ip}`, 5, 60_000);
+  if (!limited.ok) {
+    return { error: "Too many inquiries. Please try again later." };
+  }
+
+  // Optional Cloudflare Turnstile when TURNSTILE_SECRET_KEY is configured
+  const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+  if (turnstileSecret) {
+    const token = String(formData.get("cf-turnstile-response") ?? "");
+    if (!token) return { error: "Please complete the captcha." };
+    try {
+      const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ secret: turnstileSecret, response: token, remoteip: ip }),
+      });
+      const outcome = (await verify.json()) as { success?: boolean };
+      if (!outcome.success) return { error: "Captcha verification failed." };
+    } catch {
+      return { error: "Captcha verification unavailable." };
+    }
+  }
+
   const supabase = await createAuthClient();
   const fundingSources = parseFundingSourcesFromForm(formData);
 

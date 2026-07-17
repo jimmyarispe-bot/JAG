@@ -4,6 +4,7 @@
 
 import type { OperationsRegistry as OperationsRegistryContract } from "@/lib/platform/intelligence/operations/contracts";
 import type { OperationsPublisher } from "@/lib/platform/intelligence/operations/types";
+import { PublisherRegistryMap } from "@/lib/platform/intelligence/common";
 
 const DEFAULT_PUBLISHERS: OperationsPublisher[] = [
   { domain: "organization-dna", capability: "operations.dna_operating_model" },
@@ -13,30 +14,11 @@ const DEFAULT_PUBLISHERS: OperationsPublisher[] = [
   { domain: "oios-core", capability: "operations.execution_baseline" },
 ];
 
-export class OperationsRegistryStore implements OperationsRegistryContract {
-  private readonly publishers = new Map<string, string>();
-
+export class OperationsRegistryStore
+  extends PublisherRegistryMap
+  implements OperationsRegistryContract {
   constructor(seed = DEFAULT_PUBLISHERS) {
-    for (const item of seed) this.register(item.domain, item.capability);
-  }
-
-  register(domain: string, capability: string): void {
-    this.publishers.set(domain, capability);
-  }
-
-  list(): OperationsPublisher[] {
-    return [...this.publishers.entries()].map(([domain, capability]) => ({
-      domain,
-      capability,
-    }));
-  }
-
-  isRegistered(domain: string): boolean {
-    return this.publishers.has(domain);
-  }
-
-  clear(): void {
-    this.publishers.clear();
+    super(seed);
   }
 }
 

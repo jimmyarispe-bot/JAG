@@ -57,8 +57,7 @@ import type {
   GraphAnalysisResult,
 } from "@/lib/platform/intelligence/executive-graph/types";
 
-export interface BoardIntelligenceEngineDependencies
-  extends BoardGovernanceDependencies {}
+export type BoardIntelligenceEngineDependencies = BoardGovernanceDependencies;
 
 /**
  * BoardIntelligenceEngine — core orchestrator for board & governance outputs.
@@ -148,7 +147,7 @@ export class BoardIntelligenceEngineImpl
     const now = this.now();
     let analysis = request.analysis ?? null;
     let graph = request.graph ?? null;
-    let graphInput = request.graphInput;
+    const graphInput = request.graphInput;
 
     if (!analysis && graphInput && this.buildAndAnalyze) {
       const built = this.buildAndAnalyze(graphInput);

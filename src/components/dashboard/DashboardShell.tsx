@@ -11,6 +11,10 @@ interface DashboardShellProps {
   fullName: string;
   roleLabel: string;
   branding: OrganizationBranding;
+  /** When true, show Founder-only platform nav. Never true for non-FOUNDER roles. */
+  isFounder?: boolean;
+  /** When true, show Executive Director operating nav (never with Founder widgets). */
+  isExecutiveDirector?: boolean;
   impersonation?: { targetName: string } | null;
   notifications?: Array<{
     id: string;
@@ -27,6 +31,8 @@ export function DashboardShell({
   fullName,
   roleLabel,
   branding,
+  isFounder = false,
+  isExecutiveDirector = false,
   impersonation = null,
   notifications = [],
   children,
@@ -38,13 +44,15 @@ export function DashboardShell({
   return (
     <BrandingProvider branding={branding}>
       <div className="flex min-h-screen bg-slate-50">
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow-lg"
-        >
+        <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        <Sidebar open={sidebarOpen} onClose={closeSidebar} />
+        <Sidebar
+          open={sidebarOpen}
+          onClose={closeSidebar}
+          isFounder={isFounder}
+          isExecutiveDirector={isExecutiveDirector}
+        />
 
         <div className="flex min-w-0 flex-1 flex-col">
           {impersonation && (

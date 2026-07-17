@@ -64,7 +64,7 @@ export async function loadPendingWorkflowApprovals(
   supabase: AuthClient,
   scope: ExecutiveDecisionsScope
 ): Promise<WorkflowApprovalDecisionLike[]> {
-  let query = supabase
+  const query = supabase
     .from("platform_workflow_approvals")
     .select(
       "id, instance_id, transition_key, gate_key, status, requested_by, created_at, metadata, platform_workflow_instances(workflow_key, domain, entity_type, entity_id, school_id, organization_id, status)"

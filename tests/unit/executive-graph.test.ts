@@ -238,9 +238,9 @@ describe("buildExecutiveGraph", () => {
           history: [],
           relatedEntityType: null,
           relatedEntityId: null,
-          financialImpact: null,
-          studentImpact: null,
-          complianceRisk: null,
+          financialImpact: false,
+          studentImpact: false,
+          complianceRisk: false,
         },
       ],
       missionControl: [

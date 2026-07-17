@@ -2,7 +2,7 @@ import type { CompetitiveDependencies, CompetitiveIntelligenceService as Contrac
 import { CompetitiveIntelligenceEngineImpl } from "@/lib/platform/intelligence/competitive/competitive-engine";
 import type { CompetitiveQueryRequest, CompetitiveQueryResult, CompetitiveRequest, CompetitiveResult } from "@/lib/platform/intelligence/competitive/types";
 
-export interface CompetitiveServiceDependencies extends CompetitiveDependencies {}
+export type CompetitiveServiceDependencies = CompetitiveDependencies;
 
 export class CompetitiveIntelligenceServiceImpl implements Contract {
   private engine: CompetitiveIntelligenceEngineImpl;

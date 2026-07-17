@@ -60,8 +60,8 @@ export class IntelligenceRouter {
       });
     }
 
-    const module = this.registry.get(request.domain);
-    if (!module) {
+    const domainModule = this.registry.get(request.domain);
+    if (!domainModule) {
       throw new IntelligenceRouterError({
         code: "UNKNOWN_DOMAIN",
         message: `No Intelligence domain registered for "${request.domain}"`,
@@ -70,7 +70,7 @@ export class IntelligenceRouter {
     }
 
     try {
-      return await module.handle(request);
+      return await domainModule.handle(request);
     } catch (cause) {
       if (cause instanceof IntelligenceRouterError) {
         throw cause;

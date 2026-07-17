@@ -4,6 +4,19 @@ import type { OiosResult } from "@/lib/platform/oios/types";
 import type { GraphAnalysisResult, GraphBuildInput, GraphScope } from "@/lib/platform/intelligence/executive-graph/types";
 import type { PredictionResult } from "@/lib/platform/intelligence/predictive-intelligence/types";
 import type { FinancialSignal, FundingBaseline, FundingConfidenceLevel, FundingConfidenceScore, FundingHealthStatus, FundingLensImpact, FundingPriorityBand, RevenueResultLight } from "@/lib/platform/intelligence/funding/types";
+import {
+  buildConfidenceAverageFunding,
+  clamp01 as sharedClamp01,
+  clampUnchecked,
+  emptyGraphScope,
+  levelFromValueFunding,
+  periodLabelLocaleMonthYear,
+  priorityFromRisk as sharedPriorityFromRisk,
+  priorityFromScoreHighHealthy,
+  scoreNarrative as sharedScoreNarrative,
+  statusFromScore as sharedStatusFromScore,
+} from "@/lib/platform/intelligence/common";
+
 
 export function defaultFundingBaseline(): FundingBaseline {
   return {
@@ -64,19 +77,18 @@ export function deriveFundingBaseline(
   };
 }
 
-export function emptyFundingScope(): GraphScope { return { organizationId: null, schoolId: null }; }
-export function defaultPeriodLabel(now: Date): string { return now.toLocaleString("en-US", { month: "long", year: "numeric" }); }
-export function clamp(value: number, min = 0, max = 100): number { return Math.min(max, Math.max(min, value)); }
-export function clamp01(value: number): number { return clamp(value, 0, 1); }
-export function statusFromScore(score: number): FundingHealthStatus { return score >= 85 ? "excellent" : score >= 70 ? "healthy" : score >= 50 ? "warning" : "critical"; }
-export function priorityFromScore(score: number): FundingPriorityBand { return score >= 85 ? "monitor" : score >= 70 ? "low" : score >= 55 ? "medium" : score >= 40 ? "high" : "critical"; }
-export function priorityFromRisk(score: number): FundingPriorityBand { return score >= 0.75 ? "critical" : score >= 0.55 ? "high" : score >= 0.35 ? "medium" : score >= 0.2 ? "low" : "monitor"; }
-export function levelFromValue(value: number): FundingConfidenceLevel { return value >= 0.8 ? "high" : value >= 0.55 ? "medium" : value >= 0.25 ? "low" : "unknown"; }
+export const emptyFundingScope = (): GraphScope => emptyGraphScope();
+export function defaultPeriodLabel(now: Date): string { return periodLabelLocaleMonthYear(now); }
+export const clamp = clampUnchecked;
+export const clamp01 = sharedClamp01;
+export function statusFromScore(score: number): FundingHealthStatus { return sharedStatusFromScore(score); }
+export function priorityFromScore(score: number): FundingPriorityBand { return priorityFromScoreHighHealthy(score); }
+export function priorityFromRisk(risk: number): FundingPriorityBand { return sharedPriorityFromRisk(risk); }
+export function levelFromValue(value: number): FundingConfidenceLevel { return levelFromValueFunding(value); }
 export function buildConfidence(factors: Array<{ key: string; label: string; contribution: number }>): FundingConfidenceScore {
-  const value = clamp01(factors.reduce((sum, factor) => sum + factor.contribution, 0) / Math.max(1, factors.length));
-  return { value, level: levelFromValue(value), factors };
+  return buildConfidenceAverageFunding(factors) as FundingConfidenceScore;
 }
-export function scoreNarrative(label: string, value: number, status: FundingHealthStatus): string { return `${label} is ${status} at ${Math.round(value)}.`; }
+export function scoreNarrative(label: string, value: number, status: FundingHealthStatus): string { return sharedScoreNarrative(label, value, status); }
 export function buildLenses(input: FundingLensImpact): FundingLensImpact { return { ...input }; }
 export function defaultCreateId(prefix: string): string { return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 export const fundingModels = { defaultFundingBaseline, deriveFundingBaseline, emptyFundingScope, defaultPeriodLabel, clamp, clamp01, statusFromScore, priorityFromScore, priorityFromRisk, levelFromValue, buildConfidence, scoreNarrative, buildLenses, defaultCreateId };

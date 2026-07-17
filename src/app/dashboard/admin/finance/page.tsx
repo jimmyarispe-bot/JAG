@@ -1,8 +1,11 @@
 import { ConfigStudioShell } from "@/components/configuration/ConfigStudioNav";
 import { ConfigSectionForm, ConfigJsonPreview } from "@/components/configuration/ConfigSectionForm";
 import { loadConfigPage } from "@/lib/configuration/page-data";
+import { requireFinanceAccess } from "@/lib/platform/identity/page-guard";
 
 export default async function FinanceConfigPage() {
+  // Sprint 008 — Financial Security.
+  await requireFinanceAccess();
   const { organizationId, config } = await loadConfigPage("finance");
 
   return (

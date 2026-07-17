@@ -51,11 +51,11 @@ describe("IntelligenceDomainRegistry", () => {
   });
 
   it("registers a domain and retrieves it by key", () => {
-    const module = makeModule("success");
-    registry.register(module);
+    const domainModule = makeModule("success");
+    registry.register(domainModule);
 
-    expect(registry.get("success")).toBe(module);
-    expect(registry.list()).toEqual([module]);
+    expect(registry.get("success")).toBe(domainModule);
+    expect(registry.list()).toEqual([domainModule]);
     expect(registry.keys()).toEqual(["success"]);
   });
 
@@ -85,7 +85,7 @@ describe("IntelligenceDomainRegistry", () => {
     registry.register(makeModule("operational"));
 
     expect(registry.keys()).toEqual(["executive", "operational", "success"]);
-    expect(registry.list().map((module) => module.domainKey)).toEqual([
+    expect(registry.list().map((domainModule) => domainModule.domainKey)).toEqual([
       "executive",
       "operational",
       "success",

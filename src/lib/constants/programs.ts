@@ -1,10 +1,36 @@
 export const PROGRAMS = [
-  { value: "academy_fl_campus", label: "Academy FL Campus" },
-  { value: "academy_fl_virtual", label: "Academy FL Virtual" },
-  { value: "academy_ga_campus", label: "Academy GA Campus" },
-  { value: "academy_ga_hybrid", label: "Academy GA Hybrid" },
-  { value: "academy_hs", label: "Academy High School" },
-  { value: "academy_virtual", label: "Academy Virtual" },
+  {
+    value: "academy_hs_experience",
+    label: "The Academy HS – HS Experience",
+  },
+
+  {
+    value: "academy_fl_in_person",
+    label: "The Academy FL – In-Person",
+  },
+  {
+    value: "academy_fl_virtual",
+    label: "The Academy FL – Virtual",
+  },
+
+  {
+    value: "academy_ga_in_person",
+    label: "The Academy GA – In-Person",
+  },
+  {
+    value: "academy_ga_virtual",
+    label: "The Academy GA – Virtual",
+  },
+
+  {
+    value: "academy_virtual_full_school",
+    label: "The Academy Virtual – Full-School Program",
+  },
+
+  {
+    value: "academy_virtual_tutoring",
+    label: "The Academy Virtual – Tutoring",
+  },
 ] as const;
 
 export type ProgramValue = (typeof PROGRAMS)[number]["value"];

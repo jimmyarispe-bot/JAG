@@ -1,3 +1,11 @@
+import { ensurePlaidSynced } from "@/lib/exec/ensure-plaid";
+import { ensureQuickBooksSynced } from "@/lib/exec/ensure-quickbooks";
+import { ensureSquareSynced } from "@/lib/exec/ensure-square";
+import { plaidDataMode, resolvePlaidFeed } from "@/lib/exec/plaid-feed";
+import { resolvePlaidCashReconciliation } from "@/lib/exec/plaid-cash-reconciliation";
+import { quickBooksDataMode, resolveQuickBooksFeed } from "@/lib/exec/quickbooks-feed";
+import { squareDataMode, resolveSquareFeed } from "@/lib/exec/square-feed";
+import { resolveSquareQuickBooksReconciliation } from "@/lib/exec/square-quickbooks-reconciliation";
 import { DEFAULT_EXEC_SCOPE, getExecIntelligence } from "@/lib/exec/intelligence";
 import type { ExecRiskCategory, ExecRiskViewModel } from "@/lib/exec/view-models";
 
@@ -5,7 +13,6 @@ const ECC_RISK_CATEGORIES: Array<{
   key: ExecRiskCategory;
   label: string;
   domains: string[];
-  /** LCR category key when present; null = synthetic placeholder until domain soft-read is wired for ECC. */
   lcrKey: string | null;
 }> = [
   { key: "financial", label: "Financial", domains: ["financial", "revenue", "funding"], lcrKey: "financial" },
@@ -20,11 +27,23 @@ const ECC_RISK_CATEGORIES: Array<{
 ];
 
 /**
- * Risk Center — primary portfolio from Legal/Compliance/Risk Intelligence.
- * Economic / political / environmental use labeled synthetic placeholders
- * (those domain builds are heavy; soft-read wiring deferred without changing packages).
+ * Risk Center — LCR portfolio; Plaid cash + QB/Square reconciliations enrich financial pressure.
  */
-export function loadExecRisks(): ExecRiskViewModel {
+export async function loadExecRisks(): Promise<ExecRiskViewModel> {
+  const [sqEnsure, qbEnsure, plaidEnsure] = await Promise.all([
+    ensureSquareSynced(),
+    ensureQuickBooksSynced(),
+    ensurePlaidSynced(),
+  ]);
+  const square = resolveSquareFeed(DEFAULT_EXEC_SCOPE.organizationId);
+  const qb = resolveQuickBooksFeed(DEFAULT_EXEC_SCOPE.organizationId);
+  const plaid = resolvePlaidFeed(DEFAULT_EXEC_SCOPE.organizationId);
+  const sqMode = squareDataMode(square, sqEnsure.freshlySynced);
+  const qbMode = quickBooksDataMode(qb, qbEnsure.freshlySynced);
+  const plaidMode = plaidDataMode(plaid, plaidEnsure.freshlySynced);
+  const recon = resolveSquareQuickBooksReconciliation();
+  const cashRecon = resolvePlaidCashReconciliation();
+
   const intelligence = getExecIntelligence();
   const scope = { ...DEFAULT_EXEC_SCOPE };
   const requestId = `exec-risks-${Date.now()}`;
@@ -42,28 +61,100 @@ export function loadExecRisks(): ExecRiskViewModel {
   const categories = ECC_RISK_CATEGORIES.map((cat) => {
     if (cat.lcrKey && suite.risks[cat.lcrKey as keyof typeof suite.risks]) {
       const records = suite.risks[cat.lcrKey as keyof typeof suite.risks] ?? [];
-      const pressure = suite.byCategory[cat.lcrKey as keyof typeof suite.byCategory] ?? 0;
+      let pressure = suite.byCategory[cat.lcrKey as keyof typeof suite.byCategory] ?? 0;
+      if (cat.key === "financial" && qb) {
+        pressure = Math.max(
+          pressure,
+          Math.min(
+            100,
+            40 + qb.cashFlow.overdueReceivables / 1000 + qb.cashFlow.overduePayables / 800
+          )
+        );
+      }
+      if (cat.key === "financial" && recon.bothConnected) {
+        pressure = Math.max(pressure, recon.riskPressure);
+      }
+      if (cat.key === "financial" && cashRecon.multiSystem) {
+        pressure = Math.max(pressure, cashRecon.riskPressure);
+      }
+      const cashReconItems =
+        cat.key === "financial" && cashRecon.multiSystem
+          ? cashRecon.discrepancies.slice(0, 3).map((d) => ({
+              id: d.id,
+              title: d.title,
+              subtitle: d.detail,
+              score: Math.round(cashRecon.riskPressure),
+              priority:
+                d.severity === "critical"
+                  ? ("critical" as const)
+                  : d.severity === "warning"
+                    ? ("high" as const)
+                    : ("medium" as const),
+            }))
+          : [];
+      const reconItems =
+        cat.key === "financial" && recon.bothConnected
+          ? recon.discrepancies.slice(0, 2).map((d) => ({
+              id: d.id,
+              title: d.title,
+              subtitle: d.detail,
+              score: Math.round(recon.riskPressure),
+              priority:
+                d.severity === "critical"
+                  ? ("critical" as const)
+                  : d.severity === "warning"
+                    ? ("high" as const)
+                    : ("medium" as const),
+            }))
+          : [];
+      const qbItems =
+        cat.key === "financial" &&
+        qb &&
+        qb.cashFlow.overdueReceivables + qb.cashFlow.overduePayables > 0
+          ? [
+              {
+                id: "qb-overdue-ar-ap",
+                title: "QuickBooks overdue AR/AP",
+                subtitle: `AR $${qb.cashFlow.overdueReceivables.toLocaleString()} · AP $${qb.cashFlow.overduePayables.toLocaleString()}`,
+                score: Math.round(pressure),
+                priority:
+                  pressure >= 70 ? ("critical" as const) : pressure >= 50 ? ("high" as const) : ("medium" as const),
+              },
+            ]
+          : [];
       return {
         key: cat.key,
         label: cat.label,
-        domains: cat.domains,
+        domains:
+          cat.key === "financial"
+            ? [
+                ...cat.domains,
+                ...(plaid ? ["plaid"] : []),
+                ...(qb ? ["quickbooks"] : []),
+                ...(square ? ["square"] : []),
+              ]
+            : cat.domains,
         pressure: Math.round(pressure * 10) / 10,
-        items: records.slice(0, 5).map((r) => ({
-          id: r.id,
-          title: r.title,
-          subtitle: r.mitigation,
-          score: Math.round(r.residualScore ?? r.inherentScore),
-          priority:
-            (r.residualScore ?? r.inherentScore) >= 70
-              ? "critical"
-              : (r.residualScore ?? r.inherentScore) >= 50
-                ? "high"
-                : "medium",
-        })),
+        items: [
+          ...cashReconItems,
+          ...reconItems,
+          ...qbItems,
+          ...records.slice(0, 5).map((r) => ({
+            id: r.id,
+            title: r.title,
+            subtitle: r.mitigation,
+            score: Math.round(r.residualScore ?? r.inherentScore),
+            priority:
+              (r.residualScore ?? r.inherentScore) >= 70
+                ? ("critical" as const)
+                : (r.residualScore ?? r.inherentScore) >= 50
+                  ? ("high" as const)
+                  : ("medium" as const),
+          })),
+        ].slice(0, 5),
       };
     }
 
-    // Synthetic category placeholders for ECC taxonomy gaps
     const proxy = wisdom.risks[0];
     return {
       key: cat.key,
@@ -75,7 +166,7 @@ export function loadExecRisks(): ExecRiskViewModel {
           id: `synth-${cat.key}`,
           title: `${cat.label} risk monitoring (sample)`,
           subtitle: `Placeholder until ${cat.domains[0]} connector soft-read is wired for ECC`,
-          priority: "monitor",
+          priority: "monitor" as const,
           score: Math.round(proxy?.score ?? 35),
         },
       ],
@@ -83,6 +174,30 @@ export function loadExecRisks(): ExecRiskViewModel {
   });
 
   const prioritized = [
+    ...cashRecon.discrepancies.map((d) => ({
+      id: d.id,
+      title: d.title,
+      subtitle: `Plaid cash · ${d.kind}`,
+      priority:
+        d.severity === "critical"
+          ? ("critical" as const)
+          : d.severity === "warning"
+            ? ("high" as const)
+            : ("medium" as const),
+      score: Math.round(cashRecon.riskPressure),
+    })),
+    ...recon.discrepancies.map((d) => ({
+      id: d.id,
+      title: d.title,
+      subtitle: `Square↔QB · ${d.kind}`,
+      priority:
+        d.severity === "critical"
+          ? ("critical" as const)
+          : d.severity === "warning"
+            ? ("high" as const)
+            : ("medium" as const),
+      score: Math.round(recon.riskPressure),
+    })),
     ...lcr.risks.slice(0, 8).map((r) => ({
       id: r.id,
       title: r.title,
@@ -103,6 +218,6 @@ export function loadExecRisks(): ExecRiskViewModel {
     generatedAt: lcr.generatedAt,
     categories,
     prioritized,
-    dataMode: "model-baseline",
+    dataMode: plaid ? plaidMode : qb ? qbMode : square ? sqMode : "model-baseline",
   };
 }

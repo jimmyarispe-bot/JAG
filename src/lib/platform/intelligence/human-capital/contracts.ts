@@ -643,6 +643,7 @@ export interface CareerPlanComposer {
 }
 
 /** Repository */
+/** Legacy public name (Sprint 032); domain package is human-capital. */
 export interface WorkforceRepository {
   save(result: HumanCapitalResult): HumanCapitalResult;
   get(requestId: string): HumanCapitalResult | null;

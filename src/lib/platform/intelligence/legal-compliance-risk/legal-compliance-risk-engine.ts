@@ -78,7 +78,7 @@ import {
   type LegalComplianceRiskResult,
 } from "@/lib/platform/intelligence/legal-compliance-risk/types";
 
-export interface LegalComplianceRiskEngineDependencies extends LegalComplianceRiskDependencies {}
+export type LegalComplianceRiskEngineDependencies = LegalComplianceRiskDependencies;
 
 export class LegalComplianceRiskIntelligenceEngineImpl implements LegalComplianceRiskEngineContract {
   private readonly contractIntelligence: ContractIntelligenceContract;

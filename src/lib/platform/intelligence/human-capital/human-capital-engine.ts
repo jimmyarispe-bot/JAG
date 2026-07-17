@@ -165,7 +165,7 @@ import {
   type HumanCapitalResult,
 } from "@/lib/platform/intelligence/human-capital/types";
 
-export interface HumanCapitalEngineDependencies extends HumanCapitalDependencies {}
+export type HumanCapitalEngineDependencies = HumanCapitalDependencies;
 
 /**
  * HumanCapitalEngine — core orchestrator for human capital outputs.
