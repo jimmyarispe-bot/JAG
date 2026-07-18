@@ -1,4 +1,4 @@
-import { ConfigStudioShell } from "@/components/configuration/ConfigStudioNav";
+import { ConfigStudioShell } from "@/components/configuration/ConfigStudioShell";
 import { ConfigSectionForm } from "@/components/configuration/ConfigSectionForm";
 import { OrganizationHierarchyPanel } from "@/components/platform/admin/OrganizationHierarchyPanel";
 import { getOrganizationHierarchy } from "@/lib/platform/identity/org";

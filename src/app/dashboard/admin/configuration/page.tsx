@@ -1,4 +1,4 @@
-import { ConfigStudioShell } from "@/components/configuration/ConfigStudioNav";
+import { ConfigStudioShell } from "@/components/configuration/ConfigStudioShell";
 import { ConfigStudioHub } from "@/components/configuration/ConfigStudioHub";
 import { requirePagePermission } from "@/lib/platform/identity/page-guard";
 import Link from "next/link";

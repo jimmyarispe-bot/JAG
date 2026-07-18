@@ -17,6 +17,7 @@ export function canManageConfiguration(ctx: IdentityContext) {
     "configuration.manage",
     "configuration.admin",
     "school.configure",
+    "SYSTEM_ADMIN_ACCESS",
   ]);
 }
 

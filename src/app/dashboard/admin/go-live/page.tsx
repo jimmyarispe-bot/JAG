@@ -1,4 +1,4 @@
-import { ConfigStudioShell } from "@/components/configuration/ConfigStudioNav";
+import { ConfigStudioShell } from "@/components/configuration/ConfigStudioShell";
 import { GoLivePanel } from "@/components/configuration/GoLivePanel";
 import { loadConfigPage } from "@/lib/configuration/page-data";
 import { getGoLiveSummary } from "@/lib/configuration/go-live";

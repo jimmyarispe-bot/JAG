@@ -1,4 +1,4 @@
-import { ConfigStudioShell } from "@/components/configuration/ConfigStudioNav";
+import { ConfigStudioShell } from "@/components/configuration/ConfigStudioShell";
 import { ModuleMarketplacePanel } from "@/components/configuration/ModuleMarketplacePanel";
 import { loadConfigPage } from "@/lib/configuration/page-data";
 import { getModuleMarketplace } from "@/lib/configuration/modules";

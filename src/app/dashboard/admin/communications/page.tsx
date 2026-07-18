@@ -1,4 +1,4 @@
-import { ConfigStudioShell } from "@/components/configuration/ConfigStudioNav";
+import { ConfigStudioShell } from "@/components/configuration/ConfigStudioShell";
 import { ConfigSectionForm, ConfigJsonPreview } from "@/components/configuration/ConfigSectionForm";
 import { loadConfigPage } from "@/lib/configuration/page-data";
 

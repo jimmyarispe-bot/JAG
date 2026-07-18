@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { canManageConfiguration, canLaunchOrganization } from "@/lib/configuration/access";
@@ -13,6 +13,11 @@ import type { SetupStepKey } from "@/lib/configuration/types";
 import { launchOrganization } from "@/lib/configuration/go-live";
 import { importConfigurationPackage, parseConfigurationJson } from "@/lib/configuration/import-export";
 import { rollbackConfigVersion } from "@/lib/configuration/versioning";
+
+export type SaveConfigFieldsState = {
+  ok: boolean;
+  message: string;
+};
 
 async function resolveOrg(formOrgId?: string | null) {
   const ctx = await getIdentityContext();
@@ -48,27 +53,47 @@ export async function saveConfigSectionAction(formData: FormData): Promise<void>
   revalidatePath("/dashboard/admin/configuration");
 }
 
-export async function saveConfigFieldsAction(formData: FormData): Promise<void> {
-  const { ctx, supabase, orgId } = await resolveOrg(formData.get("organization_id")?.toString());
-  if (!canManageConfiguration(ctx)) return;
+export async function saveConfigFieldsAction(
+  formData: FormData
+): Promise<SaveConfigFieldsState> {
+  try {
+    const { ctx, supabase, orgId } = await resolveOrg(formData.get("organization_id")?.toString());
+    if (!canManageConfiguration(ctx)) {
+      return { ok: false, message: "You do not have permission to save configuration." };
+    }
 
-  const sectionKey = formData.get("section_key")?.toString() as ConfigSectionKey;
-  const { getConfigSection } = await import("@/lib/configuration/sections");
-  const existing = await getConfigSection(supabase, orgId, sectionKey);
+    const sectionKey = formData.get("section_key")?.toString() as ConfigSectionKey;
+    if (!sectionKey) {
+      return { ok: false, message: "Missing configuration section." };
+    }
 
-  const configData: Record<string, unknown> = { ...existing };
-  for (const [key, value] of formData.entries()) {
-    if (key.startsWith("field_")) configData[key.replace("field_", "")] = value;
+    const { getConfigSection } = await import("@/lib/configuration/sections");
+    const existing = await getConfigSection(supabase, orgId, sectionKey);
+
+    const configData: Record<string, unknown> = { ...existing };
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith("field_")) configData[key.replace("field_", "")] = value.toString();
+    }
+
+    const result = await saveConfigSection(supabase, {
+      organizationId: orgId,
+      sectionKey,
+      configData,
+      userId: ctx.effectiveUserId,
+    });
+
+    if ("error" in result && result.error) {
+      return { ok: false, message: result.error };
+    }
+
+    revalidatePath("/dashboard/admin", "layout");
+    refresh();
+
+    return { ok: true, message: "Configuration saved." };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to save configuration.";
+    return { ok: false, message };
   }
-
-  await saveConfigSection(supabase, {
-    organizationId: orgId,
-    sectionKey,
-    configData,
-    userId: ctx.effectiveUserId,
-  });
-
-  revalidatePath("/dashboard/admin");
 }
 
 export async function toggleModuleAction(formData: FormData): Promise<void> {

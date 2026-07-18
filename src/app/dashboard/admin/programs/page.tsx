@@ -1,4 +1,4 @@
-import { ConfigStudioShell } from "@/components/configuration/ConfigStudioNav";
+import { ConfigStudioShell } from "@/components/configuration/ConfigStudioShell";
 import { loadConfigPage } from "@/lib/configuration/page-data";
 import { getOrganizationHierarchy } from "@/lib/platform/identity/org";
 import Link from "next/link";

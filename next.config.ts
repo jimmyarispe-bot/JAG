@@ -31,23 +31,17 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  // Next 16 blocks cross-origin dev assets; 127.0.0.1 vs localhost breaks
+  // HMR/hydration so client forms never attach submit handlers.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   images: {
     formats: ["image/avif", "image/webp"],
   },
   async headers() {
-    return [
+    const headers = [
       {
         source: "/:path*",
         headers: securityHeaders,
-      },
-      {
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
       },
       {
         source: "/:path*.(ico|png|jpg|jpeg|gif|webp|avif|svg|woff|woff2)",
@@ -59,6 +53,23 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+
+    // Never pin /_next/static as immutable in development — it leaves the
+    // browser on stale client chunks, so form actions hydrate incorrectly and
+    // submits can be swallowed with zero network requests.
+    if (process.env.NODE_ENV === "production") {
+      headers.splice(1, 0, {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      });
+    }
+
+    return headers;
   },
 };
 
