@@ -7,8 +7,11 @@ import { requirePagePermission } from "@/lib/platform/identity/page-guard";
 
 export default async function OrganizationAdminPage() {
   await requirePagePermission("org.view");
-  const hierarchy = await getOrganizationHierarchy();
-  const { organizationId, config } = await loadConfigPage("organization");
+
+  const [{ organizationId, config }, hierarchy] = await Promise.all([
+    loadConfigPage("organization"),
+    getOrganizationHierarchy(),
+  ]);
 
   return (
     <ConfigStudioShell title="Organization" subtitle="Legal profile, mission, vision, and hierarchy">

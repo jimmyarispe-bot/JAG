@@ -428,6 +428,8 @@ export const ROLE_PERMISSION_GROUPS = {
   HR: ["ACADEMYOS_ACCESS", "HR_ACCESS", "PAYROLL_ACCESS"],
   ADMISSIONS: ["ACADEMYOS_ACCESS", "ADMISSIONS_ACCESS"],
   BOARD_MEMBER: ["ACADEMYOS_ACCESS", "REPORTING_ACCESS"],
+  /** Default role for newly provisioned authenticated users. */
+  TEAM_MEMBER: ["ACADEMYOS_ACCESS"],
 } as const satisfies Partial<Record<EduRoleName, readonly PermissionGroupId[]>> &
   Record<OfficialPlatformRole, readonly PermissionGroupId[]>;
 

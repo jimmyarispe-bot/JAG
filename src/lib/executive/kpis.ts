@@ -3,7 +3,13 @@
  * Returns zeros (not placeholders) when data is unavailable.
  */
 import { ACTIVE_PIPELINE_LEGACY_STAGES } from "@/lib/admissions/registry";
-import { getIdentityContext } from "@/lib/platform/identity/context";
+import {
+  applySchoolFilter,
+  hasNoSchoolAccess,
+  matchesSchool,
+  resolveDashboardSchoolScope,
+  type SchoolScope,
+} from "@/lib/dashboard/school-scope";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -131,47 +137,31 @@ function todayRange(): { start: string; end: string } {
   return { start: `${t}T00:00:00`, end: `${t}T23:59:59` };
 }
 
-function matchesSchool(
-  schoolIds: string[] | null,
-  recordSchoolId: string | null | undefined
-): boolean {
-  if (!schoolIds || schoolIds.length === 0) return true;
-  if (!recordSchoolId) return false;
-  return schoolIds.includes(recordSchoolId);
-}
-
-function applySchoolFilter<T extends { eq: (col: string, val: string) => T; in: (col: string, vals: string[]) => T }>(
-  query: T,
-  column: string,
-  schoolIds: string[] | null
-): T {
-  if (!schoolIds || schoolIds.length === 0) return query;
-  if (schoolIds.length === 1) return query.eq(column, schoolIds[0]);
-  return query.in(column, schoolIds);
-}
-
 async function resolveSchoolScope(
+  supabase: AuthClient,
   options: GetExecutiveKPIsOptions
-): Promise<string[] | null> {
-  if (options.schoolIds !== undefined) {
-    return options.schoolIds.length ? options.schoolIds : null;
+): Promise<SchoolScope> {
+  return resolveDashboardSchoolScope(supabase, { schoolIds: options.schoolIds });
+}
+
+/** Active course-section enrollments (matches Founder "Active Enrollment" card). */
+async function countActiveEnrollments(
+  supabase: AuthClient,
+  schoolIds: SchoolScope
+): Promise<number> {
+  if (hasNoSchoolAccess(schoolIds)) return 0;
+
+  let query = supabase
+    .from("student_enrollments")
+    .select("id, students!inner(school_id)", { count: "exact", head: true })
+    .eq("enrollment_status", "enrolled");
+
+  if (schoolIds?.length === 1) {
+    query = query.eq("students.school_id", schoolIds[0]);
+  } else if (schoolIds && schoolIds.length > 1) {
+    query = query.in("students.school_id", schoolIds);
   }
 
-  const identity = await getIdentityContext();
-  if (!identity) return null;
-  if (identity.hasUnrestrictedSchoolAccess) return null;
-  return identity.accessibleSchoolIds.length ? identity.accessibleSchoolIds : null;
-}
-
-async function countActiveStudents(
-  supabase: AuthClient,
-  schoolIds: string[] | null
-): Promise<number> {
-  let query = supabase
-    .from("students")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "active");
-  query = applySchoolFilter(query, "school_id", schoolIds);
   const { count, error } = await query;
   if (error) return 0;
   return count ?? 0;
@@ -179,8 +169,10 @@ async function countActiveStudents(
 
 async function loadAdmissionsPipeline(
   supabase: AuthClient,
-  schoolIds: string[] | null
+  schoolIds: SchoolScope
 ): Promise<{ total: number; byStage: AdmissionsStageCount[] }> {
+  if (hasNoSchoolAccess(schoolIds)) return { total: 0, byStage: [] };
+
   let query = supabase
     .from("admissions_leads")
     .select("lead_stage, school_id")
@@ -205,8 +197,10 @@ async function loadAdmissionsPipeline(
 
 async function sumMonthlyRevenue(
   supabase: AuthClient,
-  schoolIds: string[] | null
+  schoolIds: SchoolScope
 ): Promise<number> {
+  if (hasNoSchoolAccess(schoolIds)) return 0;
+
   const { data, error } = await supabase
     .from("payments")
     .select("amount, paid_at, invoices(family_billing_accounts(school_id))")
@@ -216,7 +210,7 @@ async function sumMonthlyRevenue(
 
   return data
     .filter((payment) => {
-      if (!schoolIds || schoolIds.length === 0) return true;
+      if (!schoolIds) return true;
       const invoice = Array.isArray(payment.invoices) ? payment.invoices[0] : payment.invoices;
       const account = Array.isArray(invoice?.family_billing_accounts)
         ? invoice?.family_billing_accounts[0]
@@ -228,8 +222,10 @@ async function sumMonthlyRevenue(
 
 async function sumOutstandingTuition(
   supabase: AuthClient,
-  schoolIds: string[] | null
+  schoolIds: SchoolScope
 ): Promise<number> {
+  if (hasNoSchoolAccess(schoolIds)) return 0;
+
   const { data, error } = await supabase
     .from("invoices")
     .select("total_amount, amount_paid, invoice_status, family_billing_accounts(school_id)");
@@ -239,7 +235,7 @@ async function sumOutstandingTuition(
   return data
     .filter((inv) => {
       if (["paid", "void"].includes(inv.invoice_status)) return false;
-      if (!schoolIds || schoolIds.length === 0) return true;
+      if (!schoolIds) return true;
       const account = Array.isArray(inv.family_billing_accounts)
         ? inv.family_billing_accounts[0]
         : inv.family_billing_accounts;
@@ -253,8 +249,10 @@ async function sumOutstandingTuition(
 
 async function countActiveStaff(
   supabase: AuthClient,
-  schoolIds: string[] | null
+  schoolIds: SchoolScope
 ): Promise<number> {
+  if (hasNoSchoolAccess(schoolIds)) return 0;
+
   let query = supabase
     .from("employees")
     .select("*", { count: "exact", head: true })
@@ -267,8 +265,10 @@ async function countActiveStaff(
 
 async function loadTodaySessions(
   supabase: AuthClient,
-  schoolIds: string[] | null
+  schoolIds: SchoolScope
 ): Promise<{ id: string }[]> {
+  if (hasNoSchoolAccess(schoolIds)) return [];
+
   const { start, end } = todayRange();
   const { data } = await supabase
     .from("instructional_sessions")
@@ -279,7 +279,7 @@ async function loadTodaySessions(
 
   return (data ?? [])
     .filter((session) => {
-      if (!schoolIds || schoolIds.length === 0) return true;
+      if (!schoolIds) return true;
       const section = Array.isArray(session.course_sections)
         ? session.course_sections[0]
         : session.course_sections;
@@ -291,7 +291,7 @@ async function loadTodaySessions(
 
 async function loadTeacherAttendance(
   supabase: AuthClient,
-  schoolIds: string[] | null,
+  schoolIds: SchoolScope,
   todaySessions?: { id: string }[]
 ): Promise<TeacherAttendanceKpi> {
   const sessions = todaySessions ?? (await loadTodaySessions(supabase, schoolIds));
@@ -316,9 +316,19 @@ async function loadTeacherAttendance(
 
 async function loadStudentAttendance(
   supabase: AuthClient,
-  schoolIds: string[] | null,
+  schoolIds: SchoolScope,
   unsubmittedClassrooms: number
 ): Promise<StudentAttendanceKpi> {
+  if (hasNoSchoolAccess(schoolIds)) {
+    return {
+      rate: 0,
+      absentCount: 0,
+      unsubmittedClassrooms,
+      present: 0,
+      total: 0,
+    };
+  }
+
   const date = todayIso();
   const { data } = await supabase
     .from("student_attendance_records")
@@ -326,7 +336,7 @@ async function loadStudentAttendance(
     .eq("attendance_date", date);
 
   const records = (data ?? []).filter((record) => {
-    if (!schoolIds || schoolIds.length === 0) return true;
+    if (!schoolIds) return true;
     const student = Array.isArray(record.students) ? record.students[0] : record.students;
     return matchesSchool(schoolIds, (student as { school_id?: string } | null)?.school_id);
   });
@@ -350,9 +360,11 @@ async function loadStudentAttendance(
 
 async function loadUpcomingClasses(
   supabase: AuthClient,
-  schoolIds: string[] | null,
+  schoolIds: SchoolScope,
   limit = 5
 ): Promise<ExecutiveUpcomingClass[]> {
+  if (hasNoSchoolAccess(schoolIds)) return [];
+
   const { data } = await supabase
     .from("instructional_sessions")
     .select(
@@ -365,7 +377,7 @@ async function loadUpcomingClasses(
 
   return (data ?? [])
     .filter((session) => {
-      if (!schoolIds || schoolIds.length === 0) return true;
+      if (!schoolIds) return true;
       const section = Array.isArray(session.course_sections)
         ? session.course_sections[0]
         : session.course_sections;
@@ -390,8 +402,10 @@ async function loadUpcomingClasses(
 
 async function countOverduePayroll(
   supabase: AuthClient,
-  schoolIds: string[] | null
+  schoolIds: SchoolScope
 ): Promise<number> {
+  if (hasNoSchoolAccess(schoolIds)) return 0;
+
   let query = supabase
     .from("payroll_records")
     .select("*", { count: "exact", head: true })
@@ -405,8 +419,10 @@ async function countOverduePayroll(
 
 async function countOverdueInvoices(
   supabase: AuthClient,
-  schoolIds: string[] | null
+  schoolIds: SchoolScope
 ): Promise<number> {
+  if (hasNoSchoolAccess(schoolIds)) return 0;
+
   const today = todayIso();
   const { data, error } = await supabase
     .from("invoices")
@@ -416,7 +432,7 @@ async function countOverdueInvoices(
 
   return data.filter((inv) => {
     if (["paid", "void"].includes(inv.invoice_status)) return false;
-    if (schoolIds && schoolIds.length > 0) {
+    if (schoolIds) {
       const account = Array.isArray(inv.family_billing_accounts)
         ? inv.family_billing_accounts[0]
         : inv.family_billing_accounts;
@@ -430,8 +446,10 @@ async function countOverdueInvoices(
 
 async function countOpenVacancies(
   supabase: AuthClient,
-  schoolIds: string[] | null
+  schoolIds: SchoolScope
 ): Promise<number> {
+  if (hasNoSchoolAccess(schoolIds)) return 0;
+
   let query = supabase
     .from("hr_job_postings")
     .select("*", { count: "exact", head: true })
@@ -593,7 +611,7 @@ export async function getExecutiveKPIs(
 ): Promise<ExecutiveKPIs> {
   try {
     const supabase = options.supabase ?? (await createAuthClient());
-    const schoolIds = await resolveSchoolScope(options);
+    const schoolIds = await resolveSchoolScope(supabase, options);
 
     const todaySessions = await loadTodaySessions(supabase, schoolIds).catch(() => []);
 
@@ -611,7 +629,7 @@ export async function getExecutiveKPIs(
       failedIntegrations,
       thresholds,
     ] = await Promise.all([
-      countActiveStudents(supabase, schoolIds).catch(() => 0),
+      countActiveEnrollments(supabase, schoolIds).catch(() => 0),
       loadAdmissionsPipeline(supabase, schoolIds).catch(() => ({
         total: 0,
         byStage: [] as AdmissionsStageCount[],

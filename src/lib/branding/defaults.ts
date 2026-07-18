@@ -30,6 +30,7 @@ export const FALLBACK_ROLE_LABELS: Record<string, string> = {
   PARENT: "Parent",
   STUDENT: "Student",
   EMPLOYEE: "Employee",
+  TEAM_MEMBER: "Team Member",
   BOARD_MEMBER: "Board Member",
 };
 

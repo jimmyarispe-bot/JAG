@@ -3,6 +3,7 @@
  * Enables future multi-tenant isolation between organizations.
  */
 
+import { cache } from "react";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import type { Json } from "@/types/database";
 import {
@@ -126,39 +127,46 @@ export async function userBelongsToOrganization(
   return Boolean(data);
 }
 
-export async function resolvePrimaryOrganizationId(
-  userId?: string | null,
-  supabase?: AuthClient
-): Promise<string | null> {
-  const client = supabase ?? (await createAuthClient());
+/** Per-request dedupe — branding, config, and hierarchy all resolve the primary org. */
+const resolvePrimaryOrganizationIdCached = cache(
+  async (userId: string | null): Promise<string | null> => {
+    const client = await createAuthClient();
 
-  if (userId) {
-    const membership = await getPrimaryOrganizationMembership(userId, client);
-    if (membership?.organizationId) return membership.organizationId;
+    if (userId) {
+      const membership = await getPrimaryOrganizationMembership(userId, client);
+      if (membership?.organizationId) return membership.organizationId;
 
-    const { data: owned } = await client
+      const { data: owned } = await client
+        .from("org_organizations")
+        .select("id")
+        .eq("owner_user_id", userId)
+        .eq("status", "active")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (owned?.id) return owned.id;
+    }
+
+    const { data: seed } = await client
       .from("org_organizations")
       .select("id")
-      .eq("owner_user_id", userId)
-      .eq("status", "active")
+      .eq("slug", "the-academy-way")
+      .maybeSingle();
+    if (seed?.id) return seed.id;
+
+    const { data: first } = await client
+      .from("org_organizations")
+      .select("id")
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    if (owned?.id) return owned.id;
+    return first?.id ?? null;
   }
+);
 
-  const { data: seed } = await client
-    .from("org_organizations")
-    .select("id")
-    .eq("slug", "the-academy-way")
-    .maybeSingle();
-  if (seed?.id) return seed.id;
-
-  const { data: first } = await client
-    .from("org_organizations")
-    .select("id")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  return first?.id ?? null;
+export async function resolvePrimaryOrganizationId(
+  userId?: string | null,
+  _supabase?: AuthClient
+): Promise<string | null> {
+  return resolvePrimaryOrganizationIdCached(userId ?? null);
 }

@@ -8,6 +8,11 @@ import {
   buildAuthzSnapshot,
   hasPermission,
 } from "@/lib/platform/identity/authorization-service";
+import {
+  ensureCurrentAuthUserProvisioned,
+  loadAuthProvisionState,
+  needsAuthUserProvisioning,
+} from "@/lib/platform/identity/provision-auth-user";
 
 export interface SessionUser {
   id: string;
@@ -39,6 +44,12 @@ export const getAuthUser = cache(async (): Promise<{
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const { supabase, user } = await getAuthUser();
   if (!user) return null;
+
+  // Heal incomplete provisioning (pre-175 users / missed trigger side-effects)
+  const provisionState = await loadAuthProvisionState(supabase, user.id);
+  if (needsAuthUserProvisioning(provisionState)) {
+    await ensureCurrentAuthUserProvisioned(supabase);
+  }
 
   const [{ data: profile }, { data: userRoleRows }, branding] = await Promise.all([
     supabase.from("users").select("full_name, email").eq("id", user.id).maybeSingle(),

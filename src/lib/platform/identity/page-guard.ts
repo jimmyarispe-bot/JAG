@@ -166,7 +166,7 @@ export async function requireAuthorizedRoute(pathname?: string, search: string =
 
   // B.1 — MFA step-up / enrollment gate for privileged sessions
   const supabase = await createAuthClient();
-  await enforcePrivilegedMfa(supabase, ctx);
+  await enforcePrivilegedMfa(supabase, ctx, path);
 
   return ctx;
 }

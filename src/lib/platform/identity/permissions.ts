@@ -130,39 +130,34 @@ export async function requirePermission(
   return { ok: true };
 }
 
+/**
+ * Load the effective permission set for a user.
+ *
+ * IMPORTANT: Must stay O(1) round-trips. Never call has_permission / userHasPermission
+ * once per catalog key — that caused Vercel 504 FUNCTION_INVOCATION_TIMEOUT on every
+ * dashboard navigation (≈160 keys × 2 role queries each).
+ */
 export async function loadUserPermissions(
   supabase: AuthClient,
   userId: string,
-  authUserId?: string | null
+  _authUserId?: string | null
 ): Promise<Set<string>> {
-  const resolvedAuthUserId =
-    authUserId === undefined ? (await supabase.auth.getUser()).data.user?.id : authUserId;
   const roles = await loadUserRoleNames(supabase, userId);
 
   // Always start from role→permission mapping (no role-name superuser bypass).
   const mapped = permissionsForMappedRoles(roles);
   const granted = new Set<string>(mapped);
 
-  if (userId === resolvedAuthUserId) {
-    const { data: all, error } = await supabase.from("platform_permissions").select("permission_key");
-    if (error && isMissingPermissionInfraError(error.message)) {
-      return collectRoleFallbackPermissions(roles);
-    }
-    const keys = all?.map((p) => p.permission_key) ?? [];
-    const allowed = await Promise.all(
-      keys.map(async (key) =>
-        (await userHasPermission(supabase, key as PermissionKey, userId, resolvedAuthUserId))
-          ? key
-          : null
-      )
-    );
-    for (const key of allowed) {
-      if (key) granted.add(key);
-    }
-    return granted;
+  let roleIds = await loadExpandedRoleIds(supabase, userId);
+  if (!roleIds.length) {
+    // user_role_ids RPC missing / empty — fall back to direct assignment ids
+    const { data: userRoles } = await supabase
+      .from("user_roles")
+      .select("role_id")
+      .eq("user_id", userId);
+    roleIds = userRoles?.map((r) => r.role_id) ?? [];
   }
 
-  const roleIds = await loadExpandedRoleIds(supabase, userId);
   if (!roleIds.length) {
     return collectRoleFallbackPermissions(roles);
   }
@@ -176,7 +171,9 @@ export async function loadUserPermissions(
     return collectRoleFallbackPermissions(roles);
   }
 
-  const denied = new Set(perms?.filter((p) => p.effect === "deny").map((p) => p.permission_key));
+  const denied = new Set(
+    perms?.filter((p) => p.effect === "deny").map((p) => p.permission_key) ?? []
+  );
   for (const p of perms ?? []) {
     if (p.effect === "allow" && !denied.has(p.permission_key)) {
       granted.add(p.permission_key);

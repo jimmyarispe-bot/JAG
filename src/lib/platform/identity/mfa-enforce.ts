@@ -25,9 +25,18 @@ function shouldHardEnforce(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
+function mfaRequiredRedirect(nextPath?: string): never {
+  const dest =
+    nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
+      ? nextPath
+      : "/dashboard";
+  redirect(`/login/mfa-required?next=${encodeURIComponent(dest)}`);
+}
+
 export async function enforcePrivilegedMfa(
   supabase: AuthClient,
-  ctx: IdentityContext
+  ctx: IdentityContext,
+  nextPath?: string
 ): Promise<void> {
   const snapshot = toAuthzSnapshot(ctx);
   const privileged = hasAnyPermission(snapshot, [...MFA_REQUIRED_PERMISSIONS]);
@@ -53,11 +62,11 @@ export async function enforcePrivilegedMfa(
 
   // Enrolled but not stepped up — always block privileged surfaces
   if (hasFactor || settings?.mfa_required) {
-    redirect("/login/mfa-required");
+    mfaRequiredRedirect(nextPath);
   }
 
   // Privileged without enrollment — hard enforce when configured
   if (required && shouldHardEnforce()) {
-    redirect("/login/mfa-required");
+    mfaRequiredRedirect(nextPath);
   }
 }

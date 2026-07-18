@@ -99,6 +99,13 @@ export {
   type OrgMembership,
 } from "@/lib/platform/identity/org-membership";
 
+export {
+  needsAuthUserProvisioning,
+  ensureCurrentAuthUserProvisioned,
+  loadAuthProvisionState,
+  type AuthProvisionState,
+} from "@/lib/platform/identity/provision-auth-user";
+
 /** Platform IAM foundation (delegation, break glass, generic authz engine). */
 export {
   createIamPlatform,

@@ -22,6 +22,7 @@ export type EduRoleName =
   | "THERAPIST"
   | "SUPPORT_STAFF"
   | "EMPLOYEE"
+  | "TEAM_MEMBER"
   | "PARENT"
   | "STUDENT"
   | "BOARD_MEMBER"
@@ -25930,6 +25931,16 @@ export type Database = {
       }
       has_permission: { Args: { permission_key: string }; Returns: boolean }
       has_role: { Args: { role_name: string }; Returns: boolean }
+      provision_auth_user: {
+        Args: {
+          p_user_id: string
+          p_email?: string | null
+          p_full_name?: string | null
+          p_meta?: Json | null
+        }
+        Returns: undefined
+      }
+      provision_current_auth_user: { Args: never; Returns: undefined }
       instruction_student_policy: {
         Args: { check_permission?: string; check_student_id: string }
         Returns: boolean

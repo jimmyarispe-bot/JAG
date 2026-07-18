@@ -69,7 +69,7 @@ export function generateFounderMorningBrief(
   // --- Enrollment ---
   if (kpis.enrollment === 0) {
     priority = maxPriority(priority, "RED");
-    summaryParts.push("Enrollment is at zero — no active students are recorded.");
+    summaryParts.push("Enrollment is at zero — no active course enrollments are recorded.");
     alerts.push("Enrollment is 0.");
     actions.push("Review enrollment and admissions pipeline.");
   } else {
