@@ -18,7 +18,7 @@ export const GENERIC_BRANDING_DEFAULTS = {
 export const FALLBACK_ROLE_LABELS: Record<string, string> = {
   CEO: "Chief Executive Officer",
   FOUNDER: "Founder",
-  EXECUTIVE_DIRECTOR: "Executive Director",
+  EXECUTIVE_DIRECTOR: "Executive Director of Schools",
   REGIONAL_DIRECTOR: "Regional Director",
   SCHOOL_LEADER: "School Leader",
   ADMINISTRATOR: "Administrator",

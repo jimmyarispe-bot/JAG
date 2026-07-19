@@ -6,38 +6,98 @@ import {
   getRecentSecurityEvents,
   getSecurityDashboardStats,
 } from "@/lib/platform/identity/security";
+import {
+  formatUserManagementStatus,
+  type UserManagementStatus,
+} from "@/lib/platform/identity/user-management-catalog";
 
-export async function getAdminUsersDirectory() {
+export type AdminDirectoryUser = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  created_at: string | null;
+  roles: string[];
+  roleKeys: string[];
+  schools: string[];
+  schoolIds: string[];
+  department: string | null;
+  status: UserManagementStatus;
+  statusLabel: string;
+  lastLogin: string | null;
+  phone: string | null;
+};
+
+export async function getAdminUsersDirectory(): Promise<AdminDirectoryUser[]> {
   const supabase = await createAuthClient();
   const { data: users } = await supabase
     .from("users")
     .select("id, email, full_name, created_at")
     .order("full_name");
 
-  const { data: userRoles } = await supabase.from("user_roles").select("user_id, role_id, roles(name, display_name)");
+  const { data: userRoles } = await supabase
+    .from("user_roles")
+    .select("user_id, role_id, roles(name, display_name)");
   const { data: assignments } = await supabase
     .from("user_org_assignments")
     .select("user_id, school_id, all_campuses, all_programs, schools(name)");
+  const { data: memberships } = await supabase
+    .from("user_organization_memberships")
+    .select("user_id, status, invited_at");
 
-  return (users ?? []).map((user) => ({
-    ...user,
-    roles:
-      userRoles
-        ?.filter((ur) => ur.user_id === user.id)
-        .map((ur) => {
-          const role = Array.isArray(ur.roles) ? ur.roles[0] : ur.roles;
-          return (role as { display_name?: string | null; name?: string } | null)?.display_name ?? role?.name;
-        })
-        .filter((name): name is string => Boolean(name)) ?? [],
-    schools:
-      assignments
-        ?.filter((a) => a.user_id === user.id)
-        .map((a) => {
-          const school = Array.isArray(a.schools) ? a.schools[0] : a.schools;
-          return (school as { name?: string } | null)?.name;
-        })
-        .filter((name): name is string => Boolean(name)) ?? [],
-  }));
+  return (users ?? []).map((user) => {
+    const roleRows =
+      userRoles?.filter((ur) => ur.user_id === user.id) ?? [];
+    const roles = roleRows
+      .map((ur) => {
+        const role = Array.isArray(ur.roles) ? ur.roles[0] : ur.roles;
+        return (
+          (role as { display_name?: string | null; name?: string } | null)
+            ?.display_name ?? role?.name
+        );
+      })
+      .filter((name): name is string => Boolean(name));
+    const roleKeys = roleRows
+      .map((ur) => {
+        const role = Array.isArray(ur.roles) ? ur.roles[0] : ur.roles;
+        return (role as { name?: string } | null)?.name;
+      })
+      .filter((name): name is string => Boolean(name));
+
+    const schoolRows =
+      assignments?.filter((a) => a.user_id === user.id) ?? [];
+    const schools = schoolRows
+      .map((a) => {
+        const school = Array.isArray(a.schools) ? a.schools[0] : a.schools;
+        return (school as { name?: string } | null)?.name;
+      })
+      .filter((name): name is string => Boolean(name));
+    const schoolIds = schoolRows
+      .map((a) => a.school_id)
+      .filter((id): id is string => Boolean(id));
+
+    const membership = memberships?.find((m) => m.user_id === user.id);
+    let status: UserManagementStatus = "active";
+    if (membership?.status === "invited") status = "pending_invite";
+    else if (
+      membership?.status === "suspended" ||
+      membership?.status === "deactivated"
+    ) {
+      status = "inactive";
+    }
+
+    return {
+      ...user,
+      roles,
+      roleKeys,
+      schools,
+      schoolIds,
+      department: null,
+      status,
+      statusLabel: formatUserManagementStatus(status),
+      lastLogin: null,
+      phone: null,
+    };
+  });
 }
 
 export async function getRolesWithPermissions() {
