@@ -112,11 +112,11 @@ Creating a user also requires:
 
 ## Required fix
 
-1. **Commit** the P1.03 Users & Access files on `release/v1.0.0-rc1` (or the branch Vercel deploys).
-2. **Push** to origin so Vercel builds the new tree.
-3. **Apply** migration `182` on the target Supabase project.
-4. Confirm Vercel env has `SUPABASE_SERVICE_ROLE_KEY`.
-5. Hard-refresh `/dashboard/admin/users` and create the first employee via **+ Add User**.
+1. ~~**Commit** the P1.03 Users & Access files on `release/v1.0.0-rc1`.~~ **Done** — `2c303fd`
+2. ~~**Push** to origin so Vercel builds the new tree.~~ **Done** — `origin/release/v1.0.0-rc1`
+3. **Apply** migration `182` on the target Supabase project *(ops — still required)*.
+4. Confirm Vercel env has `SUPABASE_SERVICE_ROLE_KEY` *(ops — still required)*.
+5. Wait for Vercel deploy, hard-refresh `/dashboard/admin/users`, create the first employee via **+ Add User**.
 
 Do **not** create a second users page — repair is deploy of the existing route.
 
