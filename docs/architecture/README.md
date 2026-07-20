@@ -7,7 +7,9 @@
 | **Current assessment** | [phase-a/](./phase-a/) — Release Phase A package |
 | **Intelligence product claims** | [phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md](./phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md) |
 | **Module ID authority** | `INTELLIGENCE_MODULE_IDS` in `src/lib/platform/intelligence/infrastructure/types.ts` |
-| **Migration authority** | `supabase/migrations/` (head through **173**) |
+| **Migration authority** | `supabase/migrations/` (head through **183**) |
+| **RC product packages** | [../platform/rc-packages.md](../platform/rc-packages.md) |
+| **RC-6 audits / releases** | [../releases/](../releases/) |
 
 ---
 

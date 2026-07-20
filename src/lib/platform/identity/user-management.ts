@@ -66,6 +66,13 @@ async function resolveRoleId(
   return data?.id ?? null;
 }
 
+async function assertNoError(
+  step: string,
+  error: { message: string } | null
+): Promise<void> {
+  if (error) throw new Error(`${step}: ${error.message}`);
+}
+
 async function attachMembershipAndScope(
   admin: ReturnType<typeof createServiceRoleClient>,
   input: {
@@ -84,7 +91,7 @@ async function attachMembershipAndScope(
     throw new Error(`Role ${input.role} is not seeded in the database`);
   }
 
-  await admin.from("users").upsert(
+  const profile = await admin.from("users").upsert(
     {
       id: input.userId,
       email: input.email,
@@ -92,11 +99,13 @@ async function attachMembershipAndScope(
     },
     { onConflict: "id" }
   );
+  await assertNoError("public.users profile", profile.error);
 
-  await admin.from("user_roles").upsert(
+  const roleRow = await admin.from("user_roles").upsert(
     { user_id: input.userId, role_id: roleId },
     { onConflict: "user_id,role_id" }
   );
+  await assertNoError("user_roles assignment", roleRow.error);
 
   const membershipStatus =
     input.status === "pending_invite"
@@ -105,7 +114,7 @@ async function attachMembershipAndScope(
         ? "suspended"
         : "active";
 
-  await admin.from("user_organization_memberships").upsert(
+  const membership = await admin.from("user_organization_memberships").upsert(
     {
       organization_id: input.organizationId,
       user_id: input.userId,
@@ -120,9 +129,10 @@ async function attachMembershipAndScope(
     },
     { onConflict: "organization_id,user_id" }
   );
+  await assertNoError("organization membership", membership.error);
 
   for (const schoolId of input.schoolIds) {
-    await admin.from("user_org_assignments").upsert(
+    const assignment = await admin.from("user_org_assignments").upsert(
       {
         user_id: input.userId,
         school_id: schoolId,
@@ -134,10 +144,13 @@ async function attachMembershipAndScope(
       },
       { onConflict: "user_id,school_id,campus_id,program_id,department_id" }
     );
-    await admin.from("user_schools").upsert(
+    await assertNoError(`school assignment (${schoolId})`, assignment.error);
+
+    const schoolLink = await admin.from("user_schools").upsert(
       { user_id: input.userId, school_id: schoolId },
       { onConflict: "user_id,school_id", ignoreDuplicates: true }
     );
+    await assertNoError(`user_schools (${schoolId})`, schoolLink.error);
   }
 }
 

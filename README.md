@@ -4,6 +4,8 @@ Education operating system built with **Next.js 16** and **Supabase**.
 
 > **Operations & documentation (Release Phase F):** start at [`docs/operations/phase-f/README.md`](docs/operations/phase-f/README.md).  
 > **Architecture (current truth):** [`docs/architecture/README.md`](docs/architecture/README.md) · [`docs/architecture/phase-a/`](docs/architecture/phase-a/) · [`docs/architecture/PLATFORM_CONSTITUTION.md`](docs/architecture/PLATFORM_CONSTITUTION.md)  
+> **RC product packages (RC-4…RC-10):** [`docs/platform/rc-packages.md`](docs/platform/rc-packages.md)  
+> **RC-6 quality audits / release notes:** [`docs/releases/`](docs/releases/)  
 > **Security (Phase B):** [`docs/security/phase-b/SECURITY_REPORT.md`](docs/security/phase-b/SECURITY_REPORT.md)  
 > **UX (Phase D):** [`docs/ux/phase-d/UX_REPORT.md`](docs/ux/phase-d/UX_REPORT.md)
 
@@ -16,7 +18,7 @@ Education operating system built with **Next.js 16** and **Supabase**.
 
 ## Schema / migrations
 
-Source of truth: `supabase/migrations/*.sql` (monotonic `NNN_*.sql`, head through **`172_b1_security_remediation.sql`**, including security hardening **171+172**).
+Source of truth: `supabase/migrations/*.sql` (monotonic `NNN_*.sql`, head through **`183_p106_users_directory_select_rls.sql`**). Recent hardening includes P1.03 user-management RLS **182** and P1.06 users directory SELECT **183**.
 
 Do **not** treat the historical Phase 1 table below as complete. Apply all migrations in order via Supabase CLI/dashboard. Database ops: [`docs/operations/phase-f/04_DATABASE_DOCUMENTATION.md`](docs/operations/phase-f/04_DATABASE_DOCUMENTATION.md).
 
