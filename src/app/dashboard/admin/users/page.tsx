@@ -6,6 +6,10 @@ import { requirePagePermission } from "@/lib/platform/identity/page-guard";
 import { hasIdentityPermission } from "@/lib/platform/identity/context";
 import { resolvePrimaryOrganizationId } from "@/lib/platform/identity/org-membership";
 
+/**
+ * Users & Access — must render UsersAccessPanel (toolbar + directory).
+ * Do not revert to UsersAssignmentsPanel; that panel has no onboarding toolbar.
+ */
 export default async function UsersAdminPage() {
   const ctx = await requirePagePermission("users.view");
   const [users, hierarchy, organizations] = await Promise.all([
@@ -22,7 +26,7 @@ export default async function UsersAdminPage() {
 
   const isFounder = ctx.isFounder || ctx.roles.includes("FOUNDER");
   // Founder catalog grants users.manage; keep an explicit fallback so onboarding
-  // controls never disappear if the permission snapshot is incomplete.
+  // actions stay enabled if the permission snapshot is incomplete.
   const canManage =
     hasIdentityPermission(ctx, "users.manage") || isFounder;
 

@@ -182,8 +182,14 @@ export function UsersAccessPanel({
 
   const showEmpty = users.length === 0;
 
+  const toolbarBtn =
+    "rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+  const toolbarBtnPrimary =
+    "rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50";
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="users-access-panel">
+      {/* Toolbar is always rendered — manage actions disable when !canManage (never hide). */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
@@ -193,38 +199,47 @@ export function UsersAccessPanel({
             Create users, send invitations, assign roles and schools during organization onboarding.
           </p>
         </div>
-        {canManage && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setModal("add")}
-              className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              + Add User
-            </button>
-            <button
-              type="button"
-              onClick={() => setModal("import")}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Import CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => setModal("invite")}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Invite Users
-            </button>
-            <button
-              type="button"
-              onClick={exportSelectedOrAll}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Export
-            </button>
-          </div>
-        )}
+        <div
+          className="flex flex-wrap gap-2"
+          data-testid="users-access-toolbar"
+          role="toolbar"
+          aria-label="User management actions"
+        >
+          <button
+            type="button"
+            disabled={!canManage}
+            title={canManage ? undefined : "Requires users.manage"}
+            onClick={() => setModal("add")}
+            className={toolbarBtnPrimary}
+          >
+            + Add User
+          </button>
+          <button
+            type="button"
+            disabled={!canManage}
+            title={canManage ? undefined : "Requires users.manage"}
+            onClick={() => setModal("import")}
+            className={toolbarBtn}
+          >
+            Import CSV
+          </button>
+          <button
+            type="button"
+            disabled={!canManage}
+            title={canManage ? undefined : "Requires users.manage"}
+            onClick={() => setModal("invite")}
+            className={toolbarBtn}
+          >
+            Invite Users
+          </button>
+          <button
+            type="button"
+            onClick={exportSelectedOrAll}
+            className={toolbarBtn}
+          >
+            Export
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -233,6 +248,8 @@ export function UsersAccessPanel({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search…"
+          aria-label="Search users"
+          data-testid="users-access-search"
           className="w-full max-w-md rounded-lg border border-slate-200 px-3 py-2 text-sm"
         />
         {canManage && selected.length > 0 && (
