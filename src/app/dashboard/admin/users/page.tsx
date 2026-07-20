@@ -1,4 +1,4 @@
-import { UsersAccessPanel } from "@/components/platform/admin/UsersAccessPanel";
+import { UsersAccessView } from "./UsersAccessView";
 import { getAdminUsersDirectory } from "@/lib/platform/identity/queries";
 import { getOrganizationHierarchy } from "@/lib/platform/identity/org";
 import { listOrganizations } from "@/lib/platform/identity/organizations";
@@ -6,9 +6,14 @@ import { requirePagePermission } from "@/lib/platform/identity/page-guard";
 import { hasIdentityPermission } from "@/lib/platform/identity/context";
 import { resolvePrimaryOrganizationId } from "@/lib/platform/identity/org-membership";
 
+/** Never statically cache this admin route — stale RSC payloads showed the legacy assignments UI. */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 /**
- * Users & Access — must render UsersAccessPanel (toolbar + directory).
- * Do not revert to UsersAssignmentsPanel; that panel has no onboarding toolbar.
+ * /dashboard/admin/users — Users & Access (onboarding toolbar + directory).
+ * UI lives in ./UsersAccessView (colocated). Legacy UsersAssignmentsPanel removed.
  */
 export default async function UsersAdminPage() {
   const ctx = await requirePagePermission("users.view");
@@ -25,14 +30,19 @@ export default async function UsersAdminPage() {
     null;
 
   const isFounder = ctx.isFounder || ctx.roles.includes("FOUNDER");
-  // Founder catalog grants users.manage; keep an explicit fallback so onboarding
-  // actions stay enabled if the permission snapshot is incomplete.
   const canManage =
     hasIdentityPermission(ctx, "users.manage") || isFounder;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <UsersAccessPanel
+    <div
+      className="mx-auto max-w-7xl space-y-6"
+      data-users-route="access-v2"
+    >
+      {/* Server-rendered marker — visible even if a stale client chunk fails to hydrate. */}
+      <p className="sr-only" data-testid="users-access-route-marker">
+        Users Access onboarding workspace
+      </p>
+      <UsersAccessView
         users={users}
         schools={(hierarchy.schools ?? []).map((s) => ({ id: s.id, name: s.name }))}
         organizations={organizations.map((o) => ({ id: o.id, name: o.name }))}

@@ -16,16 +16,19 @@ Not RBAC, not RLS, not a feature flag. Production (or the environment under test
 
 ## Fix applied
 
-1. Toolbar + Search on `UsersAccessPanel` always render (manage buttons disable when `!canManage`; never hide).
-2. Page comment guards against reverting to `UsersAssignmentsPanel`.
-3. Ship `UsersAccessPanel` on the branch Vercel deploys (rc1 + sync to `main` if production tracks `main`).
+1. Toolbar + Search always render (manage buttons disable when `!canManage`; never hide).
+2. **Legacy module removed:** `UsersAssignmentsPanel.tsx` deleted.
+3. **UI colocated on the route:** `src/app/dashboard/admin/users/UsersAccessView.tsx` (imported only as `./UsersAccessView`).
+4. **No static cache:** `dynamic = "force-dynamic"`, `revalidate = 0`, `fetchCache = "force-no-store"` so stale RSC/HTML cannot serve the old assignments UI.
 
 ## Validation
 
-After deploy, `/dashboard/admin/users` must show `data-testid="users-access-toolbar"` with:
+After deploy, `/dashboard/admin/users` must show `data-testid="users-access-toolbar"` and `data-users-ui="access-v2"` with:
 
 - + Add User  
 - Import CSV  
 - Invite Users  
 - Export  
-- Search…
+- Search…  
+
+Hard-refresh (or empty cache) once so old `/_next/static` client chunks are not reused from a prior deploy.

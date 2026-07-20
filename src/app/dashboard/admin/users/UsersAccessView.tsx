@@ -78,7 +78,8 @@ function ModalShell({
   );
 }
 
-export function UsersAccessPanel({
+/** Route-owned Users & Access UI (not the legacy assignments table). */
+export function UsersAccessView({
   users,
   schools,
   organizations,
@@ -188,7 +189,7 @@ export function UsersAccessPanel({
     "rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
-    <div className="space-y-4" data-testid="users-access-panel">
+    <div className="space-y-4" data-testid="users-access-panel" data-users-ui="access-v2">
       {/* Toolbar is always rendered — manage actions disable when !canManage (never hide). */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
