@@ -1,4 +1,5 @@
 import { ActivityTimelineFeed } from "@/components/platform/profile-sections/ActivityTimelineFeed";
+import { CommunicationTimeline } from "@/components/communications/CommunicationTimeline";
 import { ProfileNotesPanel } from "@/components/platform/profile-sections/ProfileNotesPanel";
 import { ProfilePlaceholderPanel } from "@/components/platform/profile-sections/ProfilePlaceholderPanel";
 import { ProfileRecordTable } from "@/components/platform/profile-sections/ProfileRecordTable";
@@ -10,6 +11,7 @@ import {
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import type { PlatformActivityEvent } from "@/lib/platform/activity/types";
 import type { PlatformNote } from "@/lib/platform/notes/types";
+import type { TimelineCommunicationItem } from "@/lib/communications/timeline";
 import {
   formatLabel,
   missingSection,
@@ -21,23 +23,46 @@ export function CommunicationsSection(props: ProfileSectionViewProps) {
     activity: PlatformActivityEvent[];
     meetings: Record<string, unknown>[];
     conversations: Record<string, unknown>[];
+    platformCommunications?: TimelineCommunicationItem[];
+    familyId?: string;
     unreadCount: number;
   } | null;
   if (!data) return missingSection("Communications", "partial");
+
+  const platform = data.platformCommunications ?? [];
+  const emails = platform.filter((c) => c.type === "email").length;
+  const texts = platform.filter((c) => c.type === "sms").length;
+  const calls = platform.filter((c) => c.type === "call").length;
+  const portal = platform.filter((c) => c.type === "portal").length;
+  const meetingsLogged = platform.filter((c) => c.type === "meeting").length;
+  const announcements = platform.filter((c) => c.type === "announcement").length;
 
   return (
     <div className="space-y-6">
       <ProfileStatGrid
         items={[
-          { label: "Recent messages", value: String(data.conversations.length) },
-          { label: "Open threads", value: String(data.unreadCount) },
-          { label: "Meetings", value: String(data.meetings.length) },
-          { label: "Activity events", value: String(data.activity.length) },
+          { label: "Emails", value: String(emails) },
+          { label: "Texts", value: String(texts) },
+          { label: "Calls", value: String(calls) },
+          { label: "Portal", value: String(portal + data.conversations.length) },
+          { label: "Meetings", value: String(meetingsLogged + data.meetings.length) },
+          { label: "Announcements", value: String(announcements) },
         ]}
       />
 
+      <CommunicationTimeline
+        items={platform}
+        title="Family communication timeline"
+        emptyMessage="No platform communications for this family yet"
+        composeHref={
+          data.familyId
+            ? `/dashboard/communications/compose?familyId=${data.familyId}`
+            : "/dashboard/communications/compose"
+        }
+      />
+
       <ProfileRecordTable
-        title="Recent Conversations"
+        title="Recent Portal Conversations"
         records={data.conversations}
         emptyMessage="No portal conversations on file"
         columns={[

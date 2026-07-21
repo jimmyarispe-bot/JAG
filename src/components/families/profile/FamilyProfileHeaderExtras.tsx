@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FamilyLifecycleActions } from "@/components/families/FamilyLifecycleActions";
 import { buildFamilyProfileSectionHref } from "@/lib/families/profile/href";
 import type { FamilyProfileEnvelope } from "@/lib/families/profile/types";
 
@@ -28,7 +29,14 @@ export function FamilyProfileBadges({ envelope }: { envelope: FamilyProfileEnvel
   );
 }
 
-export function FamilyProfileHeaderActions({ envelope }: { envelope: FamilyProfileEnvelope }) {
+export function FamilyProfileHeaderActions({
+  envelope,
+  canManageLifecycle = false,
+}: {
+  envelope: FamilyProfileEnvelope;
+  canManageLifecycle?: boolean;
+}) {
+  const isArchived = envelope.status === "archived";
   return (
     <div className="flex flex-wrap gap-2">
       <Link
@@ -43,6 +51,13 @@ export function FamilyProfileHeaderActions({ envelope }: { envelope: FamilyProfi
       >
         Tuition
       </Link>
+      {canManageLifecycle && (
+        <FamilyLifecycleActions
+          familyId={envelope.familyId}
+          isArchived={isArchived}
+          variant="header"
+        />
+      )}
     </div>
   );
 }

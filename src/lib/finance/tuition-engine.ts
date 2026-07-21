@@ -119,14 +119,30 @@ export async function generateTuitionInvoiceFromPlan(
 
   if (!plan) throw new Error("Tuition plan not found");
 
-  const subtotal = Number(plan.annual_amount) / (
-    plan.billing_frequency === "monthly" ? 12 :
-    plan.billing_frequency === "weekly" ? 52 :
-    plan.billing_frequency === "daily" ? 180 :
-    plan.billing_frequency === "hourly" ? 1 :
-    plan.payment_schedule === "quarterly" ? 4 :
-    plan.payment_schedule === "semester" ? 2 : 1
-  );
+  const billingModel = String(
+    (plan as { billing_model?: string }).billing_model ??
+      plan.payment_schedule ??
+      plan.billing_frequency ??
+      "monthly"
+  ).toLowerCase();
+  const divisor =
+    billingModel.includes("month") || plan.billing_frequency === "monthly"
+      ? 12
+      : billingModel.includes("quarter")
+        ? 4
+        : billingModel.includes("course") ||
+            billingModel.includes("one") ||
+            billingModel.includes("annual") ||
+            billingModel.includes("year")
+          ? 1
+          : plan.billing_frequency === "weekly"
+            ? 52
+            : plan.billing_frequency === "daily"
+              ? 180
+              : plan.payment_schedule === "semester"
+                ? 2
+                : 1;
+  const subtotal = Number(plan.annual_amount) / divisor;
 
   const credits = await resolveFundingCreditsForStudent(supabase, input.studentId, subtotal);
   const calc = await calculateTuitionInvoice(supabase, {

@@ -3,17 +3,20 @@ import { notFound, redirect } from "next/navigation";
 import "@/lib/platform/profile";
 
 import { FamilyProfileWorkspace } from "@/components/families/profile/FamilyProfileWorkspace";
+import { canManageFamilyLifecycle } from "@/lib/families/access";
 import {
   FAMILY_PROFILE_LEGACY_REDIRECTS,
   loadFamilySectionData,
   resolveFamilyProfile,
 } from "@/lib/families/profile";
 import { isFamilyProfileEnvelope } from "@/lib/families/profile/types";
+import { loadFamilyStudents } from "@/lib/families/profile/loaders";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { loadProfileContextData } from "@/lib/platform/profile/page-context";
 import { buildLegacyProfileSectionRedirectUrl } from "@/lib/platform/profile/params";
 import { loadProfileSectionContributions } from "@/lib/platform/profile/sections";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { searchFamilies } from "@/lib/students/queries";
 
 interface FamilyDetailPageProps {
   params: Promise<{ id: string }>;
@@ -61,6 +64,14 @@ export default async function FamilyDetailPage({
     activeSectionData
   );
 
+  const manageLifecycle = canManageFamilyLifecycle(ctx);
+  const [opsStudents, schoolFamilies] = manageLifecycle
+    ? await Promise.all([
+        loadFamilyStudents(supabase, id),
+        envelope.schoolId ? searchFamilies(envelope.schoolId, "", 100) : Promise.resolve([]),
+      ])
+    : [[], []];
+
   return (
     <FamilyProfileWorkspace
       envelope={envelope}
@@ -70,6 +81,15 @@ export default async function FamilyDetailPage({
       pinnedNotes={contextData.notesForContext}
       entityTags={contextData.entityTags}
       sectionContributions={sectionContributions}
+      canManageLifecycle={manageLifecycle}
+      opsStudents={opsStudents.map((s) => ({
+        id: s.id,
+        first_name: s.first_name,
+        last_name: s.last_name,
+      }))}
+      otherFamilies={schoolFamilies
+        .filter((f) => f.id !== id)
+        .map((f) => ({ id: f.id, family_name: f.family_name }))}
     />
   );
 }

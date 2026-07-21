@@ -1,0 +1,30 @@
+---
+description: AcademyOS CRUD Completion Gate — modules cannot be complete without CRUD Standard compliance
+alwaysApply: true
+---
+
+# AcademyOS CRUD Completion Gate
+
+**No new module may be considered complete until it complies with the AcademyOS CRUD Standard.**
+
+Source of truth: `docs/platform/crud-standards.md`  
+Capability matrix: `src/lib/platform/crud/registry.ts`  
+Release claims: `src/lib/platform/crud/completion-gate.ts` (`ENTITY_RELEASE_STATUS`)  
+Validation: `npm run validate:crud`
+
+## When shipping a new module or entity
+
+1. Register the entity in `ENTITY_CAPABILITIES` with the correct actions.
+2. Set `ENTITY_RELEASE_STATUS[entity] = "partial"` until the gate passes.
+3. Implement shared CRUD UI (`EntityActionMenu`, `EntityActionToolbar`, `DestructiveConfirmDialog`) and server-side permission checks.
+4. Prefer **Archive** (or Cancel / Deactivate) over hard delete; hard delete requires checkbox + type `DELETE` + dependency gate.
+5. Expose **History** (timeline / audit).
+6. Publish lifecycle EI events (`*.created|updated|archived|restored|deleted|duplicated` as applicable).
+7. Only then set `releaseStatus` to `"complete"` and claim the sprint/module done.
+8. Run `npm run validate:crud` — it must pass.
+
+## Do not
+
+- Mark a feature sprint or PR “complete” while the entity is still `partial` / non-compliant.
+- Ship list/detail pages without the standard action placements.
+- Soft-disable actions for missing permissions — **hide** them; enforce server-side.

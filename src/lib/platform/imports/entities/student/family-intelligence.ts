@@ -22,9 +22,13 @@ function normalizeAddress(mapped: Record<string, unknown>): string {
 export function familyGroupKey(mapped: Record<string, unknown>): string | null {
   const email = normalizeEmail(mapped.parent_email as string);
   const phone = normalizePhone(mapped.parent_phone as string);
+  const household = String(mapped.family_name ?? mapped.household_name ?? "")
+    .trim()
+    .toLowerCase();
   const address = normalizeAddress(mapped);
   if (email) return `email:${email}`;
   if (phone && phone.length >= 7) return `phone:${phone}`;
+  if (household) return `household:${household}`;
   if (address !== "|||") return `address:${address}`;
   return null;
 }
@@ -54,6 +58,10 @@ export function findExistingFamily(
   const phone = normalizePhone(mapped.parent_phone as string);
   const address = normalizeAddress(mapped);
 
+  const household = String(mapped.family_name ?? mapped.household_name ?? "")
+    .trim()
+    .toLowerCase();
+
   if (email) {
     const guardian = ctx.existingGuardians.find(
       (g) => normalizeEmail(g.email) === email
@@ -74,6 +82,15 @@ export function findExistingFamily(
 
     const family = ctx.existingFamilies.find(
       (f) => f.school_id === schoolId && normalizePhone(f.billing_phone) === phone
+    );
+    if (family) return { familyId: family.id };
+  }
+
+  if (household) {
+    const family = ctx.existingFamilies.find(
+      (f) =>
+        f.school_id === schoolId &&
+        (f.family_name ?? "").trim().toLowerCase() === household
     );
     if (family) return { familyId: family.id };
   }

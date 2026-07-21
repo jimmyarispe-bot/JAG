@@ -375,13 +375,14 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     sortOrder: 90,
     moduleKey: "platform",
     permissions: ["students.view", "portal.parent.access"],
-    status: "partial",
+    status: "live",
     loadData: async (supabase, envelope) => {
       const env = familyEnvelope(envelope);
       if (!env) return null;
       const studentIds = await loadFamilyStudentIds(supabase, env.familyId);
+      const { getFamilyCommunicationTimeline } = await import("@/lib/communications/timeline");
 
-      const [activityRes, meetingsRes, conversationsRes] = await Promise.all([
+      const [activityRes, meetingsRes, conversationsRes, platformComms] = await Promise.all([
         getEntityActivity(supabase, "family", env.familyId, {
           classification: "communication",
           limit: 30,
@@ -402,6 +403,7 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
               .order("last_message_at", { ascending: false, nullsFirst: false })
               .limit(15)
           : Promise.resolve({ data: [] }),
+        getFamilyCommunicationTimeline(supabase, env.familyId, 40),
       ]);
 
       const unreadCount = (conversationsRes.data ?? []).filter((row) => row.status === "open").length;
@@ -410,6 +412,8 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
         activity: activityRes,
         meetings: meetingsRes.data ?? [],
         conversations: conversationsRes.data ?? [],
+        platformCommunications: platformComms,
+        familyId: env.familyId,
         unreadCount,
       };
     },
@@ -540,12 +544,43 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
       const env = familyEnvelope(envelope);
       if (!env) return null;
       const studentIds = await loadFamilyStudentIds(supabase, env.familyId);
-      if (!studentIds.length) return { events: [] };
       const from = new Date().toISOString().split("T")[0];
       const to = new Date(Date.now() + 90 * 86400000).toISOString().split("T")[0];
       const { getFamilyCalendarEvents } = await import("@/lib/portal/calendar");
-      const events = await getFamilyCalendarEvents(supabase, studentIds, from, to);
-      return { events };
+      const portalEvents = studentIds.length
+        ? await getFamilyCalendarEvents(supabase, studentIds, from, to)
+        : [];
+
+      let platformEvents: Array<{
+        id: string;
+        title: string;
+        start: string;
+        category: string;
+        studentName?: string;
+      }> = [];
+      try {
+        const { getFamilyCalendar } = await import("@/lib/calendar/queries");
+        const occurrences = await getFamilyCalendar(
+          env.familyId,
+          `${from}T00:00:00.000Z`,
+          `${to}T23:59:59.999Z`
+        );
+        platformEvents = occurrences.map((o) => ({
+          id: `platform:${o.id}:${o.occurrenceStartsAt}`,
+          title: o.title,
+          start: o.occurrenceStartsAt,
+          category: o.event_type,
+        }));
+      } catch {
+        platformEvents = [];
+      }
+
+      const byId = new Map<string, (typeof portalEvents)[number] | (typeof platformEvents)[number]>();
+      for (const e of [...portalEvents, ...platformEvents]) {
+        byId.set(e.id, e);
+      }
+      const events = [...byId.values()].sort((a, b) => a.start.localeCompare(b.start));
+      return { events, familyId: env.familyId };
     },
   }),
   section({

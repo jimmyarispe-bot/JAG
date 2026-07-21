@@ -248,7 +248,38 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
         getStudentSchedule(env.studentId),
         loadStudentGradeHistory(supabase, env.studentId),
       ]);
-      return { ...schedule, courseEnrollments: gradeHistory.courseEnrollments };
+
+      let platformOccurrences: Array<{
+        id: string;
+        title: string;
+        eventType: string;
+        startsAt: string;
+        endsAt: string;
+      }> = [];
+      try {
+        const { getStudentSchedule: getPlatformStudentSchedule } = await import(
+          "@/lib/calendar/queries"
+        );
+        const from = new Date().toISOString();
+        const to = new Date(Date.now() + 30 * 86400000).toISOString();
+        const rows = await getPlatformStudentSchedule(env.studentId, from, to);
+        platformOccurrences = rows.map((o) => ({
+          id: `${o.id}:${o.occurrenceStartsAt}`,
+          title: o.title,
+          eventType: o.event_type,
+          startsAt: o.occurrenceStartsAt,
+          endsAt: o.occurrenceEndsAt,
+        }));
+      } catch {
+        platformOccurrences = [];
+      }
+
+      return {
+        ...schedule,
+        courseEnrollments: gradeHistory.courseEnrollments,
+        platformOccurrences,
+        studentId: env.studentId,
+      };
     },
   }),
   section({
@@ -473,9 +504,19 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     loadData: async (supabase, envelope) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
-      return getStudentActivityFeed(supabase, env.studentId, {
-        classification: "communication",
-      });
+      const { getStudentCommunicationTimeline } = await import("@/lib/communications/timeline");
+      const [activity, platformCommunications] = await Promise.all([
+        getStudentActivityFeed(supabase, env.studentId, {
+          classification: "communication",
+        }),
+        getStudentCommunicationTimeline(supabase, env.studentId, 40),
+      ]);
+      return {
+        activity,
+        platformCommunications,
+        studentId: env.studentId,
+        familyId: env.familyId ?? null,
+      };
     },
   }),
   section({

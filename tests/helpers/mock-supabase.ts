@@ -47,6 +47,10 @@ function createFilterChain(
       filters[`is:${column}`] = value;
       return chain;
     },
+    not: (column: string, op: string, value: unknown) => {
+      filters[`not:${column}:${op}`] = value;
+      return chain;
+    },
     or: (_expression: string) => chain,
     neq: (column: string, value: unknown) => {
       filters[`neq:${column}`] = value;
@@ -58,6 +62,22 @@ function createFilterChain(
     },
     contains: (column: string, value: unknown[]) => {
       filters[`contains:${column}`] = value;
+      return chain;
+    },
+    gte: (column: string, value: unknown) => {
+      filters[`gte:${column}`] = value;
+      return chain;
+    },
+    lte: (column: string, value: unknown) => {
+      filters[`lte:${column}`] = value;
+      return chain;
+    },
+    gt: (column: string, value: unknown) => {
+      filters[`gt:${column}`] = value;
+      return chain;
+    },
+    lt: (column: string, value: unknown) => {
+      filters[`lt:${column}`] = value;
       return chain;
     },
     order: () => chain,

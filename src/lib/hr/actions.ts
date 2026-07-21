@@ -49,12 +49,14 @@ export async function createEmployee(formData: FormData) {
       employee_number: (formData.get("employee_number") as string) || null,
       employee_type: (formData.get("employee_type") as string) || "staff",
       employment_status: "active",
+      lifecycle_stage: "onboarding",
       hire_date: (formData.get("hire_date") as string) || null,
       department: (formData.get("department") as string) || null,
       program: (formData.get("program") as string) || null,
       supervisor_employee_id: (formData.get("supervisor_employee_id") as string) || null,
+      background_check_status: (formData.get("background_check_status") as string) || "pending",
     })
-    .select("id, school_id")
+    .select("id, school_id, audit_id")
     .single();
 
   if (error) return { error: error.message };
@@ -81,6 +83,12 @@ export async function createEmployee(formData: FormData) {
   });
 
   await seedDefaultOnboardingTasks(supabase, data.id);
+  try {
+    const { ensureExtendedOnboardingTasks } = await import("@/lib/hr-platform/onboarding");
+    await ensureExtendedOnboardingTasks(supabase, data.id);
+  } catch {
+    // best-effort
+  }
 
   await writePlatformAudit(supabase, {
     module: "hr",
@@ -91,6 +99,49 @@ export async function createEmployee(formData: FormData) {
     actorUserId: user?.id,
     schoolId: data.school_id,
   });
+
+  const schoolCtx = await resolveSchoolContext(supabase, data.school_id);
+  const displayName = `${formData.get("first_name")} ${formData.get("last_name")}`;
+  await recordActivity(supabase, {
+    eventType: "employee.created",
+    moduleKey: "hr",
+    entityType: "employee",
+    entityId: data.id,
+    title: "Employee created",
+    summary: displayName,
+    organizationId: schoolCtx?.organizationId,
+    schoolId: data.school_id,
+    actorUserId: user?.id ?? null,
+    sourceTable: "employees",
+    sourceId: data.id,
+    payload: { auditId: data.audit_id, lifecycle_stage: "onboarding" },
+  });
+  await recordActivity(supabase, {
+    eventType: "employee.hired",
+    moduleKey: "hr",
+    entityType: "employee",
+    entityId: data.id,
+    title: "Employee hired",
+    summary: displayName,
+    organizationId: schoolCtx?.organizationId,
+    schoolId: data.school_id,
+    actorUserId: user?.id ?? null,
+    sourceTable: "employees",
+    sourceId: data.id,
+  });
+
+  try {
+    const { sendHcmCommunication } = await import("@/lib/hr-platform/communications");
+    await sendHcmCommunication(supabase, {
+      kind: "onboarding_reminder",
+      organizationId: schoolCtx?.organizationId,
+      schoolId: data.school_id,
+      body: `Welcome ${displayName}. Please complete onboarding tasks.`,
+      actorUserId: user?.id ?? null,
+    });
+  } catch {
+    // best-effort
+  }
 
   revalidatePath("/dashboard/hr");
   return { id: data.id };

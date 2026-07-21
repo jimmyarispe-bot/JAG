@@ -1,0 +1,122 @@
+{
+  "version": "rc11",
+  "generatedAt": "2026-07-21T05:58:35.805Z",
+  "decision": "go",
+  "summary": "Go — RC11 production readiness gates clear",
+  "gates": {
+    "a11y": {
+      "ok": true,
+      "detail": "exit=0"
+    },
+    "mobile": {
+      "ok": true,
+      "detail": "exit=0"
+    },
+    "performance": {
+      "ok": true,
+      "detail": "exit=0"
+    },
+    "security": {
+      "ok": true,
+      "detail": "exit=0"
+    },
+    "production": {
+      "ok": true,
+      "detail": "exit=0"
+    },
+    "release": {
+      "ok": true,
+      "detail": "exit=0"
+    }
+  },
+  "unitTests": {
+    "ok": true,
+    "detail": "exit=0"
+  },
+  "integrations": [
+    {
+      "id": "google_workspace",
+      "name": "Google Workspace",
+      "registered": true,
+      "configured": false,
+      "capabilities": [
+        "email",
+        "calendar",
+        "storage"
+      ]
+    },
+    {
+      "id": "supabase_storage",
+      "name": "Supabase Storage",
+      "registered": true,
+      "configured": false,
+      "capabilities": [
+        "storage"
+      ]
+    },
+    {
+      "id": "square",
+      "name": "Square",
+      "registered": true,
+      "configured": false,
+      "capabilities": [
+        "payments"
+      ]
+    },
+    {
+      "id": "stripe",
+      "name": "Stripe",
+      "registered": true,
+      "configured": false,
+      "capabilities": [
+        "payments"
+      ]
+    },
+    {
+      "id": "quickbooks_online",
+      "name": "QuickBooks Online",
+      "registered": true,
+      "configured": false,
+      "capabilities": [
+        "accounting"
+      ]
+    },
+    {
+      "id": "twilio",
+      "name": "Twilio",
+      "registered": true,
+      "configured": false,
+      "capabilities": [
+        "sms"
+      ]
+    },
+    {
+      "id": "docusign",
+      "name": "DocuSign",
+      "registered": true,
+      "configured": false,
+      "capabilities": [
+        "custom"
+      ]
+    },
+    {
+      "id": "google_calendar",
+      "name": "Google Calendar / Meet",
+      "registered": true,
+      "configured": false,
+      "capabilities": [
+        "calendar"
+      ]
+    }
+  ],
+  "realtimeTopics": [
+    "founder_dashboard",
+    "executive_dashboard",
+    "notifications",
+    "workflow_status",
+    "insight_updates"
+  ],
+  "missingOps": [],
+  "releaseOk": true,
+  "blockingIssues": []
+}

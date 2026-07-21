@@ -44,6 +44,16 @@ export default defineConfig({
       dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "mobile",
+      testDir: "./tests/smoke",
+      use: { ...devices["Pixel 5"] },
+    },
+    {
+      name: "mobile-iphone",
+      testDir: "./tests/smoke",
+      use: { ...devices["iPhone 13"] },
+    },
   ],
   webServer: process.env.CI
     ? {

@@ -32,14 +32,18 @@ import {
 import { canAccessHrAdmin, canRunPayroll } from "@/lib/hr/access";
 import { getRecruitingPipeline, getComplianceCenter } from "@/lib/hr/employee-profile";
 import { getWorkforceAnalytics, getOrgChart } from "@/lib/hr/analytics";
+import { HcmOperationsDashboard } from "@/components/hr/HcmOperationsDashboard";
+import { canEditHcm, getHcmOperationsSummary } from "@/lib/hr-platform";
 import { executeWorkspace } from "@/lib/platform/execution-engine";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { resolvePrimarySchoolId } from "@/lib/platform/identity/school-access";
 import { HR_WORK_PERSPECTIVES, resolveJagWorkPerspective, resolveJagWorkQueue } from "@/lib/platform/jag-work";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import "@/lib/platform/execution-engine";
+import "@/lib/hr-platform/integrations";
 
 export const HR_TABS = [
+  { href: "/dashboard/hr?view=operations", label: "Operations", value: "operations" },
   { href: "/dashboard/hr?view=employees", label: "Employees", value: "employees" },
   { href: "/dashboard/hr?view=recruiting", label: "Recruiting", value: "recruiting" },
   { href: "/dashboard/hr?view=compliance", label: "Compliance", value: "compliance" },
@@ -59,7 +63,7 @@ async function HrLegacyView({ view, ctx }: { view: string; ctx: NonNullable<Awai
   const schoolId = resolvePrimarySchoolId(ctx) ?? undefined;
   const supabase = await createAuthClient();
 
-  const [employees, positions, certifications, payroll, schools, recruiting, compliance, analytics, orgChart, substitutes, volunteers] =
+  const [employees, positions, certifications, payroll, schools, recruiting, compliance, analytics, orgChart, substitutes, volunteers, hcmSummary] =
     await Promise.all([
       getEmployees(),
       getPositions(),
@@ -72,6 +76,7 @@ async function HrLegacyView({ view, ctx }: { view: string; ctx: NonNullable<Awai
       schoolId ? getOrgChart(supabase, schoolId) : Promise.resolve({ nodes: [], openPositions: [] }),
       getSubstitutes(schoolId),
       getVolunteers(schoolId),
+      getHcmOperationsSummary(supabase, { schoolId }),
     ]);
 
   const stats = computeHrStats(employees, certifications, payroll);
@@ -79,7 +84,10 @@ async function HrLegacyView({ view, ctx }: { view: string; ctx: NonNullable<Awai
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <PageHeader title="Human Capital & Workforce" subtitle="Recruiting, credentials, payroll, and analytics" />
+        <PageHeader
+          title="Human Capital & Workforce"
+          subtitle="Recruiting, onboarding, certifications, performance, time off, and analytics"
+        />
         <div className="flex gap-2">
           <Link href="/dashboard/hr?work=today" className="rounded-lg border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50">
             ← Work queue
@@ -89,29 +97,35 @@ async function HrLegacyView({ view, ctx }: { view: string; ctx: NonNullable<Awai
           </Link>
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Active Staff" value={formatCount(stats.activeEmployees)} description="Active employees" accent="indigo" icon={<span className="text-lg font-bold">E</span>} />
-        <StatCard title="Open Jobs" value={formatCount(recruiting.jobs.filter((j) => j.status === "open").length)} description="Recruiting pipeline" accent="sky" icon={<span className="text-lg font-bold">J</span>} />
-        <StatCard title="Expiring Certs" value={formatCount(stats.expiringCerts)} description="Within 90 days" accent="amber" icon={<span className="text-lg font-bold">C</span>} />
-        <StatCard title="Pending Payroll" value={formatCount(stats.pendingPayroll)} description="Awaiting approval" accent="violet" icon={<span className="text-lg font-bold">P</span>} />
-      </div>
       <ViewTabs tabs={[...HR_TABS]} activeView={view} />
-      <HrTabs
-        view={view}
-        employees={employees}
-        positions={positions}
-        certifications={certifications}
-        payroll={payroll}
-        schools={schools}
-        jobs={recruiting.jobs}
-        applications={recruiting.applications}
-        compliance={compliance}
-        analytics={analytics}
-        orgChart={orgChart}
-        substitutes={substitutes}
-        volunteers={volunteers}
-        canRunPayroll={canRunPayroll(ctx)}
-      />
+      {view === "operations" ? (
+        <HcmOperationsDashboard summary={hcmSummary} canEdit={canEditHcm(ctx)} />
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard title="Active Staff" value={formatCount(stats.activeEmployees)} description="Active employees" accent="indigo" icon={<span className="text-lg font-bold">E</span>} />
+            <StatCard title="Open Jobs" value={formatCount(recruiting.jobs.filter((j) => j.status === "open").length)} description="Recruiting pipeline" accent="sky" icon={<span className="text-lg font-bold">J</span>} />
+            <StatCard title="Expiring Certs" value={formatCount(stats.expiringCerts)} description="Within 90 days" accent="amber" icon={<span className="text-lg font-bold">C</span>} />
+            <StatCard title="Pending Payroll" value={formatCount(stats.pendingPayroll)} description="Awaiting approval" accent="violet" icon={<span className="text-lg font-bold">P</span>} />
+          </div>
+          <HrTabs
+            view={view}
+            employees={employees}
+            positions={positions}
+            certifications={certifications}
+            payroll={payroll}
+            schools={schools}
+            jobs={recruiting.jobs}
+            applications={recruiting.applications}
+            compliance={compliance}
+            analytics={analytics}
+            orgChart={orgChart}
+            substitutes={substitutes}
+            volunteers={volunteers}
+            canRunPayroll={canRunPayroll(ctx)}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -124,6 +138,11 @@ export async function HrPageContent({ searchParams }: HrPageContentProps) {
   const legacyViews = new Set(HR_TABS.map((t) => t.value));
   if (sp.view && legacyViews.has(sp.view as (typeof HR_TABS)[number]["value"])) {
     return <HrLegacyView view={sp.view} ctx={ctx} />;
+  }
+
+  // Default landing: HCM operations overview (RC8)
+  if (!sp.view && !sp.work) {
+    return <HrLegacyView view="operations" ctx={ctx} />;
   }
 
   const workPerspective = resolveJagWorkPerspective("hr", sp.work);

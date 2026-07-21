@@ -8,6 +8,11 @@ import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-acces
 import { requireAuthorizedRoute } from "@/lib/platform/identity/page-guard";
 import { getRequestWorkspaceContext } from "@/lib/platform/identity/request-context";
 import { getStaffNotifications } from "@/lib/admissions/communications/queries";
+import {
+  listInAppNotifications,
+  toNavNotificationShape,
+} from "@/lib/communications/notifications";
+import { createAuthClient } from "@/lib/supabase/server-auth";
 import { commitTrace, measureAsync } from "@/lib/performance/measure";
 
 /**
@@ -66,10 +71,24 @@ export default async function DashboardLayout({
   const { value: shellData, span: shellSpan } = await measureAsync(
     "layout.workspace_shell",
     async () => {
-      const [workspace, notifications] = await Promise.all([
+      const [workspace, admissionsNotifications, supabase] = await Promise.all([
         getRequestWorkspaceContext(),
         getStaffNotifications(ctx.id),
+        createAuthClient(),
       ]);
+      const platformNotifications = await listInAppNotifications(supabase, ctx.id, 25);
+      const notifications = [
+        ...platformNotifications.map((n) => ({
+          ...toNavNotificationShape(n),
+          source: "platform" as const,
+        })),
+        ...admissionsNotifications.map((n) => ({
+          ...n,
+          source: "admissions" as const,
+        })),
+      ].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
       return {
         branding: workspace?.branding,
         notifications,

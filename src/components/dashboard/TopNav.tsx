@@ -1,7 +1,10 @@
 "use client";
 
 import { getModuleByPath } from "@/lib/dashboard/navigation";
-import { StaffNotificationsBell } from "@/components/admissions/StaffNotificationsBell";
+import {
+  NotificationCenter,
+  type NavNotificationItem,
+} from "@/components/communications/NotificationCenter";
 import { useBranding } from "@/components/branding/BrandingContext";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { usePathname } from "next/navigation";
@@ -9,14 +12,7 @@ import { usePathname } from "next/navigation";
 interface TopNavProps {
   fullName: string;
   roleLabel: string;
-  notifications?: Array<{
-    id: string;
-    title: string;
-    body: string;
-    lead_id: string | null;
-    created_at: string;
-    notification_type: string;
-  }>;
+  notifications?: NavNotificationItem[];
   onMenuClick: () => void;
 }
 
@@ -61,7 +57,7 @@ export function TopNav({ fullName, roleLabel, notifications = [], onMenuClick }:
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        <StaffNotificationsBell notifications={notifications} />
+        <NotificationCenter notifications={notifications} />
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 py-1.5 pl-1.5 pr-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-xs font-semibold text-white">
             {initials}

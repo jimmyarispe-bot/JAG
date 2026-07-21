@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmployeeLifecycleActions } from "@/components/employees/EmployeeLifecycleActions";
 import { buildEmployeeProfileSectionHref } from "@/lib/employees/profile/href";
 import type { EmployeeProfileEnvelope } from "@/lib/employees/profile/types";
 
@@ -49,17 +50,17 @@ export function EmployeeProfileHeaderActions({
 }) {
   return (
     <>
+      <EmployeeLifecycleActions
+        employeeId={envelope.employeeId}
+        employmentStatus={envelope.employmentStatus}
+        variant="header"
+        historyHref={buildEmployeeProfileSectionHref(envelope.employeeId, "activity")}
+      />
       <Link
         href={buildEmployeeProfileSectionHref(envelope.employeeId, "notes")}
         className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
       >
         Notes
-      </Link>
-      <Link
-        href={buildEmployeeProfileSectionHref(envelope.employeeId, "activity")}
-        className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-      >
-        Activity
       </Link>
       {envelope.userId && (
         <Link

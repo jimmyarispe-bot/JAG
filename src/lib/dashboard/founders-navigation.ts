@@ -11,6 +11,7 @@ import type { OrganizationBranding } from "@/lib/branding/types";
  */
 export const FOUNDER_DASHBOARD_NAV = [
   { href: "/dashboard", label: "Founder & CEO", exact: true },
+  { href: "/dashboard/founder", label: "Founder Intelligence" },
   { href: "/dashboard/mission-control", label: "Mission Control" },
   { href: "/exec", label: "Command Center (JAG)" },
   { href: "/dashboard/executive", label: "Executive Intelligence" },
@@ -56,8 +57,11 @@ export const FOUNDERS_QUICK_LAUNCH_MODULE_IDS = [
 
 /** Trimmed executive sub-routes for Founder's Edition. */
 export const FOUNDERS_EXECUTIVE_NAV = [
-  { href: "/dashboard/executive", label: "Command Center", exact: true },
+  { href: "/dashboard/founder", label: "Founder Intelligence", exact: true },
+  { href: "/dashboard/executive", label: "Command Center" },
   { href: "/dashboard/jag", label: "JAG Workspace" },
+  { href: "/dashboard/executive/release", label: "Release Dashboard" },
+  { href: "/dashboard/executive/observability", label: "Observability" },
   { href: "/dashboard/executive/decisions", label: "Decisions" },
   { href: "/dashboard/executive/briefings", label: "Briefings" },
   { href: "/dashboard/executive/kpis", label: "KPIs" },
@@ -72,6 +76,11 @@ export function getFoundersModuleLabels(branding: OrganizationBranding) {
     executive: branding.founderWorkspaceLabel,
     admissions: "Admissions",
     students: "Student Success",
+    families: "Families",
+    communications: "Communications",
+    workflows: "Workflows",
+    calendar: "Calendar",
+    documents: "Documents",
     scheduling: "Scheduling",
     teacher: "Teacher Studio",
     scholarships: "Scholarships",

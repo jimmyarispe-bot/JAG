@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ProfileRecordTable } from "@/components/platform/profile-sections/ProfileRecordTable";
 import {
   ProfileCard,
@@ -125,11 +126,24 @@ export function FormsSection(props: ProfileSectionViewProps) {
 }
 
 export function CalendarSection(props: ProfileSectionViewProps) {
-  const data = props.data as { events: PortalCalendarEvent[] } | null;
+  const data = props.data as {
+    events: Array<PortalCalendarEvent | { id: string; title: string; start: string; category: string; studentName?: string }>;
+    familyId?: string;
+  } | null;
   if (!data) return missingSection("Calendar", "partial");
 
   return (
     <ProfileCard title="Household Calendar (90 days)">
+      {data.familyId ? (
+        <p className="mb-3 text-sm">
+          <Link
+            href={`/dashboard/calendar?view=agenda&familyId=${data.familyId}`}
+            className="font-medium text-brand-700 underline"
+          >
+            Open full family calendar
+          </Link>
+        </p>
+      ) : null}
       {data.events.length === 0 ? (
         <ProfileEmpty>No upcoming calendar events</ProfileEmpty>
       ) : (
@@ -138,11 +152,13 @@ export function CalendarSection(props: ProfileSectionViewProps) {
             <li key={event.id} className="rounded-lg bg-slate-50 px-3 py-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-medium">{event.title}</span>
-                <span className="text-xs capitalize text-slate-500">{event.category}</span>
+                <span className="text-xs capitalize text-slate-500">
+                  {String(event.category).replace(/_/g, " ")}
+                </span>
               </div>
               <p className="text-slate-500">
                 {new Date(event.start).toLocaleString()}
-                {event.studentName ? ` · ${event.studentName}` : ""}
+                {"studentName" in event && event.studentName ? ` · ${event.studentName}` : ""}
               </p>
             </li>
           ))}

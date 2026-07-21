@@ -12,6 +12,9 @@ type Notification = {
   lead_id: string | null;
   created_at: string;
   notification_type: string;
+  read_at?: string | null;
+  href?: string | null;
+  source?: "platform" | "admissions";
 };
 
 interface DashboardChromeProps {

@@ -45,13 +45,39 @@ export async function createBillingAccount(formData: FormData) {
   const schoolGate = await requireActorSchool(schoolId);
   if ("error" in schoolGate) return { error: schoolGate.error };
 
-  const { error } = await supabase.from("family_billing_accounts").insert({
-    family_id: formData.get("family_id") as string,
-    school_id: schoolId,
-    sibling_discount_student_id: (formData.get("sibling_discount_student_id") as string) || null,
-  });
+  const accountNumber = `BA-${Date.now().toString(36).toUpperCase()}`;
+  const { data: account, error } = await supabase
+    .from("family_billing_accounts")
+    .insert({
+      family_id: formData.get("family_id") as string,
+      school_id: schoolId,
+      sibling_discount_student_id: (formData.get("sibling_discount_student_id") as string) || null,
+      account_number: accountNumber,
+      primary_payer_name: (formData.get("primary_payer") as string) || null,
+      account_status: "active",
+    })
+    .select("id, audit_id, family_id")
+    .single();
 
   if (error) return { error: error.message };
+
+  if (account) {
+    const schoolCtx = await resolveSchoolContext(supabase, schoolId);
+    await recordActivity(supabase, {
+      eventType: "finance.account.created",
+      moduleKey: "finance",
+      entityType: "family",
+      entityId: account.id,
+      title: "Family financial account created",
+      summary: accountNumber,
+      organizationId: schoolCtx?.organizationId,
+      schoolId,
+      familyId: account.family_id,
+      sourceTable: "family_billing_accounts",
+      sourceId: account.id,
+    });
+  }
+
   revalidatePath("/dashboard/finance");
   return { success: true };
 }
@@ -158,6 +184,38 @@ export async function createInvoice(formData: FormData) {
       sourceTable: "invoices",
       sourceId: invoice.id,
     });
+
+    await recordActivity(supabase, {
+      eventType: "invoice.sent",
+      moduleKey: "finance",
+      entityType: "invoice",
+      entityId: invoice.id,
+      title: "Invoice sent",
+      summary: formData.get("invoice_number") as string,
+      organizationId: schoolCtx?.organizationId,
+      schoolId: account.school_id,
+      studentId,
+      familyId: account.family_id,
+      actorUserId: user?.id ?? null,
+      sourceTable: "invoices",
+      sourceId: invoice.id,
+    });
+
+    try {
+      const { sendFinanceCommunication } = await import(
+        "@/lib/finance-platform/communications"
+      );
+      await sendFinanceCommunication(supabase, {
+        kind: "invoice_created",
+        organizationId: schoolCtx?.organizationId,
+        schoolId: account.school_id,
+        familyId: account.family_id,
+        studentId,
+        actorUserId: user?.id ?? null,
+      });
+    } catch {
+      // best-effort
+    }
   }
 
   revalidatePath("/dashboard/finance");
@@ -298,6 +356,44 @@ export async function recordPayment(formData: FormData) {
         sourceTable: "payments",
         sourceId: payment?.id ?? invoiceId,
       });
+
+      await recordActivity(supabase, {
+        eventType: "payment.received",
+        moduleKey: "finance",
+        entityType: "payment",
+        entityId: payment?.id ?? invoiceId,
+        title: "Payment received",
+        summary: `Payment ${receiptNumber} · ${amount}`,
+        organizationId: schoolCtx?.organizationId,
+        schoolId,
+        studentId: invoiceRow.student_id,
+        familyId,
+        actorUserId: user?.id ?? null,
+        payload: {
+          payment_id: payment?.id ?? null,
+          invoice_id: invoiceId,
+          amount,
+          receipt_number: receiptNumber,
+        },
+        sourceTable: "payments",
+        sourceId: payment?.id ?? invoiceId,
+      });
+
+      try {
+        const { sendFinanceCommunication } = await import(
+          "@/lib/finance-platform/communications"
+        );
+        await sendFinanceCommunication(supabase, {
+          kind: "payment_received",
+          organizationId: schoolCtx?.organizationId,
+          schoolId,
+          familyId,
+          studentId: invoiceRow.student_id,
+          actorUserId: user?.id ?? null,
+        });
+      } catch {
+        // best-effort
+      }
     }
   }
 

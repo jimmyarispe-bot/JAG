@@ -3,6 +3,7 @@
 import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
+import { StudentLifecycleActions } from "@/components/students/StudentLifecycleActions";
 import {
   recordBehaviorEvent,
   recordStudentAttendance,
@@ -13,11 +14,15 @@ import {
 interface StudentSuccessQuickActionsProps {
   studentId: string;
   lifecycleStage: string;
+  isArchived?: boolean;
+  canManageLifecycle?: boolean;
 }
 
 export function StudentSuccessQuickActions({
   studentId,
   lifecycleStage,
+  isArchived = false,
+  canManageLifecycle = false,
 }: StudentSuccessQuickActionsProps) {
   const refreshAction = useActionFeedback({
     verb: "run",
@@ -130,6 +135,17 @@ export function StudentSuccessQuickActions({
           });
         }}
       />
+
+      {canManageLifecycle && (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <p className="mb-2 text-xs font-medium uppercase text-slate-500">Admin</p>
+          <StudentLifecycleActions
+            studentId={studentId}
+            isArchived={isArchived}
+            variant="header"
+          />
+        </div>
+      )}
     </div>
   );
 }

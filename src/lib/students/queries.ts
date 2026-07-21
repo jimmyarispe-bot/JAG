@@ -130,12 +130,26 @@ function mapStudent(row: Record<string, unknown>, fundingSources: string[]): Stu
   };
 }
 
-export async function getStudents() {
+export type StudentListStatusFilter = "active" | "archived" | "all";
+
+/**
+ * Load students for list views.
+ * Default filter is Active (excludes status = archived).
+ */
+export async function getStudents(statusFilter: StudentListStatusFilter = "active") {
   const supabase = await createAuthClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("students")
     .select("*, schools(name), campuses(name), families(family_name)")
     .order("last_name");
+
+  if (statusFilter === "active") {
+    query = query.neq("status", "archived");
+  } else if (statusFilter === "archived") {
+    query = query.eq("status", "archived");
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("[students] getStudents:", error.message);
@@ -301,31 +315,21 @@ export async function getSchools() {
 
 
 export async function getStudentStats() {
-
-  const students = await getStudents();
+  // Dashboard counts exclude archived students.
+  const students = await getStudents("active");
 
   const fundingReport = aggregateFundingReporting(
-
     students.map((student) => ({ funding_sources: student.funding_sources }))
-
   );
 
   return {
-
     total: students.length,
-
     enrolled: students.filter((s) => s.enrollment_status === "enrolled").length,
-
     pending: students.filter((s) => s.enrollment_status === "pending").length,
-
     active: students.filter((s) => s.status === "active").length,
-
     byFunding: fundingReport.byFunding,
-
     byCategory: fundingReport.byCategory,
-
   };
-
 }
 
 

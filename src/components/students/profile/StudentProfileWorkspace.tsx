@@ -24,6 +24,7 @@ interface StudentProfileWorkspaceProps {
   pinnedNotes: PlatformNote[];
   entityTags: PlatformEntityTag[];
   sectionContributions?: ProfileSectionContributions | null;
+  canManageLifecycle?: boolean;
 }
 
 export function StudentProfileWorkspace({
@@ -36,7 +37,10 @@ export function StudentProfileWorkspace({
   pinnedNotes,
   entityTags,
   sectionContributions,
+  canManageLifecycle = false,
 }: StudentProfileWorkspaceProps) {
+  const isArchived = student.status === "archived";
+
   return (
     <PlatformProfileWorkspace
       config={{
@@ -60,6 +64,8 @@ export function StudentProfileWorkspace({
             <StudentProfileHeaderActions
               studentId={student.id}
               admissionsLeadId={student.admissions_lead_id}
+              isArchived={isArchived}
+              canManageLifecycle={canManageLifecycle}
             />
           ),
           alerts: <StudentProfileHeaderAlerts summary={summary} />,
@@ -69,6 +75,8 @@ export function StudentProfileWorkspace({
             <StudentSuccessQuickActions
               studentId={student.id}
               lifecycleStage={summary.lifecycleStage}
+              isArchived={isArchived}
+              canManageLifecycle={canManageLifecycle}
             />
           ),
           aiRecommendations: (

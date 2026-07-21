@@ -113,5 +113,23 @@ export async function recordActivity(
     });
   }
 
+  // RC4 — fan-out to Workflow Engine (non-blocking; never break activity write)
+  void import("@/lib/workflows/bridge")
+    .then(({ onActivityEventForWorkflows }) =>
+      onActivityEventForWorkflows(supabase, {
+        eventType: input.eventType,
+        activityEventId: data.id,
+        organizationId: input.organizationId,
+        schoolId: input.schoolId,
+        actorUserId: input.actorUserId,
+        entityType: input.entityType,
+        entityId: input.entityId,
+        studentId: input.studentId,
+        familyId: input.familyId,
+        payload: input.payload,
+      })
+    )
+    .catch(() => undefined);
+
   return { id: data.id };
 }

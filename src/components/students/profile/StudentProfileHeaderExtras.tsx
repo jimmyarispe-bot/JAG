@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SuccessScoreBadge } from "@/components/students/SuccessScoreBadge";
+import { StudentLifecycleActions } from "@/components/students/StudentLifecycleActions";
 import { gradeLabel } from "@/lib/constants/grades";
 import { programLabel } from "@/lib/constants/programs";
 import type { ExecutiveSummary } from "@/lib/ssis/queries";
@@ -32,8 +33,13 @@ export function StudentProfileBadges({
         {gradeLabel(student.grade_level)}
       </span>
       <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium capitalize text-slate-700">
-        {student.enrollment_status}
+        {student.status === "archived" ? "archived" : student.enrollment_status}
       </span>
+      {student.status === "archived" && (
+        <span className="inline-flex rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-white">
+          Archived
+        </span>
+      )}
       {student.program && (
         <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
           {programLabel(student.program)}
@@ -86,9 +92,13 @@ export function StudentProfileHeaderAlerts({ summary }: { summary: ExecutiveSumm
 export function StudentProfileHeaderActions({
   studentId,
   admissionsLeadId,
+  isArchived = false,
+  canManageLifecycle = false,
 }: {
   studentId: string;
   admissionsLeadId?: string | null;
+  isArchived?: boolean;
+  canManageLifecycle?: boolean;
 }) {
   return (
     <>
@@ -105,6 +115,9 @@ export function StudentProfileHeaderActions({
         >
           Admissions history
         </Link>
+      )}
+      {canManageLifecycle && (
+        <StudentLifecycleActions studentId={studentId} isArchived={isArchived} variant="header" />
       )}
     </>
   );

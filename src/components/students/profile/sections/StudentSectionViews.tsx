@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ActivityTimelineFeed } from "@/components/platform/profile-sections/ActivityTimelineFeed";
+import { CommunicationTimeline } from "@/components/communications/CommunicationTimeline";
 import { ProfileRelationshipsList } from "@/components/platform/profile-sections/ProfileRelationshipsList";
 import { ProfileTagsList } from "@/components/platform/profile-sections/ProfileTagsList";
 import { ProfileSectionPlaceholder } from "@/components/platform/profile-workspace/ProfileSectionPlaceholder";
@@ -25,6 +26,7 @@ import {
 } from "@/components/students/profile/panels/StudentProfilePanels";
 import { ProfileCard, ProfileEmpty, ProfileItem } from "@/components/students/profile/shared/ProfilePrimitives";
 import { FamilyLinkActions } from "@/components/students/FamilyLinkActions";
+import { StudentFamilyRelationshipActions } from "@/components/students/StudentFamilyRelationshipActions";
 import { buildFamilyProfileSectionHref } from "@/lib/families/profile/href";
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import type { PlatformActivityEvent } from "@/lib/platform/activity/types";
@@ -274,6 +276,14 @@ export function SchedulingSection(props: ProfileSectionViewProps) {
     sessions: Record<string, unknown>[];
     services: Record<string, unknown>[];
     courseEnrollments?: Record<string, unknown>[];
+    platformOccurrences?: Array<{
+      id: string;
+      title: string;
+      eventType: string;
+      startsAt: string;
+      endsAt: string;
+    }>;
+    studentId?: string;
   } | null;
 
   if (!data) {
@@ -281,11 +291,46 @@ export function SchedulingSection(props: ProfileSectionViewProps) {
   }
 
   return (
-    <SchedulingPanel
-      sessions={data.sessions}
-      services={data.services}
-      courseEnrollments={data.courseEnrollments ?? []}
-    />
+    <div className="space-y-6">
+      {data.studentId ? (
+        <p className="text-sm">
+          <Link
+            href={`/dashboard/calendar?view=agenda&studentId=${data.studentId}`}
+            className="font-medium text-brand-700 underline"
+          >
+            Open student calendar
+          </Link>
+        </p>
+      ) : null}
+      {(data.platformOccurrences?.length ?? 0) > 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <h3 className="mb-3 text-sm font-semibold text-slate-900">
+            Upcoming platform events (30 days)
+          </h3>
+          <ul className="space-y-2 text-sm">
+            {data.platformOccurrences!.slice(0, 12).map((event) => (
+              <li key={event.id} className="rounded-lg bg-slate-50 px-3 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium">{event.title}</span>
+                  <span className="text-xs capitalize text-slate-500">
+                    {event.eventType.replace(/_/g, " ")}
+                  </span>
+                </div>
+                <p className="text-slate-500">
+                  {new Date(event.startsAt).toLocaleString()} –{" "}
+                  {new Date(event.endsAt).toLocaleTimeString()}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <SchedulingPanel
+        sessions={data.sessions}
+        services={data.services}
+        courseEnrollments={data.courseEnrollments ?? []}
+      />
+    </div>
   );
 }
 
@@ -368,6 +413,54 @@ export function FamilySection(props: ProfileSectionViewProps) {
                 </ul>
               </div>
             )}
+            {data.siblings.length > 0 && (
+              <div>
+                <p className="text-xs uppercase text-slate-400">Siblings</p>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                  {data.siblings.map((sibling) => {
+                    const id = String(sibling.id ?? "");
+                    const first = String(sibling.first_name ?? "");
+                    const last = String(sibling.last_name ?? "");
+                    const initial = first[0]?.toUpperCase() ?? "?";
+                    const photo = sibling.photo_url ? String(sibling.photo_url) : null;
+                    const schoolName =
+                      sibling.schools && typeof sibling.schools === "object"
+                        ? String((sibling.schools as { name?: string }).name ?? "")
+                        : "";
+                    return (
+                      <Link
+                        key={id}
+                        href={`/dashboard/students/${id}`}
+                        className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 hover:border-brand-200 hover:bg-brand-50/30"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm font-semibold text-slate-700">
+                          {photo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={photo} alt="" className="h-10 w-10 object-cover" />
+                          ) : (
+                            initial
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-900">
+                            {first} {last}
+                          </p>
+                          <p className="truncate text-xs text-slate-500">
+                            {[sibling.grade_level, sibling.program, schoolName || null]
+                              .filter(Boolean)
+                              .map(String)
+                              .join(" · ") || "Sibling"}
+                          </p>
+                          <p className="text-[11px] capitalize text-slate-400">
+                            {String(sibling.status ?? sibling.enrollment_status ?? "active")}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {data.authorizedContacts.length > 0 && (
               <div>
                 <p className="text-xs uppercase text-slate-400">Emergency & Authorized Contacts</p>
@@ -383,6 +476,19 @@ export function FamilySection(props: ProfileSectionViewProps) {
                 </ul>
               </div>
             )}
+            {canManageFamily && data.student?.school_id ? (
+              <StudentFamilyRelationshipActions
+                studentId={data.student.id}
+                studentLastName={data.student.last_name}
+                schoolId={data.student.school_id}
+                currentFamilyId={familyId}
+                families={(data.families ?? []).map((f) => ({
+                  id: f.id,
+                  family_name: f.family_name,
+                }))}
+                canManage={canManageFamily}
+              />
+            ) : null}
             <div className="flex flex-wrap gap-3 text-sm">
               <Link
                 href={buildFamilyProfileSectionHref(familyId, "overview")}
@@ -482,13 +588,60 @@ export function ComplianceSection(props: ProfileSectionViewProps) {
 }
 
 export function CommunicationsSection(props: ProfileSectionViewProps) {
-  const events = (props.data as PlatformActivityEvent[] | null) ?? [];
+  const data = props.data as {
+    activity?: PlatformActivityEvent[];
+    platformCommunications?: Array<{
+      id: string;
+      auditId: string;
+      type: string;
+      direction: string;
+      status: string;
+      subject: string | null;
+      bodyPreview: string | null;
+      senderDisplayName: string | null;
+      createdAt: string;
+      sentAt: string | null;
+      studentId: string | null;
+      familyId: string | null;
+      source: "platform_communications";
+    }>;
+    studentId?: string;
+    familyId?: string | null;
+  } | null;
+
+  // Backward compatible: older loaders returned a bare activity array
+  if (Array.isArray(props.data)) {
+    return (
+      <ActivityTimelineFeed
+        events={props.data as PlatformActivityEvent[]}
+        title="Communications"
+        emptyMessage="No communication events recorded"
+      />
+    );
+  }
+
+  const events = data?.activity ?? [];
+  const platform = (data?.platformCommunications ?? []) as Parameters<
+    typeof CommunicationTimeline
+  >[0]["items"];
+  const composeQs = new URLSearchParams();
+  if (data?.studentId) composeQs.set("studentId", data.studentId);
+  if (data?.familyId) composeQs.set("familyId", data.familyId);
+
   return (
-    <ActivityTimelineFeed
-      events={events}
-      title="Communications"
-      emptyMessage="No communication events recorded"
-    />
+    <div className="space-y-6">
+      <CommunicationTimeline
+        items={platform}
+        title="Student communication timeline"
+        emptyMessage="No platform communications for this student yet"
+        composeHref={`/dashboard/communications/compose?${composeQs.toString()}`}
+      />
+      <ActivityTimelineFeed
+        events={events}
+        title="Communication activity"
+        emptyMessage="No communication events recorded"
+      />
+    </div>
   );
 }
 

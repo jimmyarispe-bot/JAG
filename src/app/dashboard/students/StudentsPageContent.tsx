@@ -26,19 +26,32 @@ import { formatCount } from "@/lib/format";
 import { executeWorkspace } from "@/lib/platform/execution-engine";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { STUDENTS_WORK_PERSPECTIVES, resolveJagWorkPerspective, resolveJagWorkQueue } from "@/lib/platform/jag-work";
-import { getFamilies, getSchools, getSchoolYears, getStudents, getStudentStats } from "@/lib/students/queries";
+import { canManageStudentLifecycle } from "@/lib/students/lifecycle";
+import {
+  getFamilies,
+  getSchools,
+  getSchoolYears,
+  getStudents,
+  getStudentStats,
+  type StudentListStatusFilter,
+} from "@/lib/students/queries";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import "@/lib/platform/execution-engine";
 
 export const STUDENT_TABS = [
   { href: "/dashboard/students?view=students", label: "Students", value: "students" },
-  { href: "/dashboard/students?view=families", label: "Families", value: "families" },
+  { href: "/dashboard/families", label: "Families", value: "families" },
   { href: "/dashboard/students?view=add", label: "Add Student", value: "add" },
   { href: "/dashboard/students/import", label: "Bulk Import", value: "import" },
 ] as const;
 
+function parseStatusFilter(raw?: string): StudentListStatusFilter {
+  if (raw === "archived" || raw === "all") return raw;
+  return "active";
+}
+
 interface StudentsPageContentProps {
-  searchParams: Promise<{ view?: string; work?: string }>;
+  searchParams: Promise<{ view?: string; work?: string; status?: string }>;
 }
 
 const loadStudentsWorkBundle = cache(async (work: string | undefined) => {
@@ -83,9 +96,15 @@ const loadStudentsWorkBundle = cache(async (work: string | undefined) => {
   };
 });
 
-async function StudentsLegacyView({ view }: { view: string }) {
+async function StudentsLegacyView({
+  view,
+  statusFilter,
+}: {
+  view: string;
+  statusFilter: StudentListStatusFilter;
+}) {
   const [students, families, stats, schools, schoolYears, identity] = await Promise.all([
-    getStudents(),
+    getStudents(statusFilter),
     getFamilies(),
     getStudentStats(),
     getSchools(),
@@ -96,6 +115,7 @@ async function StudentsLegacyView({ view }: { view: string }) {
     identity?.permissions.includes("families.manage") ||
       identity?.permissions.includes("students.edit")
   );
+  const canManageLifecycle = canManageStudentLifecycle(identity);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -137,7 +157,11 @@ async function StudentsLegacyView({ view }: { view: string }) {
             canManageFamily={canManageFamily}
           />
         ) : (
-          <StudentList students={students} />
+          <StudentList
+            students={students}
+            statusFilter={statusFilter}
+            canManageLifecycle={canManageLifecycle}
+          />
         )}
       </WidgetBoundary>
     </div>
@@ -207,7 +231,7 @@ export async function StudentsPageContent({ searchParams }: StudentsPageContentP
   const sp = await searchParams;
   const legacyViews = new Set(STUDENT_TABS.map((t) => t.value));
   if (sp.view && legacyViews.has(sp.view as (typeof STUDENT_TABS)[number]["value"])) {
-    return <StudentsLegacyView view={sp.view} />;
+    return <StudentsLegacyView view={sp.view} statusFilter={parseStatusFilter(sp.status)} />;
   }
 
   const workPerspective = resolveJagWorkPerspective("students", sp.work);

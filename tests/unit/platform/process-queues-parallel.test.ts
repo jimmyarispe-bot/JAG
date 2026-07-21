@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
   syncIntelligenceNetwork: vi.fn(async () => undefined),
   generateExecutiveInsights: vi.fn(async () => undefined),
   captureDailyExecutiveSnapshot: vi.fn(async () => undefined),
+  processRc11ProductionWorkers: vi.fn(async () => ({ ok: true })),
 }));
 
 vi.mock("@/lib/admissions/automation/queue", () => ({
@@ -116,6 +117,9 @@ vi.mock("@/lib/executive/insights", () => ({
 vi.mock("@/lib/platform/kpi-snapshots", () => ({
   captureDailyExecutiveSnapshot: mocks.captureDailyExecutiveSnapshot,
 }));
+vi.mock("@/lib/production/workers", () => ({
+  processRc11ProductionWorkers: mocks.processRc11ProductionWorkers,
+}));
 
 describe("processAllPlatformQueues parallel waves", () => {
   beforeEach(() => {
@@ -151,5 +155,6 @@ describe("processAllPlatformQueues parallel waves", () => {
     expect(order.indexOf("sync")).toBeLessThan(order.indexOf("process"));
     expect(mocks.generateExecutiveInsights).toHaveBeenCalledWith(supabase, "school-1");
     expect(mocks.captureDailyExecutiveSnapshot).toHaveBeenCalled();
+    expect(mocks.processRc11ProductionWorkers).toHaveBeenCalledWith(supabase);
   });
 });

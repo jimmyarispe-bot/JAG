@@ -8,6 +8,11 @@ export type ModuleId =
   | "executive"
   | "admissions"
   | "students"
+  | "families"
+  | "communications"
+  | "workflows"
+  | "calendar"
+  | "documents"
   | "scheduling"
   | "teacher"
   | "scholarships"
@@ -66,6 +71,86 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
       "Admissions-linked conversion with no duplicate entry",
       "Funding, scholarships, and state funding center",
       "Communication timeline and parent engagement",
+    ],
+  },
+  {
+    id: "families",
+    href: "/dashboard/families",
+    sidebarLabel: "Families",
+    pageTitle: "Family Management",
+    pageSubtitle: "Households, guardians, siblings, billing, and communications",
+    placeholderTitle: "Family Management",
+    placeholderDescription:
+      "First-class family profiles connecting students, guardians, billing, and scholarships.",
+    placeholderFeatures: [
+      "Family dashboard with search and filters",
+      "Multi-guardian household management",
+      "Merge and split families with audit history",
+      "Billing and scholarship views by household",
+    ],
+  },
+  {
+    id: "communications",
+    href: "/dashboard/communications",
+    sidebarLabel: "Communications",
+    pageTitle: "Communications",
+    pageSubtitle: "Email, SMS, portal messages, calls, meetings, and announcements",
+    placeholderTitle: "Communications & Engagement",
+    placeholderDescription:
+      "Centralized communication center with templates, scheduling, and audit trail.",
+    placeholderFeatures: [
+      "Unified inbox across channels",
+      "Templates with merge variables",
+      "Announcements and scheduled messages",
+      "Phone call and meeting logs",
+    ],
+  },
+  {
+    id: "workflows",
+    href: "/dashboard/workflows",
+    sidebarLabel: "Workflows",
+    pageTitle: "Workflows & Automation",
+    pageSubtitle: "Event-driven workflows, conditions, actions, and execution history",
+    placeholderTitle: "Workflow Engine",
+    placeholderDescription:
+      "Configure automations that respond to admissions, students, billing, and more.",
+    placeholderFeatures: [
+      "Trigger library across all modules",
+      "Condition and action builder",
+      "Visual workflow definitions",
+      "Execution history with retry",
+    ],
+  },
+  {
+    id: "calendar",
+    href: "/dashboard/calendar",
+    sidebarLabel: "Calendar",
+    pageTitle: "Calendar",
+    pageSubtitle: "Classes, meetings, resources, and school-wide schedules",
+    placeholderTitle: "Calendar Platform",
+    placeholderDescription:
+      "Unified day/week/month calendar with recurrence, availability, and resource booking.",
+    placeholderFeatures: [
+      "Day, week, month, and agenda views",
+      "Recurring events with exceptions",
+      "Teacher and student conflict prevention",
+      "Resource reservations and Meet adapters",
+    ],
+  },
+  {
+    id: "documents",
+    href: "/dashboard/documents",
+    sidebarLabel: "Documents",
+    pageTitle: "Documents & Records",
+    pageSubtitle: "Versioned records with permissions, templates, and lifecycle management",
+    placeholderTitle: "Document & Records Management",
+    placeholderDescription:
+      "First-class documents with version control, entity relationships, and workflow integration.",
+    placeholderFeatures: [
+      "Student, family, employee, and school document views",
+      "Immutable version history with restore",
+      "Templates and archive/restore/delete lifecycle",
+      "Workflow and Executive Intelligence events",
     ],
   },
   {
@@ -235,6 +320,16 @@ export function getModuleByPath(pathname: string, branding?: OrganizationBrandin
       ...EXECUTIVE_MODULE,
       pageTitle: "Enterprise Compliance Center",
       pageSubtitle: "Obligations, deadlines, renewals, and compliance activity",
+    };
+  }
+
+  if (pathname.startsWith("/dashboard/founder")) {
+    return {
+      ...EXECUTIVE_MODULE,
+      href: "/dashboard/founder",
+      sidebarLabel: "Founder Intelligence",
+      pageTitle: "Founder Intelligence",
+      pageSubtitle: "AI executive layer — brief, health, risks, decisions",
     };
   }
 

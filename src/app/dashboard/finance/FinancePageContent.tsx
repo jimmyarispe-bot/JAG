@@ -29,11 +29,20 @@ import {
   getTuitionPlans,
 } from "@/lib/finance/queries";
 import { getLatestForecast } from "@/lib/finance/forecasting";
+import { FinanceOperationsDashboard } from "@/components/finance/FinanceOperationsDashboard";
+import {
+  canEditFinance,
+  getFinanceOperationsSummary,
+  listFamilyFinancialAccounts,
+  listRefundQueue,
+} from "@/lib/finance-platform";
 import { executeWorkspace } from "@/lib/platform/execution-engine";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { FINANCE_WORK_PERSPECTIVES, resolveJagWorkPerspective, resolveJagWorkQueue } from "@/lib/platform/jag-work";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import "@/lib/platform/execution-engine";
+import "@/lib/finance-platform/payments";
+import "@/lib/finance-platform/accounting";
 
 export const FINANCE_TABS = [
   { href: "/dashboard/finance?view=invoices", label: "Invoices", value: "invoices" },
@@ -47,6 +56,7 @@ export const FINANCE_TABS = [
   { href: "/dashboard/admissions/state-funding", label: "State Funding", value: "state-funding" },
   { href: "/dashboard/scholarships", label: "Scholarships", value: "scholarships" },
   { href: "/dashboard/finance?view=create", label: "Create", value: "create" },
+  { href: "/dashboard/finance?view=operations", label: "Operations", value: "operations" },
 ] as const;
 
 interface FinancePageContentProps {
@@ -58,17 +68,21 @@ async function FinanceLegacyView({ view }: { view: string }) {
   const schoolId = ctx?.orgAssignments.find((a) => a.is_primary)?.school_id || ctx?.accessibleSchoolIds[0];
   const supabase = await createAuthClient();
 
-  const [stats, invoices, payments, plans, accounts, families, students, schools, forecast] = await Promise.all([
-    getFinanceStats(),
-    getInvoices(),
-    getPayments(),
-    getTuitionPlans(),
-    getBillingAccounts(),
-    getFamiliesForBilling(),
-    getStudentsForBilling(),
-    getSchools(),
-    schoolId ? getLatestForecast(supabase, schoolId) : Promise.resolve(null),
-  ]);
+  const [stats, invoices, payments, plans, accounts, families, students, schools, forecast, opsSummary, familyAccounts, refundQueue] =
+    await Promise.all([
+      getFinanceStats(),
+      getInvoices(),
+      getPayments(),
+      getTuitionPlans(),
+      getBillingAccounts(),
+      getFamiliesForBilling(),
+      getStudentsForBilling(),
+      getSchools(),
+      schoolId ? getLatestForecast(supabase, schoolId) : Promise.resolve(null),
+      getFinanceOperationsSummary(supabase, { schoolId }),
+      listFamilyFinancialAccounts(supabase, { schoolId }),
+      listRefundQueue(supabase, { schoolId, status: "open" }),
+    ]);
 
   const overdueCount = invoices.filter(
     (inv) => !["paid", "void", "cancelled"].includes(inv.invoice_status) && inv.due_date < new Date().toISOString().split("T")[0]!
@@ -78,21 +92,41 @@ async function FinanceLegacyView({ view }: { view: string }) {
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
         title="Finance & Billing"
-        subtitle="Tuition plans, invoices, payments, and family billing"
+        subtitle="Tuition, invoices, payments, scholarships, plans, aging, and revenue operations"
         actions={
           <Link href="/dashboard/finance?work=today" className="rounded-xl border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50">
             ← Work queue
           </Link>
         }
       />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total Billed" value={formatCurrency(stats.totalBilled)} description="All invoices" accent="indigo" icon={<span className="text-lg font-bold">B</span>} />
-        <StatCard title="Collected" value={formatCurrency(stats.totalPaid)} description="Payments received" accent="emerald" icon={<span className="text-lg font-bold">C</span>} />
-        <StatCard title="Outstanding" value={formatCurrency(stats.outstanding)} description="Unpaid balances" accent="amber" icon={<span className="text-lg font-bold">O</span>} />
-        <StatCard title="Invoices" value={formatCount(stats.invoiceCount)} description="Total invoices" accent="sky" icon={<span className="text-lg font-bold">I</span>} />
-      </div>
-      <ViewTabs tabs={[...FINANCE_TABS]} activeView={view} />
-      <FinanceTabs view={view} invoices={invoices} payments={payments} plans={plans} accounts={accounts} families={families} students={students} schools={schools} forecast={forecast} overdueCount={overdueCount} />
+      {(view === "operations" || view === "accounts") && (
+        <FinanceOperationsDashboard
+          summary={opsSummary}
+          accounts={familyAccounts}
+          refundQueue={refundQueue.map((r) => ({
+            id: r.id as string,
+            amount: Number(r.amount),
+            status: String(r.status),
+            reason: String(r.reason ?? ""),
+            requested_at: String(r.requested_at),
+          }))}
+          canEdit={canEditFinance(ctx)}
+        />
+      )}
+      {view !== "operations" ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard title="Total Billed" value={formatCurrency(stats.totalBilled)} description="All invoices" accent="indigo" icon={<span className="text-lg font-bold">B</span>} />
+            <StatCard title="Collected" value={formatCurrency(stats.totalPaid)} description="Payments received" accent="emerald" icon={<span className="text-lg font-bold">C</span>} />
+            <StatCard title="Outstanding" value={formatCurrency(stats.outstanding)} description="Unpaid balances" accent="amber" icon={<span className="text-lg font-bold">O</span>} />
+            <StatCard title="Invoices" value={formatCount(stats.invoiceCount)} description="Total invoices" accent="sky" icon={<span className="text-lg font-bold">I</span>} />
+          </div>
+          <ViewTabs tabs={[...FINANCE_TABS]} activeView={view} />
+          <FinanceTabs view={view} invoices={invoices} payments={payments} plans={plans} accounts={accounts} families={families} students={students} schools={schools} forecast={forecast} overdueCount={overdueCount} />
+        </>
+      ) : (
+        <ViewTabs tabs={[...FINANCE_TABS]} activeView={view} />
+      )}
     </div>
   );
 }
@@ -102,6 +136,11 @@ export async function FinancePageContent({ searchParams }: FinancePageContentPro
   const legacyViews = new Set(FINANCE_TABS.map((t) => t.value));
   if (sp.view && legacyViews.has(sp.view as (typeof FINANCE_TABS)[number]["value"])) {
     return <FinanceLegacyView view={sp.view} />;
+  }
+
+  // Default landing: operations overview (RC7)
+  if (!sp.view && !sp.work) {
+    return <FinanceLegacyView view="operations" />;
   }
 
   const ctx = await getIdentityContext();

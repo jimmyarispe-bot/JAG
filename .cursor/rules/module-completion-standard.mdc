@@ -1,0 +1,27 @@
+---
+description: AcademyOS Module Completion Standard v2 — all gates required before complete
+alwaysApply: true
+---
+
+# Module Completion Standard (v2)
+
+A module **cannot be marked complete** unless it passes all applicable gates:
+
+1. CRUD · 2. Security · 3. Workflow · 4. EI · 5. Audit · 6. Communications · 7. Docs · 8. Tests · 9. Accessibility · 10. Mobile · 11. Performance · 12. Extension · 13. UX · 14. Production
+
+## Status model
+
+`planned` → `building` → `feature-complete` → `crud-complete` → `workflow-complete` → `ei-complete` → `tested` → `production-ready` → `released`
+
+Declare status only in `src/lib/platform/release/registry.ts`. Do not claim `production-ready` / `released` while gates fail.
+
+## Required when shipping a module
+
+- Feature doc: `docs/features/<module>.md`
+- Lifecycle events in EI catalog + Workflow trigger mappings
+- Server-side permissions + RLS signals
+- Tests under declared `testPaths`
+- Shared CRUD UI patterns; extension API for third parties
+- Run `npm run validate:release`
+
+Dashboard: `/dashboard/executive/release`

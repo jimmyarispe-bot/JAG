@@ -10,6 +10,8 @@ import {
   loadStudentSectionData,
   resolveStudentProfile,
 } from "@/lib/students/profile";
+import { getIdentityContext } from "@/lib/platform/identity/context";
+import { canManageStudentLifecycle } from "@/lib/students/lifecycle";
 import { getStudentById } from "@/lib/students/queries";
 import { getStudentExecutiveSummary } from "@/lib/ssis/queries";
 import { createAuthClient } from "@/lib/supabase/server-auth";
@@ -55,6 +57,8 @@ export default async function StudentDetailPage({ params, searchParams }: Studen
   );
 
   const notesForContext = contextData.notesForContext;
+  const identity = await getIdentityContext();
+  const canManageLifecycle = canManageStudentLifecycle(identity);
 
   return (
     <StudentProfileWorkspace
@@ -67,6 +71,7 @@ export default async function StudentDetailPage({ params, searchParams }: Studen
       pinnedNotes={notesForContext}
       entityTags={contextData.entityTags}
       sectionContributions={sectionContributions}
+      canManageLifecycle={canManageLifecycle}
     />
   );
 }

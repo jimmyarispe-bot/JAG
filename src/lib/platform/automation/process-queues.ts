@@ -209,4 +209,15 @@ export async function processAllPlatformQueues(supabase: AuthClient) {
       }))
     );
   }
+
+  // Wave 6 — RC11 production readiness workers (JAG, founder, aging, certs, notifications).
+  await runParallelJobs([
+    {
+      name: "rc11.productionWorkers",
+      run: async () => {
+        const { processRc11ProductionWorkers } = await import("@/lib/production/workers");
+        return processRc11ProductionWorkers(supabase);
+      },
+    },
+  ]);
 }
