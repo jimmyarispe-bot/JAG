@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { assertLoginNotThrottled } from "@/lib/auth/login-throttle";
 import type { OrganizationBranding } from "@/lib/branding/types";
+import { ActionButton } from "@/components/experience-system/feedback/ActionButton";
 
 interface LoginFormProps {
   branding: OrganizationBranding;
@@ -104,14 +105,24 @@ export default function LoginForm({ branding }: LoginFormProps) {
           />
         </div>
 
-        <button
+        <ActionButton
           type="submit"
-          disabled={loading}
+          variant="primary"
+          size="md"
+          loading={loading}
+          verb="custom"
+          labels={{
+            idle: "Sign in",
+            loading: "Signing in…",
+            processing: "Signing in…",
+            success: "✓ Signed in",
+            error: "Unable to sign in",
+          }}
           aria-label={loading ? "Signing in" : `Sign in to ${branding.productName}`}
-          className="w-full rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          className="w-full"
         >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
+          Sign in
+        </ActionButton>
       </form>
 
       {message && (

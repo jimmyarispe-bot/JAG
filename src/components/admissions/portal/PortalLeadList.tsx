@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
 import { startApplication } from "@/lib/admissions/portal/actions";
 import { leadStageLabel } from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
 import type { GuardianPortalLead } from "@/lib/admissions/portal/queries";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { portalSectionClass } from "./styles";
 
 interface PortalLeadListProps {
@@ -14,7 +15,13 @@ interface PortalLeadListProps {
 }
 
 export function PortalLeadList({ leads, schoolYearBySchool }: PortalLeadListProps) {
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "submit",
+    labels: { idle: "Start Application", loading: "Starting…", success: "✓ Started" },
+    successToast: "✓ Application started.",
+    errorToast: "Unable to start application.",
+    progressLabel: "Starting application…",
+  });
 
   if (leads.length === 0) {
     return (
@@ -62,22 +69,29 @@ export function PortalLeadList({ leads, schoolYearBySchool }: PortalLeadListProp
                     Open Application
                   </Link>
                 ) : (
-                  <button
+                  <ActionButton
                     type="button"
-                    disabled={isPending || !schoolYear}
+                    status={action.status}
+                    verb="submit"
+                    labels={{
+                      idle: schoolYear ? "Start Application" : "School year unavailable",
+                      loading: "Starting…",
+                      success: "✓ Started",
+                    }}
+                    disabled={!schoolYear}
+                    className="!rounded-xl !bg-brand-600 !px-4 !py-2 hover:!bg-brand-700"
                     onClick={() => {
                       if (!schoolYear) return;
-                      startTransition(async () => {
+                      void action.run(async () => {
                         const result = await startApplication(lead.id, schoolYear.id);
+                        assertActionResult(result);
                         if (result.applicationId) {
                           window.location.href = `/apply/portal/${result.applicationId}`;
                         }
+                        return result;
                       });
                     }}
-                    className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-                  >
-                    {schoolYear ? "Start Application" : "School year unavailable"}
-                  </button>
+                  />
                 )}
               </div>
             </div>

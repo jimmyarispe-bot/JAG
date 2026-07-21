@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/integration-hub/context";
 import { getDeveloperApps, getSandboxKeys, getUsageAnalytics } from "@/lib/integration-hub/developer-portal";
 import { IntHubShell } from "@/components/integration-hub/IntHubNav";
 import { IntHubTable } from "@/components/integration-hub/IntHubPanels";
+import { ExperienceForm } from "@/components/integration-hub/IntHubMutationControls";
 import { createSandboxKeyAction } from "@/lib/integration-hub/actions";
 
 export default async function IntegrationDeveloperPage() {
@@ -31,10 +32,18 @@ export default async function IntegrationDeveloperPage() {
           <li>GraphQL-ready architecture (future)</li>
         </ul>
       </div>
-      <form action={createSandboxKeyAction} className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
+      <ExperienceForm
+        action={createSandboxKeyAction}
+        verb="create"
+        labels={{ idle: "Create sandbox key", loading: "Creating…", success: "✓ Created" }}
+        progressLabel="Creating sandbox key…"
+        successToast="✓ Sandbox key created."
+        errorToast="Unable to create key."
+        className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"
+        buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+      >
         <input name="key_name" placeholder="Sandbox key name" className="rounded-lg border px-3 py-2 text-sm" required />
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Create sandbox key</button>
-      </form>
+      </ExperienceForm>
       <IntHubTable rows={sandbox} columns={[{ key: "key_name", label: "Key" }, { key: "key_prefix", label: "Prefix" }, { key: "expires_at", label: "Expires" }]} />
       <IntHubTable rows={apps} columns={[{ key: "app_name", label: "App" }, { key: "app_type", label: "Type" }, { key: "status", label: "Status" }]} />
     </IntHubShell>

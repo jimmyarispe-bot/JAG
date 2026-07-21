@@ -74,7 +74,10 @@ export type PerfProbeReport = {
     integrationsInitMs: number | null;
   };
   comparisons: {
+    /** Full eager 39-module graph construction. */
     intelligenceColdMs: number;
+    /** P005 lazy shell (no domain stacks materialised). */
+    intelligenceLazyColdMs: number;
     intelligenceWarmMs: number;
     integrationsColdMs: number;
     integrationsWarmMs: number;

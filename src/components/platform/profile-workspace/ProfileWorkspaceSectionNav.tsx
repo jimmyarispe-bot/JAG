@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import type { ProfileNavigationModel } from "@/lib/platform/profile/types";
+import type { ClientProfileNavigation } from "@/lib/platform/profile/types";
 
 const ProfileSectionNavOverflow = dynamic(
   () =>
@@ -13,7 +13,8 @@ const ProfileSectionNavOverflow = dynamic(
 );
 
 interface ProfileWorkspaceSectionNavProps {
-  navigation: ProfileNavigationModel;
+  /** Must be client-safe (no loadData). Use toClientProfileNavigation(). */
+  navigation: ClientProfileNavigation;
   /** Flat list of primary tabs for horizontal nav */
   compact?: boolean;
 }

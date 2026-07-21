@@ -1,5 +1,5 @@
 import type { WorkProject, WorkTask, WorkExecutiveMetrics } from "@/lib/work/types";
-import { executePlaybookAction } from "@/lib/work/actions";
+import { RunPlaybookForm } from "@/components/work/WorkMutationControls";
 
 export function ProjectsList({ projects }: { projects: WorkProject[] }) {
   return (
@@ -75,16 +75,7 @@ export function PlaybooksList({
             {pb.project_type.replace(/_/g, " ")}
             {pb.estimated_duration_days ? ` · ~${pb.estimated_duration_days} days` : ""}
           </p>
-          <form action={executePlaybookAction} className="mt-4">
-            <input type="hidden" name="playbook_id" value={pb.id} />
-            {schoolId && <input type="hidden" name="school_id" value={schoolId} />}
-            <button
-              type="submit"
-              className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
-            >
-              Run playbook
-            </button>
-          </form>
+          <RunPlaybookForm playbookId={pb.id} schoolId={schoolId} />
         </li>
       ))}
     </ul>

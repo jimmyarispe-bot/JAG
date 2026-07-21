@@ -41,6 +41,18 @@ export { createEcosystemModule } from "@/lib/platform/intelligence/infrastructur
 export { createInstitutionalMemoryModule } from "@/lib/platform/intelligence/infrastructure/modules/institutional-memory";
 export { createCollectiveModule } from "@/lib/platform/intelligence/infrastructure/modules/collective";
 export { createWisdomModule } from "@/lib/platform/intelligence/infrastructure/modules/wisdom";
+export { createSynthesisModule } from "@/lib/platform/intelligence/infrastructure/modules/synthesis";
+export { createBriefingModule } from "@/lib/platform/intelligence/infrastructure/modules/briefing";
+export { createExecutiveMemoryModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-memory";
+export { createDecisionIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/decision-intelligence";
+export { createExecutivePredictiveModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-predictive";
+export { createExecutiveAutonomousModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-autonomous";
+export { createExecutiveCopilotModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-copilot";
+export { createExecutiveCommandCenterModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-command-center";
+export { createInitiativeIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/initiative-intelligence";
+export { createPortfolioIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/portfolio-intelligence";
+export { createDigitalTwinModule } from "@/lib/platform/intelligence/infrastructure/modules/digital-twin";
+export { createEcosystemIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/ecosystem-intelligence";
 
 import type { IntelligenceModule, IntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/contracts";
 import { createIntelligenceProvider } from "@/lib/platform/intelligence/infrastructure/provider";
@@ -75,6 +87,18 @@ import { createEcosystemModule } from "@/lib/platform/intelligence/infrastructur
 import { createInstitutionalMemoryModule } from "@/lib/platform/intelligence/infrastructure/modules/institutional-memory";
 import { createCollectiveModule } from "@/lib/platform/intelligence/infrastructure/modules/collective";
 import { createWisdomModule } from "@/lib/platform/intelligence/infrastructure/modules/wisdom";
+import { createSynthesisModule } from "@/lib/platform/intelligence/infrastructure/modules/synthesis";
+import { createBriefingModule } from "@/lib/platform/intelligence/infrastructure/modules/briefing";
+import { createExecutiveMemoryModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-memory";
+import { createDecisionIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/decision-intelligence";
+import { createExecutivePredictiveModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-predictive";
+import { createExecutiveAutonomousModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-autonomous";
+import { createExecutiveCopilotModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-copilot";
+import { createExecutiveCommandCenterModule } from "@/lib/platform/intelligence/infrastructure/modules/executive-command-center";
+import { createInitiativeIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/initiative-intelligence";
+import { createPortfolioIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/portfolio-intelligence";
+import { createDigitalTwinModule } from "@/lib/platform/intelligence/infrastructure/modules/digital-twin";
+import { createEcosystemIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/ecosystem-intelligence";
 import { createOrganizationHealthModule } from "@/lib/platform/intelligence/infrastructure/modules/organization-health";
 import { createFinancialIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/financial";
 import { createFounderIntelligenceModule } from "@/lib/platform/intelligence/infrastructure/modules/founder";
@@ -223,6 +247,54 @@ import type {
   CreateWisdomOptions,
   WisdomStack,
 } from "@/lib/platform/intelligence/wisdom";
+import type {
+  CreateSynthesisOptions,
+  SynthesisStack,
+} from "@/lib/platform/intelligence/synthesis";
+import type {
+  CreateBriefingOptions,
+  BriefingStack,
+} from "@/lib/platform/intelligence/briefing";
+import type {
+  CreateExecutiveMemoryOptions,
+  ExecutiveMemoryStack,
+} from "@/lib/platform/intelligence/executive-memory";
+import type {
+  CreateDecisionIntelligenceOptions,
+  DecisionIntelligenceStack,
+} from "@/lib/platform/intelligence/decision-intelligence";
+import type {
+  CreateExecutivePredictiveOptions,
+  ExecutivePredictiveStack,
+} from "@/lib/platform/intelligence/executive-predictive";
+import type {
+  CreateExecutiveAutonomousOptions,
+  ExecutiveAutonomousStack,
+} from "@/lib/platform/intelligence/executive-autonomous";
+import type {
+  CreateExecutiveCopilotOptions,
+  ExecutiveCopilotStack,
+} from "@/lib/platform/intelligence/executive-copilot";
+import type {
+  CreateExecutiveCommandCenterOptions,
+  ExecutiveCommandCenterStack,
+} from "@/lib/platform/intelligence/executive-command-center";
+import type {
+  CreateInitiativeIntelligenceOptions,
+  InitiativeIntelligenceStack,
+} from "@/lib/platform/intelligence/initiative-intelligence";
+import type {
+  CreatePortfolioIntelligenceOptions,
+  PortfolioIntelligenceStack,
+} from "@/lib/platform/intelligence/portfolio-intelligence";
+import type {
+  CreateDigitalTwinOptions,
+  DigitalTwinStack,
+} from "@/lib/platform/intelligence/digital-twin";
+import type {
+  CreateEcosystemFederationOptions,
+  EcosystemFederationStack,
+} from "@/lib/platform/intelligence/ecosystem-intelligence";
 
 export interface CreateDefaultModulesOptions {
   graphAnalyzerOptions?: CreateExecutiveGraphAnalyzerOptions;
@@ -295,6 +367,30 @@ export interface CreateDefaultModulesOptions {
   collective?: CollectiveStack;
   wisdomOptions?: CreateWisdomOptions;
   wisdom?: WisdomStack;
+  synthesisOptions?: CreateSynthesisOptions;
+  synthesis?: SynthesisStack;
+  briefingOptions?: CreateBriefingOptions;
+  briefing?: BriefingStack;
+  executiveMemoryOptions?: CreateExecutiveMemoryOptions;
+  executiveMemory?: ExecutiveMemoryStack;
+  decisionIntelligenceOptions?: CreateDecisionIntelligenceOptions;
+  decisionIntelligence?: DecisionIntelligenceStack;
+  executivePredictiveOptions?: CreateExecutivePredictiveOptions;
+  executivePredictive?: ExecutivePredictiveStack;
+  executiveAutonomousOptions?: CreateExecutiveAutonomousOptions;
+  executiveAutonomous?: ExecutiveAutonomousStack;
+  executiveCopilotOptions?: CreateExecutiveCopilotOptions;
+  executiveCopilot?: ExecutiveCopilotStack;
+  executiveCommandCenterOptions?: CreateExecutiveCommandCenterOptions;
+  executiveCommandCenter?: ExecutiveCommandCenterStack;
+  initiativeIntelligenceOptions?: CreateInitiativeIntelligenceOptions;
+  initiativeIntelligence?: InitiativeIntelligenceStack;
+  portfolioIntelligenceOptions?: CreatePortfolioIntelligenceOptions;
+  portfolioIntelligence?: PortfolioIntelligenceStack;
+  digitalTwinOptions?: CreateDigitalTwinOptions;
+  digitalTwin?: DigitalTwinStack;
+  ecosystemIntelligenceOptions?: CreateEcosystemFederationOptions;
+  ecosystemIntelligence?: EcosystemFederationStack;
 }
 
 /** Create the default set of integrated intelligence modules. */
@@ -347,6 +443,45 @@ export function createDefaultIntelligenceModules(
     createInstitutionalMemoryModule(options.institutionalMemoryOptions, options.institutionalMemory),
     createCollectiveModule(options.collectiveOptions, options.collective),
     createWisdomModule(options.wisdomOptions, options.wisdom),
+    createSynthesisModule(options.synthesisOptions, options.synthesis),
+    createBriefingModule(options.briefingOptions, options.briefing),
+    createExecutiveMemoryModule(options.executiveMemoryOptions, options.executiveMemory),
+    createDecisionIntelligenceModule(
+      options.decisionIntelligenceOptions,
+      options.decisionIntelligence
+    ),
+    createExecutivePredictiveModule(
+      options.executivePredictiveOptions,
+      options.executivePredictive
+    ),
+    createExecutiveAutonomousModule(
+      options.executiveAutonomousOptions,
+      options.executiveAutonomous
+    ),
+    createExecutiveCopilotModule(
+      options.executiveCopilotOptions,
+      options.executiveCopilot
+    ),
+    createExecutiveCommandCenterModule(
+      options.executiveCommandCenterOptions,
+      options.executiveCommandCenter
+    ),
+    createInitiativeIntelligenceModule(
+      options.initiativeIntelligenceOptions,
+      options.initiativeIntelligence
+    ),
+    createPortfolioIntelligenceModule(
+      options.portfolioIntelligenceOptions,
+      options.portfolioIntelligence
+    ),
+    createDigitalTwinModule(
+      options.digitalTwinOptions,
+      options.digitalTwin
+    ),
+    createEcosystemIntelligenceModule(
+      options.ecosystemIntelligenceOptions,
+      options.ecosystemIntelligence
+    ),
   ];
 }
 

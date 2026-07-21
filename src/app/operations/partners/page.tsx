@@ -4,6 +4,7 @@ import { getPartners } from "@/lib/operations-platform/partners";
 import { OpsShell } from "@/components/operations-platform/OpsNav";
 import { OpsTable } from "@/components/operations-platform/OpsPanels";
 import { createPartnerAction } from "@/lib/operations-platform/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function OperationsPartnersPage() {
   await requireOperationsPermission(["operations.partners"]);
@@ -12,17 +13,23 @@ export default async function OperationsPartnersPage() {
 
   return (
     <OpsShell title="Partner Platform" subtitle="Implementation, technology, marketplace developers, state consultants, training providers — certification and revenue">
-      <form action={createPartnerAction} className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
-        <input name="partner_name" placeholder="Partner name" className="rounded-lg border px-3 py-2 text-sm" required />
-        <select name="partner_type" className="rounded-lg border px-3 py-2 text-sm">
+      <ExperienceForm
+          action={createPartnerAction}
+          verb="create"
+          labels={{ idle: "Add partner" }}
+          progressLabel="Add partner…"
+          className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"
+          buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+        >
+          <input name="partner_name" placeholder="Partner name" className="rounded-lg border px-3 py-2 text-sm" required />
+          <select name="partner_type" className="rounded-lg border px-3 py-2 text-sm">
           <option value="implementation">Implementation</option>
           <option value="technology">Technology</option>
           <option value="marketplace_developer">Marketplace Developer</option>
           <option value="state_consultant">State Consultant</option>
           <option value="training_provider">Training Provider</option>
-        </select>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Add partner</button>
-      </form>
+          </select>
+        </ExperienceForm>
       <OpsTable rows={partners} columns={[
         { key: "partner_name", label: "Partner" }, { key: "partner_type", label: "Type" },
         { key: "certification_status", label: "Certified" }, { key: "performance_score", label: "Performance" },

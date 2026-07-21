@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { addLeadTask, completeTask } from "@/lib/admissions/actions";
 import type { AdmissionTask } from "@/lib/admissions/queries";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface TasksPanelProps {
   leadId: string;
@@ -12,21 +14,32 @@ interface TasksPanelProps {
 export function TasksPanel({ leadId, tasks }: TasksPanelProps) {
   const [taskName, setTaskName] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "create",
+    successToast: "✓ Updated",
+    errorToast: "Unable to update task.",
+    progressLabel: "Updating task…",
+  });
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!taskName.trim()) return;
-    startTransition(async () => {
-      await addLeadTask(leadId, taskName.trim(), dueDate || null);
+    const name = taskName.trim();
+    const due = dueDate || null;
+    void action.run(async () => {
+      const result = await addLeadTask(leadId, name, due);
+      assertActionResult(result);
       setTaskName("");
       setDueDate("");
+      return result;
     });
   }
 
   function handleComplete(taskId: string) {
-    startTransition(async () => {
-      await completeTask(taskId, leadId);
+    void action.run(async () => {
+      const result = await completeTask(taskId, leadId);
+      assertActionResult(result);
+      return result;
     });
   }
 
@@ -46,13 +59,14 @@ export function TasksPanel({ leadId, tasks }: TasksPanelProps) {
           onChange={(e) => setDueDate(e.target.value)}
           className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
         />
-        <button
+        <ActionButton
           type="submit"
-          disabled={isPending || !taskName.trim()}
-          className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          Add
-        </button>
+          status={action.status}
+          verb="create"
+          labels={{ idle: "Add", loading: "Creating…", success: "✓ Created" }}
+          disabled={!taskName.trim()}
+          className="!rounded-lg !px-3 !py-2 !text-xs"
+        />
       </form>
       <ul className="mt-4 space-y-2">
         {tasks.map((task) => (
@@ -71,13 +85,14 @@ export function TasksPanel({ leadId, tasks }: TasksPanelProps) {
               )}
             </div>
             {task.task_status === "open" && (
-              <button
+              <ActionButton
                 type="button"
+                status={action.status}
+                verb="save"
+                variant="success"
+                labels={{ idle: "Complete", loading: "Completing…", success: "✓ Done" }}
                 onClick={() => handleComplete(task.id)}
-                className="text-xs font-medium text-brand-600 hover:text-brand-700"
-              >
-                Complete
-              </button>
+              />
             )}
           </li>
         ))}

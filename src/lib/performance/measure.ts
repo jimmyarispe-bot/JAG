@@ -2,6 +2,7 @@
  * Lightweight timing primitives — no business logic.
  */
 
+import { metricsRegistry } from "@/lib/observability";
 import { performanceTraceStore } from "./store";
 import type { PerfSpan, PerfTrace } from "./types";
 
@@ -79,5 +80,10 @@ export function commitTrace(input: {
     },
   };
   performanceTraceStore.record(trace);
+  // RC-1 — mirror into observability metrics (no behavior change).
+  metricsRegistry.recordDuration(`perf.route.${input.route}`, totalMs);
+  metricsRegistry.recordDuration("perf.trace.total", totalMs);
+  if (input.cacheHits) metricsRegistry.increment("cache.hit", input.cacheHits);
+  if (input.cacheMisses) metricsRegistry.increment("cache.miss", input.cacheMisses);
   return trace;
 }

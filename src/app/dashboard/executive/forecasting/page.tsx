@@ -1,8 +1,17 @@
+import dynamic from "next/dynamic";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { requireFinanceAccess } from "@/lib/platform/identity/page-guard";
 import { getForecastingCenter } from "@/lib/executive/forecasting";
 import { getSchools } from "@/lib/hr/queries";
-import { ForecastingPanel } from "@/components/executive/ExecutivePanels";
+import { ListSkeleton } from "@/components/experience-system";
+
+const ForecastingPanel = dynamic(
+  () =>
+    import("@/components/executive/panels/ForecastingPanel").then((m) => ({
+      default: m.ForecastingPanel,
+    })),
+  { ssr: true, loading: () => <ListSkeleton rows={6} label="Loading forecasting…" /> }
+);
 
 export default async function ExecutiveForecastingPage() {
   // Sprint 008 — Financial Security (FINANCE_ACCESS via permission engine).

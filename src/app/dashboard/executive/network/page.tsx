@@ -1,7 +1,7 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { getNetworkDashboardBySchool, getNetworkDashboardByCampus, getNetworkDashboardByProgram } from "@/lib/executive/network-dashboard";
-import { NetworkDashboardPanel } from "@/components/executive/ExecutivePanels";
+import { NetworkDashboardPanel } from "@/components/executive/ExecutiveDisplayPanels";
 
 export default async function ExecutiveNetworkPage() {
   const ctx = await getIdentityContext();

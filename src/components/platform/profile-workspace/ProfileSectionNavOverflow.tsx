@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { ProfileNavigationGroup, ResolvedProfileSection } from "@/lib/platform/profile/types";
+import type {
+  ClientProfileNavigationGroup,
+  ClientProfileNavSection,
+} from "@/lib/platform/profile/types";
 
 interface ProfileSectionNavOverflowProps {
-  overflowGroups: ProfileNavigationGroup[];
+  overflowGroups: ClientProfileNavigationGroup[];
   activeSection: string;
 }
 
@@ -14,7 +17,7 @@ function SectionLink({
   active,
   onNavigate,
 }: {
-  section: ResolvedProfileSection;
+  section: ClientProfileNavSection;
   active: boolean;
   onNavigate: () => void;
 }) {

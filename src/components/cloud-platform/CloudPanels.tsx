@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
 import type { CloudHubSummary } from "@/lib/cloud-platform/types";
 import { refreshCloudAction } from "@/lib/cloud-platform/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 export function CloudSummaryPanel({ summary }: { summary: CloudHubSummary }) {
   return (
@@ -29,16 +29,29 @@ function StatCard({ label, value, prefix }: { label: string; value: number; pref
 }
 
 export function RefreshCloudButton() {
-  const [pending, start] = useTransition();
+  const action = useActionFeedback({
+    verb: "sync",
+    labels: { idle: "Sync platform", loading: "Syncing…", success: "✓ Synced" },
+    successToast: "✓ Cloud platform synced.",
+    errorToast: "Unable to sync.",
+    progressLabel: "Syncing cloud platform…",
+  });
+
   return (
-    <button
+    <ActionButton
       type="button"
-      disabled={pending}
-      onClick={() => start(() => refreshCloudAction())}
-      className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-    >
-      {pending ? "Syncing…" : "Sync platform"}
-    </button>
+      status={action.status}
+      verb="sync"
+      labels={{ idle: "Sync platform", loading: "Syncing…", success: "✓ Synced" }}
+      className="!bg-indigo-600 hover:!bg-indigo-700"
+      errorMessage={action.errorMessage}
+      onClick={() => {
+        void action.run(async () => {
+          await refreshCloudAction();
+          return { success: true };
+        });
+      }}
+    />
   );
 }
 

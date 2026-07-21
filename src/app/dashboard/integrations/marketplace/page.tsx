@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/integration-hub/context";
 import { getMarketplaceListings, getPendingApprovals } from "@/lib/integration-hub/marketplace";
 import { IntHubShell } from "@/components/integration-hub/IntHubNav";
 import { IntHubTable } from "@/components/integration-hub/IntHubPanels";
+import { ExperienceForm } from "@/components/integration-hub/IntHubMutationControls";
 import { installMarketplaceAction } from "@/lib/integration-hub/actions";
 
 export default async function IntegrationMarketplacePage() {
@@ -23,12 +24,21 @@ export default async function IntegrationMarketplacePage() {
         { key: "revenue_share_pct", label: "Rev Share %" },
       ]} />
       {listings.slice(0, 3).map((l) => (
-        <form key={l.id} action={installMarketplaceAction} className="flex flex-wrap gap-2 rounded-lg border bg-white p-3 text-sm">
+        <ExperienceForm
+          key={l.id}
+          action={installMarketplaceAction}
+          verb="create"
+          labels={{ idle: "Install", loading: "Connecting…", success: "✓ Connected" }}
+          progressLabel="Installing marketplace connector…"
+          successToast="✓ Connector installed."
+          errorToast="Unable to install."
+          className="flex flex-wrap gap-2 rounded-lg border bg-white p-3 text-sm"
+          buttonClassName="!rounded !bg-indigo-600 !px-3 !py-1 !text-sm hover:!bg-indigo-700"
+        >
           <input type="hidden" name="listing_id" value={l.id} />
           <input type="hidden" name="connector_key" value={l.connector_key ?? ""} />
           <input name="instance_name" placeholder={`Install ${l.listing_name}`} className="rounded border px-2 py-1" required />
-          <button type="submit" className="rounded bg-indigo-600 px-3 py-1 text-white">Install</button>
-        </form>
+        </ExperienceForm>
       ))}
       {pending.length > 0 && (
         <>

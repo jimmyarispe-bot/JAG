@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getStudentSelfId, canAccessStudentPortal } from "@/lib/platform/identity/portal-access";
 import { getStudentSelfDashboard } from "@/lib/portal/student-dashboard";
 import { getStudentDeadlines } from "@/lib/compliance/deadlines";
 import { StudentAssignmentsDeadlinesWidget } from "@/components/portal/StudentAssignmentsDeadlinesWidget";
+import { ActionChip, ActionChipGroup } from "@/components/ui/cta";
 
 export default async function StudentPortalHomePage() {
   const sessionUser = await getSessionUser();
@@ -84,10 +84,14 @@ export default async function StudentPortalHomePage() {
         </ul>
       </section>
 
-      <div className="flex gap-3 text-sm">
-        <Link href="/portal/student/schedule" className="text-brand-600 hover:underline">Full schedule →</Link>
-        <Link href="/portal/messages" className="text-brand-600 hover:underline">Messages →</Link>
-      </div>
+      <ActionChipGroup>
+        <ActionChip href="/portal/student/schedule" size="sm">
+          Full schedule
+        </ActionChip>
+        <ActionChip href="/portal/messages" size="sm">
+          Messages
+        </ActionChip>
+      </ActionChipGroup>
     </div>
   );
 }

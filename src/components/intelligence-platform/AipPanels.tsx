@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
 import type { MonitoringSummary, CostSummary } from "@/lib/intelligence-platform/types";
 import { refreshAipAction } from "@/lib/intelligence-platform/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 export function MonitoringPanel({ monitoring }: { monitoring: MonitoringSummary }) {
   return (
@@ -27,17 +27,28 @@ function StatCard({ label, value, prefix }: { label: string; value: number; pref
 }
 
 export function RefreshAipButton() {
-  const [pending, start] = useTransition();
+  const action = useActionFeedback({
+    verb: "sync",
+    labels: { idle: "Refresh platform", loading: "Refreshing…", success: "✓ Refreshed" },
+    successToast: "✓ Intelligence platform refreshed.",
+    errorToast: "Unable to refresh.",
+    progressLabel: "Refreshing intelligence platform…",
+  });
 
   return (
-    <button
+    <ActionButton
       type="button"
-      disabled={pending}
-      onClick={() => start(() => refreshAipAction())}
-      className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-    >
-      {pending ? "Refreshing…" : "Refresh platform"}
-    </button>
+      status={action.status}
+      verb="sync"
+      labels={{ idle: "Refresh platform", loading: "Refreshing…", success: "✓ Refreshed" }}
+      errorMessage={action.errorMessage}
+      onClick={() => {
+        void action.run(async () => {
+          await refreshAipAction();
+          return { success: true };
+        });
+      }}
+    />
   );
 }
 

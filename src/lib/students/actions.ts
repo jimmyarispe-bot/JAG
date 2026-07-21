@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/platform/activity";
 import { extractSchoolOrganizationId, resolveActorUserId, resolveSchoolContext } from "@/lib/platform/shared/context";
 import type { GradeValue } from "@/lib/constants/grades";
-import type { ProgramValue } from "@/lib/constants/programs";
+import {
+  assertCanonicalProgramForWrite,
+  STUDENTS_PROGRAM_CODES,
+} from "@/lib/constants/programs";
 import { parseFundingSourcesFromForm } from "@/lib/funding/helpers";
-import { syncStudentFundingSources } from "@/lib/funding/sync";
 import {
   syncEnrollmentRelationship,
   syncGuardianStudentRelationships,
@@ -64,6 +66,12 @@ export async function createFamily(formData: FormData) {
   return { id: data.id };
 }
 
+function invalidProgramError(raw: string) {
+  return {
+    error: `Invalid program "${raw}". Allowed values: ${STUDENTS_PROGRAM_CODES.join(", ")}.`,
+  };
+}
+
 export async function createStudent(formData: FormData) {
   const auth = await requireStudentsEdit();
   if ("error" in auth) return { error: auth.error };
@@ -74,58 +82,109 @@ export async function createStudent(formData: FormData) {
   const familyId = (formData.get("family_id") as string) || null;
   const firstName = formData.get("first_name") as string;
   const lastName = formData.get("last_name") as string;
-  const actorUserId = await resolveActorUserId(supabase);
-  const schoolCtx = await resolveSchoolContext(supabase, schoolId);
-
-  const { data, error } = await supabase
-    .from("students")
-    .insert({
+  const rawProgram = (formData.get("program") as string) || "";
+  console.log("[TEMP_STUDENT_CREATE_AUDIT]", {
+    stage: "createStudent.raw",
+    rawForm: {
       school_id: schoolId,
       family_id: familyId,
       first_name: firstName,
       last_name: lastName,
-      preferred_name: (formData.get("preferred_name") as string) || null,
-      date_of_birth: (formData.get("date_of_birth") as string) || null,
-      grade_level: (formData.get("grade_level") as GradeValue) || null,
-      gender: (formData.get("gender") as string) || null,
-      program: (formData.get("program") as ProgramValue) || null,
-      enrollment_status: (formData.get("enrollment_status") as string) || "pending",
-      status: "active",
-    })
-    .select("id")
-    .single();
-
-  if (error) return { error: error.message };
-
-  try {
-    await syncStudentFundingSources(supabase, data.id, fundingSources);
-  } catch (syncError) {
-    await supabase.from("students").delete().eq("id", data.id);
-    return {
-      error: syncError instanceof Error ? syncError.message : "Failed to save funding sources",
-    };
+      program: rawProgram,
+      enrollment_status: formData.get("enrollment_status"),
+    },
+  });
+  // Strict: only students_program_check codes — no silent alias rewrite on create.
+  const programGate = assertCanonicalProgramForWrite(rawProgram);
+  console.log("[TEMP_STUDENT_CREATE_AUDIT]", {
+    stage: "createStudent.programGate",
+    programGateOk: programGate.ok,
+    programAfterGate: programGate.ok ? programGate.program : null,
+    writePath: "rpc:create_student_record",
+    finalProgramSentToPostgres: programGate.ok ? programGate.program : "(not sent - gate rejected)",
+    rpcCalled: programGate.ok,
+  });
+  if (!programGate.ok) {
+    console.log("[TEMP_STUDENT_CREATE_AUDIT]", {
+      stage: "createStudent.gateRejected",
+      error: programGate.error,
+      rawProgram,
+      rpcCalled: false,
+    });
+    return { error: programGate.error };
   }
+  const program = programGate.program;
 
-  await recordActivity(supabase, {
-    eventType: "student.created",
-    moduleKey: "sis",
-    entityType: "student",
-    entityId: data.id,
-    title: "Student created",
-    summary: `${firstName} ${lastName}`,
-    organizationId: schoolCtx?.organizationId,
-    schoolId,
-    studentId: data.id,
-    familyId,
-    actorUserId,
-    sourceTable: "students",
-    sourceId: data.id,
+  // Atomic core write: student + funding in one DB transaction (RPC).
+  console.log("[TEMP_STUDENT_CREATE_AUDIT]", {
+    stage: "createStudent.beforeRpc",
+    writePath: "rpc:create_student_record",
+    finalProgramSentToPostgres: program,
+    rpcCalled: true,
+    payload: {
+      p_school_id: schoolId,
+      p_family_id: familyId,
+      p_first_name: firstName,
+      p_last_name: lastName,
+      p_program: program,
+      p_enrollment_status: (formData.get("enrollment_status") as string) || "pending",
+    },
+  });
+  const { data: studentId, error } = await supabase.rpc("create_student_record", {
+    p_school_id: schoolId,
+    p_first_name: firstName,
+    p_last_name: lastName,
+    p_family_id: familyId,
+    p_preferred_name: (formData.get("preferred_name") as string) || null,
+    p_date_of_birth: (formData.get("date_of_birth") as string) || null,
+    p_grade_level: (formData.get("grade_level") as GradeValue) || null,
+    p_gender: (formData.get("gender") as string) || null,
+    p_program: program,
+    p_enrollment_status: (formData.get("enrollment_status") as string) || "pending",
+    p_funding_source_codes: fundingSources,
   });
 
-  await syncStudentPlatformRelationships(supabase, data.id);
+  if (error || !studentId) {
+    console.log("[TEMP_STUDENT_CREATE_AUDIT]", {
+      stage: "createStudent.error",
+      error: error?.message ?? "Unable to create student.",
+      rpcCalled: true,
+      finalProgramSentToPostgres: program,
+    });
+    return { error: error?.message ?? "Unable to create student." };
+  }
+
+  // Post-commit side effects must not flip a successful create into a UI error.
+  try {
+    const actorUserId = await resolveActorUserId(supabase);
+    const schoolCtx = await resolveSchoolContext(supabase, schoolId);
+    await recordActivity(supabase, {
+      eventType: "student.created",
+      moduleKey: "sis",
+      entityType: "student",
+      entityId: studentId,
+      title: "Student created",
+      summary: `${firstName} ${lastName}`,
+      organizationId: schoolCtx?.organizationId,
+      schoolId,
+      studentId,
+      familyId,
+      actorUserId,
+      sourceTable: "students",
+      sourceId: studentId,
+    });
+  } catch {
+    // best-effort
+  }
+
+  try {
+    await syncStudentPlatformRelationships(supabase, studentId);
+  } catch {
+    // best-effort
+  }
 
   revalidatePath("/dashboard/students");
-  return { id: data.id };
+  return { id: studentId };
 }
 
 export async function createGuardian(formData: FormData) {
@@ -191,7 +250,15 @@ export async function createEnrollment(formData: FormData) {
 
   const studentId = formData.get("student_id") as string;
   const enrollmentStatus = (formData.get("enrollment_status") as string) || "pending";
-  const program = formData.get("program") as ProgramValue;
+  const rawProgram = (formData.get("program") as string) || "";
+  const programGate = assertCanonicalProgramForWrite(rawProgram);
+  if (!programGate.ok) {
+    return { error: programGate.error };
+  }
+  const program = programGate.program;
+  if (!program) {
+    return invalidProgramError(rawProgram.trim() || "(empty)");
+  }
   const actorUserId = await resolveActorUserId(supabase);
 
   const { data: student } = await supabase

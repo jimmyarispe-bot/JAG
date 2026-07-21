@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "sprint": "RC-2",
+  "updatedAt": "2026-07-19T00:50:22.742Z",
+  "mode": "mixed",
+  "authConfigured": false,
+  "http": {
+    "auth.login": {
+      "path": "/login",
+      "domain": "authentication",
+      "p50": 138.73,
+      "p95": 610.57,
+      "p99": 750.94,
+      "throughputRps": 53.78,
+      "errorRate": 0
+    },
+    "auth.health": {
+      "path": "/api/health",
+      "domain": "authentication",
+      "p50": 25.32,
+      "p95": 38.73,
+      "p99": 54.51,
+      "throughputRps": 371.34,
+      "errorRate": 0
+    },
+    "exec.home": {
+      "path": "/exec",
+      "domain": "executive_command_center",
+      "p50": 14.02,
+      "p95": 22.6,
+      "p99": 31.45,
+      "throughputRps": 673.05,
+      "errorRate": 0
+    },
+    "exec.brief": {
+      "path": "/exec/brief",
+      "domain": "executive_command_center",
+      "p50": 15.5,
+      "p95": 26.54,
+      "p99": 32,
+      "throughputRps": 595.27,
+      "errorRate": 0
+    },
+    "intel.executive": {
+      "path": "/dashboard/executive",
+      "domain": "executive_intelligence",
+      "p50": 10.8,
+      "p95": 17.12,
+      "p99": 23.41,
+      "throughputRps": 881.8,
+      "errorRate": 0
+    },
+    "intel.decisions": {
+      "path": "/dashboard/executive/decisions",
+      "domain": "executive_intelligence",
+      "p50": 11.74,
+      "p95": 21.15,
+      "p99": 28.03,
+      "throughputRps": 778.41,
+      "errorRate": 0
+    },
+    "admissions.home": {
+      "path": "/dashboard/admissions",
+      "domain": "admissions",
+      "p50": 11.02,
+      "p95": 17.53,
+      "p99": 25.46,
+      "throughputRps": 867.3,
+      "errorRate": 0
+    },
+    "sis.students": {
+      "path": "/dashboard/students",
+      "domain": "sis",
+      "p50": 9.92,
+      "p95": 16.66,
+      "p99": 21.89,
+      "throughputRps": 966.82,
+      "errorRate": 0
+    },
+    "scheduling.home": {
+      "path": "/dashboard/scheduling",
+      "domain": "scheduling",
+      "p50": 9.61,
+      "p95": 16.57,
+      "p99": 23.44,
+      "throughputRps": 997.25,
+      "errorRate": 0
+    },
+    "teacher.home": {
+      "path": "/dashboard/teacher",
+      "domain": "teacher",
+      "p50": 10.82,
+      "p95": 17.93,
+      "p99": 25.65,
+      "throughputRps": 881.3,
+      "errorRate": 0
+    },
+    "finance.home": {
+      "path": "/dashboard/finance",
+      "domain": "finance",
+      "p50": 10.23,
+      "p95": 17.55,
+      "p99": 26.74,
+      "throughputRps": 913.49,
+      "errorRate": 0
+    },
+    "hr.home": {
+      "path": "/dashboard/hr",
+      "domain": "hr",
+      "p50": 10.98,
+      "p95": 17.46,
+      "p99": 23.1,
+      "throughputRps": 880.05,
+      "errorRate": 0
+    },
+    "integrations.home": {
+      "path": "/dashboard/integrations",
+      "domain": "integrations",
+      "p50": 9.5,
+      "p95": 16.94,
+      "p99": 23.52,
+      "throughputRps": 977.03,
+      "errorRate": 0
+    },
+    "integrations.exec": {
+      "path": "/exec/integrations",
+      "domain": "integrations",
+      "p50": 9.45,
+      "p95": 16.04,
+      "p99": 23.06,
+      "throughputRps": 1008.98,
+      "errorRate": 0
+    },
+    "ops.ready": {
+      "path": "/api/ready",
+      "domain": "ops",
+      "p50": 18.11,
+      "p95": 30.06,
+      "p99": 42.22,
+      "throughputRps": 506.47,
+      "errorRate": 0
+    }
+  },
+  "concurrencyRamp": [
+    {
+      "concurrency": 10,
+      "p95": 27.84,
+      "throughputRps": 510.7,
+      "errorRate": 0
+    },
+    {
+      "concurrency": 50,
+      "p95": 139.64,
+      "throughputRps": 501.22,
+      "errorRate": 0
+    },
+    {
+      "concurrency": 100,
+      "p95": 229.74,
+      "throughputRps": 519.71,
+      "errorRate": 0
+    }
+  ],
+  "inProcess": {
+    "_meta": {
+      "note": "In-process ECC probe at 2026-07-19T00:50:22.741Z"
+    },
+    "/exec": {
+      "count": 1,
+      "p50": 38.23,
+      "p95": 38.23,
+      "p99": 38.23,
+      "avg": 38.23,
+      "max": 38.23,
+      "min": 38.23
+    },
+    "/exec/brief": {
+      "count": 1,
+      "p50": 12.03,
+      "p95": 12.03,
+      "p99": 12.03,
+      "avg": 12.03,
+      "max": 12.03,
+      "min": 12.03
+    },
+    "/exec/health": {
+      "count": 1,
+      "p50": 7.24,
+      "p95": 7.24,
+      "p99": 7.24,
+      "avg": 7.24,
+      "max": 7.24,
+      "min": 7.24
+    },
+    "/exec/opportunities": {
+      "count": 1,
+      "p50": 6.71,
+      "p95": 6.71,
+      "p99": 6.71,
+      "avg": 6.71,
+      "max": 6.71,
+      "min": 6.71
+    },
+    "/exec/wisdom": {
+      "count": 1,
+      "p50": 2.97,
+      "p95": 2.97,
+      "p99": 2.97,
+      "avg": 2.97,
+      "max": 2.97,
+      "min": 2.97
+    },
+    "/exec/risks": {
+      "count": 1,
+      "p50": 11.77,
+      "p95": 11.77,
+      "p99": 11.77,
+      "avg": 11.77,
+      "max": 11.77,
+      "min": 11.77
+    },
+    "singleton.intelligenceColdMs": {
+      "count": 1,
+      "p50": 30.18,
+      "p95": 30.18,
+      "p99": 30.18,
+      "avg": 30.18,
+      "max": 30.18,
+      "min": 30.18
+    },
+    "singleton.integrationsColdMs": {
+      "count": 1,
+      "p50": 44.66,
+      "p95": 44.66,
+      "p99": 44.66,
+      "avg": 44.66,
+      "max": 44.66,
+      "min": 44.66
+    }
+  },
+  "guidance": {
+    "p95TargetMs": 2000,
+    "p99TargetMs": 4000,
+    "maxErrorRate": 0.01
+  }
+}

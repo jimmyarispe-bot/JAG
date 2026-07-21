@@ -1,15 +1,35 @@
-import Link from "next/link";
+import dynamic from "next/dynamic";
 import { notFound, redirect } from "next/navigation";
 import { ApplyShell } from "@/components/admissions/portal/ApplyShell";
+import { ActionChip } from "@/components/ui/cta";
 import { AdmissionsProgressMeter } from "@/components/admissions/portal/AdmissionsProgressMeter";
-import {
-  ApplicationDetailsForm,
-  DocumentCenter,
-  FinancialAidDocumentCenter,
-} from "@/components/admissions/portal/DocumentCenter";
 import { FinancialAidSection } from "@/components/admissions/portal/FinancialAidSection";
 import { StateFundingVerificationPanel } from "@/components/admissions/portal/StateFundingVerification";
 import { SubmitApplicationButton } from "@/components/admissions/portal/SubmitApplicationButton";
+import { ListSkeleton } from "@/components/experience-system";
+
+/** P010 — Document Center is a large client island; load only on this portal route. */
+const ApplicationDetailsForm = dynamic(
+  () =>
+    import("@/components/admissions/portal/DocumentCenter").then((m) => ({
+      default: m.ApplicationDetailsForm,
+    })),
+  { ssr: true, loading: () => <ListSkeleton rows={4} label="Loading application details…" /> }
+);
+const DocumentCenter = dynamic(
+  () =>
+    import("@/components/admissions/portal/DocumentCenter").then((m) => ({
+      default: m.DocumentCenter,
+    })),
+  { ssr: true, loading: () => <ListSkeleton rows={6} label="Loading documents…" /> }
+);
+const FinancialAidDocumentCenter = dynamic(
+  () =>
+    import("@/components/admissions/portal/DocumentCenter").then((m) => ({
+      default: m.FinancialAidDocumentCenter,
+    })),
+  { ssr: true, loading: () => <ListSkeleton rows={4} label="Loading financial aid docs…" /> }
+);
 import { getSessionUser } from "@/lib/auth/session";
 import { computeAdmissionsProgress } from "@/lib/admissions/portal/progress";
 import {
@@ -69,11 +89,9 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
     <ApplyShell userEmail={sessionUser.email}>
       <div className="space-y-6">
         <div>
-          <p className="text-sm text-brand-600">
-            <Link href="/apply/portal" className="hover:underline">
-              ← Back to applications
-            </Link>
-          </p>
+          <ActionChip href="/apply/portal" size="sm" variant="ghost">
+            Back to applications
+          </ActionChip>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
             {lead ? `${lead.first_name} ${lead.last_name}` : "Application"}
           </h1>

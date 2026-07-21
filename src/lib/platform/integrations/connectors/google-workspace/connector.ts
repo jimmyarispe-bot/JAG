@@ -404,10 +404,25 @@ export function createGoogleWorkspaceConnector(
     async validate(records: NormalizedRecord[]): Promise<ValidationResult> {
       return validateNormalizedRecords(records, {
         requiredFields: {
-          "comms.message": ["id", "externalId", "organizationId"],
-          "comms.event": ["id", "externalId", "organizationId"],
+          "comms.email": ["id", "externalId", "organizationId"],
+          "comms.conversation": ["id", "externalId", "organizationId"],
+          "comms.calendar_event": ["id", "externalId", "organizationId"],
+          "comms.meeting": ["id", "externalId", "organizationId"],
+          "comms.attachment": ["id", "externalId", "organizationId"],
+          "comms.room": ["id", "externalId", "organizationId"],
+          "comms.resource": ["id", "externalId", "organizationId"],
           "document.file": ["id", "externalId", "organizationId"],
+          "document.folder": ["id", "externalId", "organizationId"],
+          "document.permission": ["id", "externalId", "organizationId"],
+          "document.revision": ["id", "externalId", "organizationId"],
+          "document.ownership": ["id", "externalId", "organizationId"],
+          "document.doc": ["id", "externalId", "organizationId"],
+          "document.sheet": ["id", "externalId", "organizationId"],
+          "document.slide": ["id", "externalId", "organizationId"],
           "person.user": ["id", "externalId", "organizationId"],
+          "person.contact": ["id", "externalId", "organizationId"],
+          "person.attendee": ["id", "externalId", "organizationId"],
+          "person.owner": ["id", "externalId", "organizationId"],
         },
       });
     },

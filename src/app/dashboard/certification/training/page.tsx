@@ -4,6 +4,7 @@ import { requirePagePermission } from "@/lib/platform/identity/page-guard";
 import { getUniversityPaths, getUserProgress } from "@/lib/certification/training-engine";
 import { CertShell } from "@/components/certification/CertNav";
 import { completeModuleAction } from "@/lib/certification/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function CertificationTrainingPage() {
   await requirePagePermission(["certification.view"]);
@@ -26,12 +27,19 @@ export default async function CertificationTrainingPage() {
               <p className="text-sm text-slate-500">{path.target_role} · {path.estimated_minutes} min · {modules.length} modules</p>
               <p className="mt-2 text-sm">Progress: {prog?.progress_pct ?? 0}%</p>
               {prog?.certificate_issued_at && <p className="text-xs text-emerald-600">Certificate issued</p>}
-              <p className="mt-1 text-xs text-slate-400">Videos: placeholder · Interactive tours available</p>
-              <form action={completeModuleAction} className="mt-2">
-                <input type="hidden" name="path_key" value={path.path_key} />
-                <input type="hidden" name="module_key" value={modules[0] ?? "platform_overview"} />
-                <button type="submit" className="text-sm text-emerald-600 hover:underline">Complete next module</button>
-              </form>
+              <p className="mt-1 text-xs text-slate-400">Interactive tours available</p>
+              <ExperienceForm
+          action={completeModuleAction}
+          verb="run"
+          labels={{ idle: "Complete next module" }}
+          progressLabel="Complete next module…"
+          className="mt-2"
+          buttonVariant="success"
+          buttonSize="sm"
+        >
+          <input type="hidden" name="path_key" value={path.path_key} />
+          <input type="hidden" name="module_key" value={modules[0] ?? "platform_overview"} />
+        </ExperienceForm>
             </div>
           );
         })}

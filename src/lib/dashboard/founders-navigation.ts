@@ -14,7 +14,6 @@ export const FOUNDER_DASHBOARD_NAV = [
   { href: "/dashboard/mission-control", label: "Mission Control" },
   { href: "/exec", label: "Command Center (JAG)" },
   { href: "/dashboard/executive", label: "Executive Intelligence" },
-  { href: "/exec/graph", label: "Executive Graph" },
   { href: "/exec/brief", label: "Executive Brief" },
   { href: "/dashboard/admin", label: "Platform Administration" },
 ] as const;

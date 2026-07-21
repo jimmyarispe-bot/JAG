@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { signEnrollmentPacket } from "@/lib/admissions/sprint15-actions";
 import { completeEnrollmentHandoffAction } from "@/lib/admissions/handoff/actions";
 import type { EnrollmentPacketView } from "@/lib/admissions/enrollment-packets";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface EnrollmentPacketPanelProps {
   packet: EnrollmentPacketView;
@@ -23,15 +25,21 @@ export function EnrollmentPacketPanel({
   studentId,
   readOnly = false,
 }: EnrollmentPacketPanelProps) {
-  const [isPending, startTransition] = useTransition();
   const [handoffError, setHandoffError] = useState<string | null>(null);
   const [signatures, setSignatures] = useState<Record<string, string>>({});
+  const action = useActionFeedback({
+    verb: "submit",
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to complete.",
+    progressLabel: "Updating enrollment packet…",
+    onError: (err) => setHandoffError(err.message),
+  });
 
   function handleSign(templateKey: string) {
     const signatureText = signatures[templateKey]?.trim();
     if (!signatureText) return;
 
-    startTransition(async () => {
+    void action.run(async () => {
       const formData = new FormData();
       formData.set("enrollment_packet_id", packet.id);
       formData.set("template_key", templateKey);
@@ -39,17 +47,18 @@ export function EnrollmentPacketPanel({
       formData.set("signer_email", signerEmail);
       formData.set("signature_text", signatureText);
       formData.set("application_id", applicationId);
-      await signEnrollmentPacket(formData);
+      const result = await signEnrollmentPacket(formData);
+      assertActionResult(result);
+      return result;
     });
   }
 
   function handleCompleteHandoff() {
-    startTransition(async () => {
-      setHandoffError(null);
+    setHandoffError(null);
+    void action.run(async () => {
       const result = await completeEnrollmentHandoffAction(leadId, applicationId);
-      if ("error" in result && result.error) {
-        setHandoffError(result.error);
-      }
+      if ("error" in result && result.error) throw new Error(result.error);
+      return result;
     });
   }
 
@@ -85,15 +94,21 @@ export function EnrollmentPacketPanel({
             Enrollment agreement signed — complete the Admissions to Active Student handoff to
             create the student record, activate billing, and assign teachers.
           </p>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={handleCompleteHandoff}
-            className="mt-3 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            Complete enrollment handoff
-          </button>
-          {handoffError && <p className="mt-2 text-xs text-red-600">{handoffError}</p>}
+          <div className="mt-3">
+            <ActionButton
+              type="button"
+              status={action.status}
+              verb="submit"
+              labels={{
+                idle: "Complete enrollment handoff",
+                loading: "Completing…",
+                success: "✓ Complete",
+              }}
+              className="!rounded-lg !px-3 !py-1.5 !text-xs"
+              errorMessage={handoffError ?? action.errorMessage}
+              onClick={handleCompleteHandoff}
+            />
+          </div>
         </div>
       )}
 
@@ -123,14 +138,14 @@ export function EnrollmentPacketPanel({
                   }
                   className="min-w-[200px] flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
                 />
-                <button
+                <ActionButton
                   type="button"
-                  disabled={isPending}
+                  status={action.status}
+                  verb="submit"
+                  labels={{ idle: "Sign Electronically", loading: "Signing…", success: "✓ Signed" }}
+                  className="!rounded-lg !px-3 !py-1.5 !text-xs"
                   onClick={() => handleSign(doc.template_key)}
-                  className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-                >
-                  Sign Electronically
-                </button>
+                />
               </div>
             ) : !doc.requires_signature ? (
               <p className="mt-2 text-xs text-slate-400">Acknowledgement only — no signature required</p>

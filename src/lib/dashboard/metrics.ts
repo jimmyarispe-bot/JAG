@@ -74,7 +74,7 @@ async function countActiveStudents(
 
   let query = supabase
     .from("students")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("status", "active");
   query = applySchoolFilter(query, "school_id", schoolIds);
   const { count } = await query;
@@ -89,7 +89,7 @@ async function countAdmissionsPipeline(
 
   let query = supabase
     .from("admissions_leads")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .in("lead_stage", [...ACTIVE_PIPELINE_LEGACY_STAGES]);
   query = applySchoolFilter(query, "school_id", schoolIds);
   const { count } = await query;
@@ -143,7 +143,7 @@ async function countEmployees(
 
   let query = supabase
     .from("employees")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("employment_status", "active");
   query = applySchoolFilter(query, "school_id", schoolIds);
   const { count } = await query;

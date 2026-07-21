@@ -1,7 +1,7 @@
 /**
  * Intelligence Platform Infrastructure - Wisdom module adapter (Sprint 060).
  *
- * Wraps createWisdomIntelligence - terminal module after collective.
+ * Wraps createWisdomIntelligence - after collective; synthesis (061) soft-reads this.
  * Soft-reads collective and upstream domains. Does not modify
  * collective/ or other prior intelligence packages.
  */

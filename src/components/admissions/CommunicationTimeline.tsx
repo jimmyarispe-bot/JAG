@@ -1,6 +1,5 @@
 "use client";
 
-import { useTransition } from "react";
 import {
   cancelQueuedCommunication,
   customizeQueuedCommunication,
@@ -13,6 +12,8 @@ import type {
   QueuedCommunication,
 } from "@/lib/admissions/communications/types";
 import { CHANNEL_LABELS } from "@/lib/admissions/communications/types";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface CommunicationTimelineProps {
   leadId: string;
@@ -50,10 +51,16 @@ export function CommunicationTimeline({
   applicationId,
   guardianEmail,
   timeline,
-  communications,
+  communications: _communications,
   pendingQueue,
 }: CommunicationTimelineProps) {
-  const [isPending, startTransition] = useTransition();
+  void _communications;
+  const action = useActionFeedback({
+    verb: "send",
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to complete.",
+    progressLabel: "Updating communications…",
+  });
 
   return (
     <div className="space-y-6">
@@ -96,21 +103,26 @@ export function CommunicationTimeline({
                 {entry.type === "communication" && entry.channel === "email" && (
                   <form
                     className="mt-2"
-                    action={(fd) => {
-                      startTransition(async () => {
-                        fd.set("communication_id", entry.id);
-                        fd.set("lead_id", leadId);
-                        await resendCommunication(fd);
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const fd = new FormData(e.currentTarget);
+                      fd.set("communication_id", entry.id);
+                      fd.set("lead_id", leadId);
+                      void action.run(async () => {
+                        const r = await resendCommunication(fd);
+                        assertActionResult(r);
+                        return r;
                       });
                     }}
                   >
-                    <button
+                    <ActionButton
                       type="submit"
-                      disabled={isPending}
-                      className="text-xs font-medium text-brand-600 hover:text-brand-700"
-                    >
-                      Resend
-                    </button>
+                      status={action.status}
+                      verb="send"
+                      variant="secondary"
+                      size="xs"
+                      labels={{ idle: "Resend", loading: "Sending…", success: "✓ Sent" }}
+                    />
                   </form>
                 )}
               </div>
@@ -132,26 +144,33 @@ export function CommunicationTimeline({
                       {channelBadge(item.channel)} · {new Date(item.scheduled_for).toLocaleString()}
                     </p>
                   </div>
-                  <button
+                  <ActionButton
                     type="button"
-                    disabled={isPending}
-                    onClick={() =>
-                      startTransition(async () => {
-                        await cancelQueuedCommunication(item.id, leadId);
-                      })
-                    }
-                    className="text-xs font-medium text-red-600 hover:text-red-700"
-                  >
-                    Cancel
-                  </button>
+                    status={action.status}
+                    verb="delete"
+                    variant="danger"
+                    size="xs"
+                    labels={{ idle: "Cancel", loading: "Cancelling…", success: "✓ Cancelled" }}
+                    onClick={() => {
+                      void action.run(async () => {
+                        const r = await cancelQueuedCommunication(item.id, leadId);
+                        assertActionResult(r);
+                        return r;
+                      });
+                    }}
+                  />
                 </div>
                 <form
                   className="mt-3 space-y-2"
-                  action={(fd) => {
-                    startTransition(async () => {
-                      fd.set("queue_id", item.id);
-                      fd.set("lead_id", leadId);
-                      await customizeQueuedCommunication(fd);
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.currentTarget);
+                    fd.set("queue_id", item.id);
+                    fd.set("lead_id", leadId);
+                    void action.run(async () => {
+                      const r = await customizeQueuedCommunication(fd);
+                      assertActionResult(r);
+                      return r;
                     });
                   }}
                 >
@@ -170,13 +189,13 @@ export function CommunicationTimeline({
                     rows={2}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                   />
-                  <button
+                  <ActionButton
                     type="submit"
-                    disabled={isPending}
-                    className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
-                  >
-                    Save customization
-                  </button>
+                    status={action.status}
+                    verb="save"
+                    labels={{ idle: "Save customization", loading: "Saving…", success: "✓ Saved" }}
+                    className="!rounded-lg !px-3 !py-1.5 !text-xs"
+                  />
                 </form>
               </div>
             ))}
@@ -188,9 +207,13 @@ export function CommunicationTimeline({
         <h3 className="text-sm font-semibold text-slate-900">Send Manual Communication</h3>
         <form
           className="mt-4 space-y-3"
-          action={(fd) => {
-            startTransition(async () => {
-              await sendManualCommunication(fd);
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            void action.run(async () => {
+              const r = await sendManualCommunication(fd);
+              assertActionResult(r);
+              return r;
             });
           }}
         >
@@ -223,13 +246,13 @@ export function CommunicationTimeline({
             rows={4}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
           />
-          <button
+          <ActionButton
             type="submit"
-            disabled={isPending}
-            className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            Send now
-          </button>
+            status={action.status}
+            verb="send"
+            labels={{ idle: "Send now", loading: "Sending…", success: "✓ Sent" }}
+            errorMessage={action.errorMessage}
+          />
         </form>
       </div>
     </div>

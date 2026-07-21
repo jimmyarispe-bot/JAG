@@ -5,6 +5,7 @@ import { listCloneJobs } from "@/lib/enterprise-data/clone-engine";
 import { EdpShell } from "@/components/enterprise-data/EdpNav";
 import { HistoryTable } from "@/components/enterprise-data/EdpPanels";
 import { startCloneAction } from "@/lib/enterprise-data/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function DataClonePage() {
   await requirePagePermission(["data.admin"]);
@@ -16,27 +17,30 @@ export default async function DataClonePage() {
   return (
     <EdpShell title="Organization Cloning" subtitle="Clone organizations, schools, campuses, programs, configuration, and blueprints">
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={startCloneAction} className="space-y-4">
+        <ExperienceForm
+          action={startCloneAction}
+          verb="create"
+          labels={{ idle: "Start clone job" }}
+          progressLabel="Start clone job…"
+          className="space-y-4"
+        >
           <label className="block text-sm">
-            Clone type
-            <select name="clone_type" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
-              <option value="organization">Entire organization</option>
-              <option value="school">Single school</option>
-              <option value="campus">Campus</option>
-              <option value="program">Programs</option>
-              <option value="blueprint">Blueprint deployment</option>
-            </select>
+          Clone type
+          <select name="clone_type" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
+          <option value="organization">Entire organization</option>
+          <option value="school">Single school</option>
+          <option value="campus">Campus</option>
+          <option value="program">Programs</option>
+          <option value="blueprint">Blueprint deployment</option>
+          </select>
           </label>
           <input type="hidden" name="source_scope" value='{"type":"current"}' />
           <input type="hidden" name="target_scope" value='{"type":"new"}' />
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="include_users" value="true" />
-            Include users (optional)
+          <input type="checkbox" name="include_users" value="true" />
+          Include users (optional)
           </label>
-          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Start clone job
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section className="text-sm text-slate-600">

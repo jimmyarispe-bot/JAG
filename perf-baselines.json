@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "sprint": "RC-1",
+  "updatedAt": "2026-07-19T00:00:00.000Z",
+  "budgets": {
+    "maxClientModuleKb": 16,
+    "maxBundleViolations": 0,
+    "maxHttpP95Ms": 2000,
+    "maxDbP95Ms": 800,
+    "maxRumLcpP95Ms": 4000
+  },
+  "notes": [
+    "Baselines are compared by scripts/perf-regression.mts in CI.",
+    "HTTP/DB/RUM latency gates apply when live samples exist in the process; CI primarily enforces bundle budgets.",
+    "RC-2 HTTP load baselines live in perf-load-baselines.json (npm run load:suite)."
+  ]
+}

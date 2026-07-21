@@ -1,3 +1,5 @@
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
+
 interface StaffDirectoryPanelProps {
   entries: Array<{
     id: string;
@@ -68,13 +70,13 @@ export function StaffDirectoryPanel({ entries }: StaffDirectoryPanelProps) {
                   <dd className="inline">{profile.phone_extension}</dd>
                 </div>
               )}
-              {profile?.meet_link && (
-                <div>
-                  <a href={profile.meet_link} className="text-brand-600 hover:underline" target="_blank" rel="noreferrer">
+              {profile?.meet_link ? (
+                <div className="mt-1">
+                  <ActionChip href={profile.meet_link} size="sm" variant="primary">
                     Join meeting
-                  </a>
+                  </ActionChip>
                 </div>
-              )}
+              ) : null}
             </dl>
           </article>
         );

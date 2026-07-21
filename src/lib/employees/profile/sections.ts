@@ -1,3 +1,4 @@
+import { cache } from "react";
 import {
   getAuditActivity,
   getEmployeeActivityFeed,
@@ -12,7 +13,7 @@ import { getEntityTags } from "@/lib/platform/tags";
 import type { ProfileEnvelopeBase, ProfileSectionDefinition } from "@/lib/platform/profile/types";
 import type { EmployeeProfileEnvelope } from "@/lib/employees/profile/types";
 import { isEmployeeProfileEnvelope } from "@/lib/employees/profile/types";
-import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -24,13 +25,19 @@ function section(partial: ProfileSectionDefinition): ProfileSectionDefinition {
   return partial;
 }
 
-async function loadEmployeeRecord(supabase: AuthClient, employeeId: string) {
+/** P009 — request-scoped dedupe across employee profile section loaders. */
+const loadEmployeeRecordCached = cache(async (employeeId: string) => {
+  const supabase = await createAuthClient();
   const { data } = await supabase
     .from("employees")
     .select("*, schools(name, organization_id), employee_profiles(*)")
     .eq("id", employeeId)
     .maybeSingle();
   return data;
+});
+
+async function loadEmployeeRecord(_supabase: AuthClient, employeeId: string) {
+  return loadEmployeeRecordCached(employeeId);
 }
 
 /** Employee profile section definitions — registered via Platform Profile Registry. */

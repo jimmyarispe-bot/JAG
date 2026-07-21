@@ -1,5 +1,5 @@
 import { getIdentityContext } from "@/lib/platform/identity/context";
-import { BoardReportingPanel } from "@/components/executive/ExecutivePanels";
+import { BoardReportingPanel } from "@/components/executive/ExecutiveDisplayPanels";
 
 export default async function ExecutiveBoardPage() {
   const ctx = await getIdentityContext();

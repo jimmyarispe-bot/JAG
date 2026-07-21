@@ -123,15 +123,22 @@ export function createIntelligenceService(
   };
 
   const service = new IntelligenceService(dependencies);
-  return Object.assign(service, stacks);
+  // Preserve lazy getters from stack composition (Object.assign would force them).
+  return Object.defineProperties(
+    service as IntelligenceService & IntelligenceServiceStacks,
+    Object.getOwnPropertyDescriptors(stacks)
+  );
 }
 
 /**
- * Convenience entry point bound to a freshly created service instance.
+ * Convenience entry point bound to the process intelligence singleton (P005).
  * @param request - Intelligence run request.
  */
 export async function runIntelligence(
   request: IntelligenceRunRequest
 ): Promise<IntelligenceResult> {
-  return createIntelligenceService().runIntelligence(request);
+  const { getOrCreateIntelligenceSingleton } = await import(
+    "@/lib/performance/singletons"
+  );
+  return getOrCreateIntelligenceSingleton().service.runIntelligence(request);
 }

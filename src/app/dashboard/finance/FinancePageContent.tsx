@@ -5,8 +5,12 @@ import {
   JagOrganizationContextBar,
   JagOrganizationContextPanel,
   JagWorkPanel,
+  KpiTilesSkeleton,
+  ListSkeleton,
   MetricCard,
+  ProgressivePageShell,
   QuickActions,
+  progressiveShellProps,
   type XesNavItem,
 } from "@/components/experience-system";
 import { FinanceTabs } from "@/components/finance/FinanceTabs";
@@ -104,19 +108,18 @@ export async function FinancePageContent({ searchParams }: FinancePageContentPro
   if (!ctx) return null;
 
   const workPerspective = resolveJagWorkPerspective("finance", sp.work);
-  const execution = await executeWorkspace({
-    workspaceKey: "finance",
-    identity: ctx,
-    activeView: workPerspective,
-    recommendationFacts: { has_permission: ctx.permissions.length > 0 },
-  });
-  const workspaceState = execution.state;
-  const supabase = await createAuthClient();
-  const [stats, invoices, billingAccounts] = await Promise.all([
-    getFinanceStats(),
-    getInvoices(),
-    getBillingAccounts(),
+  // P004: overlap engine with independent finance domain loads.
+  const [execution, supabase, [stats, invoices, billingAccounts]] = await Promise.all([
+    executeWorkspace({
+      workspaceKey: "finance",
+      identity: ctx,
+      activeView: workPerspective,
+      recommendationFacts: { has_permission: ctx.permissions.length > 0 },
+    }),
+    createAuthClient(),
+    Promise.all([getFinanceStats(), getInvoices(), getBillingAccounts()]),
   ]);
+  const workspaceState = execution.state;
 
   const workQueue = await resolveJagWorkQueue({
     workspaceKey: "finance",
@@ -179,9 +182,9 @@ export async function FinancePageContent({ searchParams }: FinancePageContentPro
 
 export function FinancePageSkeleton() {
   return (
-    <div className="mx-auto max-w-7xl space-y-6 animate-pulse">
-      <div className="h-8 w-48 rounded-lg bg-slate-200" />
-      <div className="h-96 rounded-2xl bg-slate-100" />
-    </div>
+    <ProgressivePageShell {...progressiveShellProps("finance")} showDefaultBody={false}>
+      <KpiTilesSkeleton count={4} />
+      <ListSkeleton rows={8} />
+    </ProgressivePageShell>
   );
 }

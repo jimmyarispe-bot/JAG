@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/integration-hub/context";
 import { getCredentials, getExpiringCredentials, getSecurityAuditSummary } from "@/lib/integration-hub/credential-vault";
 import { IntHubShell } from "@/components/integration-hub/IntHubNav";
 import { IntHubTable } from "@/components/integration-hub/IntHubPanels";
+import { ExperienceForm } from "@/components/integration-hub/IntHubMutationControls";
 import { rotateCredentialAction } from "@/lib/integration-hub/actions";
 
 export default async function IntegrationSecurityPage() {
@@ -25,7 +26,16 @@ export default async function IntegrationSecurityPage() {
         <div className="rounded-xl border bg-white p-4"><p className="text-slate-500">Expiring Soon</p><p className="text-2xl font-bold">{audit.expiringCredentials}</p></div>
       </div>
       <p className="text-sm text-slate-600">{audit.tenantIsolation}</p>
-      <form action={rotateCredentialAction} className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
+      <ExperienceForm
+        action={rotateCredentialAction}
+        verb="save"
+        labels={{ idle: "Rotate credential", loading: "Rotating…", success: "✓ Rotated" }}
+        progressLabel="Rotating credential…"
+        successToast="✓ Credential rotated."
+        errorToast="Unable to rotate credential."
+        className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"
+        buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+      >
         <input name="vault_key" placeholder="Vault key" aria-label="Vault key" className="rounded-lg border px-3 py-2 text-sm" required />
         <input name="secret_value" type="password" placeholder="Secret value" aria-label="Credential secret value" className="rounded-lg border px-3 py-2 text-sm" required autoComplete="off" />
         <select name="credential_type" aria-label="Credential type" className="rounded-lg border px-3 py-2 text-sm">
@@ -34,18 +44,13 @@ export default async function IntegrationSecurityPage() {
           <option value="webhook_secret">Webhook Secret</option>
           <option value="certificate">Certificate</option>
         </select>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Rotate credential</button>
-      </form>
+      </ExperienceForm>
       <IntHubTable rows={credentials} columns={[
         { key: "vault_key", label: "Key" }, { key: "credential_type", label: "Type" },
-        { key: "rotation_due_at", label: "Rotation Due" }, { key: "is_active", label: "Active" },
+        { key: "expires_at", label: "Expires" }, { key: "rotated_at", label: "Rotated" },
       ]} />
-      {expiring.length > 0 && (
-        <>
-          <h2 className="font-semibold text-amber-700">Credentials Requiring Rotation</h2>
-          <IntHubTable rows={expiring} columns={[{ key: "vault_key", label: "Key" }, { key: "rotation_due_at", label: "Due" }]} />
-        </>
-      )}
+      <h2 className="font-semibold">Expiring ({expiring.length})</h2>
+      <IntHubTable rows={expiring} columns={[{ key: "vault_key", label: "Key" }, { key: "expires_at", label: "Expires" }]} />
     </IntHubShell>
   );
 }

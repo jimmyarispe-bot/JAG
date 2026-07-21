@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 import type { MonitoringSummary } from "@/lib/enterprise-data/types";
 import { refreshEdpAction } from "@/lib/enterprise-data/actions";
 
@@ -26,17 +26,28 @@ function StatCard({ label, value, sub }: { label: string; value: number; sub: st
 }
 
 export function RefreshEdpButton() {
-  const [pending, start] = useTransition();
+  const action = useActionFeedback({
+    verb: "sync",
+    labels: { idle: "Refresh data platform", loading: "Refreshing…", success: "✓ Refreshed" },
+    successToast: "✓ Data platform refreshed.",
+    errorToast: "Unable to refresh.",
+    progressLabel: "Refreshing data platform…",
+  });
 
   return (
-    <button
+    <ActionButton
       type="button"
-      disabled={pending}
-      onClick={() => start(() => refreshEdpAction())}
-      className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-    >
-      {pending ? "Refreshing…" : "Refresh data platform"}
-    </button>
+      status={action.status}
+      verb="sync"
+      labels={{ idle: "Refresh data platform", loading: "Refreshing…", success: "✓ Refreshed" }}
+      errorMessage={action.errorMessage}
+      onClick={() => {
+        void action.run(async () => {
+          await refreshEdpAction();
+          return { success: true };
+        });
+      }}
+    />
   );
 }
 

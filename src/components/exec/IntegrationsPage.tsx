@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { DataModeBadge } from "@/components/exec/DataModeBadge";
 import { WidgetFrame } from "@/components/exec/WidgetFrame";
 import type { ExecIntegrationsViewModel } from "@/lib/exec/load-integrations";
@@ -11,13 +11,21 @@ import {
   resumeIntegrationAction,
   syncIntegrationAction,
 } from "@/app/exec/integrations/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 export function IntegrationsPage({ data }: { data: ExecIntegrationsViewModel }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [health, setHealth] = useState<string>("all");
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "sync",
+    successToast: "✓ Integration updated.",
+    errorToast: "Unable to update integration.",
+    progressLabel: "Syncing integration…",
+    onSuccess: () => setMessage("✓ Updated"),
+    onError: (err) => setMessage(err.message),
+  });
 
   const categories = useMemo(
     () => ["all", ...new Set(data.rows.map((r) => r.category))],
@@ -39,13 +47,11 @@ export function IntegrationsPage({ data }: { data: ExecIntegrationsViewModel }) 
   }, [data.rows, category, health, query]);
 
   function run(label: string, fn: () => Promise<unknown>) {
-    startTransition(async () => {
-      try {
-        await fn();
-        setMessage(label);
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Action failed");
-      }
+    setMessage(null);
+    void action.run(async () => {
+      await fn();
+      setMessage(label);
+      return { success: true };
     });
   }
 
@@ -66,7 +72,7 @@ export function IntegrationsPage({ data }: { data: ExecIntegrationsViewModel }) 
       {message && (
         <p className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700">
           {message}
-          {pending ? " …" : ""}
+          {action.isBusy ? " …" : ""}
         </p>
       )}
 
@@ -154,57 +160,58 @@ export function IntegrationsPage({ data }: { data: ExecIntegrationsViewModel }) 
                   <td className="py-3 tabular-nums text-slate-800">{row.failures}</td>
                   <td className="py-3">
                     <div className="flex flex-wrap gap-2">
-                      <button
+                      <ActionButton
                         type="button"
-                        disabled={pending || row.paused}
+                        status={action.status}
+                        verb="sync"
+                        labels={{ idle: "Sync Now", loading: "Syncing…", success: "✓ Synced" }}
+                        disabled={row.paused}
+                        className="!rounded-md !px-2.5 !py-1 !text-xs"
                         onClick={() =>
-                          run(
-                            `Synced ${row.name}`,
-                            async () => syncIntegrationAction(row.instanceId)
-                          )
+                          run(`Synced ${row.name}`, async () => syncIntegrationAction(row.instanceId))
                         }
-                        className="rounded-md bg-brand-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-                      >
-                        Sync Now
-                      </button>
-                      <button
+                      />
+                      <ActionButton
                         type="button"
-                        disabled={pending}
+                        status={action.status}
+                        verb="custom"
+                        variant="secondary"
+                        labels={{ idle: "Reconnect", loading: "Connecting…", success: "✓ Connected", error: "Unable to connect" }}
+                        className="!rounded-md !px-2.5 !py-1 !text-xs"
                         onClick={() =>
                           run(`Reconnected ${row.name}`, async () =>
                             reconnectIntegrationAction(row.instanceId)
                           )
                         }
-                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                      >
-                        Reconnect
-                      </button>
+                      />
                       {row.paused ? (
-                        <button
+                        <ActionButton
                           type="button"
-                          disabled={pending}
+                          status={action.status}
+                          verb="custom"
+                          variant="secondary"
+                          labels={{ idle: "Resume", loading: "Resuming…", success: "✓ Resumed", error: "Unable to resume" }}
+                          className="!rounded-md !px-2.5 !py-1 !text-xs"
                           onClick={() =>
                             run(`Resumed ${row.name}`, async () =>
                               resumeIntegrationAction(row.instanceId)
                             )
                           }
-                          className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                        >
-                          Resume
-                        </button>
+                        />
                       ) : (
-                        <button
+                        <ActionButton
                           type="button"
-                          disabled={pending}
+                          status={action.status}
+                          verb="custom"
+                          variant="secondary"
+                          labels={{ idle: "Pause", loading: "Pausing…", success: "✓ Paused", error: "Unable to pause" }}
+                          className="!rounded-md !px-2.5 !py-1 !text-xs"
                           onClick={() =>
                             run(`Paused ${row.name}`, async () =>
                               pauseIntegrationAction(row.instanceId)
                             )
                           }
-                          className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                        >
-                          Pause
-                        </button>
+                        />
                       )}
                       <Link
                         href={`/exec/integrations/${encodeURIComponent(row.instanceId)}`}

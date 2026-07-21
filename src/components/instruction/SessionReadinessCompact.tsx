@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { StudentReadinessSnapshot } from "@/lib/instruction/readiness";
+import { ActionChip } from "@/components/ui/cta";
 
 export function SessionReadinessCompact({
   studentId,
@@ -37,9 +37,13 @@ export function SessionReadinessCompact({
         {snapshot.recentAttendance[0] && (
           <p><span className="font-medium">Last attendance:</span> {snapshot.recentAttendance[0].date} — {snapshot.recentAttendance[0].status.replace(/_/g, " ")}</p>
         )}
-        <Link href={`/dashboard/teacher/students/${studentId}?view=overview`} className="inline-block pt-1 text-brand-600 hover:underline">
-          Full snapshot →
-        </Link>
+        <ActionChip
+          href={`/dashboard/teacher/students/${studentId}?view=overview`}
+          size="xs"
+          className="mt-1"
+        >
+          Full snapshot
+        </ActionChip>
       </div>
     </details>
   );

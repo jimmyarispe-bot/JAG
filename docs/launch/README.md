@@ -22,6 +22,11 @@ Official record: [`phase-g2/PRODUCTION_LAUNCH_PACKAGE.md`](./phase-g2/PRODUCTION
 Formal GA gate (2026-07-17): **[phase-h/](./phase-h/)** — **NO-GO** (score 54/100).  
 Do not declare General Availability until Phase G / G.2 succeed and Phase H decision flips to GO.
 
+## Platform ops
+
+- **Production env:** [`PRODUCTION_ENV.md`](./PRODUCTION_ENV.md)
+- **Email provider (C-6.2 Resend):** [`C-6.2-Email-Provider-Migration.md`](./C-6.2-Email-Provider-Migration.md)
+
 ## Launch reports
 
 - **Platform Health Report:** generated during full certification (Launch Readiness dashboard)
@@ -43,7 +48,7 @@ Administrator, Teacher, Parent, Finance, HR, Admissions, Executive, Developer, A
 ## Production checklist
 
 1. Apply migrations through `172_b1_security_remediation.sql` (include `171_a1_architecture_security_rls.sql`; authority: `supabase/migrations/`)
-2. Set production env vars — see `docs/launch/PRODUCTION_ENV.md` (`CRON_SECRET`, `NEXT_PUBLIC_APP_URL`, `VAULT_ENCRYPTION_KEY`, `SENDGRID_*`)
+2. Set production env vars — see `docs/launch/PRODUCTION_ENV.md` (`CRON_SECRET`, `NEXT_PUBLIC_APP_URL`, `VAULT_ENCRYPTION_KEY`, `RESEND_*`)
 3. Run full certification and review Platform Health Report
 4. Resolve Critical and High audit findings
 5. Generate demo environment for sales
@@ -51,4 +56,4 @@ Administrator, Teacher, Parent, Finance, HR, Admissions, Executive, Developer, A
 
 ## Phase 5 integration priority
 
-QuickBooks Online, Square, Google Workspace, Microsoft 365, Google Calendar, Outlook, NWEA MAP, Twilio, SendGrid, DocuSign — catalog ready; live OAuth requires customer credentials.
+QuickBooks Online, Square, Google Workspace, Microsoft 365, Google Calendar, Outlook, NWEA MAP, Twilio, Resend, DocuSign — catalog ready; live OAuth requires customer credentials.

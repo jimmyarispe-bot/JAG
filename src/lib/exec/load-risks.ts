@@ -158,21 +158,12 @@ export async function loadExecRisks(): Promise<ExecRiskViewModel> {
       };
     }
 
-    const proxy = wisdom.risks[0];
     return {
       key: cat.key,
       label: cat.label,
       domains: cat.domains,
       pressure: Math.round((100 - (wisdom.health.overallScore ?? 70)) * 0.6),
-      items: [
-        {
-          id: `synth-${cat.key}`,
-          title: `${cat.label} risk monitoring (sample)`,
-          subtitle: `Placeholder until ${cat.domains[0]} connector soft-read is wired for ECC`,
-          priority: "monitor" as const,
-          score: Math.round(proxy?.score ?? 35),
-        },
-      ],
+      items: [],
     };
   });
 

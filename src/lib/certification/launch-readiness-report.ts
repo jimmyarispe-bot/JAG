@@ -99,7 +99,7 @@ ${section("Phase 4 — Security Review", `Tenant isolation enforced via RLS (\`h
 
 Open items: credential vault hash refs (KMS/Vault for production secrets), extend API rate limiting beyond scholarship route.`)}
 
-${section("Phase 5 — Production Integrations", `Integration catalog ready for: QuickBooks Online, Square, Google Workspace, Microsoft 365, Google Calendar, Outlook, NWEA MAP, Twilio, SendGrid, DocuSign.
+${section("Phase 5 — Production Integrations", `Integration catalog ready for: QuickBooks Online, Square, Google Workspace, Microsoft 365, Google Calendar, Outlook, NWEA MAP, Twilio, Resend, DocuSign.
 
 Live OAuth sync requires customer credentials via Configuration Studio / Integration Hub. File import supported for QuickBooks. Prioritize OAuth wiring per customer contract.`)}
 

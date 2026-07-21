@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import {
   applyLateFeeAction,
   applyWriteOffAction,
@@ -14,6 +14,8 @@ import {
 } from "@/lib/finance/actions";
 import { PROGRAMS } from "@/lib/constants/programs";
 import type { BillingAccount, TuitionPlan } from "@/lib/finance/queries";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface BillingFormsProps {
   families: { id: string; family_name: string; school_id: string }[];
@@ -25,19 +27,28 @@ interface BillingFormsProps {
 
 export function BillingForms({ families, students, schools, plans, accounts }: BillingFormsProps) {
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to save.",
+    progressLabel: "Saving finance changes…",
+    onError: (err) => setMessage(err.message),
+  });
   const inputClass = "mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm";
   const labelClass = "block text-sm font-medium text-slate-700";
 
-  function wrap(action: (fd: FormData) => Promise<{ error?: string; success?: boolean }>) {
+  function wrap(serverAction: (fd: FormData) => Promise<{ error?: string; success?: boolean }>) {
     return (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       setMessage(null);
-      const fd = new FormData(e.currentTarget);
-      startTransition(async () => {
-        const result = await action(fd);
-        setMessage(result.error ? result.error : "Saved successfully.");
-        if (!result.error) e.currentTarget.reset();
+      const form = e.currentTarget;
+      const fd = new FormData(form);
+      void action.run(async () => {
+        const result = await serverAction(fd);
+        assertActionResult(result);
+        setMessage("Saved successfully.");
+        form.reset();
+        return result;
       });
     };
   }
@@ -72,7 +83,7 @@ export function BillingForms({ families, students, schools, plans, accounts }: B
             ))}
           </select>
         </div>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Create Account</button>
+        <ActionButton type="submit" status={action.status} verb="create" labels={{ idle: "Create Account" }} />
       </form>
 
       <form onSubmit={wrap(createInvoice)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -105,7 +116,7 @@ export function BillingForms({ families, students, schools, plans, accounts }: B
           <label className={labelClass}>Due Date</label>
           <input name="due_date" type="date" required className={inputClass} />
         </div>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Create Invoice</button>
+        <ActionButton type="submit" status={action.status} verb="create" labels={{ idle: "Create Invoice" }} />
       </form>
 
       <form onSubmit={wrap(createTuitionInvoiceFromPlanAction)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -140,7 +151,7 @@ export function BillingForms({ families, students, schools, plans, accounts }: B
           <label className={labelClass}>Due Date</label>
           <input name="due_date" type="date" required className={inputClass} />
         </div>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Generate Invoice</button>
+        <ActionButton type="submit" status={action.status} verb="generate" labels={{ idle: "Generate Invoice" }} />
       </form>
 
       <form onSubmit={wrap(recordPayment)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -162,7 +173,7 @@ export function BillingForms({ families, students, schools, plans, accounts }: B
             <option value="esa">ESA</option>
           </select>
         </div>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Record Payment</button>
+        <ActionButton type="submit" status={action.status} verb="save" labels={{ idle: "Record Payment", loading: "Recording…", success: "✓ Recorded" }} />
       </form>
 
       <form onSubmit={wrap(createTuitionPlan)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -212,7 +223,7 @@ export function BillingForms({ families, students, schools, plans, accounts }: B
           <label className={labelClass}>Hourly Rate (optional)</label>
           <input name="hourly_rate" type="number" step="0.01" className={inputClass} />
         </div>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Create Plan</button>
+        <ActionButton type="submit" status={action.status} verb="create" labels={{ idle: "Create Plan" }} />
       </form>
 
       <form onSubmit={wrap(buildForecastAction)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -223,7 +234,7 @@ export function BillingForms({ families, students, schools, plans, accounts }: B
             {schools.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Build Forecast</button>
+        <ActionButton type="submit" status={action.status} verb="build" labels={{ idle: "Build Forecast" }} />
       </form>
 
       <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-white p-5">
@@ -234,14 +245,26 @@ export function BillingForms({ families, students, schools, plans, accounts }: B
             <input name="invoice_id" placeholder="Invoice ID" className={inputClass} required />
             <input name="amount" type="number" step="0.01" placeholder="Amount" className={inputClass} required />
             <input name="reason" placeholder="Reason" defaultValue="Late payment fee" className={inputClass} />
-            <button type="submit" disabled={isPending} className="text-sm text-brand-600">Apply</button>
+            <ActionButton
+              type="submit"
+              status={action.status}
+              verb="save"
+              variant="secondary"
+              labels={{ idle: "Apply", loading: "Applying…", success: "✓ Applied" }}
+            />
           </form>
           <form onSubmit={wrap(applyWriteOffAction)} className="space-y-2 rounded-lg border border-slate-100 p-3">
             <h4 className="text-sm font-medium">Write-off</h4>
             <input name="invoice_id" placeholder="Invoice ID" className={inputClass} required />
             <input name="amount" type="number" step="0.01" placeholder="Amount" className={inputClass} required />
             <input name="reason" placeholder="Reason" className={inputClass} required />
-            <button type="submit" disabled={isPending} className="text-sm text-brand-600">Write off</button>
+            <ActionButton
+              type="submit"
+              status={action.status}
+              verb="save"
+              variant="secondary"
+              labels={{ idle: "Write off", loading: "Writing off…", success: "✓ Written off" }}
+            />
           </form>
           <form onSubmit={wrap(processRefundAction)} className="space-y-2 rounded-lg border border-slate-100 p-3">
             <h4 className="text-sm font-medium">Refund</h4>
@@ -254,7 +277,13 @@ export function BillingForms({ families, students, schools, plans, accounts }: B
             <input name="invoice_id" placeholder="Invoice ID (optional)" className={inputClass} />
             <input name="amount" type="number" step="0.01" placeholder="Amount" className={inputClass} required />
             <input name="reason" placeholder="Reason" className={inputClass} required />
-            <button type="submit" disabled={isPending} className="text-sm text-brand-600">Refund</button>
+            <ActionButton
+              type="submit"
+              status={action.status}
+              verb="save"
+              variant="secondary"
+              labels={{ idle: "Refund", loading: "Refunding…", success: "✓ Refunded" }}
+            />
           </form>
         </div>
       </div>

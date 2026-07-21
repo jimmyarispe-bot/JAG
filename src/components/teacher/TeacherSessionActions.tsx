@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
 import Link from "next/link";
 import { completeSessionAction, startLessonAction, takeSessionAttendanceAction } from "@/lib/teacher/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface SessionCardActionsProps {
   sessionId: string;
@@ -11,26 +12,33 @@ interface SessionCardActionsProps {
 }
 
 export function SessionCardActions({ sessionId, students, lessonStatus }: SessionCardActionsProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    successToast: "✓ Updated",
+    errorToast: "Unable to update.",
+    progressLabel: "Updating session…",
+  });
   const firstStudent = students[0];
 
   return (
     <div className="flex flex-wrap gap-2">
       {lessonStatus === "not_started" && (
-        <button
+        <ActionButton
           type="button"
-          disabled={pending}
+          status={action.status}
+          verb="run"
+          labels={{ idle: "Start lesson", loading: "Starting…", success: "✓ Started" }}
+          className="!rounded-lg !px-3 !py-1.5 !text-xs"
           onClick={() => {
-            startTransition(async () => {
+            void action.run(async () => {
               const fd = new FormData();
               fd.set("session_id", sessionId);
-              await startLessonAction(fd);
+              const r = await startLessonAction(fd);
+              assertActionResult(r);
+              return r;
             });
           }}
-          className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          Start lesson
-        </button>
+        />
       )}
       <Link
         href={`/dashboard/teacher/sessions/${sessionId}`}
@@ -40,22 +48,25 @@ export function SessionCardActions({ sessionId, students, lessonStatus }: Sessio
       </Link>
       {firstStudent && (
         <>
-          <button
+          <ActionButton
             type="button"
-            disabled={pending}
+            status={action.status}
+            verb="save"
+            variant="secondary"
+            labels={{ idle: "Take attendance", loading: "Saving…", success: "✓ Saved" }}
+            className="!rounded-lg !border-emerald-200 !bg-emerald-50 !px-3 !py-1.5 !text-xs !text-emerald-700 hover:!bg-emerald-100"
             onClick={() => {
-              startTransition(async () => {
+              void action.run(async () => {
                 const fd = new FormData();
                 fd.set("session_id", sessionId);
                 fd.set("student_id", firstStudent.id);
                 fd.set("status", "present");
-                await takeSessionAttendanceAction(fd);
+                const r = await takeSessionAttendanceAction(fd);
+                assertActionResult(r);
+                return r;
               });
             }}
-            className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-          >
-            Take attendance
-          </button>
+          />
           <Link
             href={`/dashboard/students/${firstStudent.id}`}
             className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
@@ -76,20 +87,23 @@ export function SessionCardActions({ sessionId, students, lessonStatus }: Sessio
       >
         Upload artifact
       </Link>
-      <button
+      <ActionButton
         type="button"
-        disabled={pending}
+        status={action.status}
+        verb="save"
+        variant="secondary"
+        labels={{ idle: "Complete session", loading: "Completing…", success: "✓ Complete" }}
+        className="!rounded-lg !border-brand-200 !bg-brand-50 !px-3 !py-1.5 !text-xs !text-brand-700 hover:!bg-brand-100"
         onClick={() => {
-          startTransition(async () => {
+          void action.run(async () => {
             const fd = new FormData();
             fd.set("session_id", sessionId);
-            await completeSessionAction(fd);
+            const r = await completeSessionAction(fd);
+            assertActionResult(r);
+            return r;
           });
         }}
-        className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 disabled:opacity-50"
-      >
-        Complete session
-      </button>
+      />
     </div>
   );
 }

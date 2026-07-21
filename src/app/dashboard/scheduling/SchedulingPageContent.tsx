@@ -4,9 +4,13 @@ import {
   JagOrganizationContextBar,
   JagOrganizationContextPanel,
   JagWorkPanel,
+  KpiTilesSkeleton,
+  ListSkeleton,
   MetricCard,
+  ProgressivePageShell,
   QuickActions,
   SchedulingExperienceShell,
+  progressiveShellProps,
   type XesNavItem,
 } from "@/components/experience-system";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -165,22 +169,28 @@ export async function SchedulingPageContent({ searchParams }: SchedulingPageCont
     ctx.orgAssignments[0]?.school_id;
 
   const workPerspective = resolveJagWorkPerspective("scheduling", sp.work);
-  const execution = await executeWorkspace({
-    workspaceKey: "scheduling",
-    identity: ctx,
-    activeView: workPerspective,
-    recommendationFacts: { has_permission: ctx.permissions.length > 0 },
-  });
-  const workspaceState = execution.state;
-
-  const supabase = await createAuthClient();
-  const [conflicts, placementGaps, recommendations, analytics, stats] = await Promise.all([
-    getScheduleConflicts(schoolId),
-    schoolId ? getStudentsWithoutSectionMatch(schoolId) : Promise.resolve([]),
-    schoolId ? generateSchedulingRecommendations(supabase, schoolId) : Promise.resolve([]),
-    schoolId ? getExecutiveSchedulingAnalytics(supabase, schoolId) : Promise.resolve(null),
-    getSchedulingExecutiveStats(schoolId),
+  // P004: overlap engine with independent scheduling domain loads.
+  const [execution, domain] = await Promise.all([
+    executeWorkspace({
+      workspaceKey: "scheduling",
+      identity: ctx,
+      activeView: workPerspective,
+      recommendationFacts: { has_permission: ctx.permissions.length > 0 },
+    }),
+    (async () => {
+      const supabase = await createAuthClient();
+      const [conflicts, placementGaps, recommendations, analytics, stats] = await Promise.all([
+        getScheduleConflicts(schoolId),
+        schoolId ? getStudentsWithoutSectionMatch(schoolId) : Promise.resolve([]),
+        schoolId ? generateSchedulingRecommendations(supabase, schoolId) : Promise.resolve([]),
+        schoolId ? getExecutiveSchedulingAnalytics(supabase, schoolId) : Promise.resolve(null),
+        getSchedulingExecutiveStats(schoolId),
+      ]);
+      return { supabase, conflicts, placementGaps, recommendations, analytics, stats };
+    })(),
   ]);
+  const workspaceState = execution.state;
+  const { supabase, conflicts, placementGaps, recommendations, analytics, stats } = domain;
 
   const workQueue = await resolveJagWorkQueue({
     workspaceKey: "scheduling",
@@ -297,15 +307,9 @@ export async function SchedulingPageContent({ searchParams }: SchedulingPageCont
 
 export function SchedulingPageSkeleton() {
   return (
-    <div className="mx-auto max-w-7xl space-y-6 animate-pulse">
-      <div className="h-8 w-64 rounded-lg bg-slate-200" />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 rounded-2xl bg-slate-100" />
-        ))}
-      </div>
-      <div className="h-11 rounded-xl bg-slate-100" />
-      <div className="h-64 rounded-2xl bg-slate-100" />
-    </div>
+    <ProgressivePageShell {...progressiveShellProps("scheduling")} showDefaultBody={false}>
+      <KpiTilesSkeleton count={4} />
+      <ListSkeleton rows={8} />
+    </ProgressivePageShell>
   );
 }

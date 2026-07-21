@@ -181,30 +181,44 @@ export async function getStaffWorkload(schoolId: string) {
     .eq("school_id", schoolId)
     .eq("employment_status", "active");
 
-  const workload = [];
-  for (const emp of employees ?? []) {
+  const employeeIds = (employees ?? []).map((e) => e.id);
+  const sessionsByEmployee = new Map<
+    string,
+    Array<{ id: string; scheduled_start: string; scheduled_end: string; session_type: string }>
+  >();
+
+  if (employeeIds.length) {
     const { data: sessions } = await supabase
       .from("instructional_sessions")
-      .select("id, scheduled_start, scheduled_end, session_type")
-      .eq("instructor_employee_id", emp.id)
+      .select("id, scheduled_start, scheduled_end, session_type, instructor_employee_id")
+      .in("instructor_employee_id", employeeIds)
       .gte("scheduled_start", weekStart.toISOString());
 
-    const hours =
-      (sessions ?? []).reduce((sum, s) => {
-        const ms = new Date(s.scheduled_end).getTime() - new Date(s.scheduled_start).getTime();
-        return sum + ms / 3600000;
-      }, 0) ?? 0;
+    for (const s of sessions ?? []) {
+      if (!s.instructor_employee_id) continue;
+      const list = sessionsByEmployee.get(s.instructor_employee_id) ?? [];
+      list.push(s);
+      sessionsByEmployee.set(s.instructor_employee_id, list);
+    }
+  }
+
+  const workload = (employees ?? []).map((emp) => {
+    const sessions = sessionsByEmployee.get(emp.id) ?? [];
+    const hours = sessions.reduce((sum, s) => {
+      const ms = new Date(s.scheduled_end).getTime() - new Date(s.scheduled_start).getTime();
+      return sum + ms / 3600000;
+    }, 0);
 
     const profile = Array.isArray(emp.employee_profiles) ? emp.employee_profiles[0] : emp.employee_profiles;
 
-    workload.push({
+    return {
       employeeId: emp.id,
       name: profile ? `${profile.first_name} ${profile.last_name}` : "Staff",
-      sessionCount: sessions?.length ?? 0,
+      sessionCount: sessions.length,
       weeklyHours: Math.round(hours * 10) / 10,
       overloaded: hours > 30,
-    });
-  }
+    };
+  });
 
   return workload.sort((a, b) => b.weeklyHours - a.weeklyHours);
 }
@@ -244,20 +258,32 @@ export async function getSchedulingCapacityReport(schoolId: string) {
     )
     .eq("status", "open");
 
-  const report = [];
-  for (const section of sections ?? []) {
+  const schoolSections = (sections ?? []).filter((section) => {
     const course = Array.isArray(section.courses) ? section.courses[0] : section.courses;
-    if ((course as { school_id?: string })?.school_id !== schoolId) continue;
+    return (course as { school_id?: string })?.school_id === schoolId;
+  });
 
-    const { count } = await supabase
+  const sectionIds = schoolSections.map((s) => s.id);
+  const enrollmentCounts = new Map<string, number>();
+
+  if (sectionIds.length) {
+    const { data: enrollments } = await supabase
       .from("student_enrollments")
-      .select("id", { count: "exact", head: true })
-      .eq("course_section_id", section.id)
+      .select("course_section_id")
+      .in("course_section_id", sectionIds)
       .eq("enrollment_status", "enrolled");
 
-    const enrolled = count ?? 0;
+    for (const e of enrollments ?? []) {
+      if (!e.course_section_id) continue;
+      enrollmentCounts.set(e.course_section_id, (enrollmentCounts.get(e.course_section_id) ?? 0) + 1);
+    }
+  }
+
+  const report = schoolSections.map((section) => {
+    const course = Array.isArray(section.courses) ? section.courses[0] : section.courses;
+    const enrolled = enrollmentCounts.get(section.id) ?? 0;
     const max = section.max_capacity ?? 30;
-    report.push({
+    return {
       sectionId: section.id,
       sectionCode: section.section_code,
       courseName: (course as { name?: string })?.name ?? "—",
@@ -268,8 +294,8 @@ export async function getSchedulingCapacityReport(schoolId: string) {
       utilizationPct: max ? Math.round((enrolled / max) * 100) : 0,
       structuredLiteracyLevel: section.structured_literacy_level,
       structuredLiteracyStep: section.structured_literacy_step,
-    });
-  }
+    };
+  });
 
   return { sections: report, programRules: JAG_VIRTUAL_PROGRAM_RULES, config };
 }
@@ -285,24 +311,37 @@ export async function getStudentsWithoutSectionMatch(schoolId: string) {
     .eq("status", "active")
     .eq("enrollment_status", "enrolled");
 
-  const gaps = [];
-  for (const student of students ?? []) {
+  const studentIds = (students ?? []).map((s) => s.id);
+  const enrolledStudentIds = new Set<string>();
+
+  if (studentIds.length) {
     const { data: enrollments } = await supabase
       .from("student_enrollments")
-      .select("id")
-      .eq("student_id", student.id)
-      .eq("enrollment_status", "enrolled")
-      .limit(1);
+      .select("student_id")
+      .in("student_id", studentIds)
+      .eq("enrollment_status", "enrolled");
+    for (const e of enrollments ?? []) {
+      if (e.student_id) enrolledStudentIds.add(e.student_id);
+    }
+  }
 
-    if (enrollments?.length) continue;
+  const unplaced = (students ?? []).filter((s) => !enrolledStudentIds.has(s.id));
+  const gaps = [];
 
-    const result = await findBestSectionForStudent(supabase, {
-      studentId: student.id,
-      schoolId,
-      program: student.program,
-      academySubject: "structured_literacy",
-    });
+  // Placement still needs per-student matching logic, but run independently in parallel.
+  const placements = await Promise.all(
+    unplaced.map(async (student) => {
+      const result = await findBestSectionForStudent(supabase, {
+        studentId: student.id,
+        schoolId,
+        program: student.program,
+        academySubject: "structured_literacy",
+      });
+      return { student, result };
+    })
+  );
 
+  for (const { student, result } of placements) {
     if (!result.sectionId) {
       gaps.push({
         studentId: student.id,

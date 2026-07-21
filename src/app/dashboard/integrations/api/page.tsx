@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/integration-hub/context";
 import { getApiKeys, getOAuthClients, getApiAuditLog } from "@/lib/integration-hub/api-gateway";
 import { IntHubShell } from "@/components/integration-hub/IntHubNav";
 import { IntHubTable } from "@/components/integration-hub/IntHubPanels";
+import { ExperienceForm } from "@/components/integration-hub/IntHubMutationControls";
 import { createApiKeyAction } from "@/lib/integration-hub/actions";
 import { API_VERSIONS } from "@/lib/integration-hub/types";
 
@@ -21,10 +22,18 @@ export default async function IntegrationApiPage() {
   return (
     <IntHubShell title="Open API Platform" subtitle="REST API, OAuth 2.0, API keys, rate limiting, tenant isolation, GraphQL-ready architecture">
       <p className="text-sm text-slate-600">Versions: {API_VERSIONS.join(", ")} · Credentials encrypted · Secret rotation supported · Every call audited</p>
-      <form action={createApiKeyAction} className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
+      <ExperienceForm
+        action={createApiKeyAction}
+        verb="create"
+        labels={{ idle: "Create API key", loading: "Creating…", success: "✓ Created" }}
+        progressLabel="Creating API key…"
+        successToast="✓ API key created."
+        errorToast="Unable to create API key."
+        className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"
+        buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+      >
         <input name="key_name" placeholder="API key name" className="rounded-lg border px-3 py-2 text-sm" required />
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Create API key</button>
-      </form>
+      </ExperienceForm>
       <IntHubTable rows={keys} columns={[{ key: "key_name", label: "Name" }, { key: "key_prefix", label: "Prefix" }, { key: "rate_limit_per_minute", label: "Rate/min" }, { key: "is_active", label: "Active" }]} />
       <h2 className="font-semibold">OAuth 2.0 Clients</h2>
       <IntHubTable rows={oauth} columns={[{ key: "client_name", label: "Client" }, { key: "client_id", label: "Client ID" }, { key: "api_version", label: "Version" }]} />

@@ -8,7 +8,7 @@ AcademyOS v1.0 Full Certification Run Instructions (I-01)
 ===========================================================
 
 1. Apply migrations through 172_b1_security_remediation.sql (authority: supabase/migrations/; also requires 171_a1_architecture_security_rls.sql)
-2. Set production env vars (see .env.example): CRON_SECRET, NEXT_PUBLIC_APP_URL, VAULT_ENCRYPTION_KEY, SENDGRID_API_KEY
+2. Set production env vars (see .env.example): CRON_SECRET, NEXT_PUBLIC_APP_URL, VAULT_ENCRYPTION_KEY, RESEND_API_KEY
 3. Sign in as a user with certification.admin permission
 4. Open: /dashboard/certification/launch
 5. Click "Run full certification"

@@ -3,6 +3,8 @@
 import { refresh, revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { requireOrganizationAccess } from "@/lib/platform/identity/tenant-access";
+import { logSecurityEvent } from "@/lib/platform/identity/security";
 import { canManageConfiguration, canLaunchOrganization } from "@/lib/configuration/access";
 import { getPrimaryOrganizationId } from "@/lib/configuration/context";
 import { saveConfigSection } from "@/lib/configuration/sections";
@@ -19,13 +21,37 @@ export type SaveConfigFieldsState = {
   message: string;
 };
 
+/** RC-3 — resolve org and enforce membership (never trust client organization_id alone). */
 async function resolveOrg(formOrgId?: string | null) {
   const ctx = await getIdentityContext();
   if (!ctx) throw new Error("Unauthorized");
   const supabase = await createAuthClient();
   const orgId = formOrgId || (await getPrimaryOrganizationId(supabase));
   if (!orgId) throw new Error("Organization not found");
+  const scope = await requireOrganizationAccess(supabase, ctx.effectiveUserId, orgId);
+  if (scope !== true) throw new Error("Forbidden");
   return { ctx, supabase, orgId };
+}
+
+async function auditConfigChange(
+  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  input: {
+    actorUserId: string;
+    organizationId: string;
+    summary: string;
+    metadata?: Record<string, unknown>;
+  }
+) {
+  await logSecurityEvent(supabase, {
+    eventType: "school_config_change",
+    summary: input.summary,
+    actorUserId: input.actorUserId,
+    userId: input.actorUserId,
+    metadata: {
+      organizationId: input.organizationId,
+      ...(input.metadata ?? {}),
+    },
+  });
 }
 
 export async function saveConfigSectionAction(formData: FormData): Promise<void> {
@@ -50,6 +76,13 @@ export async function saveConfigSectionAction(formData: FormData): Promise<void>
     changeSummary: formData.get("change_summary")?.toString(),
   });
 
+  await auditConfigChange(supabase, {
+    actorUserId: ctx.effectiveUserId,
+    organizationId: orgId,
+    summary: `Configuration section saved: ${sectionKey}`,
+    metadata: { sectionKey },
+  });
+
   revalidatePath("/dashboard/admin/configuration");
 }
 
@@ -68,12 +101,9 @@ export async function saveConfigFieldsAction(
     }
 
     const { getConfigSection } = await import("@/lib/configuration/sections");
+    const { mergeConfigFieldsFromFormData } = await import("@/lib/configuration/form-fields");
     const existing = await getConfigSection(supabase, orgId, sectionKey);
-
-    const configData: Record<string, unknown> = { ...existing };
-    for (const [key, value] of formData.entries()) {
-      if (key.startsWith("field_")) configData[key.replace("field_", "")] = value.toString();
-    }
+    const { configData, fieldKeys } = mergeConfigFieldsFromFormData(formData, existing);
 
     const result = await saveConfigSection(supabase, {
       organizationId: orgId,
@@ -85,6 +115,13 @@ export async function saveConfigFieldsAction(
     if ("error" in result && result.error) {
       return { ok: false, message: result.error };
     }
+
+    await auditConfigChange(supabase, {
+      actorUserId: ctx.effectiveUserId,
+      organizationId: orgId,
+      summary: `Configuration fields saved: ${sectionKey}`,
+      metadata: { sectionKey, fields: fieldKeys },
+    });
 
     revalidatePath("/dashboard/admin", "layout");
     refresh();
@@ -105,6 +142,13 @@ export async function toggleModuleAction(formData: FormData): Promise<void> {
 
   if (action === "enable") await installModule(supabase, orgId, moduleKey, ctx.effectiveUserId);
   else await disableModule(supabase, orgId, moduleKey, ctx.effectiveUserId);
+
+  await auditConfigChange(supabase, {
+    actorUserId: ctx.effectiveUserId,
+    organizationId: orgId,
+    summary: `Module ${action === "enable" ? "enabled" : "disabled"}: ${moduleKey}`,
+    metadata: { moduleKey, action },
+  });
 
   revalidatePath("/dashboard/admin/modules");
 }
@@ -138,6 +182,11 @@ export async function launchOrganizationAction(formData: FormData): Promise<void
   if (!canLaunchOrganization(ctx)) return;
 
   await launchOrganization(supabase, orgId, ctx.effectiveUserId);
+  await auditConfigChange(supabase, {
+    actorUserId: ctx.effectiveUserId,
+    organizationId: orgId,
+    summary: "Organization launched (go-live)",
+  });
   revalidatePath("/dashboard/admin/go-live");
 }
 
@@ -150,14 +199,25 @@ export async function importConfigPackageAction(formData: FormData): Promise<voi
   if (!parsed) return;
 
   await importConfigurationPackage(supabase, orgId, parsed as Parameters<typeof importConfigurationPackage>[2], ctx.effectiveUserId);
+  await auditConfigChange(supabase, {
+    actorUserId: ctx.effectiveUserId,
+    organizationId: orgId,
+    summary: "Configuration package imported",
+  });
   revalidatePath("/dashboard/admin/configuration");
 }
 
 export async function rollbackConfigAction(formData: FormData): Promise<void> {
-  const { ctx, supabase } = await resolveOrg();
+  const { ctx, supabase, orgId } = await resolveOrg(formData.get("organization_id")?.toString());
   if (!canManageConfiguration(ctx)) return;
 
   const versionId = formData.get("version_id")?.toString() ?? "";
   await rollbackConfigVersion(supabase, versionId, ctx.effectiveUserId);
+  await auditConfigChange(supabase, {
+    actorUserId: ctx.effectiveUserId,
+    organizationId: orgId,
+    summary: `Configuration version rolled back: ${versionId}`,
+    metadata: { versionId },
+  });
   revalidatePath("/dashboard/admin/configuration");
 }

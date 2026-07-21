@@ -17,11 +17,16 @@ import { resolveSquareQuickBooksReconciliation } from "@/lib/exec/square-quickbo
 import { getExecIntelligence } from "@/lib/exec/intelligence";
 import { getExecRuntime } from "@/lib/exec/scope";
 import type { ExecBriefViewModel } from "@/lib/exec/view-models";
+import { observeExecutiveIntelligence } from "@/lib/observability";
 
 /**
  * Executive Brief — Wisdom primary, enriched with Workspace / Plaid / QB / Square / AcademyOS.
  */
 export async function loadExecBrief(): Promise<ExecBriefViewModel> {
+  return observeExecutiveIntelligence("exec.loadBrief", () => loadExecBriefInner());
+}
+
+async function loadExecBriefInner(): Promise<ExecBriefViewModel> {
   const runtime = await getExecRuntime();
   const orgId = runtime.scope.organizationId;
   const [, sqEnsure, qbEnsure, plaidEnsure, gwEnsure] = await Promise.all([
@@ -154,7 +159,7 @@ export async function loadExecBrief(): Promise<ExecBriefViewModel> {
       subtitle: rec.rationale,
       priority: rec.priority,
       score: Math.round(rec.confidenceScore * 100),
-      href: "/exec/actions",
+      href: "/dashboard/executive/decisions",
     })),
     risks: [
       ...cashRecon.discrepancies.slice(0, 2).map((d) => ({

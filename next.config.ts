@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
 
 /**
  * Performance (C.1) + Security headers (B.1).
+ * P010 — optional ANALYZE=true wraps config with @next/bundle-analyzer.
  */
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -16,7 +18,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.sendgrid.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -28,6 +30,10 @@ const securityHeaders = [
   },
 ];
 
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
@@ -36,6 +42,10 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   images: {
     formats: ["image/avif", "image/webp"],
+  },
+  experimental: {
+    // P010 — tree-shake common package entrypoints when imported from barrels.
+    optimizePackageImports: ["@supabase/supabase-js", "@supabase/ssr"],
   },
   async headers() {
     const headers = [
@@ -73,4 +83,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

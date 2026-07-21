@@ -81,7 +81,7 @@ export async function getStudentDashboardSummary(studentId: string): Promise<Stu
 
   const attendance = attendanceRes.data ?? [];
   const presentCount = attendance.filter((a) =>
-    ["present", "virtual_present", "therapy_present"].includes(a.status)
+    ["present", "virtual_present", "therapy_present"].includes(String(a.status ?? ""))
   ).length;
   const totalDays = attendance.length || 1;
 
@@ -104,7 +104,7 @@ export async function getStudentDashboardSummary(studentId: string): Promise<Stu
   return {
     attendanceRate: Math.round((presentCount / totalDays) * 100),
     absencesThisMonth: attendance.filter((a) =>
-      a.status.startsWith("absent")
+      String(a.status ?? "").startsWith("absent")
     ).length,
     tardiesThisMonth: attendance.filter((a) => a.status === "tardy").length,
     positiveBehaviorCount: behavior.filter((b) => b.event_type === "positive").length,

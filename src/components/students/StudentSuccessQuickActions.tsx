@@ -1,6 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 import {
   recordBehaviorEvent,
   recordStudentAttendance,
@@ -17,7 +19,13 @@ export function StudentSuccessQuickActions({
   studentId,
   lifecycleStage,
 }: StudentSuccessQuickActionsProps) {
-  const [pending, startTransition] = useTransition();
+  const refreshAction = useActionFeedback({
+    verb: "run",
+    labels: { idle: "Refresh Success Score", loading: "Refreshing…", success: "✓ Refreshed" },
+    successToast: "✓ Success score refreshed.",
+    errorToast: "Unable to refresh score.",
+    progressLabel: "Refreshing success score…",
+  });
 
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6">
@@ -25,9 +33,15 @@ export function StudentSuccessQuickActions({
       <p className="mt-1 text-xs text-slate-500">Record attendance, behavior, or advance lifecycle stage.</p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <form
+        <ExperienceForm
+          action={recordStudentAttendance}
+          verb="save"
+          labels={{ idle: "Record", loading: "Recording…", success: "✓ Recorded" }}
+          progressLabel="Recording attendance…"
+          successToast="✓ Attendance recorded."
+          errorToast="Unable to record attendance."
           className="space-y-2 rounded-xl bg-slate-50 p-3"
-          action={(fd) => startTransition(() => void recordStudentAttendance(fd))}
+          buttonClassName="w-full"
         >
           <input type="hidden" name="student_id" value={studentId} />
           <p className="text-xs font-medium uppercase text-slate-500">Attendance</p>
@@ -49,18 +63,17 @@ export function StudentSuccessQuickActions({
             <input type="checkbox" name="notify_parent" value="true" />
             Notify parent
           </label>
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            Record
-          </button>
-        </form>
+        </ExperienceForm>
 
-        <form
+        <ExperienceForm
+          action={recordBehaviorEvent}
+          verb="create"
+          labels={{ idle: "Log Event", loading: "Logging…", success: "✓ Logged" }}
+          progressLabel="Logging behavior event…"
+          successToast="✓ Behavior event logged."
+          errorToast="Unable to log event."
           className="space-y-2 rounded-xl bg-slate-50 p-3"
-          action={(fd) => startTransition(() => void recordBehaviorEvent(fd))}
+          buttonClassName="w-full"
         >
           <input type="hidden" name="student_id" value={studentId} />
           <p className="text-xs font-medium uppercase text-slate-500">Behavior</p>
@@ -76,18 +89,17 @@ export function StudentSuccessQuickActions({
             className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
             required
           />
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            Log Event
-          </button>
-        </form>
+        </ExperienceForm>
 
-        <form
+        <ExperienceForm
+          action={transitionStudentStage}
+          verb="save"
+          labels={{ idle: "Transition", loading: "Updating…", success: "✓ Updated" }}
+          progressLabel="Updating lifecycle stage…"
+          successToast="✓ Lifecycle stage updated."
+          errorToast="Unable to transition stage."
           className="space-y-2 rounded-xl bg-slate-50 p-3"
-          action={(fd) => startTransition(() => void transitionStudentStage(fd))}
+          buttonClassName="w-full !bg-slate-800 hover:!bg-slate-900"
         >
           <input type="hidden" name="student_id" value={studentId} />
           <p className="text-xs font-medium uppercase text-slate-500">Lifecycle</p>
@@ -98,24 +110,26 @@ export function StudentSuccessQuickActions({
             <option value="withdrawn">Withdrawn</option>
             <option value="alumni">Alumni</option>
           </select>
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50"
-          >
-            Transition
-          </button>
-        </form>
+        </ExperienceForm>
       </div>
 
-      <button
+      <ActionButton
         type="button"
-        disabled={pending}
-        onClick={() => startTransition(() => void refreshStudentSuccessScore(studentId))}
-        className="mt-4 text-sm font-medium text-brand-600 hover:text-brand-700 disabled:opacity-50"
-      >
-        Refresh Success Score
-      </button>
+        status={refreshAction.status}
+        verb="run"
+        variant="secondary"
+        size="sm"
+        labels={{ idle: "Refresh Success Score", loading: "Refreshing…", success: "✓ Refreshed" }}
+        className="mt-4"
+        errorMessage={refreshAction.errorMessage}
+        onClick={() => {
+          void refreshAction.run(async () => {
+            const result = await refreshStudentSuccessScore(studentId);
+            assertActionResult(result);
+            return result ?? { success: true };
+          });
+        }}
+      />
     </div>
   );
 }

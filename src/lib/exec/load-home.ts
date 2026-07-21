@@ -102,7 +102,7 @@ export async function loadExecHome(): Promise<ExecHomeViewModel> {
     title: rec.action || rec.title,
     subtitle: `Owner: ${rec.owner} · ${rec.priority}`,
     priority: rec.priority,
-    href: "/exec/actions",
+    href: "/dashboard/executive/decisions",
   }));
 
   const moduleCount = INTELLIGENCE_MODULE_IDS.length;
@@ -392,7 +392,7 @@ export async function loadExecHome(): Promise<ExecHomeViewModel> {
         ...(plaid ? ["plaid"] : qb ? ["quickbooks"] : square ? ["square"] : feed ? ["academyos"] : []),
       ],
       dataMode: financeMode,
-      href: "/exec/finance",
+      href: "/dashboard/finance",
       score: financeScore,
       label: plaid
         ? "Plaid treasury / cash position"
@@ -410,7 +410,7 @@ export async function loadExecHome(): Promise<ExecHomeViewModel> {
       title: "Workforce snapshot",
       domains: ["human-capital", ...(feed ? ["academyos"] : [])],
       dataMode: feed ? "live" : "synthetic",
-      href: "/exec/workforce",
+      href: "/dashboard/hr",
       score: feed ? feed.workforceScore : round(oios.health.dimensions.organizational),
       label: feed
         ? `${feed.counts.teachers} teachers · ${feed.counts.employees} staff`
@@ -429,7 +429,7 @@ export async function loadExecHome(): Promise<ExecHomeViewModel> {
         ...(qb ? ["quickbooks"] : []),
       ],
       dataMode: commerceMode,
-      href: "/exec/customers",
+      href: "/dashboard/admissions",
       score: customerScore,
       label: square
         ? `${square.customers.count} Square customers · avg LTV ${money(square.customers.avgLifetimeValueCents)}`
@@ -455,7 +455,7 @@ export async function loadExecHome(): Promise<ExecHomeViewModel> {
         ...(google ? ["google-workspace"] : []),
       ],
       dataMode: google ? gwMode : "model-baseline",
-      href: "/exec/actions",
+      href: "/dashboard/executive/decisions",
       items:
         google && google.upcomingDecisions.length > 0
           ? google.upcomingDecisions.slice(0, 4).map((d) => ({
@@ -463,7 +463,7 @@ export async function loadExecHome(): Promise<ExecHomeViewModel> {
               title: d.title,
               subtitle: `Due ${new Date(d.dueAt).toLocaleString()} · ${d.source}`,
               priority: "high",
-              href: "/exec/actions",
+              href: "/dashboard/executive/decisions",
             }))
           : actionItems,
     },
@@ -478,7 +478,7 @@ export async function loadExecHome(): Promise<ExecHomeViewModel> {
         ...(square ? ["square"] : []),
       ],
       dataMode: google ? gwMode : plaid ? plaidMode : qb ? qbMode : square ? sqMode : "model-baseline",
-      href: "/exec/predictive",
+      href: "/exec/opportunities",
       outlook: wisdom.brief.outlook,
       headline: google
         ? `Meeting load ${google.collaboration.meetingLoadMinutes7d} min · ${google.collaboration.schedulingConflicts} conflict(s) · next ${google.executiveCalendar[0]?.title ?? "—"}`
@@ -521,35 +521,16 @@ export async function loadExecHome(): Promise<ExecHomeViewModel> {
               : anyConnector
                 ? "live"
                 : "synthetic",
-      href: "/exec/timeline",
-      items:
-        timelineItems.length > 0
-          ? timelineItems
-          : [
-              {
-                id: "tl-1",
-                title: "Wisdom baseline refreshed",
-                subtitle: "Model cycle · no live connector events yet",
-              },
-              {
-                id: "tl-2",
-                title: "OIOS health index computed",
-                subtitle: `Score ${round(oios.health.score)} (${oios.health.band})`,
-              },
-              {
-                id: "tl-3",
-                title: "Opportunity exchange ranked",
-                subtitle: `${opportunity.exchange?.length ?? 0} baseline opportunities`,
-              },
-            ],
+      href: "/exec/brief",
+      items: timelineItems,
     },
     graph: {
       widgetId: "home.graph.status",
       title: "Intelligence graph",
       domains: ["platform"],
       dataMode: "live",
-      href: "/exec/graph",
-      status: "39-domain pipeline registered",
+      href: "/dashboard/mission-control",
+      status: "Mission Control · organization graph",
       moduleCount,
     },
   };

@@ -14,6 +14,18 @@ import type { RelationshipStacks } from "@/lib/platform/intelligence/registratio
 import type { SystemsStacks } from "@/lib/platform/intelligence/registration/systems";
 import type { MemoryStacks } from "@/lib/platform/intelligence/registration/memory";
 import type { WisdomStacks } from "@/lib/platform/intelligence/registration/wisdom";
+import type { SynthesisStacks } from "@/lib/platform/intelligence/registration/synthesis";
+import type { BriefingStacks } from "@/lib/platform/intelligence/registration/briefing";
+import type { ExecutiveMemoryStacks } from "@/lib/platform/intelligence/registration/executive-memory";
+import type { DecisionIntelligenceStacks } from "@/lib/platform/intelligence/registration/decision-intelligence";
+import type { ExecutivePredictiveStacks } from "@/lib/platform/intelligence/registration/executive-predictive";
+import type { ExecutiveAutonomousStacks } from "@/lib/platform/intelligence/registration/executive-autonomous";
+import type { ExecutiveCopilotStacks } from "@/lib/platform/intelligence/registration/executive-copilot";
+import type { ExecutiveCommandCenterStacks } from "@/lib/platform/intelligence/registration/executive-command-center";
+import type { InitiativeIntelligenceStacks } from "@/lib/platform/intelligence/registration/initiative-intelligence";
+import type { PortfolioIntelligenceStacks } from "@/lib/platform/intelligence/registration/portfolio-intelligence";
+import type { DigitalTwinStacks } from "@/lib/platform/intelligence/registration/digital-twin";
+import type { EcosystemIntelligenceStacks } from "@/lib/platform/intelligence/registration/ecosystem-intelligence";
 
 export type DomainStacks = FoundationStacks &
   ProductStacks &
@@ -21,7 +33,19 @@ export type DomainStacks = FoundationStacks &
   RelationshipStacks &
   SystemsStacks &
   MemoryStacks &
-  WisdomStacks;
+  WisdomStacks &
+  SynthesisStacks &
+  BriefingStacks &
+  ExecutiveMemoryStacks &
+  DecisionIntelligenceStacks &
+  ExecutivePredictiveStacks &
+  ExecutiveAutonomousStacks &
+  ExecutiveCopilotStacks &
+  ExecutiveCommandCenterStacks &
+  InitiativeIntelligenceStacks &
+  PortfolioIntelligenceStacks &
+  DigitalTwinStacks &
+  EcosystemIntelligenceStacks;
 
 export function registerPlatformStack(
   options: CreateIntelligenceServiceOptions,
@@ -63,6 +87,18 @@ export function registerPlatformStack(
     institutionalMemory,
     collective,
     wisdom,
+    synthesis,
+    briefing,
+    executiveMemory,
+    decisionIntelligence,
+    executivePredictive,
+    executiveAutonomous,
+    executiveCopilot,
+    executiveCommandCenter,
+    initiativeIntelligence,
+    portfolioIntelligence,
+    digitalTwin,
+    ecosystemIntelligence,
   } = stacks;
 
   return (
@@ -118,6 +154,50 @@ export function registerPlatformStack(
         options.intelligencePlatformOptions?.collective ?? collective,
       wisdom: options.intelligencePlatformOptions?.wisdom ?? wisdom,
       wisdomOptions: options.intelligencePlatformOptions?.wisdomOptions,
+      synthesis: options.intelligencePlatformOptions?.synthesis ?? synthesis,
+      synthesisOptions: options.intelligencePlatformOptions?.synthesisOptions,
+      briefing: options.intelligencePlatformOptions?.briefing ?? briefing,
+      briefingOptions: options.intelligencePlatformOptions?.briefingOptions,
+      executiveMemory:
+        options.intelligencePlatformOptions?.executiveMemory ?? executiveMemory,
+      executiveMemoryOptions: options.intelligencePlatformOptions?.executiveMemoryOptions,
+      decisionIntelligence:
+        options.intelligencePlatformOptions?.decisionIntelligence ?? decisionIntelligence,
+      decisionIntelligenceOptions:
+        options.intelligencePlatformOptions?.decisionIntelligenceOptions,
+      executivePredictive:
+        options.intelligencePlatformOptions?.executivePredictive ?? executivePredictive,
+      executivePredictiveOptions:
+        options.intelligencePlatformOptions?.executivePredictiveOptions,
+      executiveAutonomous:
+        options.intelligencePlatformOptions?.executiveAutonomous ?? executiveAutonomous,
+      executiveAutonomousOptions:
+        options.intelligencePlatformOptions?.executiveAutonomousOptions,
+      executiveCopilot:
+        options.intelligencePlatformOptions?.executiveCopilot ?? executiveCopilot,
+      executiveCopilotOptions:
+        options.intelligencePlatformOptions?.executiveCopilotOptions,
+      executiveCommandCenter:
+        options.intelligencePlatformOptions?.executiveCommandCenter ?? executiveCommandCenter,
+      executiveCommandCenterOptions:
+        options.intelligencePlatformOptions?.executiveCommandCenterOptions,
+      initiativeIntelligence:
+        options.intelligencePlatformOptions?.initiativeIntelligence ?? initiativeIntelligence,
+      initiativeIntelligenceOptions:
+        options.intelligencePlatformOptions?.initiativeIntelligenceOptions,
+      portfolioIntelligence:
+        options.intelligencePlatformOptions?.portfolioIntelligence ?? portfolioIntelligence,
+      portfolioIntelligenceOptions:
+        options.intelligencePlatformOptions?.portfolioIntelligenceOptions,
+      digitalTwin:
+        options.intelligencePlatformOptions?.digitalTwin ?? digitalTwin,
+      digitalTwinOptions:
+        options.intelligencePlatformOptions?.digitalTwinOptions,
+      ecosystemIntelligence:
+        options.intelligencePlatformOptions?.ecosystemIntelligence ??
+        ecosystemIntelligence,
+      ecosystemIntelligenceOptions:
+        options.intelligencePlatformOptions?.ecosystemIntelligenceOptions,
     })
   );
 }

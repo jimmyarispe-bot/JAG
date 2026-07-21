@@ -50,7 +50,19 @@ Order matches `INTELLIGENCE_MODULE_IDS` / default module provider registration:
 | 36 | ecosystem | `src/lib/platform/intelligence/ecosystem/` | 057 |
 | 37 | institutional-memory | `src/lib/platform/intelligence/institutional-memory/` | 058 |
 | 38 | collective | `src/lib/platform/intelligence/collective/` | 059 |
-| 39 | wisdom | `src/lib/platform/intelligence/wisdom/` | 060 (v1.0 terminal) |
+| 39 | wisdom | `src/lib/platform/intelligence/wisdom/` | 060 (v1.0 judgment capstone) |
+| 40 | synthesis | `src/lib/platform/intelligence/synthesis/` | 061 (executive reasoning layer) |
+| 41 | briefing | `src/lib/platform/intelligence/briefing/` | 062 (executive briefing surface) |
+| 42 | executive-memory | `src/lib/platform/intelligence/executive-memory/` | 063 (executive reasoning memory) |
+| 43 | decision-intelligence | `src/lib/platform/intelligence/decision-intelligence/` | 064 (decision support) |
+| 44 | executive-predictive | `src/lib/platform/intelligence/executive-predictive/` | 065 (predictive intelligence) |
+| 45 | executive-autonomous | `src/lib/platform/intelligence/executive-autonomous/` | 066 (autonomous preparation) |
+| 46 | executive-copilot | `src/lib/platform/intelligence/executive-copilot/` | 067 (executive copilot) |
+| 47 | executive-command-center | `src/lib/platform/intelligence/executive-command-center/` | 068 (command center workspace) |
+| 48 | initiative-intelligence | `src/lib/platform/intelligence/initiative-intelligence/` | 069 (strategic initiatives) |
+| 49 | portfolio-intelligence | `src/lib/platform/intelligence/portfolio-intelligence/` | 070 (enterprise portfolio) |
+| 50 | digital-twin | `src/lib/platform/intelligence/digital-twin/` | 071 (organizational digital twin) |
+| 51 | ecosystem-intelligence | `src/lib/platform/intelligence/ecosystem-intelligence/` | 072 (ecosystem federation terminal) |
 
 OIOS also registers catalog keys `legal`, `compliance`, and `risk` (not active
 platform modules) for possible future split of `legal-compliance-risk`.
@@ -59,19 +71,31 @@ platform modules) for possible future split of `legal-compliance-risk`.
 
 ```
 ... -> ethical -> systems -> resilience -> ecosystem
-  -> institutional-memory -> collective -> wisdom
+  -> institutional-memory -> collective -> wisdom -> synthesis -> briefing -> executive-memory -> decision-intelligence -> executive-predictive -> executive-autonomous -> executive-copilot -> executive-command-center -> initiative-intelligence -> portfolio-intelligence -> digital-twin -> ecosystem-intelligence
 ```
 
-Wisdom hard deps: platform `["collective"]`; OIOS `["organization-dna", "collective"]`.
+Wisdom hard deps: platform `["collective"]`; OIOS `["organization-dna", "collective"]`.  
+Synthesis hard deps: platform `["wisdom"]`; OIOS `["organization-dna", "wisdom"]`.  
+Briefing hard deps: platform `["synthesis"]`; OIOS `["organization-dna", "synthesis"]`.  
+Executive Memory hard deps: platform `["briefing"]`; OIOS `["organization-dna", "briefing"]`.  
+Decision Intelligence hard deps: platform `["executive-memory"]`; OIOS `["organization-dna", "executive-memory"]`.  
+Predictive Intelligence hard deps: platform `["decision-intelligence"]`; OIOS `["organization-dna", "decision-intelligence"]`.  
+Autonomous Intelligence hard deps: platform `["executive-predictive"]`; OIOS `["organization-dna", "executive-predictive"]`.  
+Executive Copilot hard deps: platform `["executive-autonomous"]`; OIOS `["organization-dna", "executive-autonomous"]`.  
+Executive Command Center hard deps: platform `["executive-copilot"]`; OIOS `["organization-dna", "executive-copilot"]`.  
+Initiative Intelligence hard deps: platform `["executive-command-center"]`; OIOS `["organization-dna", "executive-command-center"]`.  
+Portfolio Intelligence hard deps: platform `["initiative-intelligence"]`; OIOS `["organization-dna", "initiative-intelligence"]`.  
+Digital Twin hard deps: platform `["portfolio-intelligence"]`; OIOS `["organization-dna", "portfolio-intelligence"]`.  
+Ecosystem Intelligence hard deps: platform `["digital-twin"]`; OIOS `["organization-dna", "digital-twin"]`.
 
 ## 2. Architecture Validation
 
 - [x] No circular imports between intelligence packages (leaf types/contracts; soft light types only)
-- [x] Clean DAG: wisdom depends on collective; collective frozen; prior packages unmodified
-- [x] Registry: `wisdom` in `INTELLIGENCE_MODULE_IDS` and OIOS active set
-- [x] DI: `createWisdomIntelligence`, module adapter, `createIntelligenceService().wisdom`
-- [x] Isolation: soft integrations only; no edits to collective/institutional-memory/knowledge sources
-- [x] Terminal pipeline: `... institutional-memory, collective, wisdom`
+- [x] Clean DAG: wisdom → … → portfolio-intelligence → digital-twin → ecosystem-intelligence
+- [x] Registry: late stack ids in `INTELLIGENCE_MODULE_IDS` and OIOS active set
+- [x] DI: factories, module adapters, service stacks for each late-layer domain
+- [x] Isolation: soft integrations only; OIOS foundation twin + innovation portfolio frozen
+- [x] Terminal pipeline: `... initiative-intelligence, portfolio-intelligence, digital-twin, ecosystem-intelligence`
 
 ## 3. Quality Validation
 
@@ -86,9 +110,9 @@ Wisdom hard deps: platform `["collective"]`; OIOS `["organization-dna", "collect
 
 ### Totals
 
-- **39** active platform intelligence modules in the default pipeline
+- **51** active platform intelligence modules in the default pipeline
 - OIOS catalog includes those domains plus reserved `legal` / `compliance` / `risk`
-- Capstone domain: **wisdom** (Sprint 060)
+- Judgment capstone: **wisdom** (060); then synthesis (061) → briefing (062) → executive-memory (063) → decision-intelligence (064) → executive-predictive (065) → executive-autonomous (066) → executive-copilot (067) → executive-command-center (068) → initiative-intelligence (069) → portfolio-intelligence (070) → digital-twin (071) → ecosystem-intelligence (072)
 
 ### Achievements
 
@@ -109,11 +133,37 @@ Wisdom hard deps: platform `["collective"]`; OIOS `["organization-dna", "collect
 8. **Ecosystem** - ecosystem
 9. **Memory** - institutional-memory (knowledge mid-pipeline remains frozen)
 10. **Collective** - collective synthesis
-11. **Wisdom** - terminal executive judgment and long-term synthesis
+11. **Wisdom** - executive judgment and long-term synthesis
+12. **Synthesis** - cross-domain reasoning layer (Sprint 061)
+13. **Briefing** - actionable executive briefing surface (Sprint 062)
+14. **Executive Memory** - structured reasoning memory (Sprint 063)
+15. **Decision Intelligence** - multi-option decision support (Sprint 064)
+16. **Predictive Intelligence** - organizational forecasting & scenarios (Sprint 065)
+17. **Autonomous Intelligence** - execution preparation, human-in-the-loop (Sprint 066)
+18. **Executive Copilot** - conversational orchestration (Sprint 067)
+19. **Executive Command Center** - role-prioritized workspace (Sprint 068)
+20. **Initiative Intelligence** - strategic execution system of record (Sprint 069)
+21. **Portfolio Intelligence** - enterprise portfolio governance (Sprint 070)
+22. **Organizational Digital Twin** - strategic sandbox simulations (Sprint 071)
+23. **Ecosystem Intelligence Federation** - terminal ecosystem federation layer (Sprint 072)
 
 ### Readiness for v2.0
 
-JAG v1.0 completes the intelligence DAG terminal at wisdom. v2.0 may deepen engines,
-split reserved OIOS keys, add UI surfaces, or introduce new domains **after** wisdom
-only when a hard predecessor is justified; otherwise prefer soft context attachments
-and do not regenerate frozen packages (see FUTURE_SPRINT_GUIDELINES).
+Judgment completes at wisdom; synthesis → … → portfolio-intelligence →
+digital-twin → ecosystem-intelligence form the executive stack. v2.0 may deepen engines, add surfaces
+(073+), split reserved OIOS keys, or introduce new domains after ecosystem-intelligence
+only when a hard predecessor is justified; otherwise prefer soft context
+attachments and do not regenerate frozen packages.
+
+See also:
+[docs/intelligence/executive-synthesis.md](../intelligence/executive-synthesis.md),
+[docs/intelligence/executive-briefing.md](../intelligence/executive-briefing.md),
+[docs/intelligence/executive-memory.md](../intelligence/executive-memory.md),
+[docs/intelligence/decision-intelligence.md](../intelligence/decision-intelligence.md),
+[docs/intelligence/predictive-intelligence.md](../intelligence/predictive-intelligence.md),
+[docs/intelligence/autonomous-intelligence.md](../intelligence/autonomous-intelligence.md),
+[docs/intelligence/executive-copilot.md](../intelligence/executive-copilot.md),
+[docs/intelligence/executive-command-center.md](../intelligence/executive-command-center.md),
+[docs/intelligence/initiative-intelligence.md](../intelligence/initiative-intelligence.md),
+[docs/intelligence/portfolio-intelligence.md](../intelligence/portfolio-intelligence.md),
+[docs/intelligence/digital-twin.md](../intelligence/digital-twin.md).

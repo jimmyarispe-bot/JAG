@@ -2,20 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { EXEC_NAV, isExecNavActive } from "@/lib/exec/navigation";
+import { EXEC_NAV_ENABLED, isExecNavActive } from "@/lib/exec/navigation";
 import { cn } from "@/components/workspace-design-system/utils";
 
 export function ExecNav() {
   const pathname = usePathname();
-  const enabled = EXEC_NAV.filter((item) => item.phase === 1);
-  const upcoming = EXEC_NAV.filter((item) => item.phase !== 1);
 
   return (
     <nav aria-label="Executive Command Center" className="flex flex-col gap-1">
       <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
         Command Center
       </p>
-      {enabled.map((item) => {
+      {EXEC_NAV_ENABLED.map((item) => {
         const active = isExecNavActive(pathname, item);
         return (
           <Link
@@ -32,24 +30,6 @@ export function ExecNav() {
           </Link>
         );
       })}
-      {upcoming.length > 0 && (
-        <details className="mt-3 px-1">
-          <summary className="cursor-pointer px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Coming soon
-          </summary>
-          <ul className="mt-1 space-y-1">
-            {upcoming.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-xl px-3 py-2 text-sm text-slate-500"
-                aria-disabled="true"
-              >
-                {item.label}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
     </nav>
   );
 }

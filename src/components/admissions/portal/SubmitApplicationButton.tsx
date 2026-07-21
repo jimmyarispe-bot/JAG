@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { submitApplication } from "@/lib/admissions/portal/actions";
 import type { AdmissionsProgress } from "@/lib/admissions/portal/progress";
 import { useBranding } from "@/components/branding/BrandingContext";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 interface SubmitApplicationButtonProps {
   applicationId: string;
@@ -19,9 +20,16 @@ export function SubmitApplicationButton({
 }: SubmitApplicationButtonProps) {
   const router = useRouter();
   const branding = useBranding();
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const action = useActionFeedback({
+    verb: "submit",
+    labels: { idle: "Submit Application", loading: "Submitting…", success: "✓ Submitted" },
+    successToast: "✓ Submitted",
+    errorToast: "Unable to submit.",
+    progressLabel: "Submitting application…",
+    onError: (err) => setError(err.message),
+  });
 
   const alreadySubmitted = ["submitted", "under_review", "accepted", "waitlisted", "denied"].includes(
     applicationStatus
@@ -30,19 +38,16 @@ export function SubmitApplicationButton({
   function handleSubmit() {
     setError(null);
     setMessage(null);
-
-    startTransition(async () => {
+    void action.run(async () => {
       const result = await submitApplication(applicationId);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
+      if (result.error) throw new Error(result.error);
       if (result.autoAccepted) {
         setMessage(`Application submitted and automatically accepted. Welcome to ${branding.productName}!`);
       } else {
         setMessage("Application submitted for admissions review.");
       }
       router.refresh();
+      return result;
     });
   }
 
@@ -66,14 +71,17 @@ export function SubmitApplicationButton({
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
       {message && <p className="mt-3 text-sm text-emerald-700">{message}</p>}
 
-      <button
-        type="button"
-        disabled={isPending || !progress.readyToSubmit}
-        onClick={handleSubmit}
-        className="mt-4 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {isPending ? "Submitting…" : "Submit Application"}
-      </button>
+      <div className="mt-4">
+        <ActionButton
+          type="button"
+          status={action.status}
+          verb="submit"
+          labels={{ idle: "Submit Application", loading: "Submitting…", success: "✓ Submitted" }}
+          disabled={!progress.readyToSubmit}
+          errorMessage={action.errorMessage}
+          onClick={handleSubmit}
+        />
+      </div>
 
       {!progress.readyToSubmit && (
         <p className="mt-2 text-xs text-slate-400">

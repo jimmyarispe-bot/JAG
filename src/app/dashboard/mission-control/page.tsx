@@ -1,12 +1,20 @@
+import dynamic from "next/dynamic";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { MissionControlView } from "@/components/platform/MissionControlView";
+import { ListSkeleton } from "@/components/experience-system";
 import { getMissionControlDashboard } from "@/lib/platform/automation/queries";
 
+const MissionControlView = dynamic(
+  () =>
+    import("@/components/platform/MissionControlView").then((m) => ({
+      default: m.MissionControlView,
+    })),
+  { loading: () => <ListSkeleton rows={6} label="Loading Mission Control…" /> }
+);
+
 /**
- * Mission Control — Sprint 002 Task 6.
- * Compose path uses Executive Aggregate Metrics + Alert Orchestrator
- * (see mission-control-compose.ts). Queue processing stays on cron —
- * not on page load (removed processAllPlatformQueues).
+ * Mission Control — Sprint 002 Task 6 / P007 RSC view.
+ * Compose path uses Executive Aggregate Metrics + Alert Orchestrator.
+ * RC-6.05 — defer heavy client view until after shell paints.
  */
 export default async function MissionControlPage() {
   const data = await getMissionControlDashboard();

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { saveFinancialAidApplication } from "@/lib/admissions/portal/actions";
 import type { PortalScholarshipApplication } from "@/lib/admissions/portal/queries";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 import { portalInputClass, portalLabelClass, portalSectionClass } from "./styles";
 
 interface FinancialAidSectionProps {
@@ -11,9 +12,16 @@ interface FinancialAidSectionProps {
 }
 
 export function FinancialAidSection({ applicationId, scholarship }: FinancialAidSectionProps) {
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Save Financial Aid Info", loading: "Saving…", success: "✓ Saved" },
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to save.",
+    progressLabel: "Saving financial aid info…",
+    onError: (err) => setError(err.message),
+  });
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -25,13 +33,11 @@ export function FinancialAidSection({ applicationId, scholarship }: FinancialAid
       formData.set("scholarship_application_id", scholarship.id);
     }
 
-    startTransition(async () => {
+    void action.run(async () => {
       const result = await saveFinancialAidApplication(formData);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
+      if (result.error) throw new Error(result.error);
       setSaved(true);
+      return result;
     });
   }
 
@@ -85,13 +91,13 @@ export function FinancialAidSection({ applicationId, scholarship }: FinancialAid
       </div>
 
       <div className="flex justify-end">
-        <button
+        <ActionButton
           type="submit"
-          disabled={isPending}
-          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {isPending ? "Saving…" : "Save Financial Aid Info"}
-        </button>
+          status={action.status}
+          verb="save"
+          labels={{ idle: "Save Financial Aid Info", loading: "Saving…", success: "✓ Saved" }}
+          errorMessage={action.errorMessage}
+        />
       </div>
     </form>
   );

@@ -53,24 +53,18 @@ export async function resolveFamilyPortalUserIds(
   const familyId = (student?.family_id as string | null) ?? null;
   const userIds = new Set<string>();
 
-  const { data: links } = await supabase
-    .from("student_family_link")
-    .select("user_id")
-    .eq("student_id", studentId);
+  const [linksRes, guardiansRes] = await Promise.all([
+    supabase.from("student_family_link").select("user_id").eq("student_id", studentId),
+    familyId
+      ? supabase.from("guardians").select("user_id").eq("family_id", familyId)
+      : Promise.resolve({ data: [] as { user_id: string | null }[] }),
+  ]);
 
-  for (const link of links ?? []) {
+  for (const link of linksRes.data ?? []) {
     if (link.user_id) userIds.add(link.user_id);
   }
-
-  if (familyId) {
-    const { data: guardians } = await supabase
-      .from("guardians")
-      .select("user_id")
-      .eq("family_id", familyId);
-
-    for (const guardian of guardians ?? []) {
-      if (guardian.user_id) userIds.add(guardian.user_id);
-    }
+  for (const guardian of guardiansRes.data ?? []) {
+    if (guardian.user_id) userIds.add(guardian.user_id);
   }
 
   return { userIds: [...userIds], familyId };
@@ -103,20 +97,21 @@ export async function deliverParentCommunication(
     },
   });
 
-  let notificationsSent = 0;
-  for (const userId of portalUserIds) {
-    await createPortalNotification(supabase, {
-      userId,
-      familyId,
-      studentId: input.studentId,
-      category: input.category,
-      title: input.title,
-      body: input.body,
-      href: input.href,
-      metadata: input.metadata,
-    });
-    notificationsSent += 1;
-  }
+  await Promise.all(
+    portalUserIds.map((userId) =>
+      createPortalNotification(supabase, {
+        userId,
+        familyId,
+        studentId: input.studentId,
+        category: input.category,
+        title: input.title,
+        body: input.body,
+        href: input.href,
+        metadata: input.metadata,
+      })
+    )
+  );
+  const notificationsSent = portalUserIds.length;
 
   await writePlatformAudit(supabase, {
     schoolId: input.schoolId ?? undefined,

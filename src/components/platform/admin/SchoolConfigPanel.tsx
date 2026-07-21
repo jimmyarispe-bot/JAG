@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { ActionChip, ActionChipGroup } from "@/components/experience-system/feedback/ActionChip";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { saveSchoolBrandingAction } from "@/lib/platform/identity/server-actions";
 
 interface SchoolConfigPanelProps {
@@ -22,33 +23,38 @@ export function SchoolConfigPanel({
   branding,
   settingsConfig,
 }: SchoolConfigPanelProps) {
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Save branding" },
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to save.",
+    progressLabel: "Saving branding…",
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-2">
+      <ActionChipGroup>
         {schools.map((s) => (
-          <Link
+          <ActionChip
             key={s.id}
             href={`/dashboard/admin/schools?school=${s.id}`}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              s.id === selectedSchoolId
-                ? "bg-brand-600 text-white"
-                : "border border-slate-200 text-slate-600 hover:bg-slate-50"
-            }`}
+            size="sm"
+            variant={s.id === selectedSchoolId ? "primary" : "secondary"}
           >
             {s.name}
-          </Link>
+          </ActionChip>
         ))}
-      </div>
+      </ActionChipGroup>
 
       <form
         className="grid gap-6 lg:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
           const fd = new FormData(e.currentTarget);
-          startTransition(() => {
-            void saveSchoolBrandingAction(fd);
+          void action.run(async () => {
+            const result = await saveSchoolBrandingAction(fd);
+            assertActionResult(result);
+            return result ?? { success: true };
           });
         }}
       >
@@ -76,13 +82,13 @@ export function SchoolConfigPanel({
               </label>
             ))}
           </div>
-          <button
+          <ActionButton
             type="submit"
-            disabled={isPending}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            Save branding
-          </button>
+            status={action.status}
+            verb="save"
+            labels={{ idle: "Save branding" }}
+            errorMessage={action.errorMessage}
+          />
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -92,28 +98,20 @@ export function SchoolConfigPanel({
             are configured in their module settings. This panel centralizes branding; module admins
             manage operational config per school.
           </p>
-          <ul className="mt-4 space-y-2 text-sm">
-            <li>
-              <Link href="/dashboard/admissions/checklist" className="text-brand-600 hover:underline">
-                Document requirements & checklist
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard/admissions/workflows" className="text-brand-600 hover:underline">
-                Admissions workflows
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard/admissions/funding-programs" className="text-brand-600 hover:underline">
-                Funding programs
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard/admissions/communications" className="text-brand-600 hover:underline">
-                Email & SMS templates
-              </Link>
-            </li>
-          </ul>
+          <ActionChipGroup className="mt-4">
+            <ActionChip href="/dashboard/admissions/checklist" size="sm" variant="secondary">
+              Manage checklist
+            </ActionChip>
+            <ActionChip href="/dashboard/admissions/workflows" size="sm" variant="secondary">
+              Manage workflows
+            </ActionChip>
+            <ActionChip href="/dashboard/admissions/funding-programs" size="sm" variant="secondary">
+              Manage funding programs
+            </ActionChip>
+            <ActionChip href="/dashboard/admissions/communications" size="sm" variant="secondary">
+              Manage templates
+            </ActionChip>
+          </ActionChipGroup>
           {Object.keys(settingsConfig).length > 0 && (
             <pre className="mt-4 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
               {JSON.stringify(settingsConfig, null, 2)}

@@ -92,18 +92,20 @@ export async function loadStudentGradeHistory(supabase: AuthClient, studentId: s
   const [lifecycle, enrollments, courseEnrollments] = await Promise.all([
     supabase
       .from("ssis_lifecycle_transitions")
-      .select("*")
+      .select("id, from_stage, to_stage, created_at")
       .eq("student_id", studentId)
       .order("created_at", { ascending: false }),
     supabase
       .from("sis_enrollments")
-      .select("*, school_years(name)")
+      .select(
+        "id, program, enrollment_status, enrolled_at, school_years(name)"
+      )
       .eq("student_id", studentId)
       .order("enrolled_at", { ascending: false }),
     supabase
       .from("student_enrollments")
       .select(
-        "*, course_sections(section_code, courses(name, program, academy_subject)), school_years(name)"
+        "id, enrollment_status, enrolled_at, course_sections(section_code, courses(name)), school_years(name)"
       )
       .eq("student_id", studentId)
       .order("enrolled_at", { ascending: false }),

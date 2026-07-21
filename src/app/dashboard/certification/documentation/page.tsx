@@ -3,6 +3,7 @@ import { requirePagePermission } from "@/lib/platform/identity/page-guard";
 import { getDocumentation } from "@/lib/certification/documentation";
 import { CertShell } from "@/components/certification/CertNav";
 import { regenerateDocsAction } from "@/lib/certification/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function CertificationDocumentationPage() {
   await requirePagePermission(["certification.view", "certification.manage", "certification.admin"]);
@@ -11,9 +12,14 @@ export default async function CertificationDocumentationPage() {
 
   return (
     <CertShell title="Documentation Center" subtitle="Administrator, teacher, parent, finance, cloud, developer guides and release notes">
-      <form action={regenerateDocsAction}>
-        <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white">Regenerate documentation</button>
-      </form>
+      <ExperienceForm
+          action={regenerateDocsAction}
+          verb="create"
+          labels={{ idle: "Regenerate documentation" }}
+          progressLabel="Regenerate documentation…"
+          buttonClassName="!bg-emerald-600 hover:!bg-emerald-700"
+        >
+        </ExperienceForm>
       <ul className="space-y-2">
         {docs.map((d) => (
           <li key={d.id} className="rounded-xl border bg-white px-4 py-3 text-sm">

@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
 import type { NetworkHubSummary } from "@/lib/intelligence-network/types";
-import { refreshNetworkAction } from "@/lib/intelligence-network/actions";
+import { dismissRecommendationAction, refreshNetworkAction } from "@/lib/intelligence-network/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export function NetworkSummaryPanel({ summary }: { summary: NetworkHubSummary }) {
   const items = [
@@ -49,12 +50,29 @@ export function BenchmarkTable({ rows }: { rows: Record<string, unknown>[] }) {
 }
 
 export function RefreshNetworkButton() {
-  const [pending, start] = useTransition();
+  const action = useActionFeedback({
+    verb: "sync",
+    labels: { idle: "Sync network", loading: "Syncing…", success: "✓ Synced" },
+    successToast: "✓ Network synced.",
+    errorToast: "Unable to sync network.",
+    progressLabel: "Syncing intelligence network…",
+  });
+
   return (
-    <button type="button" disabled={pending} onClick={() => start(() => refreshNetworkAction())}
-      className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-      {pending ? "Syncing…" : "Sync network"}
-    </button>
+    <ActionButton
+      type="button"
+      status={action.status}
+      verb="sync"
+      labels={{ idle: "Sync network", loading: "Syncing…", success: "✓ Synced" }}
+      className="!bg-indigo-600 hover:!bg-indigo-700"
+      errorMessage={action.errorMessage}
+      onClick={() => {
+        void action.run(async () => {
+          await refreshNetworkAction();
+          return { success: true };
+        });
+      }}
+    />
   );
 }
 
@@ -74,3 +92,35 @@ export function PrivacyNotice() {
     </p>
   );
 }
+
+export function DismissRecommendationButton({ recommendationId }: { recommendationId: string }) {
+  const action = useActionFeedback({
+    verb: "custom",
+    labels: { idle: "Dismiss", loading: "Dismissing…", success: "✓ Dismissed", error: "Unable to dismiss" },
+    successToast: "✓ Recommendation dismissed.",
+    errorToast: "Unable to dismiss.",
+    progressLabel: "Dismissing recommendation…",
+  });
+
+  return (
+    <ActionButton
+      type="button"
+      status={action.status}
+      verb="custom"
+      variant="secondary"
+      labels={{ idle: "Dismiss", loading: "Dismissing…", success: "✓ Dismissed", error: "Unable to dismiss" }}
+      className="!rounded !bg-slate-100 !px-3 !py-1 !text-xs"
+      errorMessage={action.errorMessage}
+      onClick={() => {
+        void action.run(async () => {
+          const fd = new FormData();
+          fd.set("recommendation_id", recommendationId);
+          await dismissRecommendationAction(fd);
+          return { success: true };
+        });
+      }}
+    />
+  );
+}
+
+export { ExperienceForm as NetworkExperienceForm };

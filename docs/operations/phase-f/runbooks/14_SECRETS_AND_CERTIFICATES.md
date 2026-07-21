@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | **Purpose** | Rotate secrets and manage TLS without downtime surprises |
-| **Scope** | Vercel env, Supabase keys, SendGrid, cron, vault |
+| **Scope** | Vercel env, Supabase keys, Resend, cron, vault |
 | **Audience** | Ops, security |
 | **Prerequisites** | Access to secret stores; maintenance window for dual-key when needed |
 | **Version** | 1.0.0 |
@@ -18,7 +18,7 @@
 | `SUPABASE_SERVICE_ROLE_KEY` | Vercel (server only) | High privilege |
 | `CRON_SECRET` | Vercel | Required prod |
 | `VAULT_ENCRYPTION_KEY` | Vercel | Prefer dedicated; never commit |
-| `SENDGRID_API_KEY` | Vercel | Email |
+| `RESEND_API_KEY` | Vercel | Email (Resend) |
 | Supabase JWT secret | Supabase dashboard | Provider-managed |
 | OAuth connector creds | Vault / connector config | Per tenant |
 
@@ -55,7 +55,7 @@ TLS for `*.vercel.app` / custom domains: **Vercel-managed certificates**. Custom
 | Issue | Action |
 |-------|--------|
 | Cron 401 after rotate | Env not redeployed |
-| Email fail | SendGrid key / from-domain verify |
+| Email fail | Resend key / from-domain verify |
 | Custom domain TLS error | DNS / Vercel cert status |
 
 ## Related documents

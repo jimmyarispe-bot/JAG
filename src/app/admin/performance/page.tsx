@@ -1,4 +1,6 @@
+import { ObservabilityDashboardPanels } from "@/components/admin/ObservabilityDashboardPanels";
 import { PerformanceHydrationMeter } from "@/components/admin/PerformanceHydrationMeter";
+import { buildObservabilityDashboard } from "@/lib/observability";
 import {
   getRecentPerformanceSnapshot,
   runPerformanceProbe,
@@ -6,7 +8,7 @@ import {
 
 export const metadata = {
   title: "Performance · Admin · JAG",
-  description: "Sprint D1 Phase 1 — ECC performance measurement",
+  description: "RC-1 — ECC performance measurement + production observability",
 };
 
 export const dynamic = "force-dynamic";
@@ -14,23 +16,26 @@ export const dynamic = "force-dynamic";
 export default async function AdminPerformancePage() {
   const report = await runPerformanceProbe();
   const recent = getRecentPerformanceSnapshot();
+  const observability = buildObservabilityDashboard();
 
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
           <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
-            Sprint D1 · Phase 1
+            RC-1 · Production readiness
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-slate-900">Performance</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Measure before optimize — Executive Command Center load path. Generated{" "}
-            {new Date(report.generatedAt).toLocaleString()}.
+            Measure before optimize — Executive Command Center load path + live
+            observability. Generated {new Date(report.generatedAt).toLocaleString()}.
           </p>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6">
+        <ObservabilityDashboardPanels data={observability} />
+
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat
             label="App route files"
@@ -172,9 +177,9 @@ export default async function AdminPerformancePage() {
         </section>
 
         <p className="text-xs text-slate-500">
-          Full write-up: <code>docs/product/PERFORMANCE_PHASE1_REPORT.md</code>. Next suggested
-          sprint: D1.5 Production Observability (Sentry, OpenTelemetry, Vercel Analytics / Speed
-          Insights).
+          Ops guide: <code>docs/operations/phase-f/13_MONITORING_AND_OPERATIONS.md</code>. Endpoints:{" "}
+          <code>/api/health</code>, <code>/api/ready</code>, <code>/api/ready/deep</code>,{" "}
+          <code>/api/observability/metrics</code>, <code>/api/observability/alerts</code>.
         </p>
       </main>
     </div>

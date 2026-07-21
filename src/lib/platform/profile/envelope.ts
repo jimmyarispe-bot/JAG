@@ -26,9 +26,30 @@ export async function loadEnabledModuleKeys(
   }
 
   const marketplace = await getModuleMarketplace(supabase, organizationId);
-  return marketplace
+  const enabled = marketplace
     .filter((m) => m.status === "installed" || m.status === "enabled")
     .map((m) => m.moduleKey);
+
+  // Fresh orgs often have no installations yet — keep core profile modules available
+  // so optional empty sections render instead of disappearing entirely.
+  if (enabled.length === 0) {
+    return [
+      "admissions",
+      "ssis",
+      "hr",
+      "scheduling",
+      "finance",
+      "scholarships",
+      "compliance",
+      "transportation",
+      "decision_intelligence",
+      "platform",
+      "paj",
+      "instruction",
+    ];
+  }
+
+  return enabled;
 }
 
 /** Shared envelope fields derived from identity context. */

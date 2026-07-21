@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
 import type { OperationsHubSummary } from "@/lib/operations-platform/types";
 import { refreshOperationsAction } from "@/lib/operations-platform/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 export function OpsSummaryPanel({ summary }: { summary: OperationsHubSummary }) {
   const items = [
@@ -51,12 +51,29 @@ export function OpsTable({ rows, columns }: { rows: Record<string, unknown>[]; c
 }
 
 export function RefreshOpsButton() {
-  const [pending, start] = useTransition();
+  const action = useActionFeedback({
+    verb: "sync",
+    labels: { idle: "Sync operations", loading: "Syncing…", success: "✓ Synced" },
+    successToast: "✓ Operations synced.",
+    errorToast: "Unable to sync.",
+    progressLabel: "Syncing operations platform…",
+  });
+
   return (
-    <button type="button" disabled={pending} onClick={() => start(() => refreshOperationsAction())}
-      className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-      {pending ? "Syncing…" : "Sync operations"}
-    </button>
+    <ActionButton
+      type="button"
+      status={action.status}
+      verb="sync"
+      labels={{ idle: "Sync operations", loading: "Syncing…", success: "✓ Synced" }}
+      className="!bg-indigo-600 hover:!bg-indigo-700"
+      errorMessage={action.errorMessage}
+      onClick={() => {
+        void action.run(async () => {
+          await refreshOperationsAction();
+          return { success: true };
+        });
+      }}
+    />
   );
 }
 

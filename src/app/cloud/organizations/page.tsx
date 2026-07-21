@@ -6,6 +6,7 @@ import { CloudShell } from "@/components/cloud-platform/CloudNav";
 import { CloudTable } from "@/components/cloud-platform/CloudPanels";
 import { provisionOrgAction } from "@/lib/cloud-platform/actions";
 import { PROVISIONING_BLUEPRINTS } from "@/lib/cloud-platform/types";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function CloudOrganizationsPage() {
   await requireCloudPermission(["cloud.admin", "cloud.operations", "cloud.sales"]);
@@ -17,26 +18,32 @@ export default async function CloudOrganizationsPage() {
   return (
     <CloudShell title="Organization Provisioning" subtitle="One-click provisioning with blueprints">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-        <form action={provisionOrgAction} className="space-y-3">
+        <ExperienceForm
+          action={provisionOrgAction}
+          verb="create"
+          labels={{ idle: "Provision" }}
+          progressLabel="Provision…"
+          className="space-y-3"
+          buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+        >
           <label className="block text-sm">
-            Organization name
-            <input name="org_name" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" required />
+          Organization name
+          <input name="org_name" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" required />
           </label>
           <label className="block text-sm">
-            Blueprint
-            <select name="blueprint_key" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
-              {PROVISIONING_BLUEPRINTS.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
-            </select>
+          Blueprint
+          <select name="blueprint_key" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
+          {PROVISIONING_BLUEPRINTS.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
+          </select>
           </label>
           <label className="block text-sm">
-            Link to customer
-            <select name="customer_id" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
-              <option value="">None</option>
-              {customers.map((c) => <option key={c.id} value={c.id}>{c.customer_name}</option>)}
-            </select>
+          Link to customer
+          <select name="customer_id" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
+          <option value="">None</option>
+          {customers.map((c) => <option key={c.id} value={c.id}>{c.customer_name}</option>)}
+          </select>
           </label>
-          <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white">Provision</button>
-        </form>
+        </ExperienceForm>
       </section>
       <CloudTable rows={orgs} columns={[{ key: "customer_name", label: "Customer" }, { key: "status", label: "Status" }]} />
       <h2 className="mt-6 font-semibold">Recent jobs</h2>

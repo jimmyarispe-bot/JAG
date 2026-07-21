@@ -1,0 +1,308 @@
+{
+  "sprint": "RC-3",
+  "generatedAt": "2026-07-19T00:59:19.439Z",
+  "totalRoutes": 33,
+  "withGuardApiRoute": 18,
+  "withIdentityContext": 6,
+  "withOrgScope": 3,
+  "withSchoolScope": 4,
+  "routes": [
+    {
+      "path": "src/app/api/admissions/funding-export/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/admissions/process-communications/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/certification/reports/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/cloud/docs/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/compliance/calendar.ics/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/compliance/reports/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/configuration/export/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/configuration/section/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": true,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": true,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/data/docs/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/data/export/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": true,
+      "requireOrganizationAccess": true,
+      "requireSchoolAccess": true,
+      "canExportOrImport": true,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/data/import/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": true,
+      "requireOrganizationAccess": true,
+      "requireSchoolAccess": true,
+      "canExportOrImport": true,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/edi/board-report/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/edi/reports/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/executive/board-export/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/finance/board-export/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/financial-intelligence/import/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/financial-intelligence/reports/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/health/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": true
+    },
+    {
+      "path": "src/app/api/integrations/docs/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/intelligence/context/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": true,
+      "requireOrganizationAccess": true,
+      "requireSchoolAccess": true,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/intelligence/docs/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/network/reports/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": true,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/observability/alerts/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/observability/metrics/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/observability/rum/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": true
+    },
+    {
+      "path": "src/app/api/platform/process-queues/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": true
+    },
+    {
+      "path": "src/app/api/platform/search/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/portal/calendar.ics/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/ready/deep/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": true
+    },
+    {
+      "path": "src/app/api/ready/route.ts",
+      "guardApiRoute": false,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": true
+    },
+    {
+      "path": "src/app/api/scholarship/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": true,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": true,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/ssis/funding-export/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    },
+    {
+      "path": "src/app/api/work/reports/route.ts",
+      "guardApiRoute": true,
+      "getIdentityContext": false,
+      "requireOrganizationAccess": false,
+      "requireSchoolAccess": false,
+      "canExportOrImport": false,
+      "cronOrPublicHint": false
+    }
+  ]
+}

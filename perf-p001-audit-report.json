@@ -1,0 +1,1339 @@
+{
+  "sprint": "P001",
+  "generatedAt": "2026-07-19T15:12:52.373Z",
+  "methodology": [
+    "Live ECC performance probe (runPerformanceProbe) — timed intelligence/integrations/sync/org/loader spans",
+    "Static filesystem audit — client component sizes, select('*'), N+1 hints, sequential await streaks",
+    "Architecture review — middleware + dashboard layout auth chain (no behavior changes)",
+    "Server-Timing instrumentation hooks added for middleware/layout (measure-only)",
+    "Navigation phases Login→Dashboard / Module→Detail estimated from chain structure until authenticated RUM available"
+  ],
+  "liveProbe": {
+    "generatedAt": "2026-07-19T15:12:49.517Z",
+    "processUptimeMs": 634,
+    "routeTimings": [
+      {
+        "route": "/exec",
+        "label": "Home",
+        "totalMs": 119.16,
+        "intelligenceMs": 0.05,
+        "integrationsMs": 0.04,
+        "syncMs": 4.91,
+        "buildMs": 105.88,
+        "orgResolutionMs": 8.28,
+        "cacheHits": 2,
+        "cacheMisses": 0
+      },
+      {
+        "route": "/exec/brief",
+        "label": "Brief",
+        "totalMs": 27.6,
+        "intelligenceMs": 0.02,
+        "integrationsMs": 0.01,
+        "syncMs": 4.33,
+        "buildMs": 23.04,
+        "orgResolutionMs": 0.2,
+        "cacheHits": 2,
+        "cacheMisses": 0
+      },
+      {
+        "route": "/exec/health",
+        "label": "Health",
+        "totalMs": 17.94,
+        "intelligenceMs": 0.01,
+        "integrationsMs": 0.01,
+        "syncMs": 2.2,
+        "buildMs": 15.56,
+        "orgResolutionMs": 0.16,
+        "cacheHits": 2,
+        "cacheMisses": 0
+      },
+      {
+        "route": "/exec/opportunities",
+        "label": "Opportunities",
+        "totalMs": 12.56,
+        "intelligenceMs": 0.01,
+        "integrationsMs": 0.01,
+        "syncMs": 1.96,
+        "buildMs": 10.46,
+        "orgResolutionMs": 0.12,
+        "cacheHits": 2,
+        "cacheMisses": 0
+      },
+      {
+        "route": "/exec/wisdom",
+        "label": "Wisdom",
+        "totalMs": 7.49,
+        "intelligenceMs": 0.01,
+        "integrationsMs": 0.01,
+        "syncMs": 2.47,
+        "buildMs": 4.7,
+        "orgResolutionMs": 0.3,
+        "cacheHits": 2,
+        "cacheMisses": 0
+      },
+      {
+        "route": "/exec/risks",
+        "label": "Risks",
+        "totalMs": 31.19,
+        "intelligenceMs": 0.01,
+        "integrationsMs": 0.01,
+        "syncMs": 1.9,
+        "buildMs": 29.11,
+        "orgResolutionMs": 0.16,
+        "cacheHits": 2,
+        "cacheMisses": 0
+      }
+    ],
+    "bundle": [
+      {
+        "area": "components/exec (client islands)",
+        "clientComponentCount": 6,
+        "serverComponentHint": "Prefer Server Components for page bodies",
+        "notes": "P010: IntegrationsPage / IntegrationDetailPage are dynamic()-split on their routes; ExecShell/Nav remain chrome."
+      },
+      {
+        "area": "executive + edi panels",
+        "clientComponentCount": 0,
+        "serverComponentHint": "Per-panel modules + route dynamic()",
+        "notes": "P010: ExecutivePanels/EdiPanels barrels re-export split files; pages import panels via next/dynamic."
+      },
+      {
+        "area": "app/exec routes",
+        "clientComponentCount": 0,
+        "serverComponentHint": "All page.tsx are async Server Components",
+        "notes": "Good baseline — data loading stays on the server."
+      },
+      {
+        "area": "Intelligence DI",
+        "clientComponentCount": 0,
+        "serverComponentHint": "Server-only",
+        "notes": "createIntelligenceService wires 39 modules — keep off the client bundle."
+      },
+      {
+        "area": "Integration Platform",
+        "clientComponentCount": 0,
+        "serverComponentHint": "Server-only",
+        "notes": "Connector registry + bootstrap must remain server-side; never import into client components."
+      },
+      {
+        "area": "Bundle tooling",
+        "clientComponentCount": 0,
+        "serverComponentHint": "n/a",
+        "notes": "npm run analyze (webpack analyzer) + npm run bundle:budget (client source ceilings)."
+      }
+    ],
+    "routeInventory": {
+      "appRouteFiles": 301,
+      "execRoutes": 10,
+      "execClientComponents": 7,
+      "execServerComponents": 21
+    },
+    "singletons": {
+      "intelligenceInitialized": true,
+      "integrationsInitialized": true,
+      "intelligenceInitMs": 5.65,
+      "integrationsInitMs": 25.86
+    },
+    "comparisons": {
+      "intelligenceColdMs": 105.94,
+      "intelligenceLazyColdMs": 1.28,
+      "intelligenceWarmMs": 0,
+      "integrationsColdMs": 177.61,
+      "integrationsWarmMs": 0
+    },
+    "detections": [
+      {
+        "id": "dup-integration-bootstrap",
+        "severity": "high",
+        "title": "Integration platform cold bootstrap (process recycle)",
+        "evidence": "Cold integrations bootstrap=177.61ms vs warm=0ms. Production reuses process singleton + shared registered platform; cold delta is first-process bootstrap only.",
+        "recommendation": "Keep getIntegrationManagement singleton; share getOrCreateRegisteredIntegrationPlatform with org-platform."
+      },
+      {
+        "id": "large-route-surface",
+        "severity": "medium",
+        "title": "Large application route surface",
+        "evidence": "301 app route files detected. Large route graphs increase build time and navigation complexity.",
+        "recommendation": "Treat performance as a first-class feature; lazy-load rarely used dashboards; keep ECC routes lean."
+      },
+      {
+        "id": "exec-client-bundles",
+        "severity": "medium",
+        "title": "Large client components under Executive Command Center",
+        "evidence": "7 client components in components/exec (Opportunity/Wisdom/Integrations pages are full client trees).",
+        "recommendation": "Convert filter/tab shells to small client islands; keep page bodies as Server Components."
+      },
+      {
+        "id": "sequential-domain-builds",
+        "severity": "medium",
+        "title": "Sequential intelligence domain builds on Home/Brief",
+        "evidence": "loadExecHome builds oios → wisdom → opportunity. Opportunity does not depend on oios; sequential awaits add latency.",
+        "recommendation": "Promise.all independent builds (oios + opportunity), then wisdom with oiosResult."
+      },
+      {
+        "id": "exec-layout-auth-waterfall",
+        "severity": "medium",
+        "title": "Exec layout identity resolution waterfall",
+        "evidence": "exec/layout awaits getAuthUser+getSessionUser, then getIdentityContext (extra Supabase queries), then org platform resolution before children render.",
+        "recommendation": "Keep parallel auth where possible; cache identity; measure org resolution separately (see probe orgResolutionMs)."
+      },
+      {
+        "id": "p002-middleware-auth-only",
+        "severity": "low",
+        "title": "Middleware authenticates; RSC authorizes (P002)",
+        "evidence": "Edge middleware verifies session only; catalog authorization runs once via getIdentityContext / requireAuthorizedRoute in layouts.",
+        "recommendation": "Keep request-scoped caches warm; do not reintroduce loadAuthzSnapshot in middleware."
+      }
+    ]
+  },
+  "staticAudit": {
+    "generatedAt": "2026-07-19T15:12:52.371Z",
+    "routes": {
+      "pageFiles": 268,
+      "loadingFiles": 12,
+      "routeHandlers": 33,
+      "majorModulePages": {
+        "executive": 17,
+        "admissions": 11,
+        "students": 2,
+        "finance": 4,
+        "teacher": 4,
+        "hr": 2,
+        "admin": 34,
+        "scheduling": 1,
+        "work": 2,
+        "compliance": 1
+      }
+    },
+    "clientComponents": {
+      "total": 286,
+      "largest": [
+        {
+          "path": "src/components/finance/BillingForms.tsx",
+          "bytes": 13978,
+          "kb": 13.7
+        },
+        {
+          "path": "src/components/exec/IntegrationDetailPage.tsx",
+          "bytes": 13724,
+          "kb": 13.4
+        },
+        {
+          "path": "src/components/admissions/WorkflowBuilder.tsx",
+          "bytes": 13622,
+          "kb": 13.3
+        },
+        {
+          "path": "src/components/instruction/InstructionForms.tsx",
+          "bytes": 13534,
+          "kb": 13.2
+        },
+        {
+          "path": "src/components/exec/IntegrationsPage.tsx",
+          "bytes": 13312,
+          "kb": 13
+        },
+        {
+          "path": "src/components/admissions/portal/DocumentCenter.tsx",
+          "bytes": 13227,
+          "kb": 12.9
+        },
+        {
+          "path": "src/components/experience-system/feedback/ActionChip.tsx",
+          "bytes": 10923,
+          "kb": 10.7
+        },
+        {
+          "path": "src/components/admissions/CommunicationTimeline.tsx",
+          "bytes": 10478,
+          "kb": 10.2
+        },
+        {
+          "path": "src/components/compliance/ComplianceObligationIslands.tsx",
+          "bytes": 9824,
+          "kb": 9.6
+        },
+        {
+          "path": "src/components/hr/HrForms.tsx",
+          "bytes": 9555,
+          "kb": 9.3
+        },
+        {
+          "path": "src/components/experience-system/lists/ExperienceDataList.tsx",
+          "bytes": 9321,
+          "kb": 9.1
+        },
+        {
+          "path": "src/components/exec/AskPage.tsx",
+          "bytes": 8410,
+          "kb": 8.2
+        },
+        {
+          "path": "src/components/workspace-design-system/showcase/DesignSystemShowcase.tsx",
+          "bytes": 8307,
+          "kb": 8.1
+        },
+        {
+          "path": "src/components/certification/CertPanels.tsx",
+          "bytes": 8079,
+          "kb": 7.9
+        },
+        {
+          "path": "src/app/login/mfa-required/MfaRequiredForm.tsx",
+          "bytes": 7477,
+          "kb": 7.3
+        },
+        {
+          "path": "src/components/exec/WisdomPage.tsx",
+          "bytes": 7400,
+          "kb": 7.2
+        },
+        {
+          "path": "src/components/teacher/SessionWorkspaceForm.tsx",
+          "bytes": 7369,
+          "kb": 7.2
+        },
+        {
+          "path": "src/components/admissions/portal/ParentInquiryForm.tsx",
+          "bytes": 7284,
+          "kb": 7.1
+        },
+        {
+          "path": "src/components/admissions/ExecutiveAdmissionsDashboard.tsx",
+          "bytes": 7220,
+          "kb": 7.1
+        },
+        {
+          "path": "src/components/experience-system/feedback/useActionFeedback.ts",
+          "bytes": 7218,
+          "kb": 7
+        },
+        {
+          "path": "src/components/experience-system/integration/ExperienceWorkspaceShell.tsx",
+          "bytes": 7145,
+          "kb": 7
+        },
+        {
+          "path": "src/components/scholarships/ScholarshipCenterPanel.tsx",
+          "bytes": 7021,
+          "kb": 6.9
+        },
+        {
+          "path": "src/components/experience-system/navigation/index.tsx",
+          "bytes": 6959,
+          "kb": 6.8
+        },
+        {
+          "path": "src/components/platform/MissionControlResolveIsland.tsx",
+          "bytes": 6873,
+          "kb": 6.7
+        },
+        {
+          "path": "src/components/enterprise-data/EdpPanels.tsx",
+          "bytes": 6850,
+          "kb": 6.7
+        }
+      ],
+      "totalClientKb": 865.9
+    },
+    "database": {
+      "selectStarCallSites": 485,
+      "selectStarByFile": [
+        {
+          "path": "src/lib/employees/profile/sections.ts",
+          "count": 15
+        },
+        {
+          "path": "src/lib/sis/queries.ts",
+          "count": 11
+        },
+        {
+          "path": "src/lib/teacher/queries.ts",
+          "count": 11
+        },
+        {
+          "path": "src/lib/admissions/automation/queries.ts",
+          "count": 10
+        },
+        {
+          "path": "src/lib/admissions/profile/sections.ts",
+          "count": 10
+        },
+        {
+          "path": "src/lib/scheduling/queries.ts",
+          "count": 10
+        },
+        {
+          "path": "src/lib/admissions/queries.ts",
+          "count": 7
+        },
+        {
+          "path": "src/lib/hr/queries.ts",
+          "count": 7
+        },
+        {
+          "path": "src/lib/platform/identity/org.ts",
+          "count": 7
+        },
+        {
+          "path": "src/lib/compliance/queries.ts",
+          "count": 6
+        },
+        {
+          "path": "src/lib/families/profile/sections.ts",
+          "count": 6
+        },
+        {
+          "path": "src/lib/hr/employee-portal.ts",
+          "count": 6
+        },
+        {
+          "path": "src/lib/instruction/growth-plan.ts",
+          "count": 6
+        },
+        {
+          "path": "src/lib/platform/paj/persistence/records.ts",
+          "count": 6
+        },
+        {
+          "path": "src/lib/admissions/automation/server-actions.ts",
+          "count": 5
+        },
+        {
+          "path": "src/lib/admissions/portal/queries.ts",
+          "count": 5
+        },
+        {
+          "path": "src/lib/compliance/automation.ts",
+          "count": 5
+        },
+        {
+          "path": "src/lib/operations-platform/hub.ts",
+          "count": 5
+        },
+        {
+          "path": "src/lib/portal/progress.ts",
+          "count": 5
+        },
+        {
+          "path": "src/lib/cloud-platform/subscriptions.ts",
+          "count": 4
+        },
+        {
+          "path": "src/lib/executive/insights.ts",
+          "count": 4
+        },
+        {
+          "path": "src/lib/hr/employee-profile.ts",
+          "count": 4
+        },
+        {
+          "path": "src/lib/integration-hub/connector-registry.ts",
+          "count": 4
+        },
+        {
+          "path": "src/lib/integration-hub/event-bus.ts",
+          "count": 4
+        },
+        {
+          "path": "src/lib/integration-hub/marketplace.ts",
+          "count": 4
+        }
+      ],
+      "nPlusOneHints": [
+        {
+          "path": "src/lib/platform/execution/integration/index.ts",
+          "count": 4,
+          "sample": ".map(async …)"
+        },
+        {
+          "path": "src/lib/financial-intelligence/revenue-allocation.ts",
+          "count": 3,
+          "sample": ".map(async …)"
+        },
+        {
+          "path": "src/lib/performance/static-audit.ts",
+          "count": 3,
+          "sample": "for (...) { ... await` / `.map(async` with await patterns (heuristic). */"
+        },
+        {
+          "path": "src/lib/platform/events/dispatch/dispatcher.ts",
+          "count": 3,
+          "sample": "for (const subscriber of subscribers) { const result = await invokeSubscriber("
+        },
+        {
+          "path": "src/lib/platform/operational-loop/orchestrate.ts",
+          "count": 3,
+          "sample": "for (const ruleSetKey of def.ruleSetKeys) { try { const evaluation = await evaluateRuleSet("
+        },
+        {
+          "path": "src/lib/platform/tags/permissions.ts",
+          "count": 3,
+          "sample": "for (const permission of TAG_CREATE_PERMISSIONS) { if (await userHasPermission(supabase, permission)) return true;"
+        },
+        {
+          "path": "src/lib/portal/calendar.ts",
+          "count": 3,
+          "sample": "for (const schoolId of schoolIds) { const calEvents = await getAcademicCalendarEvents(schoolId, from, to);"
+        },
+        {
+          "path": "src/lib/scheduling/conflicts.ts",
+          "count": 3,
+          "sample": "for (const c of open ?? []) { await createMissionControlItem(supabase, {"
+        },
+        {
+          "path": "src/lib/sis/conversion.ts",
+          "count": 3,
+          "sample": "for (const doc of allDocs ?? []) { await inheritApplicationDocument(supabase, student.id, doc, convertedBy);"
+        },
+        {
+          "path": "src/lib/ssis/funding.ts",
+          "count": 3,
+          "sample": "for (const sf of stateFunding ?? []) { await supabase.from(\"ssis_student_funding_records\").insert({"
+        },
+        {
+          "path": "src/lib/teacher/queries.ts",
+          "count": 3,
+          "sample": ".map(async …)"
+        },
+        {
+          "path": "src/lib/admissions/automation/engine.ts",
+          "count": 2,
+          "sample": "for (const workflow of workflows) { await runWorkflow(supabase, workflow, options, ctx);"
+        },
+        {
+          "path": "src/lib/admissions/automation/escalations.ts",
+          "count": 2,
+          "sample": "for (const action of actions) { switch (action.type) { case \"notify_admissions\": case \"notify_school_leader\": { await supabase.from(\"admissi"
+        },
+        {
+          "path": "src/lib/certification/performance-engine.ts",
+          "count": 2,
+          "sample": ".map(async …)"
+        },
+        {
+          "path": "src/lib/cloud-platform/hub.ts",
+          "count": 2,
+          "sample": "for (const c of customers ?? []) { await computeCustomerSuccessSnapshot(supabase, c.id);"
+        },
+        {
+          "path": "src/lib/compliance/automation.ts",
+          "count": 2,
+          "sample": "for (const days of daysBefore) { if (daysUntil === days || (days === 0 && daysUntil === 0)) { await sendComplianceReminder(supabase, ob, day"
+        },
+        {
+          "path": "src/lib/compliance/registry.ts",
+          "count": 2,
+          "sample": ".map(async …)"
+        },
+        {
+          "path": "src/lib/configuration/import-export.ts",
+          "count": 2,
+          "sample": "for (const section of packageData.sections ?? []) { await supabase.from(\"config_sections\").upsert("
+        },
+        {
+          "path": "src/lib/edi/automation.ts",
+          "count": 2,
+          "sample": "for (const school of schools ?? []) { await generateAllRecommendations(supabase, school.id);"
+        },
+        {
+          "path": "src/lib/enterprise-data/import-engine.ts",
+          "count": 2,
+          "sample": ".map(async …)"
+        },
+        {
+          "path": "src/lib/families/profile/sections.ts",
+          "count": 2,
+          "sample": ".map(async …)"
+        },
+        {
+          "path": "src/lib/finance/automation.ts",
+          "count": 2,
+          "sample": ".map(async …)"
+        },
+        {
+          "path": "src/lib/financial-intelligence/automation.ts",
+          "count": 2,
+          "sample": "for (const school of schools ?? []) { await computeClassProfitability(supabase, school.id, \"monthly\");"
+        },
+        {
+          "path": "src/lib/hr/automation.ts",
+          "count": 2,
+          "sample": "for (const task of pendingOnboarding ?? []) { const emp = task.employees as { school_id: string } | null; await createMissionControlItem(sup"
+        },
+        {
+          "path": "src/lib/instruction/automation.ts",
+          "count": 2,
+          "sample": "for (const m of meetings ?? []) { if (!m.follow_up_date) continue; const { data: existing } = await supabase"
+        }
+      ],
+      "sequentialAwaitInLoaders": [
+        {
+          "path": "src/lib/exec/ensure-google-workspace.ts",
+          "count": 3
+        }
+      ]
+    },
+    "providers": {
+      "rootInteractionProviders": [
+        "LiveAnnouncerProvider",
+        "ToastProvider",
+        "BackgroundJobsProvider",
+        "GlobalProgressProvider"
+      ],
+      "dashboardShellClient": false,
+      "dashboardLayoutParallelShell": true
+    },
+    "duplicates": {
+      "brandingLoadCallSites": 16,
+      "getIdentityContextCallSites": 106,
+      "executeWorkspaceBeforePromiseAll": []
+    }
+  },
+  "navigationPhases": [
+    {
+      "phase": "Login → Dashboard",
+      "measured": "Partial (auth chain structure + Server-Timing marks)",
+      "notes": "Full RUM requires authenticated browser session; middleware getUser + layout identity dominate TTFB"
+    },
+    {
+      "phase": "Dashboard → Module",
+      "measured": "Structural + loading.tsx progressive shells",
+      "notes": "Module layouts re-gate permissions; work-queue pages sequential executeWorkspace"
+    },
+    {
+      "phase": "Module → Detail",
+      "measured": "Static (profile section loaders)",
+      "notes": "Employee/student profile sections re-call loadEmployeeRecord / wide selects"
+    },
+    {
+      "phase": "Save → UI Updated",
+      "measured": "Not yet exported",
+      "notes": "useActionFeedback exists; spans not committed to probe store in P001 baseline"
+    },
+    {
+      "phase": "Refresh → Interactive",
+      "measured": "Hydration meter exists (admin performance page)",
+      "notes": "recordHydrationMark available; sparse production samples"
+    }
+  ],
+  "slowestPages": [
+    {
+      "route": "/exec",
+      "label": "Home",
+      "totalMs": 119.16,
+      "breakdown": "intel 0.05 | int 0.04 | sync 4.91 | build 105.88 | org 8.28"
+    },
+    {
+      "route": "/exec/risks",
+      "label": "Risks",
+      "totalMs": 31.19,
+      "breakdown": "intel 0.01 | int 0.01 | sync 1.9 | build 29.11 | org 0.16"
+    },
+    {
+      "route": "/exec/brief",
+      "label": "Brief",
+      "totalMs": 27.6,
+      "breakdown": "intel 0.02 | int 0.01 | sync 4.33 | build 23.04 | org 0.2"
+    },
+    {
+      "route": "/exec/health",
+      "label": "Health",
+      "totalMs": 17.94,
+      "breakdown": "intel 0.01 | int 0.01 | sync 2.2 | build 15.56 | org 0.16"
+    },
+    {
+      "route": "/exec/opportunities",
+      "label": "Opportunities",
+      "totalMs": 12.56,
+      "breakdown": "intel 0.01 | int 0.01 | sync 1.96 | build 10.46 | org 0.12"
+    },
+    {
+      "route": "/exec/wisdom",
+      "label": "Wisdom",
+      "totalMs": 7.49,
+      "breakdown": "intel 0.01 | int 0.01 | sync 2.47 | build 4.7 | org 0.3"
+    },
+    {
+      "route": "/dashboard",
+      "label": "Founder Dashboard",
+      "totalMs": -1,
+      "breakdown": "Structural (not live-probed): morning brief + intelligence workspace + branding×N"
+    },
+    {
+      "route": "/dashboard/executive",
+      "label": "Executive Intelligence",
+      "totalMs": -1,
+      "breakdown": "Structural (not live-probed): executeWorkspace → loadExecutiveIntelligenceWorkspace"
+    },
+    {
+      "route": "/dashboard/admissions",
+      "label": "Admissions",
+      "totalMs": -1,
+      "breakdown": "Structural (not live-probed): executeWorkspace → leads + work data"
+    },
+    {
+      "route": "/dashboard/students",
+      "label": "Students",
+      "totalMs": -1,
+      "breakdown": "Structural (not live-probed): executeWorkspace → students + stats + work queue"
+    },
+    {
+      "route": "/dashboard/finance",
+      "label": "Finance",
+      "totalMs": -1,
+      "breakdown": "Structural (not live-probed): executeWorkspace → stats/invoices/accounts or 9-query legacy"
+    },
+    {
+      "route": "/dashboard/teacher",
+      "label": "Teacher",
+      "totalMs": -1,
+      "breakdown": "Structural (not live-probed): 6-query fan-out + jag profiles + work queue"
+    },
+    {
+      "route": "/dashboard/hr",
+      "label": "HR",
+      "totalMs": -1,
+      "breakdown": "Structural (not live-probed): executeWorkspace → 5-query fan-out or 11-query legacy"
+    },
+    {
+      "route": "/dashboard/admin/configuration",
+      "label": "Configuration",
+      "totalMs": -1,
+      "breakdown": "Structural (not live-probed): Light hub; child pages heavier"
+    }
+  ],
+  "slowestReactComponents": [
+    {
+      "path": "src/components/finance/BillingForms.tsx",
+      "kb": 13.7,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/exec/IntegrationDetailPage.tsx",
+      "kb": 13.4,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/admissions/WorkflowBuilder.tsx",
+      "kb": 13.3,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/instruction/InstructionForms.tsx",
+      "kb": 13.2,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/exec/IntegrationsPage.tsx",
+      "kb": 13,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/admissions/portal/DocumentCenter.tsx",
+      "kb": 12.9,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/experience-system/feedback/ActionChip.tsx",
+      "kb": 10.7,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/admissions/CommunicationTimeline.tsx",
+      "kb": 10.2,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/compliance/ComplianceObligationIslands.tsx",
+      "kb": 9.6,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/hr/HrForms.tsx",
+      "kb": 9.3,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/experience-system/lists/ExperienceDataList.tsx",
+      "kb": 9.1,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/exec/AskPage.tsx",
+      "kb": 8.2,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/workspace-design-system/showcase/DesignSystemShowcase.tsx",
+      "kb": 8.1,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/components/certification/CertPanels.tsx",
+      "kb": 7.9,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    },
+    {
+      "path": "src/app/login/mfa-required/MfaRequiredForm.tsx",
+      "kb": 7.3,
+      "reason": "use client boundary — counts toward hydration/JS parse"
+    }
+  ],
+  "slowestDatabasePatterns": [
+    {
+      "path": "src/lib/platform/execution/integration/index.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 4,
+      "evidence": ".map(async …)"
+    },
+    {
+      "path": "src/lib/financial-intelligence/revenue-allocation.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 3,
+      "evidence": ".map(async …)"
+    },
+    {
+      "path": "src/lib/performance/static-audit.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 3,
+      "evidence": "for (...) { ... await` / `.map(async` with await patterns (heuristic). */"
+    },
+    {
+      "path": "src/lib/platform/events/dispatch/dispatcher.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 3,
+      "evidence": "for (const subscriber of subscribers) { const result = await invokeSubscriber("
+    },
+    {
+      "path": "src/lib/platform/operational-loop/orchestrate.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 3,
+      "evidence": "for (const ruleSetKey of def.ruleSetKeys) { try { const evaluation = await evaluateRuleSet("
+    },
+    {
+      "path": "src/lib/platform/tags/permissions.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 3,
+      "evidence": "for (const permission of TAG_CREATE_PERMISSIONS) { if (await userHasPermission(supabase, permission)) return true;"
+    },
+    {
+      "path": "src/lib/portal/calendar.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 3,
+      "evidence": "for (const schoolId of schoolIds) { const calEvents = await getAcademicCalendarEvents(schoolId, from, to);"
+    },
+    {
+      "path": "src/lib/scheduling/conflicts.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 3,
+      "evidence": "for (const c of open ?? []) { await createMissionControlItem(supabase, {"
+    },
+    {
+      "path": "src/lib/sis/conversion.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 3,
+      "evidence": "for (const doc of allDocs ?? []) { await inheritApplicationDocument(supabase, student.id, doc, convertedBy);"
+    },
+    {
+      "path": "src/lib/ssis/funding.ts",
+      "pattern": "N+1 / await-in-loop",
+      "count": 3,
+      "evidence": "for (const sf of stateFunding ?? []) { await supabase.from(\"ssis_student_funding_records\").insert({"
+    },
+    {
+      "path": "src/lib/employees/profile/sections.ts",
+      "pattern": "select('*')",
+      "count": 15,
+      "evidence": "15 wide selects in file"
+    },
+    {
+      "path": "src/lib/sis/queries.ts",
+      "pattern": "select('*')",
+      "count": 11,
+      "evidence": "11 wide selects in file"
+    },
+    {
+      "path": "src/lib/teacher/queries.ts",
+      "pattern": "select('*')",
+      "count": 11,
+      "evidence": "11 wide selects in file"
+    },
+    {
+      "path": "src/lib/admissions/automation/queries.ts",
+      "pattern": "select('*')",
+      "count": 10,
+      "evidence": "10 wide selects in file"
+    },
+    {
+      "path": "src/lib/admissions/profile/sections.ts",
+      "pattern": "select('*')",
+      "count": 10,
+      "evidence": "10 wide selects in file"
+    },
+    {
+      "path": "src/lib/scheduling/queries.ts",
+      "pattern": "select('*')",
+      "count": 10,
+      "evidence": "10 wide selects in file"
+    },
+    {
+      "path": "src/lib/admissions/queries.ts",
+      "pattern": "select('*')",
+      "count": 7,
+      "evidence": "7 wide selects in file"
+    },
+    {
+      "path": "src/lib/hr/queries.ts",
+      "pattern": "select('*')",
+      "count": 7,
+      "evidence": "7 wide selects in file"
+    },
+    {
+      "path": "src/lib/platform/identity/org.ts",
+      "pattern": "select('*')",
+      "count": 7,
+      "evidence": "7 wide selects in file"
+    },
+    {
+      "path": "src/lib/compliance/queries.ts",
+      "pattern": "select('*')",
+      "count": 6,
+      "evidence": "6 wide selects in file"
+    }
+  ],
+  "largestBundles": [
+    {
+      "area": "All use client components (source KB)",
+      "metric": "286 files / 865.9 KB",
+      "notes": "Source size ≠ gzipped bundle; analyzer not wired"
+    },
+    {
+      "area": "components/exec (client islands)",
+      "metric": "6 client components",
+      "notes": "P010: IntegrationsPage / IntegrationDetailPage are dynamic()-split on their routes; ExecShell/Nav remain chrome."
+    },
+    {
+      "area": "executive + edi panels",
+      "metric": "0 client components",
+      "notes": "P010: ExecutivePanels/EdiPanels barrels re-export split files; pages import panels via next/dynamic."
+    },
+    {
+      "area": "app/exec routes",
+      "metric": "0 client components",
+      "notes": "Good baseline — data loading stays on the server."
+    },
+    {
+      "area": "Intelligence DI",
+      "metric": "0 client components",
+      "notes": "createIntelligenceService wires 39 modules — keep off the client bundle."
+    },
+    {
+      "area": "Integration Platform",
+      "metric": "0 client components",
+      "notes": "Connector registry + bootstrap must remain server-side; never import into client components."
+    },
+    {
+      "area": "Bundle tooling",
+      "metric": "0 client components",
+      "notes": "npm run analyze (webpack analyzer) + npm run bundle:budget (client source ceilings)."
+    },
+    {
+      "area": "App routes",
+      "metric": "268 pages / 33 handlers",
+      "notes": "/src/app/admin/performance/page.tsx, /src/app/admin/scholarships/page.tsx, /src/app/api/admissions/funding-export/route.ts, /src/app/api/admissions/process-communications/route.ts, /src/app/api/certification/reports/route.ts, /src/app/api/cloud/docs/route.ts"
+    }
+  ],
+  "duplicateRequests": [
+    {
+      "pattern": "Organization branding",
+      "evidence": "16 call sites; session + layout (+ page) overlap",
+      "estimatedWaste": "1–2 redundant round-trips per dashboard navigation"
+    },
+    {
+      "pattern": "Identity / authz",
+      "evidence": "middleware loadAuthzSnapshot + 106 getIdentityContext sites",
+      "estimatedWaste": "Edge + RSC duplicate role/permission work"
+    },
+    {
+      "pattern": "executeWorkspace then domain queries",
+      "evidence": "0 loader files with sequential engine→data",
+      "estimatedWaste": "Full engine latency added before parallel data starts"
+    }
+  ],
+  "top25": [
+    {
+      "id": "integrations-cold-start",
+      "area": "server",
+      "target": "Integration platform bootstrap (process recycle)",
+      "timeMs": 177.61,
+      "timeNote": "Cold bench=177.61ms warm singleton=0ms init=25.86ms",
+      "rootCause": "First-process parallel connector bootstrap remains; subsequent requests reuse singleton (0ms)",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "Defer non-ECC connector bootstrap until first ensure*Synced",
+      "recommendedFix": "Optional: bootstrap only academyos/square/qb/plaid/google on ECC init",
+      "roiScore": 71,
+      "rank": 1
+    },
+    {
+      "id": "n1-src/lib/platform/execution/integration/index.ts",
+      "area": "database",
+      "target": "src/lib/platform/execution/integration/index.ts",
+      "timeMs": null,
+      "timeNote": "4 loop/await hints; sample: .map(async …)",
+      "rootCause": "N+1 query pattern — per-row awaits multiply DB round-trips",
+      "estimatedImpact": "critical",
+      "effort": "M",
+      "estimatedGainMs": "200–2000ms+ under load (est.)",
+      "recommendedFix": "Batch with .in() / single join query; Promise.all only as interim",
+      "roiScore": 64,
+      "rank": 2
+    },
+    {
+      "id": "n1-src/lib/financial-intelligence/revenue-allocation.ts",
+      "area": "database",
+      "target": "src/lib/financial-intelligence/revenue-allocation.ts",
+      "timeMs": null,
+      "timeNote": "3 loop/await hints; sample: .map(async …)",
+      "rootCause": "N+1 query pattern — per-row awaits multiply DB round-trips",
+      "estimatedImpact": "critical",
+      "effort": "M",
+      "estimatedGainMs": "200–2000ms+ under load (est.)",
+      "recommendedFix": "Batch with .in() / single join query; Promise.all only as interim",
+      "roiScore": 64,
+      "rank": 3
+    },
+    {
+      "id": "n1-src/lib/performance/static-audit.ts",
+      "area": "database",
+      "target": "src/lib/performance/static-audit.ts",
+      "timeMs": null,
+      "timeNote": "3 loop/await hints; sample: for (...) { ... await` / `.map(async` with await patterns (heuristic). */",
+      "rootCause": "N+1 query pattern — per-row awaits multiply DB round-trips",
+      "estimatedImpact": "critical",
+      "effort": "M",
+      "estimatedGainMs": "200–2000ms+ under load (est.)",
+      "recommendedFix": "Batch with .in() / single join query; Promise.all only as interim",
+      "roiScore": 64,
+      "rank": 4
+    },
+    {
+      "id": "n1-src/lib/platform/events/dispatch/dispatcher.ts",
+      "area": "database",
+      "target": "src/lib/platform/events/dispatch/dispatcher.ts",
+      "timeMs": null,
+      "timeNote": "3 loop/await hints; sample: for (const subscriber of subscribers) { const result = await invokeSubscriber(",
+      "rootCause": "N+1 query pattern — per-row awaits multiply DB round-trips",
+      "estimatedImpact": "critical",
+      "effort": "M",
+      "estimatedGainMs": "200–2000ms+ under load (est.)",
+      "recommendedFix": "Batch with .in() / single join query; Promise.all only as interim",
+      "roiScore": 64,
+      "rank": 5
+    },
+    {
+      "id": "n1-src/lib/platform/operational-loop/orchestrate.ts",
+      "area": "database",
+      "target": "src/lib/platform/operational-loop/orchestrate.ts",
+      "timeMs": null,
+      "timeNote": "3 loop/await hints; sample: for (const ruleSetKey of def.ruleSetKeys) { try { const evaluation = await evaluateRuleSet(",
+      "rootCause": "N+1 query pattern — per-row awaits multiply DB round-trips",
+      "estimatedImpact": "critical",
+      "effort": "M",
+      "estimatedGainMs": "200–2000ms+ under load (est.)",
+      "recommendedFix": "Batch with .in() / single join query; Promise.all only as interim",
+      "roiScore": 64,
+      "rank": 6
+    },
+    {
+      "id": "n1-src/lib/platform/tags/permissions.ts",
+      "area": "database",
+      "target": "src/lib/platform/tags/permissions.ts",
+      "timeMs": null,
+      "timeNote": "3 loop/await hints; sample: for (const permission of TAG_CREATE_PERMISSIONS) { if (await userHasPermission(supabase, permission)) return true;",
+      "rootCause": "N+1 query pattern — per-row awaits multiply DB round-trips",
+      "estimatedImpact": "critical",
+      "effort": "M",
+      "estimatedGainMs": "200–2000ms+ under load (est.)",
+      "recommendedFix": "Batch with .in() / single join query; Promise.all only as interim",
+      "roiScore": 64,
+      "rank": 7
+    },
+    {
+      "id": "n1-src/lib/portal/calendar.ts",
+      "area": "database",
+      "target": "src/lib/portal/calendar.ts",
+      "timeMs": null,
+      "timeNote": "3 loop/await hints; sample: for (const schoolId of schoolIds) { const calEvents = await getAcademicCalendarEvents(schoolId, from, to);",
+      "rootCause": "N+1 query pattern — per-row awaits multiply DB round-trips",
+      "estimatedImpact": "critical",
+      "effort": "M",
+      "estimatedGainMs": "200–2000ms+ under load (est.)",
+      "recommendedFix": "Batch with .in() / single join query; Promise.all only as interim",
+      "roiScore": 64,
+      "rank": 8
+    },
+    {
+      "id": "n1-src/lib/scheduling/conflicts.ts",
+      "area": "database",
+      "target": "src/lib/scheduling/conflicts.ts",
+      "timeMs": null,
+      "timeNote": "3 loop/await hints; sample: for (const c of open ?? []) { await createMissionControlItem(supabase, {",
+      "rootCause": "N+1 query pattern — per-row awaits multiply DB round-trips",
+      "estimatedImpact": "critical",
+      "effort": "M",
+      "estimatedGainMs": "200–2000ms+ under load (est.)",
+      "recommendedFix": "Batch with .in() / single join query; Promise.all only as interim",
+      "roiScore": 64,
+      "rank": 9
+    },
+    {
+      "id": "probe-/exec",
+      "area": "route",
+      "target": "/exec",
+      "timeMs": 119.16,
+      "timeNote": "Measured loader probe: intel=0.05ms int=0.04ms sync=4.91ms build=105.88ms org=8.28ms",
+      "rootCause": "ECC route pays intelligence + integrations + connector sync + org resolve + domain build",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "42–71ms",
+      "recommendedFix": "Keep singletons warm; parallelize independent builds; skip sync when stores hot",
+      "roiScore": 48,
+      "rank": 10
+    },
+    {
+      "id": "mutation-feedback-unmeasured",
+      "area": "navigation",
+      "target": "Save → UI Updated / Refresh → Interactive",
+      "timeMs": null,
+      "timeNote": "RC-1 observeServerAction helper available; mutation UX path not yet wrapped",
+      "rootCause": "Mutation→revalidation latency not emitted on every form save path",
+      "estimatedImpact": "medium",
+      "effort": "S",
+      "estimatedGainMs": "Measurement enablement",
+      "recommendedFix": "Wrap runMutation/useActionFeedback with observeServerAction (instrument only)",
+      "roiScore": 48,
+      "rank": 11
+    },
+    {
+      "id": "client-src/components/finance/BillingForms.tsx",
+      "area": "react",
+      "target": "src/components/finance/BillingForms.tsx",
+      "timeMs": null,
+      "timeNote": "13.7 KB source (use client boundary)",
+      "rootCause": "Large client component increases JS parse/hydrate cost for every consumer route",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "20–150ms hydration (est.)",
+      "recommendedFix": "Split islands; keep data tables/forms as server where possible; dynamic import rare panels",
+      "roiScore": 32,
+      "rank": 12
+    },
+    {
+      "id": "client-src/components/exec/IntegrationDetailPage.tsx",
+      "area": "react",
+      "target": "src/components/exec/IntegrationDetailPage.tsx",
+      "timeMs": null,
+      "timeNote": "13.4 KB source (use client boundary)",
+      "rootCause": "Large client component increases JS parse/hydrate cost for every consumer route",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "20–150ms hydration (est.)",
+      "recommendedFix": "Split islands; keep data tables/forms as server where possible; dynamic import rare panels",
+      "roiScore": 32,
+      "rank": 13
+    },
+    {
+      "id": "client-src/components/admissions/WorkflowBuilder.tsx",
+      "area": "react",
+      "target": "src/components/admissions/WorkflowBuilder.tsx",
+      "timeMs": null,
+      "timeNote": "13.3 KB source (use client boundary)",
+      "rootCause": "Large client component increases JS parse/hydrate cost for every consumer route",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "20–150ms hydration (est.)",
+      "recommendedFix": "Split islands; keep data tables/forms as server where possible; dynamic import rare panels",
+      "roiScore": 32,
+      "rank": 14
+    },
+    {
+      "id": "client-src/components/instruction/InstructionForms.tsx",
+      "area": "react",
+      "target": "src/components/instruction/InstructionForms.tsx",
+      "timeMs": null,
+      "timeNote": "13.2 KB source (use client boundary)",
+      "rootCause": "Large client component increases JS parse/hydrate cost for every consumer route",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "20–150ms hydration (est.)",
+      "recommendedFix": "Split islands; keep data tables/forms as server where possible; dynamic import rare panels",
+      "roiScore": 32,
+      "rank": 15
+    },
+    {
+      "id": "client-src/components/exec/IntegrationsPage.tsx",
+      "area": "react",
+      "target": "src/components/exec/IntegrationsPage.tsx",
+      "timeMs": null,
+      "timeNote": "13 KB source (use client boundary)",
+      "rootCause": "Large client component increases JS parse/hydrate cost for every consumer route",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "20–150ms hydration (est.)",
+      "recommendedFix": "Split islands; keep data tables/forms as server where possible; dynamic import rare panels",
+      "roiScore": 32,
+      "rank": 16
+    },
+    {
+      "id": "client-src/components/admissions/portal/DocumentCenter.tsx",
+      "area": "react",
+      "target": "src/components/admissions/portal/DocumentCenter.tsx",
+      "timeMs": null,
+      "timeNote": "12.9 KB source (use client boundary)",
+      "rootCause": "Large client component increases JS parse/hydrate cost for every consumer route",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "20–150ms hydration (est.)",
+      "recommendedFix": "Split islands; keep data tables/forms as server where possible; dynamic import rare panels",
+      "roiScore": 32,
+      "rank": 17
+    },
+    {
+      "id": "client-src/components/experience-system/feedback/ActionChip.tsx",
+      "area": "react",
+      "target": "src/components/experience-system/feedback/ActionChip.tsx",
+      "timeMs": null,
+      "timeNote": "10.7 KB source (use client boundary)",
+      "rootCause": "Large client component increases JS parse/hydrate cost for every consumer route",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "20–150ms hydration (est.)",
+      "recommendedFix": "Split islands; keep data tables/forms as server where possible; dynamic import rare panels",
+      "roiScore": 32,
+      "rank": 18
+    },
+    {
+      "id": "client-src/components/admissions/CommunicationTimeline.tsx",
+      "area": "react",
+      "target": "src/components/admissions/CommunicationTimeline.tsx",
+      "timeMs": null,
+      "timeNote": "10.2 KB source (use client boundary)",
+      "rootCause": "Large client component increases JS parse/hydrate cost for every consumer route",
+      "estimatedImpact": "medium",
+      "effort": "M",
+      "estimatedGainMs": "20–150ms hydration (est.)",
+      "recommendedFix": "Split islands; keep data tables/forms as server where possible; dynamic import rare panels",
+      "roiScore": 32,
+      "rank": 19
+    },
+    {
+      "id": "select-star-surface",
+      "area": "database",
+      "target": "485 select('*') call sites",
+      "timeMs": null,
+      "timeNote": "Top files: src/lib/employees/profile/sections.ts(15), src/lib/sis/queries.ts(11), src/lib/teacher/queries.ts(11), src/lib/admissions/automation/queries.ts(10), src/lib/admissions/profile/sections.ts(10)",
+      "rootCause": "Wide column selection increases payload, serialization, and hydration cost",
+      "estimatedImpact": "high",
+      "effort": "L",
+      "estimatedGainMs": "10–30% payload reduction on hot lists (est.)",
+      "recommendedFix": "Column lists on hot path queries (leads, notifications, students, invoices)",
+      "roiScore": 24,
+      "rank": 20
+    },
+    {
+      "id": "interaction-providers",
+      "area": "react",
+      "target": "InteractionProviders (4 nested contexts)",
+      "timeMs": null,
+      "timeNote": "LiveAnnouncerProvider → ToastProvider → BackgroundJobsProvider → GlobalProgressProvider",
+      "rootCause": "Root provider stack remains app-wide; P006 splits progress/jobs state from mutator APIs to limit re-renders",
+      "estimatedImpact": "low",
+      "effort": "S",
+      "estimatedGainMs": "2–10ms (est.)",
+      "recommendedFix": "Keep providers at root for toast/action feedback; avoid relocating without form inventory",
+      "roiScore": 24,
+      "rank": 21
+    },
+    {
+      "id": "bundle-budget-hygiene",
+      "area": "bundle",
+      "target": "npm run analyze / npm run perf:regression",
+      "timeMs": null,
+      "timeNote": "RC-1: bundle budgets + perf-baselines.json gated in CI via perf:regression",
+      "rootCause": "Bundle graphs drift unless re-checked after large client modules land",
+      "estimatedImpact": "low",
+      "effort": "S",
+      "estimatedGainMs": "Measurement hygiene",
+      "recommendedFix": "Keep client islands under source budget; refresh baselines when intentional",
+      "roiScore": 24,
+      "rank": 22
+    },
+    {
+      "id": "edge-rsc-session-dual-runtime",
+      "area": "navigation",
+      "target": "middleware getUser + RSC getAuthUser",
+      "timeMs": null,
+      "timeNote": "Edge and RSC cannot share React.cache; both call Supabase getUser (expected dual-runtime)",
+      "rootCause": "Next.js Edge + RSC separate runtimes — session verified twice across the boundary",
+      "estimatedImpact": "medium",
+      "effort": "L",
+      "estimatedGainMs": "20–60ms if edge decodes JWT without network round-trip",
+      "recommendedFix": "Optional: JWT decode at edge; keep RSC getAuthUser as source of truth",
+      "roiScore": 16,
+      "rank": 23
+    },
+    {
+      "id": "dashboard-shell-client",
+      "area": "react",
+      "target": "components/dashboard/DashboardChrome.tsx",
+      "timeMs": null,
+      "timeNote": "P006: DashboardShell is RSC; hydration limited to DashboardChrome island",
+      "rootCause": "Residual client chrome (Sidebar/TopNav pathname + sidebar open state)",
+      "estimatedImpact": "low",
+      "effort": "M",
+      "estimatedGainMs": "5–20ms hydration (est.)",
+      "recommendedFix": "Further split notifications bell / sign-out into smaller islands if measured",
+      "roiScore": 16,
+      "rank": 24
+    },
+    {
+      "id": "observability-otlp-export",
+      "area": "server",
+      "target": "OTLP multi-instance aggregation",
+      "timeMs": null,
+      "timeNote": "RC-1: in-process spans/metrics/RUM live; OTLP export optional via OTEL_EXPORTER_OTLP_ENDPOINT",
+      "rootCause": "Process-local stores do not aggregate across serverless isolates without an exporter",
+      "estimatedImpact": "low",
+      "effort": "M",
+      "estimatedGainMs": "Ops visibility (not latency)",
+      "recommendedFix": "Set OTEL_EXPORTER_OTLP_ENDPOINT in production; scrape /api/observability/metrics per instance",
+      "roiScore": 16,
+      "rank": 25
+    }
+  ],
+  "recommendedOptimizationOrder": [
+    "1. [server] Integration platform bootstrap (process recycle)",
+    "2. [database] src/lib/platform/execution/integration/index.ts",
+    "3. [database] src/lib/financial-intelligence/revenue-allocation.ts",
+    "4. [database] src/lib/performance/static-audit.ts",
+    "5. [database] src/lib/platform/events/dispatch/dispatcher.ts",
+    "6. [database] src/lib/platform/operational-loop/orchestrate.ts",
+    "7. [database] src/lib/platform/tags/permissions.ts",
+    "8. [database] src/lib/portal/calendar.ts",
+    "9. [database] src/lib/scheduling/conflicts.ts",
+    "10. [route] /exec",
+    "11. [navigation] Save → UI Updated / Refresh → Interactive",
+    "12. [react] src/components/finance/BillingForms.tsx",
+    "13. [react] src/components/exec/IntegrationDetailPage.tsx",
+    "14. [react] src/components/admissions/WorkflowBuilder.tsx",
+    "15. [react] src/components/instruction/InstructionForms.tsx"
+  ],
+  "estimatedPerformanceGains": {
+    "ifTop5Fixed": "Est. 300–900ms off authenticated dashboard TTFB / ECC cold navigations",
+    "ifTop15Fixed": "Est. 0.8–2.5s off heavy module work-queue + N+1 pages under realistic data",
+    "notes": "Gains are estimates from probe deltas + structural multiplicity; validate with Server-Timing + RUM before claiming"
+  }
+}

@@ -1,22 +1,32 @@
+import dynamic from "next/dynamic";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { canViewEdi } from "@/lib/edi/access";
+import { ExecutiveAccessEmpty } from "@/components/executive/ExecutiveAccessEmpty";
 import {
   getRecommendationsByDomain,
 } from "@/lib/edi/recommendation-engine";
 import { computeEducationalRoi } from "@/lib/edi/educational-roi";
-import { DecisionCardList } from "@/components/edi/EdiPanels";
+import { ListSkeleton } from "@/components/experience-system";
+
+const DecisionCardList = dynamic(
+  () =>
+    import("@/components/edi/panels/DecisionCardList").then((m) => ({
+      default: m.DecisionCardList,
+    })),
+  { ssr: true, loading: () => <ListSkeleton rows={4} label="Loading optimizationâ€¦" /> }
+);
 
 export default async function ExecutiveOptimizationPage() {
   const ctx = await getIdentityContext();
-  if (!ctx || !canViewEdi(ctx)) return null;
+  if (!ctx || !canViewEdi(ctx)) return <ExecutiveAccessEmpty reason="access" />;
 
   const schoolId =
     ctx.orgAssignments.find((a) => a.is_primary)?.school_id ||
     ctx.accessibleSchoolIds[0] ||
     "";
 
-  if (!schoolId) return null;
+  if (!schoolId) return <ExecutiveAccessEmpty reason="school" />;
 
   const supabase = await createAuthClient();
   const [financial, enrollment, scheduling, roi] = await Promise.all([

@@ -59,7 +59,7 @@ export function BriefPage({ data }: { data: ExecBriefViewModel }) {
         title="Recommended actions"
         domains={["wisdom", "organizational-improvement"]}
         dataMode={data.dataMode}
-        href="/exec/actions"
+        href="/dashboard/executive/decisions"
       >
         <ul className="space-y-3">
           {data.recommendedActions.map((action, index) => (

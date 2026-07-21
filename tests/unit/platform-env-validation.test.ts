@@ -93,7 +93,7 @@ describe("validateEnvironment", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.issues.map((i) => i.name).sort()).toEqual(
-      ["CRON_SECRET", "SENDGRID_API_KEY", "VAULT_ENCRYPTION_KEY"].sort()
+      ["CRON_SECRET", "RESEND_API_KEY", "VAULT_ENCRYPTION_KEY"].sort()
     );
   });
 

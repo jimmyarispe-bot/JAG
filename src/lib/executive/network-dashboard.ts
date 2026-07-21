@@ -1,14 +1,33 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import type { NetworkDimensionRow } from "@/lib/executive/types";
+import {
+  RPT_ENROLLMENT_CAMPUS_COLS,
+  RPT_ENROLLMENT_PROGRAM_COLS,
+  RPT_ENROLLMENT_SCHOOL_COLS,
+  RPT_FINANCIAL_KPI_COLS,
+  RPT_OUTCOMES_COLS,
+  RPT_PIPELINE_COLS,
+  RPT_WORKFORCE_COLS,
+} from "@/lib/executive/report-projections";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
 export async function getNetworkDashboardBySchool(supabase: AuthClient): Promise<NetworkDimensionRow[]> {
-  const { data: enrollment } = await supabase.from("rpt_enrollment_summary").select("*");
-  const { data: financial } = await supabase.from("rpt_financial_kpis").select("*");
-  const { data: outcomes } = await supabase.from("rpt_student_outcomes").select("*");
-  const { data: workforce } = await supabase.from("rpt_workforce_kpis").select("*");
-  const { data: pipeline } = await supabase.from("rpt_admissions_pipeline").select("*");
+  const { data: enrollment } = await supabase
+    .from("rpt_enrollment_summary")
+    .select(RPT_ENROLLMENT_SCHOOL_COLS);
+  const { data: financial } = await supabase
+    .from("rpt_financial_kpis")
+    .select(RPT_FINANCIAL_KPI_COLS);
+  const { data: outcomes } = await supabase
+    .from("rpt_student_outcomes")
+    .select(RPT_OUTCOMES_COLS);
+  const { data: workforce } = await supabase
+    .from("rpt_workforce_kpis")
+    .select(RPT_WORKFORCE_COLS);
+  const { data: pipeline } = await supabase
+    .from("rpt_admissions_pipeline")
+    .select(RPT_PIPELINE_COLS);
 
   const bySchool = new Map<string, NetworkDimensionRow>();
 
@@ -72,7 +91,7 @@ export async function getNetworkDashboardByCampus(
 ): Promise<NetworkDimensionRow[]> {
   const { data: enrollment } = await supabase
     .from("rpt_enrollment_summary")
-    .select("*")
+    .select(RPT_ENROLLMENT_CAMPUS_COLS)
     .eq("school_id", schoolId);
 
   const byCampus = new Map<string, NetworkDimensionRow>();
@@ -99,7 +118,7 @@ export async function getNetworkDashboardByProgram(
   supabase: AuthClient,
   schoolId?: string
 ): Promise<NetworkDimensionRow[]> {
-  let query = supabase.from("rpt_enrollment_summary").select("*");
+  let query = supabase.from("rpt_enrollment_summary").select(RPT_ENROLLMENT_PROGRAM_COLS);
   if (schoolId) query = query.eq("school_id", schoolId);
   const { data: enrollment } = await query;
 
@@ -120,5 +139,5 @@ export async function getNetworkDashboardByProgram(
     existing.enrollment += Number(row.active_students ?? 0);
     byProgram.set(prog, existing);
   }
-  return [...byProgram.values()].sort((a, b) => b.enrollment - a.enrollment);
+  return [...byProgram.values()];
 }

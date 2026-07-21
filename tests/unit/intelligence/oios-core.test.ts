@@ -63,6 +63,18 @@ describe("JAG OIOS Core Architecture (Sprint 031)", () => {
     expect(stack.registry.get("institutional-memory")?.status).toBe("active");
     expect(stack.registry.get("collective")?.status).toBe("active");
     expect(stack.registry.get("wisdom")?.status).toBe("active");
+    expect(stack.registry.get("synthesis")?.status).toBe("active");
+    expect(stack.registry.get("briefing")?.status).toBe("active");
+    expect(stack.registry.get("executive-memory")?.status).toBe("active");
+    expect(stack.registry.get("decision-intelligence")?.status).toBe("active");
+    expect(stack.registry.get("executive-predictive")?.status).toBe("active");
+    expect(stack.registry.get("executive-autonomous")?.status).toBe("active");
+    expect(stack.registry.get("executive-copilot")?.status).toBe("active");
+    expect(stack.registry.get("executive-command-center")?.status).toBe("active");
+    expect(stack.registry.get("initiative-intelligence")?.status).toBe("active");
+    expect(stack.registry.get("portfolio-intelligence")?.status).toBe("active");
+    expect(stack.registry.get("digital-twin")?.status).toBe("active");
+    expect(stack.registry.get("ecosystem-intelligence")?.status).toBe("active");
     expect(stack.registry.get("organization-dna")?.status).toBe("active");
 
     const result = stack.service.build({
@@ -204,8 +216,7 @@ describe("JAG OIOS Core Architecture (Sprint 031)", () => {
       "impact",
       "economic",
       "competitive",
-      "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
-    ]);
+      "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom", "synthesis", "briefing", "executive-memory", "decision-intelligence", "executive-predictive", "executive-autonomous", "executive-copilot", "executive-command-center", "initiative-intelligence", "portfolio-intelligence", "digital-twin", "ecosystem-intelligence"]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });

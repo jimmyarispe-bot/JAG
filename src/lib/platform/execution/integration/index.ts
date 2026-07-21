@@ -102,134 +102,146 @@ export class GoalExecutionIntegration {
     const schoolId =
       input.schoolId ?? input.sharedContext?.scope.schoolId ?? null;
 
-    const goals: ExecutionGoal[] = [];
-    for (const goal of strategicGoals) {
-      const mappedStatus = mapStrategicGoalStatus(goal.status);
-      const created = await this.goals.create({
-        id: `exec:${goal.id}`,
-        title: goal.title,
-        description: goal.description,
-        priority: goal.priority,
-        status: this.workflow.canTransition("draft", mappedStatus)
-          ? mappedStatus
-          : "draft",
-        targetDate: goal.targetDate,
-        expectedValue: goal.expectedValue,
-        confidence: goal.confidence,
-        linkedOpportunityIds: [...goal.linkedOpportunities],
-        strategicGoalId: goal.id,
-        organizationId,
-        schoolId,
-        metadata: {
-          ...(input.metadata ?? {}),
-          ...(goal.metadata ?? {}),
-          importedFrom: "strategic_intelligence",
-          sharedContextRequestId: input.sharedContext?.requestId ?? null,
-        },
-        createdAt: goal.createdDate,
-      });
-      goals.push(created);
-    }
+    const goals: ExecutionGoal[] = await Promise.all(
+      strategicGoals.map(async (goal) => {
+        const mappedStatus = mapStrategicGoalStatus(goal.status);
+        return this.goals.create({
+          id: `exec:${goal.id}`,
+          title: goal.title,
+          description: goal.description,
+          priority: goal.priority,
+          status: this.workflow.canTransition("draft", mappedStatus)
+            ? mappedStatus
+            : "draft",
+          targetDate: goal.targetDate,
+          expectedValue: goal.expectedValue,
+          confidence: goal.confidence,
+          linkedOpportunityIds: [...goal.linkedOpportunities],
+          strategicGoalId: goal.id,
+          organizationId,
+          schoolId,
+          metadata: {
+            ...(input.metadata ?? {}),
+            ...(goal.metadata ?? {}),
+            importedFrom: "strategic_intelligence",
+            sharedContextRequestId: input.sharedContext?.requestId ?? null,
+          },
+          createdAt: goal.createdDate,
+        });
+      })
+    );
 
-    const objectives: ExecutionObjective[] = [];
-    for (const objective of strategicObjectives) {
-      const goalId = `exec:${objective.goalId}`;
-      const created = await this.objectives.create({
-        id: `exec:${objective.id}`,
-        goalId,
-        title: objective.title,
-        description: objective.description,
-        baseline: objective.baseline,
-        target: objective.target,
-        currentValue: objective.currentValue,
-        measurementMethod: objective.measurementMethod,
-        frequency: objective.frequency,
-        successCriteria: objective.successCriteria,
-        status: "planning",
-        strategicObjectiveId: objective.id,
-        metadata: { ...(objective.metadata ?? {}) },
-      });
-      objectives.push(created);
-      await this.dependencies.link({
-        kind: "measures",
-        fromKind: "objective",
-        fromId: created.id,
-        toKind: "goal",
-        toId: goalId,
-      });
-    }
-
-    const initiatives: ExecutionInitiative[] = [];
-    const milestones: ExecutionMilestone[] = [];
-    const tasks: ExecutionTask[] = [];
-
-    for (const initiative of strategicInitiatives) {
-      const goalId = `exec:${initiative.goalId}`;
-      const created = await this.initiatives.create({
-        id: `exec:${initiative.id}`,
-        goalId,
-        objectiveIds: initiative.objectiveIds.map((id) => `exec:${id}`),
-        title: initiative.title,
-        description: initiative.description,
-        status: mapStrategicExecutionStatus(initiative.status),
-        budgetAmount: initiative.budget.amount,
-        budgetCurrency: initiative.budget.currency,
-        budgetSpent: 0,
-        resources: [...initiative.resources],
-        startDate: initiative.timeline.startDate,
-        endDate: initiative.timeline.endDate,
-        strategicInitiativeId: initiative.id,
-        metadata: { ...(initiative.metadata ?? {}) },
-      });
-      initiatives.push(created);
-
-      await this.dependencies.link({
-        kind: "contributes_to",
-        fromKind: "initiative",
-        fromId: created.id,
-        toKind: "goal",
-        toId: goalId,
-      });
-
-      for (const depId of initiative.dependencies) {
+    const objectives: ExecutionObjective[] = await Promise.all(
+      strategicObjectives.map(async (objective) => {
+        const goalId = `exec:${objective.goalId}`;
+        const created = await this.objectives.create({
+          id: `exec:${objective.id}`,
+          goalId,
+          title: objective.title,
+          description: objective.description,
+          baseline: objective.baseline,
+          target: objective.target,
+          currentValue: objective.currentValue,
+          measurementMethod: objective.measurementMethod,
+          frequency: objective.frequency,
+          successCriteria: objective.successCriteria,
+          status: "planning",
+          strategicObjectiveId: objective.id,
+          metadata: { ...(objective.metadata ?? {}) },
+        });
         await this.dependencies.link({
-          kind: "requires",
+          kind: "measures",
+          fromKind: "objective",
+          fromId: created.id,
+          toKind: "goal",
+          toId: goalId,
+        });
+        return created;
+      })
+    );
+
+    const initiativeBundles = await Promise.all(
+      strategicInitiatives.map(async (initiative) => {
+        const goalId = `exec:${initiative.goalId}`;
+        const created = await this.initiatives.create({
+          id: `exec:${initiative.id}`,
+          goalId,
+          objectiveIds: initiative.objectiveIds.map((id) => `exec:${id}`),
+          title: initiative.title,
+          description: initiative.description,
+          status: mapStrategicExecutionStatus(initiative.status),
+          budgetAmount: initiative.budget.amount,
+          budgetCurrency: initiative.budget.currency,
+          budgetSpent: 0,
+          resources: [...initiative.resources],
+          startDate: initiative.timeline.startDate,
+          endDate: initiative.timeline.endDate,
+          strategicInitiativeId: initiative.id,
+          metadata: { ...(initiative.metadata ?? {}) },
+        });
+
+        await this.dependencies.link({
+          kind: "contributes_to",
           fromKind: "initiative",
           fromId: created.id,
-          toKind: "initiative",
-          toId: depId.startsWith("exec:") ? depId : `exec:${depId}`,
+          toKind: "goal",
+          toId: goalId,
         });
-      }
 
-      for (const [index, milestone] of initiative.milestones.entries()) {
-        const ms = await this.milestones.create({
-          id: `exec:${milestone.milestoneId}`,
-          initiativeId: created.id,
-          title: milestone.title,
-          dueDate: milestone.dueDate,
-          status: mapStrategicExecutionStatus(milestone.status),
-          completionPercent: 0,
-          strategicMilestoneId: milestone.milestoneId,
-        });
-        milestones.push(ms);
+        await Promise.all(
+          initiative.dependencies.map((depId) =>
+            this.dependencies.link({
+              kind: "requires",
+              fromKind: "initiative",
+              fromId: created.id,
+              toKind: "initiative",
+              toId: depId.startsWith("exec:") ? depId : `exec:${depId}`,
+            })
+          )
+        );
 
-        const task = await this.tasks.create({
-          id: `exec:${milestone.milestoneId}:task`,
-          initiativeId: created.id,
-          milestoneId: ms.id,
-          goalId,
-          title: `Deliver: ${milestone.title}`,
-          description: `Work item for milestone ${milestone.title}`,
-          owner: strategicOwners?.primaryOwner ?? "Unassigned",
-          dueDate: milestone.dueDate,
-          priority: goals[0]?.priority ?? "medium",
-          completionPercent: 0,
-          status: "planning",
-          notes: [`Auto-created from strategic milestone ${index + 1}`],
-        });
-        tasks.push(task);
-      }
-    }
+        const milestonePairs = await Promise.all(
+          initiative.milestones.map(async (milestone, index) => {
+            const ms = await this.milestones.create({
+              id: `exec:${milestone.milestoneId}`,
+              initiativeId: created.id,
+              title: milestone.title,
+              dueDate: milestone.dueDate,
+              status: mapStrategicExecutionStatus(milestone.status),
+              completionPercent: 0,
+              strategicMilestoneId: milestone.milestoneId,
+            });
+
+            const task = await this.tasks.create({
+              id: `exec:${milestone.milestoneId}:task`,
+              initiativeId: created.id,
+              milestoneId: ms.id,
+              goalId,
+              title: `Deliver: ${milestone.title}`,
+              description: `Work item for milestone ${milestone.title}`,
+              owner: strategicOwners?.primaryOwner ?? "Unassigned",
+              dueDate: milestone.dueDate,
+              priority: goals[0]?.priority ?? "medium",
+              completionPercent: 0,
+              status: "planning",
+              notes: [`Auto-created from strategic milestone ${index + 1}`],
+            });
+
+            return { ms, task };
+          })
+        );
+
+        return { created, milestonePairs };
+      })
+    );
+
+    const initiatives: ExecutionInitiative[] = initiativeBundles.map((b) => b.created);
+    const milestones: ExecutionMilestone[] = initiativeBundles.flatMap((b) =>
+      b.milestonePairs.map((p) => p.ms)
+    );
+    const tasks: ExecutionTask[] = initiativeBundles.flatMap((b) =>
+      b.milestonePairs.map((p) => p.task)
+    );
 
     let owners: ExecutionOwners | null = null;
     if (strategicOwners && goals[0]) {

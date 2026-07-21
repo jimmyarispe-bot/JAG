@@ -5,7 +5,7 @@ import { recordActivity } from "@/lib/platform/activity";
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import { resolveSchoolContext } from "@/lib/platform/shared/context";
 import type { GradeValue } from "@/lib/constants/grades";
-import type { ProgramValue } from "@/lib/constants/programs";
+import { parseProgramValue } from "@/lib/constants/programs";
 import type { LeadStageValue } from "@/lib/constants/admissions";
 import { parseFundingSourcesFromForm } from "@/lib/funding/helpers";
 import { syncLeadFundingSources } from "@/lib/funding/sync";
@@ -33,7 +33,7 @@ export async function createLead(formData: FormData) {
   const schoolId = formData.get("school_id") as string;
   const firstName = formData.get("first_name") as string;
   const lastName = formData.get("last_name") as string;
-  const program = (formData.get("program") as ProgramValue) || null;
+  const program = parseProgramValue(formData.get("program") as string);
   const applyingForGrade = (formData.get("applying_for_grade") as GradeValue) || null;
   const referralSource = (formData.get("referral_source") as string) || null;
 

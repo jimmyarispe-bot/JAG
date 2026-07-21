@@ -29,7 +29,7 @@ Imported from Phase E / F / B.1 / C. Severity unchanged unless noted.
 ## Ops prerequisites (every environment)
 
 1. Apply Supabase migrations including **`171`** and **`172`**  
-2. Set production secrets per `docs/launch/PRODUCTION_ENV.md` (`CRON_SECRET`, `VAULT_ENCRYPTION_KEY`, `SENDGRID_*`, Supabase keys, `NEXT_PUBLIC_APP_URL`)  
+2. Set production secrets per `docs/launch/PRODUCTION_ENV.md` (`CRON_SECRET`, `VAULT_ENCRYPTION_KEY`, `RESEND_*`, Supabase keys, `NEXT_PUBLIC_APP_URL`)  
 3. Confirm cron schedule matches `vercel.json`  
 4. Confirm `student-documents` bucket private + policies from 172  
 

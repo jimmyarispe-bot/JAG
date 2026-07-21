@@ -28,7 +28,19 @@ Examples (active unless noted):
 - resilience (Sprint 056) - Internal/adaptive capacity after systems (readiness, recovery, continuity, long-term adaptability)
 - institutional-memory (Sprint 058) - Institutional memory layer after Ecosystem External network (synthesize, validate, redistribute organizational learning; Sprint 040 knowledge remains frozen mid-pipeline)
 - collective (Sprint 059) - Collaborative synthesis layer after institutional-memory (consensus, distributed expertise, multi-domain synthesis for executive recommendation quality)
-- wisdom (Sprint 060) - JAG v1.0 capstone terminal after collective (executive judgment, trade-offs, uncertainty, long-term impact)
+- wisdom (Sprint 060) - JAG v1.0 judgment capstone after collective (executive judgment, trade-offs, uncertainty, long-term impact)
+- synthesis (Sprint 061) - Executive Synthesis Intelligence after wisdom (cross-domain correlation, root cause, prioritization, executive brief)
+- briefing (Sprint 062) - Executive Briefing Intelligence after synthesis (morning briefs, decision/opportunity queues, role personalization, actionable cards)
+- executive-memory (Sprint 063) - Executive Memory Intelligence after briefing (decision/brief archive, timeline, relationship graph, lessons, retention)
+- decision-intelligence (Sprint 064) - Decision Intelligence after executive-memory (multi-option recommendations, scorecards, policy-aware approvals)
+- executive-predictive (Sprint 065) - Predictive Intelligence after decision-intelligence (organizational forecasts, scenarios, emerging signals, decision-impact foresight)
+- executive-autonomous (Sprint 066) - Autonomous Intelligence after executive-predictive (execution plans, approvals, readiness — human-in-the-loop only)
+- executive-copilot (Sprint 067) - Executive Copilot after executive-autonomous (conversational orchestration over the executive stack)
+- executive-command-center (Sprint 068) - Executive Command Center after executive-copilot (role-prioritized workspace; widgets project domain soft-reads)
+- initiative-intelligence (Sprint 069) - Initiative Intelligence after executive-command-center (living strategic initiatives with measurable progress)
+- portfolio-intelligence (Sprint 070) - Portfolio Intelligence after initiative-intelligence (enterprise portfolio governance)
+- digital-twin (Sprint 071) - Organizational Digital Twin after portfolio-intelligence (strategic sandbox simulations)
+- ecosystem-intelligence (Sprint 072) - Ecosystem Intelligence Federation after digital-twin (terminal federation layer)
 
 ### External Intelligence
 
@@ -105,6 +117,18 @@ flowchart TB
     institutionalMemory["institutional-memory (Sprint 058)"]
     collective["collective (Sprint 059)"]
     wisdom["wisdom (Sprint 060)"]
+    synthesis["synthesis (Sprint 061)"]
+    briefing["briefing (Sprint 062)"]
+    executiveMemory["executive-memory (Sprint 063)"]
+    decisionIntelligence["decision-intelligence (Sprint 064)"]
+    executivePredictive["executive-predictive (Sprint 065)"]
+    executiveAutonomous["executive-autonomous (Sprint 066)"]
+    executiveCopilot["executive-copilot (Sprint 067)"]
+    executiveCommandCenter["executive-command-center (Sprint 068)"]
+    initiativeIntelligence["initiative-intelligence (Sprint 069)"]
+    portfolioIntelligence["portfolio-intelligence (Sprint 070)"]
+    digitalTwin["digital-twin (Sprint 071)"]
+    ecosystemIntelligence["ecosystem-intelligence (Sprint 072)"]
   end
 
   market -->|"hard DAG"| innovation
@@ -125,7 +149,24 @@ flowchart TB
   ecosystem -->|"hard DAG: how institutional memory redistributes learning"| institutionalMemory
   institutionalMemory -->|"hard DAG: how collective synthesizes multi-domain insight"| collective
   collective -->|"hard DAG: how wisdom unifies judgment and long-term impact"| wisdom
+  wisdom -->|"hard DAG: how synthesis reasons across domain lights"| synthesis
+  synthesis -->|"hard DAG: how briefing turns synthesis into actionable briefs"| briefing
+  briefing -->|"hard DAG: how executive-memory persists reasoning over time"| executiveMemory
+  executiveMemory -->|"hard DAG: how decision-intelligence recommends options"| decisionIntelligence
+  decisionIntelligence -->|"hard DAG: how executive-predictive forecasts futures"| executivePredictive
+  executivePredictive -->|"hard DAG: how executive-autonomous prepares execution"| executiveAutonomous
+  executiveAutonomous -->|"hard DAG: how executive-copilot orchestrates conversation"| executiveCopilot
+  executiveCopilot -->|"hard DAG: how command-center composes the workspace"| executiveCommandCenter
+  executiveCommandCenter -->|"hard DAG: how initiatives become the execution system of record"| initiativeIntelligence
+  initiativeIntelligence -->|"hard DAG: how portfolios govern collective investment"| portfolioIntelligence
+  portfolioIntelligence -->|"hard DAG: how the twin simulates portfolio change"| digitalTwin
+  digitalTwin -->|"hard DAG: how federation coordinates the ecosystem terminal"| ecosystemIntelligence
 ```
+
+```
+Domains → Wisdom → Executive Synthesis → Executive Briefing
+```
+
 
 - **External → Future:** Outside signals (white space, disruption, demand)
   inform which bets Future should prioritize. Innovation hard-depends on

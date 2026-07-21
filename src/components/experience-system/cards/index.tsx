@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   CardShell,
@@ -14,11 +13,14 @@ import {
 import { RiskIndicator } from "@/components/workspace-design-system/status/RiskIndicator";
 import { cn } from "@/components/workspace-design-system/utils";
 import type { WdsMasteryLevel, WdsRiskLevel } from "@/components/workspace-design-system/tokens";
+import { ActionChip, ActionChipGroup } from "@/components/experience-system/feedback/ActionChip";
+import { inferActionChipVariant } from "@/components/experience-system/feedback/action-chip-styles";
 
 export { WdsStudentCard as StudentCard, type StudentCardProps };
 export { WdsCompetencyCard as CompetencyCard, type CompetencyCardProps };
 export { WdsEvidenceCard as EvidenceCard, type EvidenceCardProps };
 export { WdsRecommendationCard as RecommendationCard, type RecommendationCardProps };
+export { ModuleCard, type ModuleCardProps } from "./ModuleCard";
 
 export interface FamilyCardProps {
   id: string;
@@ -31,7 +33,7 @@ export interface FamilyCardProps {
 }
 
 export function FamilyCard({ name, subtitle, href, studentCount, meta, actions, className }: FamilyCardProps & { className?: string }) {
-  const body = (
+  return (
     <CardShell className={cn(href && "transition-colors hover:border-brand-200", className)} interactive={Boolean(href)}>
       <h3 className="font-semibold text-slate-900">{name}</h3>
       {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
@@ -39,17 +41,18 @@ export function FamilyCard({ name, subtitle, href, studentCount, meta, actions, 
         <p className="mt-1 text-xs text-slate-500">{studentCount} student{studentCount === 1 ? "" : "s"}</p>
       )}
       {meta && <div className="mt-2 text-sm text-slate-600">{meta}</div>}
-      {actions && <div className="mt-4 border-t border-slate-100 pt-3">{actions}</div>}
+      {href || actions ? (
+        <ActionChipGroup className="mt-4 border-t border-slate-100 pt-3">
+          {href ? (
+            <ActionChip href={href} size="sm" variant="secondary">
+              View family
+            </ActionChip>
+          ) : null}
+          {actions}
+        </ActionChipGroup>
+      ) : null}
     </CardShell>
   );
-  if (href) {
-    return (
-      <Link href={href} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-2xl">
-        {body}
-      </Link>
-    );
-  }
-  return body;
 }
 
 export interface EmployeeCardProps {
@@ -62,22 +65,23 @@ export interface EmployeeCardProps {
 }
 
 export function EmployeeCard({ name, role, href, meta, actions, className }: EmployeeCardProps & { className?: string }) {
-  const body = (
+  return (
     <CardShell className={cn(href && "transition-colors hover:border-brand-200", className)} interactive={Boolean(href)}>
       <h3 className="font-semibold text-slate-900">{name}</h3>
       {role && <p className="mt-1 text-sm text-slate-500">{role}</p>}
       {meta && <div className="mt-2 text-sm text-slate-600">{meta}</div>}
-      {actions && <div className="mt-4 border-t border-slate-100 pt-3">{actions}</div>}
+      {href || actions ? (
+        <ActionChipGroup className="mt-4 border-t border-slate-100 pt-3">
+          {href ? (
+            <ActionChip href={href} size="sm" variant="secondary">
+              View employee
+            </ActionChip>
+          ) : null}
+          {actions}
+        </ActionChipGroup>
+      ) : null}
     </CardShell>
   );
-  if (href) {
-    return (
-      <Link href={href} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-2xl">
-        {body}
-      </Link>
-    );
-  }
-  return body;
 }
 
 export interface SessionCardProps {
@@ -122,9 +126,7 @@ export function SessionCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-brand-600">{timeDisplay}</p>
-          <Link href={href} className="mt-1 block text-lg font-semibold text-slate-900 hover:text-brand-700">
-            {title}
-          </Link>
+          <p className="mt-1 text-lg font-semibold text-slate-900">{title}</p>
           {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
         </div>
         <span
@@ -146,7 +148,12 @@ export function SessionCard({
         </ul>
       )}
       {meta}
-      {actions && <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">{actions}</div>}
+      <ActionChipGroup className="mt-4 border-t border-slate-100 pt-4">
+        <ActionChip href={href} size="sm" variant="primary">
+          Open session
+        </ActionChip>
+        {actions}
+      </ActionChipGroup>
     </CardShell>
   );
 }
@@ -170,11 +177,13 @@ export function AlertCard({ title, message, severity = "medium", href, actionLab
         <RiskIndicator level={severity === "high" ? "high" : severity === "low" ? "low" : "moderate"} compact />
       </div>
       <p className="mt-2 text-sm text-slate-700">{message}</p>
-      {href && actionLabel && (
-        <Link href={href} className="mt-3 inline-block text-sm font-medium text-brand-600 hover:underline">
-          {actionLabel} →
-        </Link>
-      )}
+      {href && actionLabel ? (
+        <ActionChipGroup className="mt-3">
+          <ActionChip href={href} size="sm" variant={inferActionChipVariant(actionLabel.replace(/\s*→\s*$/, ""))}>
+            {actionLabel.replace(/\s*→\s*$/, "")}
+          </ActionChip>
+        </ActionChipGroup>
+      ) : null}
     </CardShell>
   );
 }
@@ -197,13 +206,15 @@ export function PriorityCard({
   };
 
   return (
-    <Link href={href} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-2xl">
-      <CardShell className={toneClass[tone]} interactive padding="md">
-        <p className="text-sm font-semibold text-slate-900">{title}</p>
-        <p className="mt-1 text-xs text-slate-600 line-clamp-2">{description}</p>
-        <span className="mt-3 inline-block text-xs font-medium text-brand-600">Take action →</span>
-      </CardShell>
-    </Link>
+    <CardShell className={toneClass[tone]} interactive padding="md">
+      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="mt-1 text-xs text-slate-600 line-clamp-2">{description}</p>
+      <ActionChipGroup className="mt-3">
+        <ActionChip href={href} size="sm" variant="primary">
+          Take action
+        </ActionChip>
+      </ActionChipGroup>
+    </CardShell>
   );
 }
 

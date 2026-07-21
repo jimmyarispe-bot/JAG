@@ -1,4 +1,5 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { FI_ALERT_COLS } from "@/lib/finance/family-financial-projections";
 import type { ExecutiveFinancialDashboard } from "@/lib/financial-intelligence/types";
 import { computeClassProfitability, computeProgramProfitability } from "@/lib/financial-intelligence/profitability";
 import { computeBreakEvenAnalysis, summarizeBreakEven } from "@/lib/financial-intelligence/break-even";
@@ -50,7 +51,7 @@ export async function getExecutiveFinancialDashboard(
 export async function getFinancialAlerts(supabase: AuthClient, schoolId?: string, limit = 20) {
   let query = supabase
     .from("fi_financial_alerts")
-    .select("*")
+    .select(FI_ALERT_COLS)
     .eq("is_resolved", false)
     .order("created_at", { ascending: false })
     .limit(limit);

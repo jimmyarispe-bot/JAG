@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { runSchedulingIntelligenceAction, resolveScheduleConflictAction } from "@/lib/scheduling/actions";
 
 interface RunIntelligenceButtonProps {
@@ -8,23 +9,32 @@ interface RunIntelligenceButtonProps {
 }
 
 export function RunIntelligenceButton({ schoolId }: RunIntelligenceButtonProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "run",
+    labels: { idle: "Run conflict scan", loading: "Scanning…", success: "✓ Scanned" },
+    successToast: "✓ Conflict scan complete.",
+    errorToast: "Unable to run scan.",
+    progressLabel: "Running conflict scan…",
+  });
 
   return (
-    <button
+    <ActionButton
       type="button"
-      disabled={pending}
+      status={action.status}
+      verb="run"
+      variant="secondary"
+      labels={{ idle: "Run conflict scan", loading: "Scanning…", success: "✓ Scanned" }}
+      errorMessage={action.errorMessage}
       onClick={() => {
-        startTransition(async () => {
+        void action.run(async () => {
           const fd = new FormData();
           if (schoolId) fd.set("school_id", schoolId);
-          await runSchedulingIntelligenceAction(fd);
+          const result = await runSchedulingIntelligenceAction(fd);
+          assertActionResult(result);
+          return result ?? { success: true };
         });
       }}
-      className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-    >
-      {pending ? "Scanning…" : "Run conflict scan"}
-    </button>
+    />
   );
 }
 
@@ -33,22 +43,31 @@ interface ResolveConflictButtonProps {
 }
 
 export function ResolveConflictButton({ conflictId }: ResolveConflictButtonProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Resolve", loading: "…", success: "✓ Resolved" },
+    successToast: "✓ Conflict resolved.",
+    errorToast: "Unable to resolve.",
+    progressLabel: "Resolving conflict…",
+  });
 
   return (
-    <button
+    <ActionButton
       type="button"
-      disabled={pending}
+      status={action.status}
+      verb="save"
+      variant="warning"
+      labels={{ idle: "Resolve", loading: "…", success: "✓ Resolved" }}
+      errorMessage={action.errorMessage}
       onClick={() => {
-        startTransition(async () => {
+        void action.run(async () => {
           const fd = new FormData();
           fd.set("conflict_id", conflictId);
-          await resolveScheduleConflictAction(fd);
+          const result = await resolveScheduleConflictAction(fd);
+          assertActionResult(result);
+          return result ?? { success: true };
         });
       }}
-      className="text-xs font-medium text-brand-600 hover:text-brand-700 disabled:opacity-50"
-    >
-      {pending ? "…" : "Resolve"}
-    </button>
+    />
   );
 }

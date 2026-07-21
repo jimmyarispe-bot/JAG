@@ -1,24 +1,29 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { RecommendationCard } from "../cards";
 import { ConfidenceIndicator } from "@/components/workspace-design-system/status/ConfidenceIndicator";
 import { ConfirmDialog } from "../interaction";
 import type { XesAiRecommendation, XesKnowledgeReference, XesRelatedEvidence } from "../types";
 import { cn } from "@/components/workspace-design-system/utils";
+import { ActionButton } from "@/components/experience-system/feedback/ActionButton";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
+import { AiActivity } from "@/components/experience-system/feedback/AiActivity";
 
 export function AiRecommendationCard({
   recommendation,
   onApprove,
   onDismiss,
   requireApproval = false,
+  analyzing = false,
   className,
 }: {
   recommendation: XesAiRecommendation;
   onApprove?: (id: string) => void;
   onDismiss?: (id: string) => void;
   requireApproval?: boolean;
+  /** UX-004 — show rotating AI activity while recommendation work is in flight. */
+  analyzing?: boolean;
   className?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -26,6 +31,16 @@ export function AiRecommendationCard({
 
   return (
     <div className={cn("space-y-3", className)}>
+      <AiActivity
+        active={analyzing}
+        phases={[
+          "Thinking…",
+          "Analyzing…",
+          "Reviewing admissions…",
+          "Building executive brief…",
+          "Generating forecast…",
+        ]}
+      />
       <RecommendationCard
         title={recommendation.title}
         rationale={recommendation.rationale}
@@ -38,14 +53,13 @@ export function AiRecommendationCard({
               {recommendation.confidence !== undefined && (
                 <ConfidenceIndicator value={recommendation.confidence} label="Confidence" />
               )}
-              <button
-                type="button"
-                className="text-xs font-medium text-brand-600 hover:underline"
+              <ActionChip
+                size="sm"
                 onClick={() => setExpanded((v) => !v)}
                 aria-expanded={expanded}
               >
                 {expanded ? "Hide explanation" : "Explain recommendation"}
-              </button>
+              </ActionChip>
             </div>
             {expanded && (
               <ExplainRecommendation
@@ -109,13 +123,13 @@ export function HumanApprovalGate({
 }) {
   return (
     <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-      <button type="button" className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700" onClick={onApprove}>
+      <ActionButton type="button" variant="success" size="sm" onClick={onApprove}>
         {approveLabel}
-      </button>
+      </ActionButton>
       {onDismiss && (
-        <button type="button" className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50" onClick={onDismiss}>
+        <ActionButton type="button" variant="ghost" size="sm" onClick={onDismiss}>
           {dismissLabel}
-        </button>
+        </ActionButton>
       )}
     </div>
   );
@@ -129,9 +143,9 @@ export function RelatedEvidenceList({ items, className }: { items: XesRelatedEvi
         {items.map((item) => (
           <li key={item.id}>
             {item.href ? (
-              <Link href={item.href} className="text-brand-600 hover:underline">
+              <ActionChip href={item.href} size="sm">
                 {item.title}
-              </Link>
+              </ActionChip>
             ) : (
               <span>{item.title}</span>
             )}
@@ -151,9 +165,9 @@ export function KnowledgeReferenceList({ items, className }: { items: XesKnowled
         {items.map((item) => (
           <li key={item.id} className="text-sm">
             {item.href ? (
-              <Link href={item.href} className="text-brand-600 hover:underline">
+              <ActionChip href={item.href} size="sm">
                 {item.title}
-              </Link>
+              </ActionChip>
             ) : (
               <span>{item.title}</span>
             )}

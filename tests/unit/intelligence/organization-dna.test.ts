@@ -246,8 +246,7 @@ describe("Organizational DNA & Company Builder (Sprint 030)", () => {
       "market",
       "innovation",
       "impact",
-      "economic", "competitive", "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
-    ]);
+      "economic", "competitive", "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom", "synthesis", "briefing", "executive-memory", "decision-intelligence", "executive-predictive", "executive-autonomous", "executive-copilot", "executive-command-center", "initiative-intelligence", "portfolio-intelligence", "digital-twin", "ecosystem-intelligence"]);
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { formatCurrency } from "@/lib/format";
 import { createScholarshipFundAction } from "@/lib/finance/actions";
 import type { ScholarshipFundRow } from "@/lib/scholarships/queries";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 interface AwardRow {
   id: string;
@@ -35,7 +36,14 @@ function studentName(award: AwardRow) {
 
 export function ScholarshipCenterPanel({ funds, awards, schools }: ScholarshipCenterPanelProps) {
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "create",
+    labels: { idle: "Create fund" },
+    successToast: "✓ Created",
+    errorToast: "Unable to create.",
+    progressLabel: "Creating scholarship fund…",
+    onError: (err) => setMessage(err.message),
+  });
 
   return (
     <div className="space-y-8">
@@ -79,10 +87,14 @@ export function ScholarshipCenterPanel({ funds, awards, schools }: ScholarshipCe
           onSubmit={(e) => {
             e.preventDefault();
             setMessage(null);
-            startTransition(async () => {
-              const result = await createScholarshipFundAction(new FormData(e.currentTarget));
-              setMessage(result.error ?? "Fund created.");
-              if (!result.error) e.currentTarget.reset();
+            const form = e.currentTarget;
+            const fd = new FormData(form);
+            void action.run(async () => {
+              const result = await createScholarshipFundAction(fd);
+              if (result.error) throw new Error(result.error);
+              setMessage("Fund created.");
+              form.reset();
+              return result;
             });
           }}
         >
@@ -104,9 +116,13 @@ export function ScholarshipCenterPanel({ funds, awards, schools }: ScholarshipCe
           <input name="donor_name" placeholder="Donor (optional)" className={inputClass} />
           <input name="total_allocation" type="number" step="0.01" placeholder="Total allocation" required className={inputClass} />
           <input name="restrictions" placeholder="Restrictions (optional)" className={inputClass} />
-          <button type="submit" disabled={pending} className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-50">
-            Create fund
-          </button>
+          <ActionButton
+            type="submit"
+            status={action.status}
+            verb="create"
+            labels={{ idle: "Create fund" }}
+            errorMessage={action.errorMessage}
+          />
           {message && <p className="sm:col-span-2 lg:col-span-3 text-sm text-slate-600">{message}</p>}
         </form>
       </section>

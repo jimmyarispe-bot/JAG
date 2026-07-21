@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { saveUserPreferencesAction } from "@/lib/platform/identity/server-actions";
 import { DEFAULT_PREFERENCES } from "@/lib/platform/identity/preferences";
 import type { UserPreferences } from "@/lib/platform/identity/types";
@@ -10,7 +11,13 @@ interface UserPreferencesPanelProps {
 }
 
 export function UserPreferencesPanel({ preferences }: UserPreferencesPanelProps) {
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Save preferences" },
+    successToast: "✓ Preferences saved.",
+    errorToast: "Unable to save preferences.",
+    progressLabel: "Saving preferences…",
+  });
   const prefs = preferences ?? { user_id: "", ...DEFAULT_PREFERENCES };
   const notifications = (prefs.notifications ?? DEFAULT_PREFERENCES.notifications) as Record<string, boolean>;
   const widgets = (prefs.mission_control_widgets ?? DEFAULT_PREFERENCES.mission_control_widgets) as Record<string, boolean>;
@@ -21,8 +28,10 @@ export function UserPreferencesPanel({ preferences }: UserPreferencesPanelProps)
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
-        startTransition(() => {
-          void saveUserPreferencesAction(fd);
+        void action.run(async () => {
+          const result = await saveUserPreferencesAction(fd);
+          assertActionResult(result);
+          return result ?? { success: true };
         });
       }}
     >
@@ -89,13 +98,13 @@ export function UserPreferencesPanel({ preferences }: UserPreferencesPanelProps)
             </label>
           ))}
         </div>
-        <button
+        <ActionButton
           type="submit"
-          disabled={isPending}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          Save preferences
-        </button>
+          status={action.status}
+          verb="save"
+          labels={{ idle: "Save preferences" }}
+          errorMessage={action.errorMessage}
+        />
       </div>
     </form>
   );

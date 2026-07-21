@@ -16,7 +16,7 @@ describe("Phase E — error handling certification", () => {
         NEXT_PUBLIC_APP_URL: "https://app.example.com",
         NODE_ENV: "production",
         CRON_SECRET: "",
-        SENDGRID_API_KEY: secret,
+        RESEND_API_KEY: secret,
       },
       appEnvironment: "production",
       throwOnError: false,

@@ -76,18 +76,25 @@ function mapMembership(row: MembershipRow): OrgMembership {
 const MEMBERSHIP_SELECT =
   "id, organization_id, user_id, membership_role, status, is_primary, permissions, invited_at, joined_at, created_at, updated_at";
 
+const listUserOrganizationMembershipsCached = cache(
+  async (userId: string): Promise<OrgMembership[]> => {
+    const client = await createAuthClient();
+    const { data } = await client
+      .from("user_organization_memberships")
+      .select(MEMBERSHIP_SELECT)
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .order("is_primary", { ascending: false });
+    return (data ?? []).map((row) => mapMembership(row as MembershipRow));
+  }
+);
+
+/** Memberships — once per user per request (Sprint P002). */
 export async function listUserOrganizationMemberships(
   userId: string,
-  supabase?: AuthClient
+  _supabase?: AuthClient
 ): Promise<OrgMembership[]> {
-  const client = supabase ?? (await createAuthClient());
-  const { data } = await client
-    .from("user_organization_memberships")
-    .select(MEMBERSHIP_SELECT)
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .order("is_primary", { ascending: false });
-  return (data ?? []).map((row) => mapMembership(row as MembershipRow));
+  return listUserOrganizationMembershipsCached(userId);
 }
 
 export async function getPrimaryOrganizationMembership(

@@ -1,7 +1,7 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { getRiskRegister, syncDetectedRisksToRegister } from "@/lib/executive/risk-intelligence";
-import { RiskIntelligencePanel } from "@/components/executive/ExecutivePanels";
+import { RiskIntelligencePanel } from "@/components/executive/ExecutiveDisplayPanels";
 
 export default async function ExecutiveRiskPage() {
   const ctx = await getIdentityContext();

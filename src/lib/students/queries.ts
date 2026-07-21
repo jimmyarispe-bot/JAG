@@ -155,12 +155,16 @@ export async function getStudents() {
 
 export async function getStudentById(id: string) {
   const supabase = await createAuthClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("students")
     .select("*, schools(name), campuses(name), families(family_name)")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
+  if (error) {
+    console.error("[students] getStudentById:", error.message);
+    return null;
+  }
   if (!data) return null;
 
   const fundingByStudentId = await fetchStudentFundingCodesByStudentIds(supabase, [id]);
@@ -187,6 +191,33 @@ export async function getFamilies() {
 
 }
 
+/** Search families by name within a school (enrollment + profile link flows). */
+export async function searchFamilies(schoolId: string, query: string, limit = 20) {
+  const supabase = await createAuthClient();
+  const q = query.trim();
+
+  let request = supabase
+    .from("families")
+    .select(
+      "id, family_name, school_id, primary_address, city, state, billing_email, billing_phone, status"
+    )
+    .eq("school_id", schoolId)
+    .eq("status", "active")
+    .order("family_name")
+    .limit(limit);
+
+  if (q) {
+    request = request.ilike("family_name", `%${q}%`);
+  }
+
+  const { data, error } = await request;
+  if (error) {
+    console.error("[students] searchFamilies:", error.message);
+    return [];
+  }
+  return (data ?? []) as Family[];
+}
+
 
 
 export async function getGuardiansByFamily(familyId: string) {
@@ -197,7 +228,9 @@ export async function getGuardiansByFamily(familyId: string) {
 
     .from("guardians")
 
-    .select("*")
+    .select(
+      "id, family_id, first_name, last_name, email, phone, relationship_to_student, is_primary"
+    )
 
     .eq("family_id", familyId)
 
@@ -219,7 +252,9 @@ export async function getEnrollmentsByStudent(studentId: string) {
 
     .from("sis_enrollments")
 
-    .select("*, school_years(name)")
+    .select(
+      "id, student_id, school_year_id, program, enrollment_status, enrolled_at, school_years(name)"
+    )
 
     .eq("student_id", studentId)
 
@@ -227,7 +262,7 @@ export async function getEnrollmentsByStudent(studentId: string) {
 
 
 
-  return (data ?? []) as SisEnrollment[];
+  return (data ?? []) as unknown as SisEnrollment[];
 
 }
 

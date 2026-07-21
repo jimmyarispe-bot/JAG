@@ -112,6 +112,133 @@ export async function registerComplianceObligation(
   return { id: data.id, created: true };
 }
 
+/**
+ * Sprint P003 — batch registration to eliminate N+1 category/existing/schedule lookups.
+ * Behavior matches repeated registerComplianceObligation calls.
+ */
+export async function registerComplianceObligationsBatch(
+  supabase: AuthClient,
+  inputs: RegisterObligationInput[]
+): Promise<Array<{ id?: string; created?: boolean; updated?: boolean; error?: string }>> {
+  if (!inputs.length) return [];
+
+  const categoryKeys = [...new Set(inputs.map((i) => i.categoryKey))];
+  const entityIds = [...new Set(inputs.map((i) => i.sourceEntityId))];
+
+  const [{ data: categories }, { data: existingRows }, { data: schedule }] = await Promise.all([
+    supabase.from("compliance_categories").select("id, category_key").in("category_key", categoryKeys),
+    supabase
+      .from("compliance_obligations")
+      .select("id, source_module, source_entity_type, source_entity_id")
+      .in("source_entity_id", entityIds)
+      .not("status", "in", '("completed","archived","cancelled")'),
+    supabase.from("compliance_reminder_schedules").select("id").eq("is_default", true).maybeSingle(),
+  ]);
+
+  const categoryByKey = new Map((categories ?? []).map((c) => [c.category_key, c.id]));
+  const existingByKey = new Map(
+    (existingRows ?? []).map((e) => [
+      `${e.source_module}|${e.source_entity_type}|${e.source_entity_id}`,
+      e.id as string,
+    ])
+  );
+  const today = new Date().toISOString().split("T")[0];
+  const scheduleId = schedule?.id ?? null;
+
+  const results: Array<{ id?: string; created?: boolean; updated?: boolean; error?: string }> = [];
+  const toInsert: Record<string, unknown>[] = [];
+  const insertIndexes: number[] = [];
+
+  for (let i = 0; i < inputs.length; i++) {
+    const input = inputs[i];
+    const key = `${input.sourceModule}|${input.sourceEntityType}|${input.sourceEntityId}`;
+    const existingId = existingByKey.get(key);
+    const status = input.dueDate < today ? "overdue" : "pending";
+
+    if (existingId) {
+      const { data: updated, error } = await supabase
+        .from("compliance_obligations")
+        .update({
+          title: input.title,
+          description: input.description ?? null,
+          due_date: input.dueDate,
+          priority: input.priority ?? "normal",
+          risk_level: input.riskLevel ?? "medium",
+          owner_user_id: input.ownerUserId ?? null,
+          metadata: input.metadata ?? {},
+          ...assigneePayload(input),
+          status,
+        })
+        .eq("id", existingId)
+        .select("id")
+        .single();
+      results[i] = error
+        ? { error: error.message }
+        : { id: updated?.id, updated: true };
+      continue;
+    }
+
+    insertIndexes.push(i);
+    toInsert.push({
+      school_id: input.schoolId ?? null,
+      campus_id: input.campusId ?? null,
+      department: input.department ?? null,
+      program: input.program ?? null,
+      category_id: categoryByKey.get(input.categoryKey) ?? null,
+      title: input.title,
+      description: input.description ?? null,
+      priority: input.priority ?? "normal",
+      risk_level: input.riskLevel ?? "medium",
+      frequency: input.frequency ?? "one_time",
+      frequency_interval: input.frequencyInterval ?? null,
+      rrule: input.rrule ?? null,
+      due_date: input.dueDate,
+      owner_user_id: input.ownerUserId ?? null,
+      backup_owner_user_id: input.backupOwnerUserId ?? null,
+      reviewer_user_id: input.reviewerUserId ?? null,
+      approver_user_id: input.approverUserId ?? null,
+      source_module: input.sourceModule,
+      source_entity_type: input.sourceEntityType,
+      source_entity_id: input.sourceEntityId,
+      reminder_schedule_id: scheduleId,
+      notes: input.notes ?? null,
+      metadata: input.metadata ?? {},
+      ...assigneePayload(input),
+      status,
+    });
+  }
+
+  if (toInsert.length) {
+    const { data: inserted, error } = await supabase
+      .from("compliance_obligations")
+      .insert(toInsert)
+      .select("id");
+
+    if (error) {
+      for (const idx of insertIndexes) {
+        results[idx] = { error: error.message };
+      }
+    } else {
+      for (let j = 0; j < insertIndexes.length; j++) {
+        const id = inserted?.[j]?.id;
+        results[insertIndexes[j]] = { id, created: true };
+        if (id) {
+          const input = inputs[insertIndexes[j]];
+          await logComplianceAudit(supabase, {
+            obligationId: id,
+            schoolId: input.schoolId,
+            actionType: "registered",
+            summary: `Obligation registered from ${input.sourceModule}`,
+            afterState: { title: input.title, due_date: input.dueDate },
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
 export function computeNextDueDate(
   dueDate: string,
   frequency: ObligationFrequency,

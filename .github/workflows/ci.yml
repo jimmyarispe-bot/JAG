@@ -26,6 +26,59 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Performance regression (RC-1)
+        run: npm run perf:regression
+
+      - name: Dependency audit (RC-3)
+        run: npm run security:audit-deps
+
+      - name: AuthZ inventory (RC-3)
+        run: npm run security:authz-inventory
+
+      - name: Failure recovery harness (RC-3)
+        run: npm run security:recovery
+        env:
+          LOAD_SKIP_LIVE: "1"
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+
+      - name: Role acceptance harness (RC-4)
+        run: npm run acceptance:rc4
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+
+      - name: Launch readiness harness (RC-5)
+        run: npm run rc5:suite
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+          CRON_SECRET: ci-cron-secret
+          VAULT_ENCRYPTION_KEY: ci-vault-key-must-be-32-chars-min
+          RESEND_API_KEY: re_ci.placeholder
+          RC5_ALLOW_OFFLINE: "1"
+
+      - name: Production GA readiness (RC-10)
+        run: npm run rc10:suite
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+          CRON_SECRET: ci-cron-secret
+          VAULT_ENCRYPTION_KEY: ci-vault-key-must-be-32-chars-min
+          RESEND_API_KEY: re_ci.placeholder
+
+      - name: Load / resilience harness (RC-2)
+        run: npm run load:suite
+        env:
+          LOAD_MAX_VUS: "50"
+          LOAD_SCENARIO_MS: "3000"
+          LOAD_RAMP_MS: "3000"
+          LOAD_ENDURANCE_MS: "15000"
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+
       - name: Build
         run: npm run build
         env:
@@ -44,8 +97,12 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Smoke tests
-        run: npm run test:smoke
+      - name: Smoke + acceptance + a11y Playwright (RC-4/RC-5)
+        run: npm run test:e2e
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+          CRON_SECRET: ci-cron-secret
+          VAULT_ENCRYPTION_KEY: ci-vault-key-must-be-32-chars-min
+          RESEND_API_KEY: re_ci.placeholder

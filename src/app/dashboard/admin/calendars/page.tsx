@@ -1,7 +1,7 @@
 import { ConfigStudioShell } from "@/components/configuration/ConfigStudioShell";
 import { ConfigSectionForm } from "@/components/configuration/ConfigSectionForm";
 import { loadConfigPage } from "@/lib/configuration/page-data";
-import Link from "next/link";
+import { ActionChip } from "@/components/ui/cta";
 
 export default async function CalendarsConfigPage() {
   const { organizationId, config } = await loadConfigPage("academic");
@@ -17,9 +17,9 @@ export default async function CalendarsConfigPage() {
           { name: "timezone", label: "Calendar time zone", placeholder: "America/New_York" },
         ]}
       />
-      <Link href="/dashboard/scheduling" className="text-sm text-brand-600 hover:underline">
-        Open scheduling module for session calendars →
-      </Link>
+      <ActionChip href="/dashboard/scheduling" size="sm">
+        Open scheduling module for session calendars
+      </ActionChip>
     </ConfigStudioShell>
   );
 }

@@ -2,10 +2,14 @@
  * Permission loading + async checks.
  * Authorization decisions always go through authorize() / hasPermission().
  * Roles are used only to load/grant permissions — never as authz shortcuts.
+ *
+ * Sprint P002 — role/permission loads are request-scoped via React.cache.
  */
 
+import { cache } from "react";
 import { NextResponse } from "next/server";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { createAuthClient as getAuthClient } from "@/lib/supabase/server-auth";
 import {
   authorize,
   buildAuthzSnapshot,
@@ -19,6 +23,33 @@ import type { PermissionKey } from "@/lib/platform/identity/types";
 import type { EduRoleName } from "@/types/database";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
+
+export type UserRoleRow = {
+  name: string;
+  display_name: string | null;
+};
+
+/** Shared role rows for session + permission loaders (once per user per request). */
+export const loadUserRoleRows = cache(async (userId: string): Promise<UserRoleRow[]> => {
+  const supabase = await getAuthClient();
+  const { data: userRoles } = await supabase
+    .from("user_roles")
+    .select("role_id")
+    .eq("user_id", userId);
+
+  const roleIds = userRoles?.map((r) => r.role_id) ?? [];
+  if (!roleIds.length) return [];
+
+  const { data: roleRows } = await supabase
+    .from("roles")
+    .select("name, display_name")
+    .in("id", roleIds);
+
+  return (roleRows ?? []).map((row) => ({
+    name: row.name as string,
+    display_name: row.display_name ?? null,
+  }));
+});
 
 /** Used when enterprise permission tables/RPC are not deployed yet. */
 const ROLE_PERMISSION_FALLBACK: Partial<Record<EduRoleName, PermissionKey[]>> = {
@@ -103,7 +134,7 @@ export async function userHasPermission(
     return false;
   }
 
-  const roleIds = await loadExpandedRoleIds(supabase, sessionUserId);
+  const roleIds = await loadExpandedRoleIds(sessionUserId);
   if (!roleIds.length) return roleFallbackHasPermission(roles, permissionKey);
 
   const { data: perms, error } = await supabase
@@ -137,18 +168,15 @@ export async function requirePermission(
  * once per catalog key — that caused Vercel 504 FUNCTION_INVOCATION_TIMEOUT on every
  * dashboard navigation (≈160 keys × 2 role queries each).
  */
-export async function loadUserPermissions(
-  supabase: AuthClient,
-  userId: string,
-  _authUserId?: string | null
-): Promise<Set<string>> {
+const loadUserPermissionsCached = cache(async (userId: string): Promise<Set<string>> => {
+  const supabase = await getAuthClient();
   const roles = await loadUserRoleNames(supabase, userId);
 
   // Always start from role→permission mapping (no role-name superuser bypass).
   const mapped = permissionsForMappedRoles(roles);
   const granted = new Set<string>(mapped);
 
-  let roleIds = await loadExpandedRoleIds(supabase, userId);
+  let roleIds = await loadExpandedRoleIds(userId);
   if (!roleIds.length) {
     // user_role_ids RPC missing / empty — fall back to direct assignment ids
     const { data: userRoles } = await supabase
@@ -183,6 +211,15 @@ export async function loadUserPermissions(
     if (denied.has(key)) granted.delete(key);
   }
   return granted;
+});
+
+/** Effective permissions — once per user per request (Sprint P002). */
+export async function loadUserPermissions(
+  _supabase: AuthClient | undefined,
+  userId: string,
+  _authUserId?: string | null
+): Promise<Set<string>> {
+  return loadUserPermissionsCached(userId);
 }
 
 export async function getMissionControlModulesForUser(
@@ -229,22 +266,19 @@ export async function getMissionControlModulesForUser(
   return modules;
 }
 
-async function loadUserRoleNames(supabase: AuthClient, userId: string): Promise<string[]> {
-  const { data: userRoles } = await supabase
-    .from("user_roles")
-    .select("role_id")
-    .eq("user_id", userId);
-
-  const roleIds = userRoles?.map((r) => r.role_id) ?? [];
-  if (!roleIds.length) return [];
-
-  const { data: roles } = await supabase.from("roles").select("name").in("id", roleIds);
-  return roles?.map((r) => r.name) ?? [];
+async function loadUserRoleNames(_supabase: AuthClient | undefined, userId: string): Promise<string[]> {
+  const rows = await loadUserRoleRows(userId);
+  return rows.map((r) => r.name).filter(Boolean);
 }
 
-async function loadExpandedRoleIds(supabase: AuthClient, userId: string): Promise<string[]> {
+const loadExpandedRoleIdsCached = cache(async (userId: string): Promise<string[]> => {
+  const supabase = await getAuthClient();
   const { data } = await supabase.rpc("user_role_ids", { check_user_id: userId });
   return (data as string[] | null) ?? [];
+});
+
+async function loadExpandedRoleIds(userId: string): Promise<string[]> {
+  return loadExpandedRoleIdsCached(userId);
 }
 
 export function permissionDeniedResponse() {

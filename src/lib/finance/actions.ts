@@ -9,6 +9,8 @@ import { generateTuitionInvoiceFromPlan } from "@/lib/finance/tuition-engine";
 import { recordFinancialTransaction } from "@/lib/finance/ledger";
 import { enqueueBillingReminder } from "@/lib/finance/automation";
 import { buildBudgetForecastSnapshot } from "@/lib/finance/forecasting";
+import { getIdentityContext } from "@/lib/platform/identity/context";
+import { requireSchoolAccess } from "@/lib/platform/identity/tenant-access";
 
 async function requireFinanceOrPortal() {
   return assertAnyPermission("finance.billing", "portal.parent.access");
@@ -16,6 +18,15 @@ async function requireFinanceOrPortal() {
 
 async function requireFinanceBilling() {
   return assertPermission("finance.billing");
+}
+
+/** AuthN/AuthZ already passed — bind school_id to the actor's school scope. */
+async function requireActorSchool(schoolId: string | null | undefined) {
+  const ctx = await getIdentityContext();
+  if (!ctx) return { error: "Unauthorized" as const };
+  const scope = requireSchoolAccess(ctx, schoolId);
+  if (scope !== true) return { error: "Forbidden" as const };
+  return { ok: true as const };
 }
 
 async function requireFinanceApprove() {
@@ -30,10 +41,13 @@ export async function createBillingAccount(formData: FormData) {
   const auth = await requireFinanceBilling();
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
+  const schoolId = formData.get("school_id") as string;
+  const schoolGate = await requireActorSchool(schoolId);
+  if ("error" in schoolGate) return { error: schoolGate.error };
 
   const { error } = await supabase.from("family_billing_accounts").insert({
     family_id: formData.get("family_id") as string,
-    school_id: formData.get("school_id") as string,
+    school_id: schoolId,
     sibling_discount_student_id: (formData.get("sibling_discount_student_id") as string) || null,
   });
 
@@ -296,9 +310,12 @@ export async function createTuitionPlan(formData: FormData) {
   const auth = await requireFinanceBilling();
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
+  const schoolId = formData.get("school_id") as string;
+  const schoolGate = await requireActorSchool(schoolId);
+  if ("error" in schoolGate) return { error: schoolGate.error };
 
   const { error } = await supabase.from("tuition_plans").insert({
-    school_id: formData.get("school_id") as string,
+    school_id: schoolId,
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || null,
     program: (formData.get("program") as string) || null,
@@ -445,10 +462,13 @@ export async function createScholarshipFundAction(formData: FormData) {
   const auth = await assertAnyPermission("finance.scholarships", "finance.billing");
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
+  const schoolId = formData.get("school_id") as string;
+  const schoolGate = await requireActorSchool(schoolId);
+  if ("error" in schoolGate) return { error: schoolGate.error };
   const total = Number(formData.get("total_allocation"));
 
   const { error } = await supabase.from("scholarship_funds").insert({
-    school_id: formData.get("school_id") as string,
+    school_id: schoolId,
     fund_name: formData.get("fund_name") as string,
     fund_type: formData.get("fund_type") as string,
     donor_name: (formData.get("donor_name") as string) || null,
@@ -466,7 +486,10 @@ export async function buildForecastAction(formData: FormData) {
   const auth = await requireFinanceForecastWrite();
   if ("error" in auth) return { error: auth.error };
   const supabase = auth.supabase;
-  await buildBudgetForecastSnapshot(supabase, formData.get("school_id") as string);
+  const schoolId = formData.get("school_id") as string;
+  const schoolGate = await requireActorSchool(schoolId);
+  if ("error" in schoolGate) return { error: schoolGate.error };
+  await buildBudgetForecastSnapshot(supabase, schoolId);
   revalidatePath("/dashboard/finance");
   return { success: true };
 }

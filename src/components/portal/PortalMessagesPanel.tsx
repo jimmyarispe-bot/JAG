@@ -1,7 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
 import { sendPortalMessageAction, startPortalConversationAction } from "@/lib/portal/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 const inputClass = "mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
 
@@ -32,7 +33,13 @@ export function PortalMessagesPanel({
   students,
   currentUserId,
 }: PortalMessagesPanelProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "send",
+    labels: { idle: "Send", loading: "Sending…", success: "✓ Sent" },
+    successToast: "✓ Sent",
+    errorToast: "Unable to send.",
+    progressLabel: "Sending message…",
+  });
   const selected = conversations.find((c) => c.id === selectedConversationId);
 
   return (
@@ -61,8 +68,13 @@ export function PortalMessagesPanel({
           className="mt-6 space-y-2 border-t border-slate-100 pt-4"
           onSubmit={(e) => {
             e.preventDefault();
-            startTransition(async () => {
-              await startPortalConversationAction(new FormData(e.currentTarget));
+            const form = e.currentTarget;
+            const fd = new FormData(form);
+            void action.run(async () => {
+              const result = await startPortalConversationAction(fd);
+              assertActionResult(result);
+              form.reset();
+              return result;
             });
           }}
         >
@@ -80,7 +92,13 @@ export function PortalMessagesPanel({
           </select>
           <input name="subject" placeholder="Subject" required className={inputClass} />
           <textarea name="body" placeholder="Message" required rows={3} className={inputClass} />
-          <button type="submit" disabled={pending} className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-50">Send</button>
+          <ActionButton
+            type="submit"
+            status={action.status}
+            verb="send"
+            labels={{ idle: "Send", loading: "Sending…", success: "✓ Sent" }}
+            errorMessage={action.errorMessage}
+          />
         </form>
       </aside>
 
@@ -102,20 +120,28 @@ export function PortalMessagesPanel({
               ))}
             </ul>
             <form
-              className="mt-4 flex gap-2"
+              className="mt-4 flex flex-wrap items-start gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
-                startTransition(async () => {
-                  const fd = new FormData(e.currentTarget);
-                  fd.set("conversation_id", selected.id);
-                  await sendPortalMessageAction(fd);
-                  e.currentTarget.reset();
+                const form = e.currentTarget;
+                const fd = new FormData(form);
+                fd.set("conversation_id", selected.id);
+                void action.run(async () => {
+                  const result = await sendPortalMessageAction(fd);
+                  assertActionResult(result);
+                  form.reset();
+                  return result;
                 });
               }}
             >
               <input type="hidden" name="conversation_id" value={selected.id} />
               <input name="body" placeholder="Reply…" required className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-              <button type="submit" disabled={pending} className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white">Send</button>
+              <ActionButton
+                type="submit"
+                status={action.status}
+                verb="send"
+                labels={{ idle: "Send", loading: "Sending…", success: "✓ Sent" }}
+              />
             </form>
           </>
         ) : (

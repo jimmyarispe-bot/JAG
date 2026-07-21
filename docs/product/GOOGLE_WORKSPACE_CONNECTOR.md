@@ -1,9 +1,11 @@
-# Google Workspace Production Connector — D5
+# Google Workspace Production Connector — D5 / Sprint 074
 
 **Status:** Complete  
 **Location:** `src/lib/platform/integrations/connectors/google-workspace/`  
 **Catalog id:** `google` (Integration Center / phase-1 continuity)  
 **Source system:** `google-workspace`  
+**Platform Core:** `createGoogleWorkspacePlatformConnector` + `registerGoogleWorkspacePlatformConnector`  
+**Docs:** also `docs/platform/google-workspace-connector.md`  
 
 ## Principle
 

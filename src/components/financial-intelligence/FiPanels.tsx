@@ -13,6 +13,8 @@ import {
   runScenarioAction,
   importCsvFinancialAction,
 } from "@/lib/financial-intelligence/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
+import { ActionChip } from "@/components/ui/cta";
 
 function HealthBadge({ health }: { health: string }) {
   const cls =
@@ -46,14 +48,14 @@ export function FiExecutiveOverview({ dashboard }: { dashboard: ExecutiveFinanci
         <ProgramList title="Lowest performing programs" programs={dashboard.bottomPrograms} />
       </div>
 
-      <form action={refreshFinancialIntelligenceAction}>
-        <button
-          type="submit"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          Refresh financial intelligence
-        </button>
-      </form>
+      <ExperienceForm
+        action={refreshFinancialIntelligenceAction}
+        verb="sync"
+        labels={{ idle: "Refresh financial intelligence", loading: "Refreshing…", success: "✓ Refreshed" }}
+        progressLabel="Refreshing financial intelligence…"
+        successToast="✓ Financial intelligence refreshed."
+        errorToast="Unable to refresh."
+      />
     </div>
   );
 }
@@ -273,7 +275,15 @@ export function ScenarioPanel({
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <form action={runScenarioAction} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+      <ExperienceForm
+        action={runScenarioAction}
+        verb="run"
+        labels={{ idle: "Run scenario" }}
+        progressLabel="Running scenario…"
+        successToast="✓ Scenario complete."
+        errorToast="Unable to run scenario."
+        className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5"
+      >
         <h3 className="font-semibold">Scenario modeling</h3>
         <input type="hidden" name="school_id" value={schoolId} />
         <label className="block text-sm">
@@ -290,10 +300,7 @@ export function ScenarioPanel({
           <NumberField name="salary_increase_pct" label="Salary increase %" />
           <NumberField name="facility_expansion_cost" label="Facility expansion $" />
         </div>
-        <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          Run scenario
-        </button>
-      </form>
+      </ExperienceForm>
 
       <div className="space-y-4">
         {latestResult && (
@@ -329,7 +336,15 @@ export function ScenarioPanel({
 export function ImportPanel({ schoolId }: { schoolId: string }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <form action={importCsvFinancialAction} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+      <ExperienceForm
+        action={importCsvFinancialAction}
+        verb="import"
+        labels={{ idle: "Import CSV" }}
+        progressLabel="Importing CSV…"
+        successToast="✓ CSV imported."
+        errorToast="Unable to import CSV."
+        className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5"
+      >
         <h3 className="font-semibold">CSV / QuickBooks import</h3>
         <p className="text-sm text-slate-500">
           Imported data maps into Financial Intelligence without replacing operational billing records. Source tracking and reconciliation are preserved.
@@ -355,10 +370,7 @@ export function ImportPanel({ schoolId }: { schoolId: string }) {
             placeholder="date,account,amount,description"
           />
         </label>
-        <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          Import CSV
-        </button>
-      </form>
+      </ExperienceForm>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
         <h3 className="font-semibold text-slate-900">QuickBooks integration framework</h3>
@@ -378,9 +390,9 @@ export function ExecutiveFinancialPanel({ dashboard }: { dashboard: ExecutiveFin
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-semibold">Financial Intelligence</h2>
-        <a href="/dashboard/finance/intelligence" className="text-sm text-brand-600 hover:underline">
-          Full dashboard →
-        </a>
+        <ActionChip href="/dashboard/finance/intelligence" size="sm">
+          Full dashboard
+        </ActionChip>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric label="EBITDA" value={formatCurrency(dashboard.ebitda)} />

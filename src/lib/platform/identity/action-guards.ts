@@ -6,7 +6,7 @@ type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
 export async function assertPermission(
   permission: PermissionKey
-): Promise<{ supabase: AuthClient; error?: undefined } | { error: "Forbidden"; supabase?: undefined }> {
+): Promise<{ supabase: AuthClient } | { error: "Forbidden" }> {
   const supabase = await createAuthClient();
   const gate = await requirePermission(supabase, permission);
   if (!gate.ok) return { error: "Forbidden" };
@@ -15,7 +15,7 @@ export async function assertPermission(
 
 export async function assertAnyPermission(
   ...permissions: PermissionKey[]
-): Promise<{ supabase: AuthClient; error?: undefined } | { error: "Forbidden"; supabase?: undefined }> {
+): Promise<{ supabase: AuthClient } | { error: "Forbidden" }> {
   const supabase = await createAuthClient();
   for (const permission of permissions) {
     const gate = await requirePermission(supabase, permission);

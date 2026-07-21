@@ -5,6 +5,7 @@
  * domain business logic — each stage delegates to an injected service.
  *
  * See `docs/architecture/JAG_ORCHESTRATION_ARCHITECTURE.md`.
+ * Deferred pipeline stages: https://github.com/jimmyarispe-bot/JAG/issues/2
  */
 
 import type { IntelligenceConfidenceService } from "@/lib/platform/intelligence/confidence";
@@ -179,7 +180,6 @@ export class IntelligenceOrchestrator {
    * @throws {IntelligenceOrchestratorError} When any stage fails.
    */
   async run(request: IntelligenceRunRequest): Promise<IntelligenceResult> {
-    // TODO: Replace with durable run-id allocator / persistence key.
     const runId = request.runId ?? `intel-run-${Date.now()}`;
     const emittedEvents: IntelligenceEvent[] = [];
 
@@ -187,13 +187,11 @@ export class IntelligenceOrchestrator {
       this.deps.context.build(this.toContextInput(request))
     );
 
-    // TODO: Enforce context.validate() fail-closed before continuing.
     await this.runStage("build_context", runId, () => this.deps.context.validate(context));
 
     const knowledge = await this.runStage("retrieve_knowledge", runId, () =>
       this.deps.knowledge.query(context, {
         text: request.intent,
-        // TODO: Map request.input entity refs into knowledge query filters.
         metadata: request.metadata,
       })
     );
@@ -202,7 +200,6 @@ export class IntelligenceOrchestrator {
       this.deps.memory.recall(context, {
         organizationId: context.scope.organizationId,
         schoolId: context.scope.schoolId,
-        // TODO: Split short-term vs long-term recall into explicit working-set assembly.
         limit: undefined,
       })
     );
@@ -210,7 +207,6 @@ export class IntelligenceOrchestrator {
     const reasoning = await this.runStage("generate_reasoning", runId, () =>
       this.deps.reasoning.reason(context, {
         intent: request.intent,
-        // TODO: Derive observations and evidenceRefs from knowledge + memory working sets.
         observations: memory.map((entry) => entry.content),
         stage: request.stage,
         metadata: request.input,
@@ -224,7 +220,6 @@ export class IntelligenceOrchestrator {
       this.deps.confidence.score(context, {
         hypothesis: primaryHypothesis,
         evidenceRefs: primaryHypothesis?.evidenceRefs,
-        // TODO: Fold knowledge completeness and memory reinforcement into scoring input.
         metadata: request.metadata,
       })
     );
@@ -233,7 +228,6 @@ export class IntelligenceOrchestrator {
       this.deps.planner.plan(context, {
         intent: request.intent,
         hypotheses: reasoning.hypotheses,
-        // TODO: Apply authority policy and human-gate constraints from domain packs.
         constraints: request.input,
         metadata: request.metadata,
       })
@@ -243,7 +237,6 @@ export class IntelligenceOrchestrator {
       this.deps.explain.explain(context, {
         recommendation: plan.primaryRecommendation ?? undefined,
         hypotheses: reasoning.hypotheses,
-        // TODO: Pass full run snapshot once persistence exists.
         metadata: {
           confidence,
           knowledgeNodeCount: knowledge.nodes.length,
@@ -252,8 +245,6 @@ export class IntelligenceOrchestrator {
       })
     );
 
-    // TODO: Insert authorize / execute / measure_outcome stages before learning
-    // when execution guidance is wired (see JAG_ORCHESTRATION_ARCHITECTURE.md).
     const deferredOutcome = this.createDeferredOutcome(runId, plan);
 
     const learning = await this.runStage("record_learning", runId, () =>
@@ -261,7 +252,6 @@ export class IntelligenceOrchestrator {
         domain: context.domain,
         outcome: deferredOutcome,
         recommendation: plan.primaryRecommendation ?? undefined,
-        // TODO: Derive patternKey from hypothesis / case classification.
         summary: explanation.summary,
         metadata: request.metadata,
       })
@@ -283,12 +273,8 @@ export class IntelligenceOrchestrator {
     );
     emittedEvents.push(completionEvent);
 
-    // TODO: Emit intermediate events (run.started, hypothesis.generated,
-    // recommendation.created, learning.recorded) at their stage boundaries.
-
     return {
       runId,
-      // TODO: Reflect awaiting_authorization / failed statuses from real gates.
       status: "completed",
       engineVersion: INTELLIGENCE_ENGINE_VERSION,
       context,
@@ -316,18 +302,16 @@ export class IntelligenceOrchestrator {
       userId: request.actor.userId,
       roleKeys: request.actor.roleKeys,
       domain: request.domain,
-      // TODO: Thread sessionId / conversationId / workflowKey from request.input.
       metadata: request.metadata,
     };
   }
 
   /**
-   * Placeholder outcome until execute / measure_outcome stages exist.
-   * Structural only — not a measured business result.
+   * Structural outcome until authorize/execute/measure stages are wired
+   * (https://github.com/jimmyarispe-bot/JAG/issues/2).
    */
   private createDeferredOutcome(runId: string, plan: IntelligencePlan): IntelligenceOutcome {
     return {
-      // TODO: Replace with measured outcome from execution stage.
       outcomeId: `deferred-outcome:${runId}`,
       recommendationId: plan.primaryRecommendation?.recommendationId,
       success: false,

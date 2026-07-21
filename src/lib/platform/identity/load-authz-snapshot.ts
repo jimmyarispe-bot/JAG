@@ -38,8 +38,45 @@ type OverlayRow = {
   revoked_at?: string | null;
 };
 
+type OverlayQueryResult = {
+  data: OverlayRow[] | null;
+  error: { message?: string } | null;
+};
+
 /**
- * Query IAM overlay tables via an untyped client until generated DB types include them.
+ * Narrow query surface for IAM overlay tables that are not yet in generated Database types.
+ * Prefer this over `any` — validate rows before reading permission keys.
+ */
+type OverlayTableQuery = {
+  select: (columns: string) => OverlayTableQuery;
+  eq: (column: string, value: string) => OverlayTableQuery;
+  lte: (column: string, value: string) => OverlayTableQuery;
+  gt: (column: string, value: string) => OverlayTableQuery;
+  then: PromiseLike<OverlayQueryResult>["then"];
+};
+
+type OverlayClient = {
+  from: (table: "iam_delegations" | "iam_break_glass_sessions") => OverlayTableQuery;
+};
+
+function asOverlayClient(supabase: AnySupabase): OverlayClient {
+  return supabase as unknown as OverlayClient;
+}
+
+function collectPermissionKeys(data: unknown, into: Set<string>): void {
+  if (!Array.isArray(data)) return;
+  for (const row of data) {
+    if (!row || typeof row !== "object") continue;
+    const overlay = row as OverlayRow;
+    if (overlay.revoked_at) continue;
+    for (const key of overlay.permission_keys ?? []) {
+      if (typeof key === "string" && key.length > 0) into.add(key);
+    }
+  }
+}
+
+/**
+ * Query IAM overlay tables via a narrow untyped client until generated DB types include them.
  */
 async function mergeIamOverlays(
   supabase: AnySupabase,
@@ -48,8 +85,7 @@ async function mergeIamOverlays(
 ): Promise<AuthzSnapshot> {
   const extra = new Set<string>();
   const nowIso = new Date().toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
+  const db = asOverlayClient(supabase);
 
   try {
     const { data, error } = await db
@@ -60,14 +96,7 @@ async function mergeIamOverlays(
       .lte("starts_at", nowIso)
       .gt("expires_at", nowIso);
 
-    if (!error && Array.isArray(data)) {
-      for (const row of data as OverlayRow[]) {
-        if (row.revoked_at) continue;
-        for (const key of row.permission_keys ?? []) {
-          extra.add(key);
-        }
-      }
-    }
+    if (!error) collectPermissionKeys(data, extra);
   } catch {
     // Table may not exist yet — ignore.
   }
@@ -80,13 +109,7 @@ async function mergeIamOverlays(
       .eq("status", "active")
       .gt("expires_at", nowIso);
 
-    if (!error && Array.isArray(data)) {
-      for (const row of data as OverlayRow[]) {
-        for (const key of row.permission_keys ?? []) {
-          extra.add(key);
-        }
-      }
-    }
+    if (!error) collectPermissionKeys(data, extra);
   } catch {
     // Table may not exist yet — ignore.
   }

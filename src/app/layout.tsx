@@ -1,5 +1,6 @@
 import "./globals.css";
-import { LiveAnnouncerProvider } from "@/components/experience-system/feedback/LiveAnnouncer";
+import { InteractionProviders } from "@/components/experience-system/feedback/InteractionProviders";
+import { WebVitalsReporter } from "@/components/observability/WebVitalsReporter";
 
 export const metadata = {
   title: "School Platform",
@@ -14,7 +15,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <LiveAnnouncerProvider>{children}</LiveAnnouncerProvider>
+        <InteractionProviders>
+          {children}
+          <WebVitalsReporter />
+        </InteractionProviders>
       </body>
     </html>
   );

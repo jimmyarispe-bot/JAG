@@ -1,5 +1,9 @@
 import { StatCard } from "@/components/dashboard/StatCard";
 import { ComplianceTabs } from "@/components/compliance/ComplianceTabs";
+import {
+  DashboardSkeleton,
+  ProgressivePageShell,
+} from "@/components/experience-system";
 import { ViewTabs } from "@/components/ui/ViewTabs";
 import { PageHeader } from "@/components/ui/PageHeader";
 import Link from "next/link";
@@ -96,13 +100,14 @@ export async function CompliancePageContent({ searchParams }: CompliancePageCont
 
 export function CompliancePageSkeleton() {
   return (
-    <div className="mx-auto max-w-7xl space-y-6 animate-pulse">
-      <div className="h-8 w-64 rounded bg-slate-200" />
-      <div className="grid gap-4 sm:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 rounded-2xl bg-slate-100" />)}
-      </div>
-      <div className="h-11 rounded-xl bg-slate-100" />
-      <div className="h-64 rounded-2xl bg-slate-100" />
-    </div>
+    <ProgressivePageShell
+      title="Compliance"
+      subtitle="Obligations, evidence, and domain scores"
+      breadcrumbs={[{ label: "Compliance" }]}
+      label="Loading compliance…"
+      showDefaultBody={false}
+    >
+      <DashboardSkeleton />
+    </ProgressivePageShell>
   );
 }

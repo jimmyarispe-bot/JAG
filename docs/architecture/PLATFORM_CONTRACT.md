@@ -189,7 +189,7 @@ Doc: `docs/architecture/platform-services.md`
 
 | Field | Content |
 |-------|---------|
-| **Current implementation** | Parallel stores: admissions staff notifications, portal family notifications, parent-communication deliverer, workflow `send_notification`, SendGrid email, UI bells/lists. |
+| **Current implementation** | Parallel stores: admissions staff notifications, portal family notifications, parent-communication deliverer, workflow `send_notification`, Resend email (`src/lib/platform/email`), UI bells/lists. |
 | **Maturity** | **Partial** |
 | **Required standard** | Single platform notification interface (channel + audience + template + audit). Domain modules call platform, not invent tables. |
 | **Gaps** | No unified `src/lib/platform/notifications/`. |
@@ -213,7 +213,7 @@ Doc: `docs/architecture/platform-services.md`
 
 | Field | Content |
 |-------|---------|
-| **Current implementation** | Env: Supabase keys, SendGrid, vault, cron, app URL. Org/school `config` jsonb. Configuration Studio module. Branding in `branding_config`. Minimal `next.config.ts`. `vercel.json` cron. |
+| **Current implementation** | Env: Supabase keys, Resend, vault, cron, app URL. Org/school `config` jsonb. Configuration Studio module. Branding in `branding_config`. Minimal `next.config.ts`. `vercel.json` cron. |
 | **Maturity** | **Partial** |
 | **Required standard** | Documented env contract; fail-fast validation at boot for required secrets; module toggles via Configuration Studio; no secrets in repo. |
 | **Gaps** | No zod/env schema validation. |
@@ -237,11 +237,11 @@ Doc: `docs/architecture/platform-services.md`
 
 | Field | Content |
 |-------|---------|
-| **Current implementation** | No structured logger. Ad-hoc `console` (including TEMP auth logging in dashboard layout). Durable audit preferred via DB. |
-| **Maturity** | **Missing** |
+| **Current implementation** | Structured observability under `src/lib/observability/` (logger, request IDs, metrics, health/ready, RUM hooks). Durable security audit via DB + `logSecurityEvent`. Ad-hoc `console` is disallowed on production paths (RC-6.02 hygiene). |
+| **Maturity** | **Partial** (platform present; adoption uneven across legacy modules) |
 | **Required standard** | Structured logs (level, request/correlation id, actor, school). Never log secrets/PII. Prefer audit tables for security events. |
-| **Gaps** | No pino/winston/OTel; TEMP console in critical path. |
-| **Recommended action** | Remove TEMP logs immediately; pick logging approach next sprint after contract. |
+| **Gaps** | Not every domain route uses the structured logger; OpenTelemetry export may be incomplete in some environments. |
+| **Recommended action** | Prefer `@/lib/observability` for new code; continue retiring residual `console.*` outside intentional CLI/scripts. |
 
 ---
 
@@ -373,7 +373,7 @@ flowchart TB
 4. **Legacy timeline dual-write** — two activity histories until cutover.
 5. **Parallel intelligence stacks** — EDI / AIP / AIN / Executive / Mission Control overlap.
 6. **Cloud ≈ Operations duplication** — maintenance and RBAC drift risk.
-7. **No production logging** — TEMP console on auth-critical paths.
+7. **Uneven logging adoption** — structured observability exists (`src/lib/observability/`); some legacy paths still bypass it.
 8. **In-memory rate limiting** — ineffective across serverless instances.
 9. **RBAC fallback** — can hide failed permission migrations.
 10. **Service-role client surface** — elevated privilege misuse risk if broadened.

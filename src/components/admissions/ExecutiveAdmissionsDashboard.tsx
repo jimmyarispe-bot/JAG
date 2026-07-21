@@ -6,6 +6,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { formatCount, formatCurrency } from "@/lib/format";
 import { getAdmissionsDashboardTiles } from "@/lib/admissions/registry";
 import type { ExecutiveAdmissionsMetrics, DrillDownLead } from "@/lib/admissions/executive-metrics";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
 
 interface ExecutiveAdmissionsDashboardProps {
   metrics: ExecutiveAdmissionsMetrics;
@@ -160,12 +161,9 @@ export function ExecutiveAdmissionsDashboard({
                 {drillDown.map((lead) => (
                   <tr key={lead.id} className="border-b border-slate-50">
                     <td className="py-2 pr-4">
-                      <Link
-                        href={`/dashboard/admissions/cases/${lead.id}`}
-                        className="font-medium text-brand-600 hover:underline"
-                      >
+                      <ActionChip href={`/dashboard/admissions/cases/${lead.id}`} size="sm">
                         {lead.first_name} {lead.last_name}
-                      </Link>
+                      </ActionChip>
                     </td>
                     <td className="py-2 pr-4 capitalize text-slate-600">
                       {lead.lead_stage.replace(/_/g, " ")}

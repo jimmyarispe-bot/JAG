@@ -8,7 +8,11 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 import { requirePermission } from "@/lib/platform/identity/permissions";
 import { logSecurityEvent } from "@/lib/platform/identity/security";
 import { recordActivity } from "@/lib/platform/activity";
-import { sendTransactionalEmail } from "@/lib/platform/email/sendgrid";
+import {
+  sendInvitationEmail,
+  sendPasswordResetEmail,
+  sendWelcomeEmail,
+} from "@/lib/platform/email";
 import { resolveActorUserId } from "@/lib/platform/shared/context";
 import {
   resolveUserManagementRole,
@@ -199,15 +203,39 @@ export async function createManagedUser(
 
   try {
     if (input.status === "pending_invite") {
-      const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-        data: metadata,
-        redirectTo: `${appUrl()}/login`,
+      // Create Auth user without relying on Supabase SMTP; deliver invite via Resend.
+      const { data, error } = await admin.auth.admin.createUser({
+        email,
+        email_confirm: false,
+        user_metadata: metadata,
       });
       if (error || !data.user) {
         return { success: false, error: error?.message ?? "Invite failed" };
       }
       userId = data.user.id;
       invited = true;
+
+      const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+        type: "invite",
+        email,
+        options: { redirectTo: `${appUrl()}/login` },
+      });
+      if (linkError) {
+        return { success: false, error: linkError.message };
+      }
+      const inviteLink =
+        linkData.properties?.action_link ?? `${appUrl()}/login`;
+      const inviteMail = await sendInvitationEmail({
+        to: email,
+        inviteLink,
+        recipientName: name,
+      });
+      if (!inviteMail.success && process.env.NODE_ENV === "production") {
+        return {
+          success: false,
+          error: inviteMail.error ?? "Failed to send invitation email",
+        };
+      }
     } else {
       const tempPassword = `Tmp-${crypto.randomUUID()}!aA1`;
       const { data, error } = await admin.auth.admin.createUser({
@@ -221,6 +249,14 @@ export async function createManagedUser(
         return { success: false, error: error?.message ?? "Create user failed" };
       }
       userId = data.user.id;
+
+      if (input.status === "active") {
+        await sendWelcomeEmail({
+          to: email,
+          loginLink: `${appUrl()}/login`,
+          recipientName: name,
+        });
+      }
     }
 
     await attachMembershipAndScope(admin, {
@@ -515,10 +551,11 @@ export async function resetUserPassword(userId: string): Promise<
     linkData.properties?.action_link ??
     `${appUrl()}/login`;
 
-  const emailResult = await sendTransactionalEmail({
+  const emailResult = await sendPasswordResetEmail({
     to: userData.user.email,
-    subject: "Reset your AcademyOS password",
-    body: `A password reset was requested for your account.\n\n<a href="${link}">Reset password</a>\n\nIf you did not expect this, contact your administrator.`,
+    resetLink: link,
+    recipientName:
+      (userData.user.user_metadata?.full_name as string | undefined) ?? undefined,
   });
 
   if (!emailResult.success && process.env.NODE_ENV === "production") {

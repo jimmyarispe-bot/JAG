@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { submitPublicInquiry } from "@/lib/admissions/portal/actions";
 import { GRADES } from "@/lib/constants/grades";
 import { PROGRAMS } from "@/lib/constants/programs";
 import { FundingSourceCheckboxes } from "@/components/ui/FundingSourceCheckboxes";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 import { portalInputClass, portalLabelClass, portalSectionClass } from "./styles";
 
 interface ParentInquiryFormProps {
@@ -14,21 +15,26 @@ interface ParentInquiryFormProps {
 
 export function ParentInquiryForm({ schools }: ParentInquiryFormProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const action = useActionFeedback({
+    verb: "submit",
+    labels: { idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" },
+    successToast: "✓ Submitted",
+    errorToast: "Unable to submit.",
+    progressLabel: "Submitting inquiry…",
+    onError: (err) => setError(err.message),
+  });
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const formData = new FormData(e.currentTarget);
 
-    startTransition(async () => {
+    void action.run(async () => {
       const result = await submitPublicInquiry(formData);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
+      if (result.error) throw new Error(result.error);
       router.push(`/apply/thank-you?lead=${result.leadId}`);
+      return result;
     });
   }
 
@@ -153,13 +159,13 @@ export function ParentInquiryForm({ schools }: ParentInquiryFormProps) {
       </section>
 
       <div className="flex justify-end">
-        <button
+        <ActionButton
           type="submit"
-          disabled={isPending}
-          className="rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {isPending ? "Submitting…" : "Submit Inquiry"}
-        </button>
+          status={action.status}
+          verb="submit"
+          labels={{ idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" }}
+          errorMessage={action.errorMessage}
+        />
       </div>
     </form>
   );

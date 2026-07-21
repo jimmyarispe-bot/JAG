@@ -3,6 +3,7 @@ import { requirePagePermission } from "@/lib/platform/identity/page-guard";
 import { getPrimaryOrganizationId } from "@/lib/intelligence-platform/context";
 import { getProviderDefinitions, getProviderInstances, PROVIDER_ADAPTER_ARCHITECTURE } from "@/lib/intelligence-platform/provider-abstraction";
 import { AipShell } from "@/components/intelligence-platform/AipNav";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 import { createProviderAction } from "@/lib/intelligence-platform/actions";
 
 export default async function ProvidersPage() {
@@ -30,7 +31,15 @@ export default async function ProvidersPage() {
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={createProviderAction} className="flex flex-wrap items-end gap-4">
+        <ExperienceForm
+          action={createProviderAction}
+          verb="create"
+          labels={{ idle: "Register instance", loading: "Registering…", success: "✓ Registered" }}
+          progressLabel="Registering provider…"
+          successToast="✓ Provider registered."
+          errorToast="Unable to register provider."
+          className="flex flex-wrap items-end gap-4"
+        >
           <label className="block text-sm">
             Provider
             <select name="provider_key" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2">
@@ -43,10 +52,7 @@ export default async function ProvidersPage() {
             Instance name
             <input name="instance_name" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2" defaultValue="Primary" />
           </label>
-          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Register instance
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section>

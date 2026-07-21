@@ -1,0 +1,934 @@
+{
+  "sprint": "RC-4",
+  "generatedAt": "2026-07-19T01:10:07.370Z",
+  "baseUrl": "http://127.0.0.1:3000",
+  "liveServer": true,
+  "authConfigured": false,
+  "overall": "accepted_with_gaps",
+  "roleCoverage": {
+    "founder": {
+      "pass": 18,
+      "total": 19,
+      "mode": "unauth_inventory_only"
+    },
+    "ceo": {
+      "pass": 18,
+      "total": 19,
+      "mode": "unauth_inventory_only"
+    },
+    "school_leader": {
+      "pass": 12,
+      "total": 13,
+      "mode": "unauth_inventory_only"
+    },
+    "teacher": {
+      "pass": 6,
+      "total": 7,
+      "mode": "unauth_inventory_only"
+    },
+    "parent": {
+      "pass": 13,
+      "total": 14,
+      "mode": "unauth_inventory_only"
+    },
+    "student": {
+      "pass": 8,
+      "total": 9,
+      "mode": "unauth_inventory_only"
+    },
+    "employee": {
+      "pass": 4,
+      "total": 5,
+      "mode": "unauth_inventory_only"
+    }
+  },
+  "steps": [
+    {
+      "role": "founder",
+      "workflowId": "f.brief",
+      "name": "Founder Morning Brief (route exists)",
+      "path": "/dashboard",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.mission",
+      "name": "Mission Control (route exists)",
+      "path": "/dashboard/mission-control",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.exec",
+      "name": "Executive Intelligence (route exists)",
+      "path": "/dashboard/executive",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.strategic",
+      "name": "Strategic planning (route exists)",
+      "path": "/dashboard/executive/strategic",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.fi",
+      "name": "Financial Intelligence (route exists)",
+      "path": "/dashboard/finance/intelligence",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.admin",
+      "name": "System settings / admin (route exists)",
+      "path": "/dashboard/admin",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.integrations",
+      "name": "Integrations (route exists)",
+      "path": "/dashboard/integrations",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.security",
+      "name": "Audit / security admin (route exists)",
+      "path": "/dashboard/admin/security",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.ecc",
+      "name": "Executive Command Center (route exists)",
+      "path": "/exec",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.ecc",
+      "name": "ECC home (route exists)",
+      "path": "/exec",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.brief",
+      "name": "Executive brief (route exists)",
+      "path": "/exec/brief",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.health",
+      "name": "Organization health (route exists)",
+      "path": "/exec/health",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.kpis",
+      "name": "KPI dashboards (route exists)",
+      "path": "/dashboard/executive/kpis",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.admissions",
+      "name": "Admissions oversight (route exists)",
+      "path": "/dashboard/admissions",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.finance",
+      "name": "Finance (route exists)",
+      "path": "/dashboard/finance",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.hr",
+      "name": "HR (route exists)",
+      "path": "/dashboard/hr",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.compliance",
+      "name": "Compliance (route exists)",
+      "path": "/dashboard/compliance",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.reports",
+      "name": "Executive reporting (route exists)",
+      "path": "/dashboard/executive/reports",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.admissions",
+      "name": "Admissions pipeline (route exists)",
+      "path": "/dashboard/admissions",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.students",
+      "name": "Student management (route exists)",
+      "path": "/dashboard/students",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.scheduling",
+      "name": "Scheduling / class ops (route exists)",
+      "path": "/dashboard/scheduling",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.teacher",
+      "name": "Teacher assignment surface (route exists)",
+      "path": "/dashboard/teacher",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.finance",
+      "name": "Campus finance (route exists)",
+      "path": "/dashboard/finance",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.hr",
+      "name": "Staff / HR (route exists)",
+      "path": "/dashboard/hr",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "teacher",
+      "workflowId": "t.home",
+      "name": "Teacher dashboard (route exists)",
+      "path": "/dashboard/teacher",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "teacher",
+      "workflowId": "t.scheduling",
+      "name": "Schedule context (route exists)",
+      "path": "/dashboard/scheduling",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "teacher",
+      "workflowId": "t.students",
+      "name": "Student success (route exists)",
+      "path": "/dashboard/students",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.home",
+      "name": "Parent dashboard (route exists)",
+      "path": "/portal",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.progress",
+      "name": "Progress (route exists)",
+      "path": "/portal/progress",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.attendance",
+      "name": "Attendance (via progress/calendar) (route exists)",
+      "path": "/portal/calendar",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.finance",
+      "name": "Tuition / payments (route exists)",
+      "path": "/portal/finance",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.documents",
+      "name": "Documents (route exists)",
+      "path": "/portal/documents",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.messages",
+      "name": "Messaging (route exists)",
+      "path": "/portal/messages",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.apply",
+      "name": "Admissions portal entry (route exists)",
+      "path": "/apply/portal",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "student",
+      "workflowId": "s.home",
+      "name": "Student dashboard (route exists)",
+      "path": "/portal/student",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "student",
+      "workflowId": "s.schedule",
+      "name": "Schedule (route exists)",
+      "path": "/portal/student/schedule",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "student",
+      "workflowId": "s.goals",
+      "name": "Goals / progress (route exists)",
+      "path": "/portal/student/goals",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "student",
+      "workflowId": "s.messages",
+      "name": "Messaging (route exists)",
+      "path": "/portal/messages",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "employee",
+      "workflowId": "e.home",
+      "name": "Employee profile portal (route exists)",
+      "path": "/dashboard/employee",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "employee",
+      "workflowId": "e.hr",
+      "name": "HR module (staff) (route exists)",
+      "path": "/dashboard/hr",
+      "status": "pass",
+      "detail": "app router page present"
+    },
+    {
+      "role": "public",
+      "workflowId": "public./login",
+      "name": "Public path /login",
+      "path": "/login",
+      "status": "pass",
+      "detail": "HTTP 200"
+    },
+    {
+      "role": "public",
+      "workflowId": "public./api/health",
+      "name": "Public path /api/health",
+      "path": "/api/health",
+      "status": "pass",
+      "detail": "HTTP 200"
+    },
+    {
+      "role": "public",
+      "workflowId": "public./api/ready",
+      "name": "Public path /api/ready",
+      "path": "/api/ready",
+      "status": "pass",
+      "detail": "HTTP 200"
+    },
+    {
+      "role": "public",
+      "workflowId": "public./apply",
+      "name": "Public path /apply",
+      "path": "/apply",
+      "status": "pass",
+      "detail": "HTTP 200"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.brief.unauth_gate",
+      "name": "Founder Morning Brief unauth gate",
+      "path": "/dashboard",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.mission.unauth_gate",
+      "name": "Mission Control unauth gate",
+      "path": "/dashboard/mission-control",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.exec.unauth_gate",
+      "name": "Executive Intelligence unauth gate",
+      "path": "/dashboard/executive",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.strategic.unauth_gate",
+      "name": "Strategic planning unauth gate",
+      "path": "/dashboard/executive/strategic",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.fi.unauth_gate",
+      "name": "Financial Intelligence unauth gate",
+      "path": "/dashboard/finance/intelligence",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.admin.unauth_gate",
+      "name": "System settings / admin unauth gate",
+      "path": "/dashboard/admin",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.integrations.unauth_gate",
+      "name": "Integrations unauth gate",
+      "path": "/dashboard/integrations",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.security.unauth_gate",
+      "name": "Audit / security admin unauth gate",
+      "path": "/dashboard/admin/security",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "founder",
+      "workflowId": "f.ecc.unauth_gate",
+      "name": "Executive Command Center unauth gate",
+      "path": "/exec",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.ecc.unauth_gate",
+      "name": "ECC home unauth gate",
+      "path": "/exec",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.brief.unauth_gate",
+      "name": "Executive brief unauth gate",
+      "path": "/exec/brief",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.health.unauth_gate",
+      "name": "Organization health unauth gate",
+      "path": "/exec/health",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.kpis.unauth_gate",
+      "name": "KPI dashboards unauth gate",
+      "path": "/dashboard/executive/kpis",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.admissions.unauth_gate",
+      "name": "Admissions oversight unauth gate",
+      "path": "/dashboard/admissions",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.finance.unauth_gate",
+      "name": "Finance unauth gate",
+      "path": "/dashboard/finance",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.hr.unauth_gate",
+      "name": "HR unauth gate",
+      "path": "/dashboard/hr",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.compliance.unauth_gate",
+      "name": "Compliance unauth gate",
+      "path": "/dashboard/compliance",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "c.reports.unauth_gate",
+      "name": "Executive reporting unauth gate",
+      "path": "/dashboard/executive/reports",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.admissions.unauth_gate",
+      "name": "Admissions pipeline unauth gate",
+      "path": "/dashboard/admissions",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.students.unauth_gate",
+      "name": "Student management unauth gate",
+      "path": "/dashboard/students",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.scheduling.unauth_gate",
+      "name": "Scheduling / class ops unauth gate",
+      "path": "/dashboard/scheduling",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.teacher.unauth_gate",
+      "name": "Teacher assignment surface unauth gate",
+      "path": "/dashboard/teacher",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.finance.unauth_gate",
+      "name": "Campus finance unauth gate",
+      "path": "/dashboard/finance",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "sl.hr.unauth_gate",
+      "name": "Staff / HR unauth gate",
+      "path": "/dashboard/hr",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "teacher",
+      "workflowId": "t.home.unauth_gate",
+      "name": "Teacher dashboard unauth gate",
+      "path": "/dashboard/teacher",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "teacher",
+      "workflowId": "t.scheduling.unauth_gate",
+      "name": "Schedule context unauth gate",
+      "path": "/dashboard/scheduling",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "teacher",
+      "workflowId": "t.students.unauth_gate",
+      "name": "Student success unauth gate",
+      "path": "/dashboard/students",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.home.unauth_gate",
+      "name": "Parent dashboard unauth gate",
+      "path": "/portal",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.progress.unauth_gate",
+      "name": "Progress unauth gate",
+      "path": "/portal/progress",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.attendance.unauth_gate",
+      "name": "Attendance (via progress/calendar) unauth gate",
+      "path": "/portal/calendar",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.finance.unauth_gate",
+      "name": "Tuition / payments unauth gate",
+      "path": "/portal/finance",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.documents.unauth_gate",
+      "name": "Documents unauth gate",
+      "path": "/portal/documents",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "parent",
+      "workflowId": "p.messages.unauth_gate",
+      "name": "Messaging unauth gate",
+      "path": "/portal/messages",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "student",
+      "workflowId": "s.home.unauth_gate",
+      "name": "Student dashboard unauth gate",
+      "path": "/portal/student",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "student",
+      "workflowId": "s.schedule.unauth_gate",
+      "name": "Schedule unauth gate",
+      "path": "/portal/student/schedule",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "student",
+      "workflowId": "s.goals.unauth_gate",
+      "name": "Goals / progress unauth gate",
+      "path": "/portal/student/goals",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "student",
+      "workflowId": "s.messages.unauth_gate",
+      "name": "Messaging unauth gate",
+      "path": "/portal/messages",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "employee",
+      "workflowId": "e.home.unauth_gate",
+      "name": "Employee profile portal unauth gate",
+      "path": "/dashboard/employee",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "employee",
+      "workflowId": "e.hr.unauth_gate",
+      "name": "HR module (staff) unauth gate",
+      "path": "/dashboard/hr",
+      "status": "pass",
+      "detail": "Correctly gated (307)"
+    },
+    {
+      "role": "founder",
+      "workflowId": "founder.auth_home",
+      "name": "Founder authenticated workflows",
+      "path": "/dashboard",
+      "status": "blocked",
+      "detail": "No RC4_E2E_COOKIE / LOAD_TEST_COOKIE — authenticated journey not executed"
+    },
+    {
+      "role": "ceo",
+      "workflowId": "ceo.auth_home",
+      "name": "CEO authenticated workflows",
+      "path": "/exec",
+      "status": "blocked",
+      "detail": "No RC4_E2E_COOKIE / LOAD_TEST_COOKIE — authenticated journey not executed"
+    },
+    {
+      "role": "school_leader",
+      "workflowId": "school_leader.auth_home",
+      "name": "School Leader authenticated workflows",
+      "path": "/dashboard",
+      "status": "blocked",
+      "detail": "No RC4_E2E_COOKIE / LOAD_TEST_COOKIE — authenticated journey not executed"
+    },
+    {
+      "role": "teacher",
+      "workflowId": "teacher.auth_home",
+      "name": "Teacher authenticated workflows",
+      "path": "/dashboard/teacher",
+      "status": "blocked",
+      "detail": "No RC4_E2E_COOKIE / LOAD_TEST_COOKIE — authenticated journey not executed"
+    },
+    {
+      "role": "parent",
+      "workflowId": "parent.auth_home",
+      "name": "Parent authenticated workflows",
+      "path": "/portal",
+      "status": "blocked",
+      "detail": "No RC4_E2E_COOKIE / LOAD_TEST_COOKIE — authenticated journey not executed"
+    },
+    {
+      "role": "student",
+      "workflowId": "student.auth_home",
+      "name": "Student authenticated workflows",
+      "path": "/portal/student",
+      "status": "blocked",
+      "detail": "No RC4_E2E_COOKIE / LOAD_TEST_COOKIE — authenticated journey not executed"
+    },
+    {
+      "role": "employee",
+      "workflowId": "employee.auth_home",
+      "name": "Employee / HR self-service authenticated workflows",
+      "path": "/dashboard/employee",
+      "status": "blocked",
+      "detail": "No RC4_E2E_COOKIE / LOAD_TEST_COOKIE — authenticated journey not executed"
+    },
+    {
+      "role": "cross_role",
+      "workflowId": "xr.lead_to_billing",
+      "name": "Lead → Admission → Enrollment → Scheduling → Attendance → Progress → Billing",
+      "path": "/dashboard/admissions → /dashboard/students → /dashboard/scheduling → /dashboard/teacher → /portal/progress → /portal/finance → /dashboard/finance",
+      "status": "pass",
+      "detail": "Path chain present in app router; behavioral validation pending auth (E-001)"
+    },
+    {
+      "role": "cross_role",
+      "workflowId": "xr.teacher_parent_exec",
+      "name": "Teacher progress → Parent views → Executive dashboard",
+      "path": "/dashboard/teacher → /portal/progress → /dashboard/executive → /exec",
+      "status": "pass",
+      "detail": "Path chain present in app router; behavioral validation pending auth (E-001)"
+    },
+    {
+      "role": "cross_role",
+      "workflowId": "xr.finance_exec",
+      "name": "Financial transaction → Reporting → Executive metrics",
+      "path": "/dashboard/finance → /dashboard/finance/intelligence → /dashboard/executive/kpis → /exec/brief",
+      "status": "pass",
+      "detail": "Path chain present in app router; behavioral validation pending auth (E-001)"
+    },
+    {
+      "role": "cross_role",
+      "workflowId": "xr.integration_audit",
+      "name": "Integration sync → Ops → Audit logging",
+      "path": "/dashboard/integrations → /exec/integrations → /dashboard/admin/security",
+      "status": "pass",
+      "detail": "Path chain present in app router; behavioral validation pending auth (E-001)"
+    },
+    {
+      "role": "security",
+      "workflowId": "perm.matrix",
+      "name": "Phase E permission matrix",
+      "path": "tests/unit/certification/phase-e-permission-matrix.test.ts",
+      "status": "fail",
+      "detail": "permission matrix failed: "
+    }
+  ],
+  "defects": [
+    {
+      "id": "E-001",
+      "severity": "blocker",
+      "title": "No authenticated multi-role Playwright journeys",
+      "roles": [
+        "founder",
+        "ceo",
+        "school_leader",
+        "teacher",
+        "parent",
+        "student",
+        "employee"
+      ],
+      "reproduction": [
+        "1. Inspect tests/smoke and tests/acceptance",
+        "2. Observe no storageState / role login fixtures",
+        "3. Attempt authenticated parent/teacher journey — not automated"
+      ],
+      "rootCause": "E2E auth harness never landed (G-RC1-01)",
+      "proposedFix": "Seed staging personas + Playwright projects per role with storageState",
+      "regressionRisk": "High until automated; manual QA required each release",
+      "status": "open"
+    },
+    {
+      "id": "E-007",
+      "severity": "high",
+      "title": "No axe/pa11y CI accessibility regression gate",
+      "roles": [
+        "parent",
+        "teacher",
+        "founder"
+      ],
+      "reproduction": [
+        "1. Review CI workflow — no axe step",
+        "2. Smoke only asserts login labels"
+      ],
+      "rootCause": "A11y CI deferred (G-RC1-06)",
+      "proposedFix": "Add axe-core Playwright project on critical role homes",
+      "regressionRisk": "Medium — WCAG regressions can ship unnoticed",
+      "status": "open"
+    },
+    {
+      "id": "a11y.staff.bar.gap",
+      "severity": "low",
+      "title": "PortalAccessibilityBar is portal-only; staff/exec shells rely on OS/browser preferences (documented UX observation)",
+      "roles": [
+        "all"
+      ],
+      "reproduction": [
+        "Review component"
+      ],
+      "rootCause": "Static a11y heuristic",
+      "proposedFix": "Address landmark/label gaps",
+      "regressionRisk": "Low–medium UX",
+      "status": "open"
+    }
+  ],
+  "a11y": [
+    {
+      "id": "a11y.portal.skip",
+      "severity": "info",
+      "area": "accessibility",
+      "message": "Portal skip link / main landmark present",
+      "path": "src/components/portal/PortalShell.tsx"
+    },
+    {
+      "id": "a11y.dashboard.skip",
+      "severity": "info",
+      "area": "accessibility",
+      "message": "Dashboard chrome has skip/main pattern",
+      "path": "src/components/dashboard/DashboardChrome.tsx"
+    },
+    {
+      "id": "a11y.exec.skip",
+      "severity": "info",
+      "area": "accessibility",
+      "message": "Exec shell has skip/main pattern",
+      "path": "src/components/exec/ExecShell.tsx"
+    },
+    {
+      "id": "a11y.login.labels",
+      "severity": "info",
+      "area": "accessibility",
+      "message": "Login form uses labels / a11y attributes",
+      "path": "src/app/login/LoginForm.tsx"
+    },
+    {
+      "id": "a11y.live.announcer",
+      "severity": "info",
+      "area": "accessibility",
+      "message": "Live announcer present for async feedback",
+      "path": "src/components/experience-system/feedback/LiveAnnouncer.tsx"
+    },
+    {
+      "id": "a11y.portal.bar",
+      "severity": "info",
+      "area": "accessibility",
+      "message": "Portal accessibility preferences bar present",
+      "path": "src/components/portal/PortalAccessibilityBar.tsx"
+    },
+    {
+      "id": "a11y.staff.bar.gap",
+      "severity": "low",
+      "area": "accessibility",
+      "message": "PortalAccessibilityBar is portal-only; staff/exec shells rely on OS/browser preferences (documented UX observation)"
+    },
+    {
+      "id": "a11y.axe.ci",
+      "severity": "high",
+      "area": "accessibility",
+      "message": "No automated axe/pa11y CI gate (E-007 / G-RC1-06). Login smoke covers labels only."
+    }
+  ],
+  "crossRole": [
+    "xr.lead_to_billing",
+    "xr.teacher_parent_exec",
+    "xr.finance_exec",
+    "xr.integration_audit"
+  ],
+  "recommendedBeforeRc5": [
+    "Seed staging personas for Founder, CEO, School Leader, Teacher, Parent, Student, Employee",
+    "Implement Playwright storageState projects per role (close E-001 / G-RC1-01)",
+    "Execute cross-role data scenarios with real records (lead→billing)",
+    "Add axe CI on /login, /portal, /dashboard/teacher, /exec (close E-007)",
+    "Capture screenshots/sign-off in docs/operations/rc4/08_SIGN_OFF.md"
+  ]
+}

@@ -1,0 +1,57 @@
+/**
+ * RC-4 — Unified Knowledge Graph relationship types.
+ */
+
+export const UNIFIED_RELATIONSHIPS = [
+  "OWNS",
+  "ATTENDS",
+  "REPORTS_TO",
+  "CREATED",
+  "EDITED",
+  "APPROVED",
+  "ASSIGNED",
+  "COMMUNICATED_WITH",
+  "DEPENDS_ON",
+  "BELONGS_TO",
+  "PARTICIPATES_IN",
+] as const;
+
+export type UnifiedRelationshipType = (typeof UNIFIED_RELATIONSHIPS)[number];
+
+/**
+ * Legacy / domain-specific edge types → unified relationship.
+ * Unknown types pass through for provenance but are flagged non-canonical.
+ */
+export const RELATIONSHIP_ALIASES: Record<string, UnifiedRelationshipType> = {
+  OWNS: "OWNS",
+  OWNED_BY: "OWNS",
+  ATTENDS: "ATTENDS",
+  REPORTS_TO: "REPORTS_TO",
+  CREATED: "CREATED",
+  EDITED: "EDITED",
+  APPROVED: "APPROVED",
+  ASSIGNED: "ASSIGNED",
+  ASSIGNED_BY: "ASSIGNED",
+  COMMUNICATED_WITH: "COMMUNICATED_WITH",
+  DEPENDS_ON: "DEPENDS_ON",
+  BELONGS_TO: "BELONGS_TO",
+  PARTICIPATES_IN: "PARTICIPATES_IN",
+  PART_OF: "BELONGS_TO",
+  MEMBER_OF: "BELONGS_TO",
+  IN_PIPELINE: "BELONGS_TO",
+  IN_CLASS: "BELONGS_TO",
+  RELATED_TO: "COMMUNICATED_WITH",
+  ASSOCIATED_WITH: "COMMUNICATED_WITH",
+  POSTED_IN: "PARTICIPATES_IN",
+  TAUGHT_BY: "ASSIGNED",
+  FOR_EMPLOYEE: "BELONGS_TO",
+  FOR_STUDENT: "BELONGS_TO",
+  FOR_ASSIGNMENT: "BELONGS_TO",
+  IS_PERSON: "BELONGS_TO",
+  CONVERTED_TO: "DEPENDS_ON",
+  BILLED_TO: "BELONGS_TO",
+  PAID_TO: "BELONGS_TO",
+  POSTED_TO: "BELONGS_TO",
+  SETTLES: "DEPENDS_ON",
+  WORKS_AT: "BELONGS_TO",
+};

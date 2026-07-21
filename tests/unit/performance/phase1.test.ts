@@ -38,6 +38,10 @@ describe("Performance Phase 1", () => {
     const report = await runPerformanceProbe();
     expect(report.routeTimings.length).toBeGreaterThanOrEqual(5);
     expect(report.comparisons.intelligenceColdMs).toBeGreaterThan(0);
+    expect(report.comparisons.intelligenceLazyColdMs).toBeGreaterThanOrEqual(0);
+    expect(report.comparisons.intelligenceLazyColdMs).toBeLessThanOrEqual(
+      report.comparisons.intelligenceColdMs
+    );
     expect(report.comparisons.integrationsColdMs).toBeGreaterThan(0);
     expect(report.detections.length).toBeGreaterThan(0);
     expect(report.routeInventory.appRouteFiles).toBeGreaterThan(10);

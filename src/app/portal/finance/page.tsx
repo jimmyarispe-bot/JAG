@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { getGuardianFamilyFinancialProfiles } from "@/lib/finance/family-center";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { FamilyFinancialCenter } from "@/components/finance/FamilyFinancialCenter";
+import { ActionChip } from "@/components/ui/cta";
 
 export default async function PortalFinancePage() {
   const sessionUser = await getSessionUser();
@@ -20,7 +20,10 @@ export default async function PortalFinancePage() {
       </div>
       {!profiles.length && (
         <p className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
-          No billing account linked yet. <Link href="/apply/portal/finance" className="text-brand-600 hover:underline">View admissions billing</Link>
+          No billing account linked yet.{" "}
+          <ActionChip href="/apply/portal/finance" size="xs" className="inline-flex align-middle">
+            View admissions billing
+          </ActionChip>
         </p>
       )}
       {profiles.map((profile) => (

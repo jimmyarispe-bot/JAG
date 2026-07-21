@@ -1,7 +1,7 @@
 import { ConfigStudioShell } from "@/components/configuration/ConfigStudioShell";
 import { loadConfigPage } from "@/lib/configuration/page-data";
 import { getOrganizationHierarchy } from "@/lib/platform/identity/org";
-import Link from "next/link";
+import { ActionChip } from "@/components/ui/cta";
 
 export default async function ProgramsConfigPage() {
   const [, hierarchy] = await Promise.all([loadConfigPage(), getOrganizationHierarchy()]);
@@ -21,9 +21,9 @@ export default async function ProgramsConfigPage() {
           <li className="text-slate-500">No programs yet. Add via organization hierarchy.</li>
         )}
       </ul>
-      <Link href="/dashboard/admin/organization" className="inline-block text-sm text-brand-600 hover:underline">
-        Manage programs →
-      </Link>
+      <ActionChip href="/dashboard/admin/organization" size="sm" className="mt-2">
+        Manage programs
+      </ActionChip>
     </ConfigStudioShell>
   );
 }

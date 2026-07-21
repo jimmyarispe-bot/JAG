@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/enterprise-data/context";
 import { listApiKeys, API_PLATFORM_ARCHITECTURE } from "@/lib/enterprise-data/api-services";
 import { EdpShell } from "@/components/enterprise-data/EdpNav";
 import { createApiKeyAction, revokeApiKeyAction } from "@/lib/enterprise-data/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function DataApiPage() {
   await requirePagePermission(["data.admin"]);
@@ -25,16 +26,19 @@ export default async function DataApiPage() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={createApiKeyAction} className="flex flex-wrap items-end gap-4">
+        <ExperienceForm
+          action={createApiKeyAction}
+          verb="create"
+          labels={{ idle: "Generate API key" }}
+          progressLabel="Generate API key…"
+          className="flex flex-wrap items-end gap-4"
+        >
           <label className="block text-sm">
-            Key name
-            <input name="key_name" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2" defaultValue="Integration Key" />
+          Key name
+          <input name="key_name" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2" defaultValue="Integration Key" />
           </label>
           <input type="hidden" name="scopes" value='["read","students"]' />
-          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Generate API key
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section>
@@ -48,10 +52,16 @@ export default async function DataApiPage() {
                 {!k.is_active && <span className="ml-2 text-red-600">Revoked</span>}
               </div>
               {k.is_active && (
-                <form action={revokeApiKeyAction}>
-                  <input type="hidden" name="key_id" value={k.id} />
-                  <button type="submit" className="text-red-600 hover:underline">Revoke</button>
-                </form>
+                <ExperienceForm
+          action={revokeApiKeyAction}
+          verb="delete"
+          labels={{ idle: "Revoke" }}
+          progressLabel="Revoke…"
+          buttonVariant="danger"
+          buttonSize="sm"
+        >
+          <input type="hidden" name="key_id" value={k.id} />
+        </ExperienceForm>
               )}
             </li>
           ))}

@@ -104,12 +104,12 @@ export function ExecShell({
               <p className="text-sm font-medium text-slate-800">{fullName}</p>
               <p className="text-xs text-slate-500">{roleLabel}</p>
             </div>
-            <span
-              className="rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-medium text-slate-500"
-              title="Ask JAG — Phase 2"
+            <Link
+              href="/exec/ask"
+              className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
             >
               Ask JAG
-            </span>
+            </Link>
           </div>
         </header>
         <div

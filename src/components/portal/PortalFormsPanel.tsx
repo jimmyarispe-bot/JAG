@@ -1,7 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
 import { submitPortalFormAction } from "@/lib/portal/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 const inputClass = "mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
 
@@ -12,7 +13,13 @@ interface PortalFormsPanelProps {
 }
 
 export function PortalFormsPanel({ templates, submissions, students }: PortalFormsPanelProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "submit",
+    labels: { idle: "Submit", loading: "Submitting…", success: "✓ Submitted" },
+    successToast: "✓ Submitted",
+    errorToast: "Unable to submit.",
+    progressLabel: "Submitting form…",
+  });
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -24,11 +31,13 @@ export function PortalFormsPanel({ templates, submissions, students }: PortalFor
             className="rounded-xl border border-slate-200 bg-white p-4 space-y-2"
             onSubmit={(e) => {
               e.preventDefault();
-              startTransition(async () => {
-                const fd = new FormData(e.currentTarget);
-                fd.set("template_id", t.id);
-                fd.set("answers", JSON.stringify({ notes: fd.get("notes") }));
-                await submitPortalFormAction(fd);
+              const fd = new FormData(e.currentTarget);
+              fd.set("template_id", t.id);
+              fd.set("answers", JSON.stringify({ notes: fd.get("notes") }));
+              void action.run(async () => {
+                const result = await submitPortalFormAction(fd);
+                assertActionResult(result);
+                return result;
               });
             }}
           >
@@ -46,7 +55,13 @@ export function PortalFormsPanel({ templates, submissions, students }: PortalFor
                 I agree and electronically sign this form
               </label>
             )}
-            <button type="submit" disabled={pending} className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-50">Submit</button>
+            <ActionButton
+              type="submit"
+              status={action.status}
+              verb="submit"
+              labels={{ idle: "Submit", loading: "Submitting…", success: "✓ Submitted" }}
+              errorMessage={action.errorMessage}
+            />
           </form>
         ))}
       </section>

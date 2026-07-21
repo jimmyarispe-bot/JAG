@@ -1,6 +1,6 @@
 ﻿/**
  * Next.js instrumentation — runs once on server startup.
- * Validates environment variables before the application serves traffic.
+ * Validates environment variables and initializes RC-1 observability.
  */
 
 export async function register() {
@@ -9,6 +9,8 @@ export async function register() {
   }
 
   const { ensureEnvironmentValidated } = await import("@/lib/platform/env");
+  const { initObservability } = await import("@/lib/observability");
 
   ensureEnvironmentValidated();
+  initObservability();
 }

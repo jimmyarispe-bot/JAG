@@ -8,7 +8,7 @@ import {
 } from "@/lib/admissions/communications/engine";
 import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/types";
 import { renderTemplate, type MergeContext } from "@/lib/admissions/communications/merge-fields";
-import { sendTransactionalEmail } from "@/lib/platform/email/sendgrid";
+import { sendTransactionalEmail } from "@/lib/platform/email";
 
 async function requireAdmissionsManage() {
   return assertAnyPermission("admissions.manage", "admissions.accept");
@@ -64,7 +64,9 @@ export async function resendCommunication(formData: FormData) {
 
   const { data: original } = await supabase
     .from("admissions_communications")
-    .select("*")
+    .select(
+      "subject, body, communication_type, sent_to, application_id, template_id, template_key, trigger_event"
+    )
     .eq("id", communicationId)
     .single();
 

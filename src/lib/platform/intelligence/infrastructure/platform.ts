@@ -185,6 +185,54 @@ import type {
   CreateWisdomOptions,
   WisdomStack,
 } from "@/lib/platform/intelligence/wisdom";
+import type {
+  CreateSynthesisOptions,
+  SynthesisStack,
+} from "@/lib/platform/intelligence/synthesis";
+import type {
+  CreateBriefingOptions,
+  BriefingStack,
+} from "@/lib/platform/intelligence/briefing";
+import type {
+  CreateExecutiveMemoryOptions,
+  ExecutiveMemoryStack,
+} from "@/lib/platform/intelligence/executive-memory";
+import type {
+  CreateDecisionIntelligenceOptions,
+  DecisionIntelligenceStack,
+} from "@/lib/platform/intelligence/decision-intelligence";
+import type {
+  CreateExecutivePredictiveOptions,
+  ExecutivePredictiveStack,
+} from "@/lib/platform/intelligence/executive-predictive";
+import type {
+  CreateExecutiveAutonomousOptions,
+  ExecutiveAutonomousStack,
+} from "@/lib/platform/intelligence/executive-autonomous";
+import type {
+  CreateExecutiveCopilotOptions,
+  ExecutiveCopilotStack,
+} from "@/lib/platform/intelligence/executive-copilot";
+import type {
+  CreateExecutiveCommandCenterOptions,
+  ExecutiveCommandCenterStack,
+} from "@/lib/platform/intelligence/executive-command-center";
+import type {
+  CreateInitiativeIntelligenceOptions,
+  InitiativeIntelligenceStack,
+} from "@/lib/platform/intelligence/initiative-intelligence";
+import type {
+  CreatePortfolioIntelligenceOptions,
+  PortfolioIntelligenceStack,
+} from "@/lib/platform/intelligence/portfolio-intelligence";
+import type {
+  CreateDigitalTwinOptions,
+  DigitalTwinStack,
+} from "@/lib/platform/intelligence/digital-twin";
+import type {
+  CreateEcosystemFederationOptions,
+  EcosystemFederationStack,
+} from "@/lib/platform/intelligence/ecosystem-intelligence";
 
 /** Fully wired Intelligence Platform Infrastructure stack. */
 export interface IntelligencePlatformStack {
@@ -282,6 +330,30 @@ export interface CreateIntelligencePlatformOptions
   collective?: CollectiveStack;
   wisdomOptions?: CreateWisdomOptions;
   wisdom?: WisdomStack;
+  synthesisOptions?: CreateSynthesisOptions;
+  synthesis?: SynthesisStack;
+  briefingOptions?: CreateBriefingOptions;
+  briefing?: BriefingStack;
+  executiveMemoryOptions?: CreateExecutiveMemoryOptions;
+  executiveMemory?: ExecutiveMemoryStack;
+  decisionIntelligenceOptions?: CreateDecisionIntelligenceOptions;
+  decisionIntelligence?: DecisionIntelligenceStack;
+  executivePredictiveOptions?: CreateExecutivePredictiveOptions;
+  executivePredictive?: ExecutivePredictiveStack;
+  executiveAutonomousOptions?: CreateExecutiveAutonomousOptions;
+  executiveAutonomous?: ExecutiveAutonomousStack;
+  executiveCopilotOptions?: CreateExecutiveCopilotOptions;
+  executiveCopilot?: ExecutiveCopilotStack;
+  executiveCommandCenterOptions?: CreateExecutiveCommandCenterOptions;
+  executiveCommandCenter?: ExecutiveCommandCenterStack;
+  initiativeIntelligenceOptions?: CreateInitiativeIntelligenceOptions;
+  initiativeIntelligence?: InitiativeIntelligenceStack;
+  portfolioIntelligenceOptions?: CreatePortfolioIntelligenceOptions;
+  portfolioIntelligence?: PortfolioIntelligenceStack;
+  digitalTwinOptions?: CreateDigitalTwinOptions;
+  digitalTwin?: DigitalTwinStack;
+  ecosystemIntelligenceOptions?: CreateEcosystemFederationOptions;
+  ecosystemIntelligence?: EcosystemFederationStack;
 }
 
 /**
@@ -407,6 +479,30 @@ export function createIntelligencePlatform(
             collectiveOptions: options.collectiveOptions,
             wisdom: options.wisdom,
             wisdomOptions: options.wisdomOptions,
+            synthesis: options.synthesis,
+            synthesisOptions: options.synthesisOptions,
+            briefing: options.briefing,
+            briefingOptions: options.briefingOptions,
+            executiveMemory: options.executiveMemory,
+            executiveMemoryOptions: options.executiveMemoryOptions,
+            decisionIntelligence: options.decisionIntelligence,
+            decisionIntelligenceOptions: options.decisionIntelligenceOptions,
+            executivePredictive: options.executivePredictive,
+            executivePredictiveOptions: options.executivePredictiveOptions,
+            executiveAutonomous: options.executiveAutonomous,
+            executiveAutonomousOptions: options.executiveAutonomousOptions,
+            executiveCopilot: options.executiveCopilot,
+            executiveCopilotOptions: options.executiveCopilotOptions,
+            executiveCommandCenter: options.executiveCommandCenter,
+            executiveCommandCenterOptions: options.executiveCommandCenterOptions,
+            initiativeIntelligence: options.initiativeIntelligence,
+            initiativeIntelligenceOptions: options.initiativeIntelligenceOptions,
+            portfolioIntelligence: options.portfolioIntelligence,
+            portfolioIntelligenceOptions: options.portfolioIntelligenceOptions,
+            digitalTwin: options.digitalTwin,
+            digitalTwinOptions: options.digitalTwinOptions,
+            ecosystemIntelligence: options.ecosystemIntelligence,
+            ecosystemIntelligenceOptions: options.ecosystemIntelligenceOptions,
           }),
         ]);
 

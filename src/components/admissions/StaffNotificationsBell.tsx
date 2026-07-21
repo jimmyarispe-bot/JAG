@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
 import { markStaffNotificationRead } from "@/lib/admissions/communications/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface StaffNotification {
   id: string;
@@ -18,7 +19,13 @@ interface StaffNotificationsBellProps {
 }
 
 export function StaffNotificationsBell({ notifications }: StaffNotificationsBellProps) {
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "custom",
+    labels: { idle: "Mark read", loading: "Updating…", success: "✓ Read", error: "Unable to update" },
+    successToast: "✓ Marked as read.",
+    errorToast: "Unable to update notification.",
+    progressLabel: "Updating notification…",
+  });
   const unread = notifications.filter((n) => !("read_at" in n && n.read_at));
 
   if (notifications.length === 0) return null;
@@ -53,18 +60,22 @@ export function StaffNotificationsBell({ notifications }: StaffNotificationsBell
                         View lead
                       </Link>
                     )}
-                    <button
+                    <ActionButton
                       type="button"
-                      disabled={isPending}
-                      onClick={() =>
-                        startTransition(async () => {
-                          await markStaffNotificationRead(n.id);
-                        })
-                      }
-                      className="text-xs text-slate-500 hover:text-slate-700"
-                    >
-                      Mark read
-                    </button>
+                      status={action.status}
+                      verb="custom"
+                      variant="ghost"
+                      size="xs"
+                      labels={{ idle: "Mark read", loading: "Updating…", success: "✓ Read", error: "Unable to update" }}
+                      errorMessage={action.errorMessage}
+                      onClick={() => {
+                        void action.run(async () => {
+                          const result = await markStaffNotificationRead(n.id);
+                          assertActionResult(result);
+                          return result;
+                        });
+                      }}
+                    />
                   </div>
                 </div>
               </div>

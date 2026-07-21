@@ -238,7 +238,9 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
       if (!env) return null;
       const { data: guardians } = await supabase
         .from("guardians")
-        .select("*")
+        .select(
+          "id, first_name, last_name, is_primary, relationship_to_student, contact_type, email, phone, user_id, receives_billing, financial_responsibility_percent"
+        )
         .eq("family_id", env.familyId)
         .order("is_primary", { ascending: false });
       const relationships = await getFamilyGuardianRelationships(supabase, env.familyId);
@@ -278,7 +280,9 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
       if (!studentIds.length) return { contacts: [] };
       const { data } = await supabase
         .from("student_authorized_contacts")
-        .select("*, students(first_name, last_name)")
+        .select(
+          "id, first_name, last_name, contact_type, phone, email, custody_notes, can_pick_up, is_emergency_contact, students(first_name, last_name)"
+        )
         .in("student_id", studentIds)
         .eq("is_emergency_contact", true)
         .eq("is_active", true);
@@ -300,7 +304,9 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
       if (!studentIds.length) return { contacts: [] };
       const { data } = await supabase
         .from("student_authorized_contacts")
-        .select("*, students(first_name, last_name)")
+        .select(
+          "id, first_name, last_name, contact_type, phone, email, custody_notes, can_pick_up, is_emergency_contact, students(first_name, last_name)"
+        )
         .in("student_id", studentIds)
         .eq("can_pick_up", true)
         .eq("is_active", true);
@@ -560,20 +566,26 @@ export const FAMILY_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
       const [routesRes, pickupRes, emergencyRes] = await Promise.all([
         supabase
           .from("platform_relationships")
-          .select("*")
+          .select(
+            "id, organization_id, school_id, relationship_type, from_entity_type, from_entity_id, to_entity_type, to_entity_id, is_primary, effective_date, end_date, status, source, notes, metadata, created_by, created_at, updated_at"
+          )
           .eq("from_entity_type", "student")
           .in("from_entity_id", studentIds)
           .eq("relationship_type", "student.transportation_route")
           .eq("status", "active"),
         supabase
           .from("student_authorized_contacts")
-          .select("*, students(first_name, last_name)")
+          .select(
+            "id, first_name, last_name, contact_type, phone, email, custody_notes, can_pick_up, is_emergency_contact, students(first_name, last_name)"
+          )
           .in("student_id", studentIds)
           .eq("can_pick_up", true)
           .eq("is_active", true),
         supabase
           .from("student_authorized_contacts")
-          .select("*, students(first_name, last_name)")
+          .select(
+            "id, first_name, last_name, contact_type, phone, email, custody_notes, can_pick_up, is_emergency_contact, students(first_name, last_name)"
+          )
           .in("student_id", studentIds)
           .eq("is_active", true)
           .or("is_emergency_contact.eq.true,contact_type.eq.emergency"),

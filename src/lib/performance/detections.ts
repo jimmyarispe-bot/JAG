@@ -8,28 +8,30 @@ export function buildDetections(report: Omit<PerfProbeReport, "detections">): Pe
   const detections: PerfDetection[] = [];
 
   const coldIntel = report.comparisons.intelligenceColdMs;
+  const lazyIntel = report.comparisons.intelligenceLazyColdMs;
   const warmIntel = report.comparisons.intelligenceWarmMs;
-  if (coldIntel > 50 && warmIntel < coldIntel * 0.5) {
+  // Residual: first process still pays eager full-graph once; production uses lazy+singleton.
+  if (coldIntel > 80 && warmIntel < 1 && lazyIntel > 30) {
     detections.push({
       id: "dup-intelligence-init",
-      severity: "critical",
-      title: "Duplicate intelligence initialization (per-request DI)",
-      evidence: `Cold createIntelligenceService=${coldIntel}ms vs warm singleton=${warmIntel}ms. Without a process singleton, every ECC navigation rebuilds the 39-module graph.`,
+      severity: "high",
+      title: "Intelligence full-graph cold start still expensive",
+      evidence: `Eager cold=${coldIntel}ms lazy shell=${lazyIntel}ms warm singleton=${warmIntel}ms. Process singleton + lazy stacks are active; residual cost is first-process materialisation.`,
       recommendation:
-        "Use process-level singleton for getExecIntelligence (React cache() alone is per-request).",
+        "Keep lazy stacks default; prewarm only ECC hot stacks (oios/opportunity/wisdom) on singleton init.",
     });
   }
 
   const coldInt = report.comparisons.integrationsColdMs;
   const warmInt = report.comparisons.integrationsWarmMs;
-  if (coldInt > 40 && warmInt < coldInt * 0.5) {
+  if (coldInt > 80 && warmInt < 1) {
     detections.push({
       id: "dup-integration-bootstrap",
-      severity: "critical",
-      title: "Repeated integration platform creation + sequential bootstrap",
-      evidence: `Cold integrations bootstrap=${coldInt}ms vs warm=${warmInt}ms. Phase-1 path bootstraps 10 connectors sequentially on every fresh platform instance.`,
+      severity: "high",
+      title: "Integration platform cold bootstrap (process recycle)",
+      evidence: `Cold integrations bootstrap=${coldInt}ms vs warm=${warmInt}ms. Production reuses process singleton + shared registered platform; cold delta is first-process bootstrap only.`,
       recommendation:
-        "Process-level singleton for getIntegrationManagement; keep connector stores warm.",
+        "Keep getIntegrationManagement singleton; share getOrCreateRegisteredIntegrationPlatform with org-platform.",
     });
   }
 
@@ -87,13 +89,13 @@ export function buildDetections(report: Omit<PerfProbeReport, "detections">): Pe
   });
 
   detections.push({
-    id: "middleware-not-on-exec",
+    id: "p002-middleware-auth-only",
     severity: "low",
-    title: "Middleware excludes /exec (auth deferred to layout)",
+    title: "Middleware authenticates; RSC authorizes (P002)",
     evidence:
-      "middleware matcher covers /admin,/dashboard,/api but not /exec — layout pays full auth cost on first byte.",
+      "Edge middleware verifies session only; catalog authorization runs once via getIdentityContext / requireAuthorizedRoute in layouts.",
     recommendation:
-      "Optional: add /exec to middleware for early reject, or accept layout-only auth and optimize identity queries.",
+      "Keep request-scoped caches warm; do not reintroduce loadAuthzSnapshot in middleware.",
   });
 
   return detections;

@@ -1,6 +1,7 @@
 import { SETUP_WIZARD_STEPS } from "@/lib/configuration/types";
 import { advanceSetupAction } from "@/lib/configuration/actions";
 import { getSetupProgress } from "@/lib/configuration/setup-wizard";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 interface SetupWizardPanelProps {
   organizationId: string;
@@ -67,7 +68,15 @@ export function SetupWizardPanel({ organizationId, session }: SetupWizardPanelPr
         ))}
       </ul>
 
-      <form action={advanceSetupAction} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+      <ExperienceForm
+        action={advanceSetupAction}
+        verb="save"
+        labels={{ idle: "Save & continue", loading: "Saving…", success: "✓ Saved" }}
+        progressLabel="Saving setup step…"
+        successToast="✓ Setup step saved."
+        errorToast="Unable to save setup step."
+        className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
+      >
         <input type="hidden" name="organization_id" value={organizationId} />
         <input type="hidden" name="step" value={currentStep} />
         <h3 className="font-semibold">{stepMeta?.label ?? currentStep}</h3>
@@ -83,10 +92,7 @@ export function SetupWizardPanel({ organizationId, session }: SetupWizardPanelPr
             </label>
           ))}
         </div>
-        <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          Save &amp; continue
-        </button>
-      </form>
+      </ExperienceForm>
     </div>
   );
 }

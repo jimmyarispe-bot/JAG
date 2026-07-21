@@ -283,52 +283,52 @@ async function recordFailedTransition(
   sideEffects: LoopSideEffectResult[],
   errors: string[]
 ) {
-  await publishEvent(
-    {
-      eventType: "jag.operational_loop.transition_failed",
+  await Promise.all([
+    publishEvent(
+      {
+        eventType: "jag.operational_loop.transition_failed",
+        entityType: "student",
+        entityId: ctx.studentId,
+        schoolId: ctx.schoolId,
+        organizationId: ctx.organizationId ?? undefined,
+        actorId: ctx.actorUserId ?? undefined,
+        payload: { transitionKey: ctx.transitionKey, attemptId, errors },
+      },
+      { persist: { supabase }, recordAudit: true }
+    ).catch(() => undefined),
+    writePlatformAudit(supabase, {
+      schoolId: ctx.schoolId,
+      module: "work",
       entityType: "student",
       entityId: ctx.studentId,
+      actionType: "operational_loop_transition_failed",
+      summary: `${def.label} failed — recoverable`,
+      workflowKey: OPERATIONAL_LOOP_WORKFLOW_KEY,
+      actorUserId: ctx.actorUserId,
+      metadata: {
+        operational_loop: true,
+        attemptId,
+        transitionKey: ctx.transitionKey,
+        status: "failed",
+        errors,
+        sideEffects,
+        recoverable: true,
+        ...ctx.metadata,
+      },
+    }),
+    createMissionControlItem(supabase, {
       schoolId: ctx.schoolId,
-      organizationId: ctx.organizationId ?? undefined,
-      actorId: ctx.actorUserId ?? undefined,
-      payload: { transitionKey: ctx.transitionKey, attemptId, errors },
-    },
-    { persist: { supabase }, recordAudit: true }
-  ).catch(() => undefined);
-
-  await writePlatformAudit(supabase, {
-    schoolId: ctx.schoolId,
-    module: "work",
-    entityType: "student",
-    entityId: ctx.studentId,
-    actionType: "operational_loop_transition_failed",
-    summary: `${def.label} failed — recoverable`,
-    workflowKey: OPERATIONAL_LOOP_WORKFLOW_KEY,
-    actorUserId: ctx.actorUserId,
-    metadata: {
-      operational_loop: true,
-      attemptId,
-      transitionKey: ctx.transitionKey,
-      status: "failed",
-      errors,
-      sideEffects,
-      recoverable: true,
-      ...ctx.metadata,
-    },
-  });
-
-  await createMissionControlItem(supabase, {
-    schoolId: ctx.schoolId,
-    module: "mission_control",
-    itemType: "failed_automation",
-    title: `Operational loop transition failed — ${def.label}`,
-    body: errors.join("; ") || "Side effects incomplete",
-    entityType: "student",
-    entityId: ctx.studentId,
-    href: "/dashboard/executive?view=operational-loop",
-    severity: "high",
-    metadata: { attemptId, transitionKey: ctx.transitionKey, recoverable: true },
-  });
+      module: "mission_control",
+      itemType: "failed_automation",
+      title: `Operational loop transition failed — ${def.label}`,
+      body: errors.join("; ") || "Side effects incomplete",
+      entityType: "student",
+      entityId: ctx.studentId,
+      href: "/dashboard/executive?view=operational-loop",
+      severity: "high",
+      metadata: { attemptId, transitionKey: ctx.transitionKey, recoverable: true },
+    }),
+  ]);
 }
 
 /**

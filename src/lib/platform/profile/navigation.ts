@@ -1,6 +1,8 @@
 import {
   PROFILE_SECTION_GROUP_LABELS,
   PROFILE_SECTION_GROUPS,
+  type ClientProfileNavigation,
+  type ClientProfileNavSection,
   type ProfileEnvelopeBase,
   type ProfileNavigationGroup,
   type ProfileNavigationModel,
@@ -106,4 +108,53 @@ export function findActiveSectionDef(
     navigation.overflow.find((s) => s.key === navigation.activeSection) ??
     null
   );
+}
+
+function toClientNavSection(section: ResolvedProfileSection): ClientProfileNavSection {
+  return {
+    key: section.key,
+    label: section.label,
+    href: section.href,
+    visible: section.visible,
+    status: section.status,
+    pinned: section.pinned,
+    group: section.group,
+    hiddenReason: section.hiddenReason,
+  };
+}
+
+/**
+ * Strip non-serializable section fields (e.g. loadData) before passing navigation
+ * into Client Components. Without this, the Student Profile RSC crashes with a
+ * Next.js props serialization error.
+ */
+export function toClientProfileNavigation(
+  navigation: ProfileNavigationModel
+): ClientProfileNavigation {
+  return {
+    pinned: navigation.pinned.map(toClientNavSection),
+    groups: navigation.groups.map((group) => ({
+      group: group.group,
+      label: group.label,
+      sections: group.sections.map(toClientNavSection),
+    })),
+    overflow: navigation.overflow.map(toClientNavSection),
+    overflowGroups: navigation.overflowGroups.map((group) => ({
+      group: group.group,
+      label: group.label,
+      sections: group.sections.map(toClientNavSection),
+    })),
+    activeSection: navigation.activeSection,
+  };
+}
+
+/** True when a value is safe to pass across the RSC → client boundary. */
+export function assertClientProfileNavigationSerializable(
+  navigation: ClientProfileNavigation
+): void {
+  const serialized = JSON.stringify(navigation);
+  JSON.parse(serialized);
+  if (serialized.includes("loadData")) {
+    throw new Error("Client profile navigation must not include loadData");
+  }
 }

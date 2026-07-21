@@ -1,12 +1,10 @@
 import { SessionOutcomeForm } from "@/components/instruction/InstructionForms";
-import {
-  ArtifactForm,
-  InterventionForm,
-  ParentMessageForm,
-  SessionAssessmentForm,
-  SessionStudentPanel,
-  TeacherNoteForm,
-} from "@/components/teacher/TeacherWorkspaceForms";
+import { ArtifactForm } from "@/components/teacher/forms/ArtifactForm";
+import { InterventionForm } from "@/components/teacher/forms/InterventionForm";
+import { ParentMessageForm } from "@/components/teacher/forms/ParentMessageForm";
+import { SessionAssessmentForm } from "@/components/teacher/forms/SessionAssessmentForm";
+import { SessionStudentPanel } from "@/components/teacher/forms/SessionStudentPanel";
+import { TeacherNoteForm } from "@/components/teacher/forms/TeacherNoteForm";
 import { SessionWorkspaceForm } from "@/components/teacher/SessionWorkspaceForm";
 
 type StudentOption = { id: string; first_name?: string; last_name?: string };

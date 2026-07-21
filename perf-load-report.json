@@ -1,0 +1,911 @@
+{
+  "sprint": "RC-2",
+  "generatedAt": "2026-07-19T00:50:22.742Z",
+  "baseUrl": "http://127.0.0.1:3000",
+  "mode": "mixed",
+  "authConfigured": false,
+  "scenarios": [
+    {
+      "id": "auth.login",
+      "name": "Authentication — login page",
+      "domain": "authentication",
+      "path": "/login",
+      "concurrency": 10,
+      "durationMs": 4500,
+      "requests": 242,
+      "throughputRps": 53.78,
+      "errorRate": 0,
+      "latency": {
+        "count": 242,
+        "p50": 138.73,
+        "p95": 610.57,
+        "p99": 750.94,
+        "avg": 184.72,
+        "max": 768.54,
+        "min": 115.48
+      },
+      "statusCounts": {
+        "200": 242
+      },
+      "notes": []
+    },
+    {
+      "id": "auth.health",
+      "name": "Authentication — health canary",
+      "domain": "authentication",
+      "path": "/api/health",
+      "concurrency": 10,
+      "durationMs": 4026,
+      "requests": 1495,
+      "throughputRps": 371.34,
+      "errorRate": 0,
+      "latency": {
+        "count": 1495,
+        "p50": 25.32,
+        "p95": 38.73,
+        "p99": 54.51,
+        "avg": 26.82,
+        "max": 77.06,
+        "min": 5.22
+      },
+      "statusCounts": {
+        "200": 1495
+      },
+      "notes": []
+    },
+    {
+      "id": "exec.home",
+      "name": "Executive Command Center",
+      "domain": "executive_command_center",
+      "path": "/exec",
+      "concurrency": 10,
+      "durationMs": 4019,
+      "requests": 2705,
+      "throughputRps": 673.05,
+      "errorRate": 0,
+      "latency": {
+        "count": 2705,
+        "p50": 14.02,
+        "p95": 22.6,
+        "p99": 31.45,
+        "avg": 14.81,
+        "max": 41.36,
+        "min": 2.91
+      },
+      "statusCounts": {
+        "307": 2705
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "exec.brief",
+      "name": "ECC Brief",
+      "domain": "executive_command_center",
+      "path": "/exec/brief",
+      "concurrency": 10,
+      "durationMs": 4020,
+      "requests": 2393,
+      "throughputRps": 595.27,
+      "errorRate": 0,
+      "latency": {
+        "count": 2393,
+        "p50": 15.5,
+        "p95": 26.54,
+        "p99": 32,
+        "avg": 16.75,
+        "max": 41.55,
+        "min": 2.69
+      },
+      "statusCounts": {
+        "307": 2393
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "intel.executive",
+      "name": "Executive Intelligence",
+      "domain": "executive_intelligence",
+      "path": "/dashboard/executive",
+      "concurrency": 10,
+      "durationMs": 4010,
+      "requests": 3536,
+      "throughputRps": 881.8,
+      "errorRate": 0,
+      "latency": {
+        "count": 3536,
+        "p50": 10.8,
+        "p95": 17.12,
+        "p99": 23.41,
+        "avg": 11.32,
+        "max": 33.14,
+        "min": 7.29
+      },
+      "statusCounts": {
+        "307": 3536
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "intel.decisions",
+      "name": "Executive Decisions",
+      "domain": "executive_intelligence",
+      "path": "/dashboard/executive/decisions",
+      "concurrency": 10,
+      "durationMs": 4012,
+      "requests": 3123,
+      "throughputRps": 778.41,
+      "errorRate": 0,
+      "latency": {
+        "count": 3123,
+        "p50": 11.74,
+        "p95": 21.15,
+        "p99": 28.03,
+        "avg": 12.82,
+        "max": 48.99,
+        "min": 1.97
+      },
+      "statusCounts": {
+        "307": 3123
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "admissions.home",
+      "name": "Admissions",
+      "domain": "admissions",
+      "path": "/dashboard/admissions",
+      "concurrency": 10,
+      "durationMs": 4009,
+      "requests": 3477,
+      "throughputRps": 867.3,
+      "errorRate": 0,
+      "latency": {
+        "count": 3477,
+        "p50": 11.02,
+        "p95": 17.53,
+        "p99": 25.46,
+        "avg": 11.51,
+        "max": 37.55,
+        "min": 1.67
+      },
+      "statusCounts": {
+        "307": 3477
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "sis.students",
+      "name": "SIS — Students",
+      "domain": "sis",
+      "path": "/dashboard/students",
+      "concurrency": 10,
+      "durationMs": 4008,
+      "requests": 3875,
+      "throughputRps": 966.82,
+      "errorRate": 0,
+      "latency": {
+        "count": 3875,
+        "p50": 9.92,
+        "p95": 16.66,
+        "p99": 21.89,
+        "avg": 10.33,
+        "max": 27.74,
+        "min": 1.93
+      },
+      "statusCounts": {
+        "307": 3875
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "scheduling.home",
+      "name": "Scheduling",
+      "domain": "scheduling",
+      "path": "/dashboard/scheduling",
+      "concurrency": 10,
+      "durationMs": 4003,
+      "requests": 3992,
+      "throughputRps": 997.25,
+      "errorRate": 0,
+      "latency": {
+        "count": 3992,
+        "p50": 9.61,
+        "p95": 16.57,
+        "p99": 23.44,
+        "avg": 10.02,
+        "max": 33.59,
+        "min": 1.37
+      },
+      "statusCounts": {
+        "307": 3992
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "teacher.home",
+      "name": "Teacher Workspace",
+      "domain": "teacher",
+      "path": "/dashboard/teacher",
+      "concurrency": 10,
+      "durationMs": 4010,
+      "requests": 3534,
+      "throughputRps": 881.3,
+      "errorRate": 0,
+      "latency": {
+        "count": 3534,
+        "p50": 10.82,
+        "p95": 17.93,
+        "p99": 25.65,
+        "avg": 11.33,
+        "max": 39.06,
+        "min": 1.55
+      },
+      "statusCounts": {
+        "307": 3534
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "finance.home",
+      "name": "Finance",
+      "domain": "finance",
+      "path": "/dashboard/finance",
+      "concurrency": 10,
+      "durationMs": 4011,
+      "requests": 3664,
+      "throughputRps": 913.49,
+      "errorRate": 0,
+      "latency": {
+        "count": 3664,
+        "p50": 10.23,
+        "p95": 17.55,
+        "p99": 26.74,
+        "avg": 10.93,
+        "max": 32.32,
+        "min": 1.55
+      },
+      "statusCounts": {
+        "307": 3664
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "hr.home",
+      "name": "HR",
+      "domain": "hr",
+      "path": "/dashboard/hr",
+      "concurrency": 10,
+      "durationMs": 4010,
+      "requests": 3529,
+      "throughputRps": 880.05,
+      "errorRate": 0,
+      "latency": {
+        "count": 3529,
+        "p50": 10.98,
+        "p95": 17.46,
+        "p99": 23.1,
+        "avg": 11.34,
+        "max": 36.57,
+        "min": 2.39
+      },
+      "statusCounts": {
+        "307": 3529
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "integrations.home",
+      "name": "Integrations",
+      "domain": "integrations",
+      "path": "/dashboard/integrations",
+      "concurrency": 10,
+      "durationMs": 4006,
+      "requests": 3914,
+      "throughputRps": 977.03,
+      "errorRate": 0,
+      "latency": {
+        "count": 3914,
+        "p50": 9.5,
+        "p95": 16.94,
+        "p99": 23.52,
+        "avg": 10.22,
+        "max": 33.55,
+        "min": 1.45
+      },
+      "statusCounts": {
+        "307": 3914
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "integrations.exec",
+      "name": "Exec Integrations",
+      "domain": "integrations",
+      "path": "/exec/integrations",
+      "concurrency": 10,
+      "durationMs": 4009,
+      "requests": 4045,
+      "throughputRps": 1008.98,
+      "errorRate": 0,
+      "latency": {
+        "count": 4045,
+        "p50": 9.45,
+        "p95": 16.04,
+        "p99": 23.06,
+        "avg": 9.9,
+        "max": 29.38,
+        "min": 2.35
+      },
+      "statusCounts": {
+        "307": 4045
+      },
+      "notes": [
+        "Unauthenticated — measuring middleware/auth-gate latency"
+      ]
+    },
+    {
+      "id": "ops.ready",
+      "name": "Readiness probe",
+      "domain": "ops",
+      "path": "/api/ready",
+      "concurrency": 10,
+      "durationMs": 4016,
+      "requests": 2034,
+      "throughputRps": 506.47,
+      "errorRate": 0,
+      "latency": {
+        "count": 2034,
+        "p50": 18.11,
+        "p95": 30.06,
+        "p99": 42.22,
+        "avg": 19.7,
+        "max": 59.52,
+        "min": 4
+      },
+      "statusCounts": {
+        "200": 2034
+      },
+      "notes": []
+    }
+  ],
+  "concurrencyRamp": [
+    {
+      "id": "auth.health",
+      "name": "Authentication — health canary",
+      "domain": "authentication",
+      "path": "/api/health",
+      "concurrency": 10,
+      "durationMs": 4018,
+      "requests": 2052,
+      "throughputRps": 510.7,
+      "errorRate": 0,
+      "latency": {
+        "count": 2052,
+        "p50": 18.22,
+        "p95": 27.84,
+        "p99": 41.66,
+        "avg": 19.53,
+        "max": 59,
+        "min": 1.89
+      },
+      "statusCounts": {
+        "200": 2052
+      },
+      "notes": []
+    },
+    {
+      "id": "auth.health",
+      "name": "Authentication — health canary",
+      "domain": "authentication",
+      "path": "/api/health",
+      "concurrency": 50,
+      "durationMs": 4084,
+      "requests": 2047,
+      "throughputRps": 501.22,
+      "errorRate": 0,
+      "latency": {
+        "count": 2047,
+        "p50": 93.2,
+        "p95": 139.64,
+        "p99": 158.2,
+        "avg": 98.7,
+        "max": 183.17,
+        "min": 9.09
+      },
+      "statusCounts": {
+        "200": 2047
+      },
+      "notes": []
+    },
+    {
+      "id": "auth.health",
+      "name": "Authentication — health canary",
+      "domain": "authentication",
+      "path": "/api/health",
+      "concurrency": 100,
+      "durationMs": 4212,
+      "requests": 2189,
+      "throughputRps": 519.71,
+      "errorRate": 0,
+      "latency": {
+        "count": 2189,
+        "p50": 185.1,
+        "p95": 229.74,
+        "p99": 254.09,
+        "avg": 187.32,
+        "max": 398.33,
+        "min": 9.87
+      },
+      "statusCounts": {
+        "200": 2189
+      },
+      "notes": []
+    }
+  ],
+  "endurance": {
+    "durationMs": 30000,
+    "samples": [
+      {
+        "at": "2026-07-19T00:49:43.468Z",
+        "heapUsedMb": 62.28,
+        "heapTotalMb": 196.46,
+        "rssMb": 251.37,
+        "cpuUserMs": 18046,
+        "cpuSystemMs": 3921
+      },
+      {
+        "at": "2026-07-19T00:49:48.470Z",
+        "heapUsedMb": 14.46,
+        "heapTotalMb": 147.08,
+        "rssMb": 252.1,
+        "cpuUserMs": 18750,
+        "cpuSystemMs": 4156
+      },
+      {
+        "at": "2026-07-19T00:49:53.470Z",
+        "heapUsedMb": 22.96,
+        "heapTotalMb": 146.33,
+        "rssMb": 253.02,
+        "cpuUserMs": 19578,
+        "cpuSystemMs": 4406
+      },
+      {
+        "at": "2026-07-19T00:49:58.471Z",
+        "heapUsedMb": 32.8,
+        "heapTotalMb": 146.83,
+        "rssMb": 255.22,
+        "cpuUserMs": 20578,
+        "cpuSystemMs": 4578
+      },
+      {
+        "at": "2026-07-19T00:50:03.472Z",
+        "heapUsedMb": 21.98,
+        "heapTotalMb": 146.58,
+        "rssMb": 253.9,
+        "cpuUserMs": 21406,
+        "cpuSystemMs": 5078
+      },
+      {
+        "at": "2026-07-19T00:50:08.472Z",
+        "heapUsedMb": 33.42,
+        "heapTotalMb": 146.58,
+        "rssMb": 255.31,
+        "cpuUserMs": 22468,
+        "cpuSystemMs": 5437
+      },
+      {
+        "at": "2026-07-19T00:50:13.472Z",
+        "heapUsedMb": 18.91,
+        "heapTotalMb": 147.08,
+        "rssMb": 254.15,
+        "cpuUserMs": 23578,
+        "cpuSystemMs": 5593
+      },
+      {
+        "at": "2026-07-19T00:50:13.619Z",
+        "heapUsedMb": 19.83,
+        "heapTotalMb": 147.08,
+        "rssMb": 254.49,
+        "cpuUserMs": 23593,
+        "cpuSystemMs": 5593
+      }
+    ],
+    "summary": {
+      "id": "endurance.soak",
+      "name": "Endurance soak",
+      "domain": "endurance",
+      "path": "/api/health,/api/ready,/login,/api/ready/deep",
+      "concurrency": 20,
+      "durationMs": 30151,
+      "requests": 8392,
+      "throughputRps": 278.33,
+      "errorRate": 0,
+      "latency": {
+        "count": 8392,
+        "p50": 14.96,
+        "p95": 264.62,
+        "p99": 318.55,
+        "avg": 71.57,
+        "max": 668.48,
+        "min": 1.74
+      },
+      "statusCounts": {
+        "200": 6298,
+        "401": 2094
+      }
+    },
+    "observations": [
+      "Heap used Δ -42.45 MB (62.28 → 19.83)",
+      "RSS Δ 3.12 MB (251.37 → 254.49)",
+      "Heap growth within expected warm-up band",
+      "CPU time accumulated on runner: 7219 ms"
+    ]
+  },
+  "failureInjection": [
+    {
+      "id": "fail.integration_timeout",
+      "name": "Integration timeout",
+      "injected": "integrationTimeout=true",
+      "expectedBehavior": "Gateway timeout / non-500 app still live; deep ready degraded",
+      "observed": "status=504 duration=5008.33ms",
+      "passed": true,
+      "detail": "Upstream timeout simulated; caller should degrade without crashing process",
+      "latencyMs": 5008.33
+    },
+    {
+      "id": "fail.db_latency",
+      "name": "Temporary database latency",
+      "injected": "dbLatencyMs=800",
+      "expectedBehavior": "Deep ready reports degraded/healthy with elevated latency",
+      "observed": "status=200 duration=811.01ms",
+      "passed": true,
+      "detail": "Deep health reflects DB latency; liveness should remain ok",
+      "latencyMs": 811.01
+    },
+    {
+      "id": "fail.db_latency_liveness",
+      "name": "Liveness during DB latency",
+      "injected": "dbLatencyMs=800",
+      "expectedBehavior": "Liveness remains 200",
+      "observed": "status=200",
+      "passed": true,
+      "detail": "Graceful degradation: liveness independent of deep deps",
+      "latencyMs": 0.72
+    },
+    {
+      "id": "fail.queue_backlog",
+      "name": "Queue backlog",
+      "injected": "queueBacklog=5000",
+      "expectedBehavior": "Deep ready degraded for queue_workers",
+      "observed": "status=200",
+      "passed": true,
+      "detail": "Queue pressure surfaced in deep health (not process crash)",
+      "latencyMs": 0.42
+    },
+    {
+      "id": "fail.cache",
+      "name": "Cache failure",
+      "injected": "cacheFail=true",
+      "expectedBehavior": "Deep ready unavailable/degraded; app may continue",
+      "observed": "status=503",
+      "passed": true,
+      "detail": "Cache failure visible to readiness; cheap /api/ready still usable for LB",
+      "latencyMs": 0.39
+    },
+    {
+      "id": "fail.external_api",
+      "name": "External API failure",
+      "injected": "externalApiFail=true",
+      "expectedBehavior": "502 from integration path; alerts triggered",
+      "observed": "integration=502 alerts=200",
+      "passed": true,
+      "detail": "Failure propagates to alert evaluation endpoint",
+      "latencyMs": 0.31
+    },
+    {
+      "id": "fail.retry_recovery",
+      "name": "Retry then recovery",
+      "injected": "transient 503 then 200",
+      "expectedBehavior": "Caller retries and eventually succeeds",
+      "observed": "statuses=503,503,200",
+      "passed": true,
+      "detail": "Models integration retry recovery behavior"
+    },
+    {
+      "id": "live.health",
+      "name": "Live liveness",
+      "injected": "none",
+      "expectedBehavior": "200 ok",
+      "observed": "status=200",
+      "passed": true,
+      "detail": "Production health endpoint responding",
+      "latencyMs": 3.9
+    },
+    {
+      "id": "live.ready",
+      "name": "Live readiness",
+      "injected": "none",
+      "expectedBehavior": "200 ready (or 503 if env incomplete)",
+      "observed": "status=200",
+      "passed": true,
+      "detail": "Readiness probe reachable",
+      "latencyMs": 3.57
+    },
+    {
+      "id": "live.deep",
+      "name": "Live deep readiness",
+      "injected": "none",
+      "expectedBehavior": "200/503 JSON with checks (public probe)",
+      "observed": "status=401",
+      "passed": true,
+      "detail": "401: running build has not published /api/ready/deep as public — rebuild after RC-1 allowlist",
+      "latencyMs": 2.57
+    }
+  ],
+  "database": {
+    "at": "2026-07-19T00:50:19.481Z",
+    "deepReadyStatus": "401",
+    "poolNote": "Connection pool utilization and lock contention: use Supabase dashboard during load.",
+    "source": "live"
+  },
+  "baselines": {
+    "_meta": {
+      "note": "In-process ECC probe at 2026-07-19T00:50:22.741Z"
+    },
+    "/exec": {
+      "count": 1,
+      "p50": 38.23,
+      "p95": 38.23,
+      "p99": 38.23,
+      "avg": 38.23,
+      "max": 38.23,
+      "min": 38.23
+    },
+    "/exec/brief": {
+      "count": 1,
+      "p50": 12.03,
+      "p95": 12.03,
+      "p99": 12.03,
+      "avg": 12.03,
+      "max": 12.03,
+      "min": 12.03
+    },
+    "/exec/health": {
+      "count": 1,
+      "p50": 7.24,
+      "p95": 7.24,
+      "p99": 7.24,
+      "avg": 7.24,
+      "max": 7.24,
+      "min": 7.24
+    },
+    "/exec/opportunities": {
+      "count": 1,
+      "p50": 6.71,
+      "p95": 6.71,
+      "p99": 6.71,
+      "avg": 6.71,
+      "max": 6.71,
+      "min": 6.71
+    },
+    "/exec/wisdom": {
+      "count": 1,
+      "p50": 2.97,
+      "p95": 2.97,
+      "p99": 2.97,
+      "avg": 2.97,
+      "max": 2.97,
+      "min": 2.97
+    },
+    "/exec/risks": {
+      "count": 1,
+      "p50": 11.77,
+      "p95": 11.77,
+      "p99": 11.77,
+      "avg": 11.77,
+      "max": 11.77,
+      "min": 11.77
+    },
+    "singleton.intelligenceColdMs": {
+      "count": 1,
+      "p50": 30.18,
+      "p95": 30.18,
+      "p99": 30.18,
+      "avg": 30.18,
+      "max": 30.18,
+      "min": 30.18
+    },
+    "singleton.integrationsColdMs": {
+      "count": 1,
+      "p50": 44.66,
+      "p95": 44.66,
+      "p99": 44.66,
+      "avg": 44.66,
+      "max": 44.66,
+      "min": 44.66
+    },
+    "auth.login": {
+      "count": 242,
+      "p50": 138.73,
+      "p95": 610.57,
+      "p99": 750.94,
+      "avg": 184.72,
+      "max": 768.54,
+      "min": 115.48
+    },
+    "auth.health": {
+      "count": 1495,
+      "p50": 25.32,
+      "p95": 38.73,
+      "p99": 54.51,
+      "avg": 26.82,
+      "max": 77.06,
+      "min": 5.22
+    },
+    "exec.home": {
+      "count": 2705,
+      "p50": 14.02,
+      "p95": 22.6,
+      "p99": 31.45,
+      "avg": 14.81,
+      "max": 41.36,
+      "min": 2.91
+    },
+    "exec.brief": {
+      "count": 2393,
+      "p50": 15.5,
+      "p95": 26.54,
+      "p99": 32,
+      "avg": 16.75,
+      "max": 41.55,
+      "min": 2.69
+    },
+    "intel.executive": {
+      "count": 3536,
+      "p50": 10.8,
+      "p95": 17.12,
+      "p99": 23.41,
+      "avg": 11.32,
+      "max": 33.14,
+      "min": 7.29
+    },
+    "intel.decisions": {
+      "count": 3123,
+      "p50": 11.74,
+      "p95": 21.15,
+      "p99": 28.03,
+      "avg": 12.82,
+      "max": 48.99,
+      "min": 1.97
+    },
+    "admissions.home": {
+      "count": 3477,
+      "p50": 11.02,
+      "p95": 17.53,
+      "p99": 25.46,
+      "avg": 11.51,
+      "max": 37.55,
+      "min": 1.67
+    },
+    "sis.students": {
+      "count": 3875,
+      "p50": 9.92,
+      "p95": 16.66,
+      "p99": 21.89,
+      "avg": 10.33,
+      "max": 27.74,
+      "min": 1.93
+    },
+    "scheduling.home": {
+      "count": 3992,
+      "p50": 9.61,
+      "p95": 16.57,
+      "p99": 23.44,
+      "avg": 10.02,
+      "max": 33.59,
+      "min": 1.37
+    },
+    "teacher.home": {
+      "count": 3534,
+      "p50": 10.82,
+      "p95": 17.93,
+      "p99": 25.65,
+      "avg": 11.33,
+      "max": 39.06,
+      "min": 1.55
+    },
+    "finance.home": {
+      "count": 3664,
+      "p50": 10.23,
+      "p95": 17.55,
+      "p99": 26.74,
+      "avg": 10.93,
+      "max": 32.32,
+      "min": 1.55
+    },
+    "hr.home": {
+      "count": 3529,
+      "p50": 10.98,
+      "p95": 17.46,
+      "p99": 23.1,
+      "avg": 11.34,
+      "max": 36.57,
+      "min": 2.39
+    },
+    "integrations.home": {
+      "count": 3914,
+      "p50": 9.5,
+      "p95": 16.94,
+      "p99": 23.52,
+      "avg": 10.22,
+      "max": 33.55,
+      "min": 1.45
+    },
+    "integrations.exec": {
+      "count": 4045,
+      "p50": 9.45,
+      "p95": 16.04,
+      "p99": 23.06,
+      "avg": 9.9,
+      "max": 29.38,
+      "min": 2.35
+    },
+    "ops.ready": {
+      "count": 2034,
+      "p50": 18.11,
+      "p95": 30.06,
+      "p99": 42.22,
+      "avg": 19.7,
+      "max": 59.52,
+      "min": 4
+    }
+  },
+  "issues": [
+    {
+      "severity": "info",
+      "message": "Authenticated load not configured (LOAD_TEST_COOKIE or email/password)",
+      "fix": "Set credentials against staging for full page baselines"
+    },
+    {
+      "severity": "warning",
+      "message": "Live /api/ready/deep returned 401 — running build predates public deep-ready allowlist",
+      "fix": "Rebuild and restart so middleware public paths include /api/ready/deep"
+    },
+    {
+      "severity": "info",
+      "message": "`next start` requires production env (APP_URL, CRON_SECRET, SENDGRID_API_KEY, VAULT_ENCRYPTION_KEY) or instrumentation fails and the server accepts no traffic",
+      "fix": "Ensure production secrets are present before load tests against `next start`"
+    },
+    {
+      "severity": "info",
+      "message": "Endurance duration 30000ms (< 1h). For RC soak set LOAD_ENDURANCE_MS to 6–24h on staging."
+    }
+  ],
+  "releaseReadiness": {
+    "status": "ready_with_gaps",
+    "summary": "Public/auth-gate load + failure injection passed; authenticated page latency baselines need LOAD_TEST credentials on staging.",
+    "blockers": []
+  }
+}

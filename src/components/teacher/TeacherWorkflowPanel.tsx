@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { SessionCardActions } from "@/components/teacher/TeacherSessionActions";
 import { SessionReadinessCompact } from "@/components/instruction/SessionReadinessCompact";
 import { EvidenceLibraryFilters } from "@/components/instruction/EvidenceLibraryFilters";
+import { ActionChip, ActionChipGroup } from "@/components/experience-system/feedback/ActionChip";
 import type { StudentReadinessSnapshot } from "@/lib/instruction/readiness";
 import type { JagProfile } from "@/lib/platform/jag-profile";
 import {
@@ -22,7 +23,9 @@ import {
   TimelinePanel,
   type XesTimelineEntry,
 } from "@/components/experience-system";
-import { ArtifactForm, ProgressRecordForm, TeacherNoteForm } from "@/components/teacher/TeacherWorkspaceForms";
+import { ArtifactForm } from "@/components/teacher/forms/ArtifactForm";
+import { ProgressRecordForm } from "@/components/teacher/forms/ProgressRecordForm";
+import { TeacherNoteForm } from "@/components/teacher/forms/TeacherNoteForm";
 
 export type TeacherWorkflowId = "morning" | "instruction" | "evidence";
 
@@ -97,12 +100,12 @@ function buildScheduleTimeline(sessions: TodaySession[]): XesTimelineEntry[] {
       timestamp: new Date(now).toISOString(),
       status,
       meta: (
-        <Link
+        <ActionChip
           href={`/dashboard/teacher/sessions/${session.id}?from=instruction`}
-          className="text-sm font-medium text-brand-600 hover:underline"
+          size="sm"
         >
-          Open session →
-        </Link>
+          Open session
+        </ActionChip>
       ),
     };
   });
@@ -263,24 +266,22 @@ function SessionInstructionCard({
         </>
       }
       actions={
-        <>
+        <ActionChipGroup>
           {session.students.slice(0, 3).map((s) =>
             s.id ? (
-              <Link
+              <ActionChip
                 key={s.id}
                 href={`/dashboard/teacher/students/${s.id}`}
-                className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                size="xs"
+                variant="secondary"
               >
-                {s.first_name} profile
-              </Link>
+                View {s.first_name}
+              </ActionChip>
             ) : null
           )}
-          <Link
-            href={sessionHref}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
+          <ActionChip href={sessionHref} size="sm">
             {isComplete ? "Review session" : "Open session"}
-          </Link>
+          </ActionChip>
           {session.students.length > 0 && (
             <SessionCardActions
               sessionId={session.id}
@@ -288,7 +289,7 @@ function SessionInstructionCard({
               lessonStatus={session.lessonStatus}
             />
           )}
-        </>
+        </ActionChipGroup>
       }
     />
   );
@@ -352,13 +353,13 @@ function MorningWorkflow({
             <ul className="space-y-3">
               {attentionStudents.map((s) => (
                 <li key={s.studentId}>
-                  <Link href={s.href} className="block">
-                    <CardShell interactive padding="md">
-                      <p className="font-medium text-slate-900">{s.name}</p>
-                      <p className="mt-1 text-sm text-amber-700">{s.reason}</p>
-                      <span className="mt-2 inline-block text-xs font-medium text-brand-600">View profile →</span>
-                    </CardShell>
-                  </Link>
+                  <CardShell interactive padding="md">
+                    <p className="font-medium text-slate-900">{s.name}</p>
+                    <p className="mt-1 text-sm text-amber-700">{s.reason}</p>
+                    <ActionChip href={s.href} size="xs" className="mt-2">
+                      View Student
+                    </ActionChip>
+                  </CardShell>
                 </li>
               ))}
             </ul>
@@ -435,12 +436,9 @@ function MorningWorkflow({
 
       {sessions.length > 0 && (
         <section className="border-t border-slate-100 pt-6">
-          <Link
-            href={workflowBase("instruction")}
-            className="inline-flex items-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            Begin instruction →
-          </Link>
+          <ActionChip href={workflowBase("instruction")} size="md" variant="primary">
+            Begin instruction
+          </ActionChip>
         </section>
       )}
     </div>
@@ -541,20 +539,17 @@ function InstructionWorkflow({
                   name={`${s.first_name ?? ""} ${s.last_name ?? ""}`.trim()}
                   subtitle={s.grade_level ? `Grade ${s.grade_level}` : "Roster student"}
                   actions={
-                    <div className="flex flex-wrap gap-3 text-xs">
-                      <Link
-                        href={`/dashboard/teacher/students/${s.id}`}
-                        className="font-medium text-brand-600 hover:underline"
-                      >
-                        View profile
-                      </Link>
-                      <Link
+                    <ActionChipGroup>
+                      <ActionChip href={`/dashboard/teacher/students/${s.id}`} size="xs">
+                        View Student
+                      </ActionChip>
+                      <ActionChip
                         href={`${workflowBase("instruction")}&student=${s.id}#progress`}
-                        className="font-medium text-brand-600 hover:underline"
+                        size="xs"
                       >
                         Competency progress
-                      </Link>
-                    </div>
+                      </ActionChip>
+                    </ActionChipGroup>
                   }
                 />
               ))}
@@ -605,12 +600,13 @@ function InstructionWorkflow({
                     </p>
                   )}
                   {heroSession && (
-                    <Link
+                    <ActionChip
                       href={`/dashboard/teacher/sessions/${heroSession.id}?from=instruction`}
-                      className="mt-3 inline-block text-xs font-medium text-brand-600 hover:underline"
+                      size="xs"
+                      className="mt-3"
                     >
-                      Use in active session →
-                    </Link>
+                      Use in active session
+                    </ActionChip>
                   )}
                 </CardShell>
               </li>
@@ -652,12 +648,9 @@ function InstructionWorkflow({
       </NotesPanel>
 
       <section className="border-t border-slate-100 pt-6">
-        <Link
-          href={workflowBase("evidence")}
-          className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Continue to evidence →
-        </Link>
+        <ActionChip href={workflowBase("evidence")} size="md" variant="secondary">
+          Continue to evidence
+        </ActionChip>
       </section>
     </div>
   );

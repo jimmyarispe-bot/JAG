@@ -36,6 +36,8 @@ export {
   sectionsForViewTabs,
   groupForSection,
   findActiveSectionDef,
+  toClientProfileNavigation,
+  assertClientProfileNavigationSerializable,
 } from "@/lib/platform/profile/navigation";
 export {
   parseProfileSectionParam,
@@ -60,6 +62,9 @@ export type {
   ResolvedProfileSection,
   ProfileNavigationGroup,
   ProfileNavigationModel,
+  ClientProfileNavSection,
+  ClientProfileNavigationGroup,
+  ClientProfileNavigation,
   ProfileResolveOptions,
   ProfileSectionContext,
 } from "@/lib/platform/profile/types";

@@ -11,6 +11,7 @@ export const PERMISSION_KEYS = [
   "impersonate.users",
   "students.view",
   "students.edit",
+  "families.manage",
   "students.attendance",
   "students.behavior",
   "students.services",

@@ -1,6 +1,7 @@
 import { writePlatformAudit } from "@/lib/platform/automation/audit";
 import { publishEvent } from "@/lib/platform/events/publisher/publish";
 import { getLoopTransitionAudit } from "@/lib/platform/operational-loop/audit";
+import { LOOP_AUDIT_EVENT_COLS } from "@/lib/platform/operational-loop/audit-projections";
 import { executeOperationalLoopTransition } from "@/lib/platform/operational-loop/orchestrate";
 import { OPERATIONAL_LOOP_WORKFLOW_KEY } from "@/lib/platform/operational-loop/registry";
 import type { LoopTransitionResult } from "@/lib/platform/operational-loop/types";
@@ -23,7 +24,7 @@ export async function retryFailedLoopTransition(
 ): Promise<LoopTransitionResult | { error: string }> {
   const { data: row } = await supabase
     .from("platform_audit_events")
-    .select("*")
+    .select(LOOP_AUDIT_EVENT_COLS)
     .eq("id", input.auditEntryId)
     .maybeSingle();
 

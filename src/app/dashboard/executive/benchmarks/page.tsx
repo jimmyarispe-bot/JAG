@@ -1,6 +1,6 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getSchoolBenchmarks } from "@/lib/executive/benchmarking";
-import { BenchmarkingPanel } from "@/components/executive/ExecutivePanels";
+import { BenchmarkingPanel } from "@/components/executive/ExecutiveDisplayPanels";
 
 export default async function ExecutiveBenchmarksPage() {
   const supabase = await createAuthClient();

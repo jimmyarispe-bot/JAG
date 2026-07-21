@@ -24,12 +24,13 @@ import {
   TeachersPanel,
 } from "@/components/students/profile/panels/StudentProfilePanels";
 import { ProfileCard, ProfileEmpty, ProfileItem } from "@/components/students/profile/shared/ProfilePrimitives";
+import { FamilyLinkActions } from "@/components/students/FamilyLinkActions";
 import { buildFamilyProfileSectionHref } from "@/lib/families/profile/href";
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import type { PlatformActivityEvent } from "@/lib/platform/activity/types";
 import type { StudentConversionLink } from "@/lib/sis/queries";
 import type { ExecutiveSummary } from "@/lib/ssis/queries";
-import type { GuardianRecord, SisEnrollment, StudentRecord } from "@/lib/students/queries";
+import type { Family, GuardianRecord, SisEnrollment, StudentRecord } from "@/lib/students/queries";
 import { isStudentProfileEnvelope } from "@/lib/students/profile/types";
 import type { PlatformEntityTag } from "@/lib/platform/tags/types";
 import type { PlatformRelationship } from "@/lib/platform/relationships/types";
@@ -311,18 +312,39 @@ export function FamilySection(props: ProfileSectionViewProps) {
     siblings: Record<string, unknown>[];
     households: Record<string, unknown>[];
     relationships: PlatformRelationship[];
+    families?: Family[];
+    canManageFamily?: boolean;
   } | null;
   const env = isStudentProfileEnvelope(props.envelope) ? props.envelope : null;
   if (!data) return <ProfileSectionPlaceholder title="Family & Guardians" status="live" />;
 
   const familyId = env?.familyId ?? data.student?.family_id ?? null;
   const familyName = data.student?.families?.family_name;
+  const canManageFamily =
+    data.canManageFamily ??
+    Boolean(
+      env?.permissions.includes("families.manage") || env?.permissions.includes("students.edit")
+    );
 
   return (
     <div className="space-y-6">
       <ProfileCard title={familyName ? `Family: ${familyName}` : "Family & Guardians"}>
         {!familyId ? (
-          <ProfileEmpty>No family linked to this student</ProfileEmpty>
+          data.student?.school_id ? (
+            <FamilyLinkActions
+              studentId={data.student.id}
+              studentLastName={data.student.last_name}
+              schoolId={data.student.school_id}
+              families={(data.families ?? []).map((f) => ({
+                id: f.id,
+                family_name: f.family_name,
+                billing_email: f.billing_email,
+              }))}
+              canManage={Boolean(canManageFamily)}
+            />
+          ) : (
+            <ProfileEmpty>No family has been linked yet.</ProfileEmpty>
+          )
         ) : (
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
@@ -340,6 +362,7 @@ export function FamilySection(props: ProfileSectionViewProps) {
                       {g.first_name} {g.last_name}
                       {g.is_primary && <span className="ml-2 text-xs text-brand-600">Primary</span>}
                       {g.email && <span className="ml-2 text-slate-500">{g.email}</span>}
+                      {g.phone && <span className="ml-2 text-slate-500">{g.phone}</span>}
                     </li>
                   ))}
                 </ul>

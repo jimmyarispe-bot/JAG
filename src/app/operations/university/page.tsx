@@ -5,6 +5,7 @@ import { OpsShell } from "@/components/operations-platform/OpsNav";
 import { OpsTable } from "@/components/operations-platform/OpsPanels";
 import { enrollCourseAction } from "@/lib/operations-platform/actions";
 import { UNIVERSITY_ROLE_PATHS } from "@/lib/operations-platform/types";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function OperationsUniversityPage() {
   await requireOperationsPermission(["operations.view"]);
@@ -20,10 +21,19 @@ export default async function OperationsUniversityPage() {
         { key: "renewal_months", label: "Renewal (mo)" },
       ]} />
       {courses.slice(0, 3).map((c) => (
-        <form key={c.id} action={enrollCourseAction}>
+        <ExperienceForm
+          key={c.id}
+          action={enrollCourseAction}
+          verb="create"
+          labels={{ idle: `Enroll: ${c.course_name}`, loading: "Enrolling…", success: "✓ Enrolled" }}
+          progressLabel="Enrolling in course…"
+          successToast="✓ Enrolled."
+          errorToast="Unable to enroll."
+          className="mr-2 inline-block"
+          buttonClassName="!mr-2 !rounded !bg-indigo-100 !px-3 !py-1 !text-xs !text-indigo-800 hover:!bg-indigo-200"
+        >
           <input type="hidden" name="course_id" value={c.id} />
-          <button type="submit" className="mr-2 rounded bg-indigo-100 px-3 py-1 text-xs text-indigo-800">Enroll: {c.course_name}</button>
-        </form>
+        </ExperienceForm>
       ))}
       <h2 className="font-semibold">Enrollments</h2>
       <OpsTable rows={enrollments} columns={[

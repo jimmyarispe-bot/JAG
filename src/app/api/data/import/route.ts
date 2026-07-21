@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import {
+  requireOrganizationAccess,
+  requireSchoolAccess,
+} from "@/lib/platform/identity/tenant-access";
 import { canImportData } from "@/lib/enterprise-data/access";
 import { getPrimaryOrganizationId } from "@/lib/enterprise-data/context";
 import { createImportBatch, parseAndStageImport, commitImportBatch } from "@/lib/enterprise-data/import-engine";
@@ -16,8 +20,22 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const supabase = await createAuthClient();
-  const orgId = await getPrimaryOrganizationId(supabase);
+  const orgId = (typeof body.organizationId === "string" && body.organizationId) ||
+    (await getPrimaryOrganizationId(supabase));
   if (!orgId) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+
+  // RC-3 — enforce org membership; school membership when schoolId supplied.
+  const orgScope = await requireOrganizationAccess(supabase, ctx.effectiveUserId, orgId);
+  if (orgScope !== true) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const schoolId = typeof body.schoolId === "string" ? body.schoolId : undefined;
+  if (schoolId) {
+    const schoolScope = requireSchoolAccess(ctx, schoolId);
+    if (schoolScope !== true) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   const importType = (body.importType ?? "student") as EdpImportType;
   const sourceFormat = (body.sourceFormat ?? "csv") as EdpSourceFormat;
@@ -29,7 +47,7 @@ export async function POST(request: Request) {
     sourceFormat,
     fileName: body.fileName,
     importedBy: ctx.effectiveUserId,
-    schoolId: body.schoolId,
+    schoolId,
   });
 
   if (batch.error || !batch.batchId) {

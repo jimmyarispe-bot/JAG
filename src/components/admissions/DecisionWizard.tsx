@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { submitAdmissionsDecision } from "@/lib/admissions/decisions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 interface DecisionWizardProps {
   leadId: string;
@@ -21,13 +22,20 @@ export function DecisionWizard({ leadId, applicationId, studentName }: DecisionW
   const [decision, setDecision] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
-  const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const action = useActionFeedback({
+    verb: "approve",
+    labels: { idle: "Confirm Decision", loading: "Processing…", success: "✓ Recorded" },
+    successToast: "✓ Decision recorded.",
+    errorToast: "Unable to save decision.",
+    progressLabel: "Recording admissions decision…",
+    onError: (err) => setError(err.message),
+  });
 
   function handleSubmit() {
     setError(null);
-    startTransition(async () => {
+    void action.run(async () => {
       const formData = new FormData();
       formData.set("lead_id", leadId);
       if (applicationId) formData.set("application_id", applicationId);
@@ -36,12 +44,10 @@ export function DecisionWizard({ leadId, applicationId, studentName }: DecisionW
       formData.set("send_email", String(sendEmail));
 
       const res = await submitAdmissionsDecision(formData);
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
+      if (res.error) throw new Error(res.error);
       setResult("Decision recorded. Tasks created and communication logged.");
       setStep(3);
+      return res;
     });
   }
 
@@ -106,21 +112,21 @@ export function DecisionWizard({ leadId, applicationId, studentName }: DecisionW
           </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
-            <button
+            <ActionButton
               type="button"
+              verb="custom"
+              variant="secondary"
+              labels={{ idle: "Back" }}
               onClick={() => setStep(1)}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm"
-            >
-              Back
-            </button>
-            <button
+            />
+            <ActionButton
               type="button"
-              disabled={isPending}
+              status={action.status}
+              verb="approve"
+              labels={{ idle: "Confirm Decision", loading: "Processing…", success: "✓ Recorded" }}
+              errorMessage={action.errorMessage}
               onClick={handleSubmit}
-              className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-            >
-              {isPending ? "Processing…" : "Confirm Decision"}
-            </button>
+            />
           </div>
         </div>
       )}

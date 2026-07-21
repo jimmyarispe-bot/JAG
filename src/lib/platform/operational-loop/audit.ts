@@ -1,4 +1,5 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { LOOP_AUDIT_EVENT_COLS } from "@/lib/platform/operational-loop/audit-projections";
 import type { LoopTransitionAuditEntry } from "@/lib/platform/operational-loop/types";
 import { OPERATIONAL_LOOP_TRANSITION_KEYS } from "@/lib/platform/operational-loop/types";
 import type { OperationalLoopTransitionKey } from "@/lib/platform/operational-loop/types";
@@ -38,7 +39,7 @@ export async function getStudentLoopAuditTrail(
 ): Promise<LoopTransitionAuditEntry[]> {
   const { data } = await supabase
     .from("platform_audit_events")
-    .select("*")
+    .select(LOOP_AUDIT_EVENT_COLS)
     .eq("entity_type", "student")
     .eq("entity_id", studentId)
     .in("action_type", [
@@ -62,7 +63,7 @@ export async function getLoopTransitionAudit(
 ): Promise<LoopTransitionAuditEntry[]> {
   let q = supabase
     .from("platform_audit_events")
-    .select("*")
+    .select(LOOP_AUDIT_EVENT_COLS)
     .in("action_type", [
       "operational_loop_transition",
       "operational_loop_transition_failed",

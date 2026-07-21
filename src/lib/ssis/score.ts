@@ -40,7 +40,7 @@ export async function computeStudentSuccessScore(
     .from("students")
     .select("id, school_id")
     .eq("id", studentId)
-    .single();
+    .maybeSingle();
 
   if (!student) return null;
 

@@ -7,6 +7,7 @@ import {
   resolveLegacyLeadStagesForPipelineStage,
   type AdmissionsPipelineStageKey,
 } from "@/lib/admissions/registry";
+import { STAGE_HISTORY_VELOCITY_COLS } from "@/lib/admissions/communications/projections";
 import type { StageHistoryEntry } from "@/lib/admissions/queries";
 
 export interface ExecutiveAdmissionsMetrics {
@@ -67,7 +68,10 @@ export async function getExecutiveAdmissionsMetrics(): Promise<ExecutiveAdmissio
       .select("requested_amount, approved_amount, scholarship_status")
       .in("scholarship_status", ["submitted", "under_review", "approved"]),
     supabase.from("tuition_plans").select("annual_amount, program, status").eq("status", "active"),
-    supabase.from("admissions_lead_stage_history").select("*").order("changed_at", { ascending: true }),
+    supabase
+      .from("admissions_lead_stage_history")
+      .select(STAGE_HISTORY_VELOCITY_COLS)
+      .order("changed_at", { ascending: true }),
   ]);
 
   const leads = leadsResult.data ?? [];

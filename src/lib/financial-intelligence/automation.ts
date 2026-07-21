@@ -115,7 +115,7 @@ async function upsertFiAlert(
 export async function syncFiAlertsToMissionControl(supabase: AuthClient) {
   const { data: alerts } = await supabase
     .from("fi_financial_alerts")
-    .select("*")
+    .select("id, school_id, severity, title, body")
     .eq("is_resolved", false)
     .is("mission_control_item_id", null)
     .limit(50);

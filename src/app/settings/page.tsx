@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { OrgAdminShell } from "@/components/organization-platform/OrgAdminShell";
 import { getOrganizationPlatform } from "@/lib/platform/organization-platform";
 
@@ -16,6 +17,33 @@ export default async function SettingsPage() {
       subtitle="Company profile, branding, regional settings, auth methods"
       activeHref="/settings"
     >
+      <section className="mb-8 rounded-lg border border-slate-200 bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-800">Integrations</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Connect Google Workspace and other operational systems.
+            </p>
+          </div>
+          <Link
+            href="/settings/integrations"
+            className="rounded-md bg-teal-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-800"
+          >
+            Open Integrations
+          </Link>
+        </div>
+        <ul className="mt-4 space-y-2">
+          <li>
+            <Link
+              href="/settings/integrations/google"
+              className="text-sm font-medium text-teal-800 hover:underline"
+            >
+              Google Workspace →
+            </Link>
+          </li>
+        </ul>
+      </section>
+
       <section className="mb-8 rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-slate-800">Authentication</h2>
         <p className="mt-1 text-sm text-slate-500">

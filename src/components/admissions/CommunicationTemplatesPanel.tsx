@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { saveTemplateWithVersion } from "@/lib/admissions/automation/server-actions";
 import {
   CHANNEL_LABELS,
@@ -13,9 +14,120 @@ interface CommunicationTemplatesPanelProps {
   templates: CommunicationTemplate[];
 }
 
-export function CommunicationTemplatesPanel({ templates }: CommunicationTemplatesPanelProps) {
-  const [isPending, startTransition] = useTransition();
+function TemplateSaveForm({ template }: { template: CommunicationTemplate }) {
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Save template" },
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to save.",
+    progressLabel: "Saving template…",
+  });
 
+  return (
+    <form
+      className="rounded-2xl border border-slate-200/80 bg-white p-6 space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        fd.set("id", template.id);
+        void action.run(async () => {
+          const result = await saveTemplateWithVersion(fd);
+          assertActionResult(result);
+          return result ?? { success: true };
+        });
+      }}
+    >
+      <input type="hidden" name="id" value={template.id} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-medium text-slate-900">{template.name}</p>
+          <p className="text-xs text-slate-500">
+            {CHANNEL_LABELS[template.channel]} · {template.template_key}
+            · v{template.version_number ?? 1}
+            · {(template as { category?: string }).category ?? "general"}
+            {template.delay_hours > 0 ? ` · delay ${template.delay_hours}h` : ""}
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            name="is_active"
+            defaultChecked={template.is_active}
+            value="true"
+          />
+          Active
+        </label>
+      </div>
+      <input
+        name="name"
+        defaultValue={template.name}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+      />
+      <input
+        name="subject"
+        defaultValue={template.subject}
+        placeholder="Subject"
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+      />
+      <select
+        name="category"
+        defaultValue={template.category ?? "general"}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+      >
+        {[
+          "inquiry",
+          "tour",
+          "application",
+          "funding",
+          "financial_aid",
+          "interview",
+          "acceptance",
+          "waitlist",
+          "denial",
+          "enrollment",
+          "emergency",
+          "general",
+        ].map((cat) => (
+          <option key={cat} value={cat}>
+            {cat.replace(/_/g, " ")}
+          </option>
+        ))}
+      </select>
+      <textarea
+        name="body"
+        defaultValue={template.body}
+        rows={6}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm"
+      />
+      <input
+        name="change_notes"
+        placeholder="Version change notes (optional)"
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+      />
+      <div className="flex items-center gap-3">
+        <label className="text-sm text-slate-600">
+          Delay (hours)
+          <input
+            name="delay_hours"
+            type="number"
+            min={0}
+            defaultValue={template.delay_hours}
+            className="ml-2 w-20 rounded-lg border border-slate-200 px-2 py-1 text-sm"
+          />
+        </label>
+        <ActionButton
+          type="submit"
+          status={action.status}
+          verb="save"
+          labels={{ idle: "Save template" }}
+          errorMessage={action.errorMessage}
+        />
+      </div>
+    </form>
+  );
+}
+
+export function CommunicationTemplatesPanel({ templates }: CommunicationTemplatesPanelProps) {
   const grouped = templates.reduce<Record<string, CommunicationTemplate[]>>((acc, t) => {
     if (!acc[t.trigger_event]) acc[t.trigger_event] = [];
     acc[t.trigger_event].push(t);
@@ -47,90 +159,7 @@ export function CommunicationTemplatesPanel({ templates }: CommunicationTemplate
             {TRIGGER_EVENT_LABELS[triggerEvent as keyof typeof TRIGGER_EVENT_LABELS] ?? triggerEvent}
           </h2>
           {items.map((template) => (
-            <form
-              key={template.id}
-              className="rounded-2xl border border-slate-200/80 bg-white p-6 space-y-4"
-              action={(fd) => {
-                startTransition(async () => {
-                  fd.set("id", template.id);
-                  await saveTemplateWithVersion(fd);
-                });
-              }}
-            >
-              <input type="hidden" name="id" value={template.id} />
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-medium text-slate-900">{template.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {CHANNEL_LABELS[template.channel]} · {template.template_key}
-                    · v{template.version_number ?? 1}
-                    · {(template as { category?: string }).category ?? "general"}
-                    {template.delay_hours > 0 ? ` · delay ${template.delay_hours}h` : ""}
-                  </p>
-                </div>
-                <label className="flex items-center gap-2 text-sm text-slate-600">
-                  <input
-                    type="checkbox"
-                    name="is_active"
-                    defaultChecked={template.is_active}
-                    value="true"
-                  />
-                  Active
-                </label>
-              </div>
-              <input
-                name="name"
-                defaultValue={template.name}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
-              <input
-                name="subject"
-                defaultValue={template.subject}
-                placeholder="Subject"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
-              <select
-                name="category"
-                defaultValue={template.category ?? "general"}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              >
-                {["inquiry", "tour", "application", "funding", "financial_aid", "interview", "acceptance", "waitlist", "denial", "enrollment", "emergency", "general"].map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-              <textarea
-                name="body"
-                defaultValue={template.body}
-                rows={6}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm"
-              />
-              <input
-                name="change_notes"
-                placeholder="Version change notes (optional)"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-slate-600">
-                  Delay (hours)
-                  <input
-                    name="delay_hours"
-                    type="number"
-                    min={0}
-                    defaultValue={template.delay_hours}
-                    className="ml-2 w-20 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-                >
-                  Save template
-                </button>
-              </div>
-            </form>
+            <TemplateSaveForm key={template.id} template={template} />
           ))}
         </section>
       ))}

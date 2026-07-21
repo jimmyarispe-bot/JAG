@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import {
   addSubstituteToPoolAction,
   addVolunteerAction,
@@ -8,12 +8,11 @@ import {
   createCertification,
   createEmployee,
   createPayrollRecord,
-  createPosition,
 } from "@/lib/hr/actions";
 import type { EmployeeRecord, Position } from "@/lib/hr/types";
 import { FormField } from "@/components/experience-system/forms";
-import { ErrorBanner, SuccessBanner } from "@/components/experience-system/feedback";
-import { useAnnounce } from "@/components/experience-system/feedback/LiveAnnouncer";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface HrFormsProps {
   employees: EmployeeRecord[];
@@ -22,30 +21,29 @@ interface HrFormsProps {
 }
 
 export function HrForms({ employees, schools, positions }: HrFormsProps) {
-  const announce = useAnnounce();
   const [message, setMessage] = useState<string | null>(null);
-  const [isError, setIsError] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to save.",
+    progressLabel: "Saving HR changes…",
+    onError: (err) => setMessage(err.message),
+    onSuccess: () => setMessage("Saved successfully."),
+  });
   const inputClass = "w-full rounded-xl border border-slate-200 px-3 py-2 text-sm";
   const labelClass = "block text-sm font-medium text-slate-700";
 
-  function wrap(action: (fd: FormData) => Promise<{ error?: string; success?: boolean; id?: string }>) {
+  function wrap(serverAction: (fd: FormData) => Promise<{ error?: string; success?: boolean; id?: string }>) {
     return (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       setMessage(null);
-      setIsError(false);
-      startTransition(async () => {
-        const result = await action(new FormData(e.currentTarget));
-        if (result.error) {
-          setIsError(true);
-          setMessage(result.error);
-          announce(result.error, "assertive");
-          return;
-        }
-        setIsError(false);
-        setMessage("Saved successfully.");
-        announce("Saved successfully.", "polite");
-        e.currentTarget.reset();
+      const form = e.currentTarget;
+      const fd = new FormData(form);
+      void action.run(async () => {
+        const result = await serverAction(fd);
+        assertActionResult(result);
+        form.reset();
+        return result;
       });
     };
   }
@@ -53,9 +51,7 @@ export function HrForms({ employees, schools, positions }: HrFormsProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {message && (
-        <div className="lg:col-span-2">
-          {isError ? <ErrorBanner message={message} /> : <SuccessBanner message={message} />}
-        </div>
+        <div className="lg:col-span-2 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">{message}</div>
       )}
 
       <form
@@ -103,9 +99,7 @@ export function HrForms({ employees, schools, positions }: HrFormsProps) {
         <FormField label="Emergency Contact" htmlFor="hr_emergency_contact">
           <input id="hr_emergency_contact" name="emergency_contact_name" className={inputClass} />
         </FormField>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white" aria-busy={isPending}>
-          Hire Employee
-        </button>
+        <ActionButton type="submit" status={action.status} verb="hire" errorMessage={action.errorMessage} />
       </form>
 
       <form onSubmit={wrap(createCertification)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -129,7 +123,12 @@ export function HrForms({ employees, schools, positions }: HrFormsProps) {
           </select>
         </div>
         <div><label className={labelClass}>Expiration</label><input name="expiration_date" type="date" className={inputClass} /></div>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Add Certification</button>
+        <ActionButton
+          type="submit"
+          status={action.status}
+          verb="create"
+          labels={{ idle: "Add Certification", loading: "Saving…", success: "✓ Saved" }}
+        />
       </form>
 
       <form onSubmit={wrap(assignEmployeePositionAction)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -141,7 +140,12 @@ export function HrForms({ employees, schools, positions }: HrFormsProps) {
           {positions.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
         </select>
         <input type="hidden" name="is_primary" value="true" />
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Assign</button>
+        <ActionButton
+          type="submit"
+          status={action.status}
+          verb="save"
+          labels={{ idle: "Assign", loading: "Assigning…", success: "✓ Assigned" }}
+        />
       </form>
 
       <form onSubmit={wrap(createPayrollRecord)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -156,7 +160,12 @@ export function HrForms({ employees, schools, positions }: HrFormsProps) {
         </div>
         <input name="gross_pay" type="number" step="0.01" placeholder="Gross pay" required className={inputClass} />
         <input name="hours_worked" type="number" step="0.01" placeholder="Hours worked" className={inputClass} />
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Create Payroll</button>
+        <ActionButton
+          type="submit"
+          status={action.status}
+          verb="create"
+          labels={{ idle: "Create Payroll", loading: "Generating…", success: "✓ Created" }}
+        />
       </form>
 
       <form onSubmit={wrap(addSubstituteToPoolAction)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -164,7 +173,7 @@ export function HrForms({ employees, schools, positions }: HrFormsProps) {
         <select name="school_id" required className={inputClass}>{schools.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
         <input name="substitute_name" placeholder="Name" required className={inputClass} />
         <input name="contact_email" type="email" placeholder="Email" className={inputClass} />
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Add Substitute</button>
+        <ActionButton type="submit" status={action.status} verb="create" labels={{ idle: "Add Substitute" }} />
       </form>
 
       <form onSubmit={wrap(addVolunteerAction)} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
@@ -174,7 +183,7 @@ export function HrForms({ employees, schools, positions }: HrFormsProps) {
           <input name="first_name" placeholder="First name" required className={inputClass} />
           <input name="last_name" placeholder="Last name" required className={inputClass} />
         </div>
-        <button type="submit" disabled={isPending} className="rounded-xl bg-brand-600 px-4 py-2 text-sm text-white">Add Volunteer</button>
+        <ActionButton type="submit" status={action.status} verb="create" labels={{ idle: "Add Volunteer" }} />
       </form>
     </div>
   );

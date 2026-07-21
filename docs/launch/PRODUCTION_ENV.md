@@ -1,48 +1,50 @@
 # Production Environment Variables (v1.0)
 
-Copy these into your Vercel project (or local `.env.local`). A template also exists at `.env.example` in the repo root (not tracked — see below).
+Copy into Vercel (or local `.env.local`). Tracked template: `.env.example`.  
+**Canonical validation:** `src/lib/platform/env/schema.ts` (enforced at boot via `instrumentation.ts`).
 
-## Required
+## Required (production)
 
-| Variable | Purpose |
-|----------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (client + server auth) |
-| `NEXT_PUBLIC_APP_URL` | Production app URL for admissions email merge links |
-| `CRON_SECRET` | Bearer token for Vercel cron `/api/platform/process-queues` |
-| `VAULT_ENCRYPTION_KEY` | 32+ char secret for credential vault AES-256-GCM (required in production; do not use service role) |
-| `SENDGRID_API_KEY` | SendGrid API key for admissions transactional email |
-| `SENDGRID_FROM_EMAIL` | Verified sender address (e.g. `noreply@your-domain.com`) |
+| Variable | Purpose | Validation |
+|----------|---------|------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | URL; all envs |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key | Secret; all envs |
+| `SUPABASE_SERVICE_ROLE_KEY` | Privileged server operations | Secret; required preview+production |
+| `NEXT_PUBLIC_APP_URL` | Public app URL (links, merge fields) | URL; required preview+production — **needed for `next start`** |
+| `CRON_SECRET` | Bearer for cron / queue routes | Secret; required production |
+| `OAUTH_STATE_SECRET` | HMAC secret for integration OAuth `state` (RC-6.04) | Secret; required when OAuth connect is enabled — treat as production-required for external beta |
+| `VAULT_ENCRYPTION_KEY` | Vault AES key (min 32 chars) | Secret; required production |
+| `RESEND_API_KEY` | Transactional email (Resend) | Secret; required preview + production (C-6.2) |
 
 ## Optional
 
 | Variable | Purpose |
 |----------|---------|
-| `SUPABASE_SERVICE_ROLE_KEY` | Server admin scripts only — never expose to client; never use as vault key in production |
-| `SENDGRID_FROM_NAME` | Display name for outbound email (default: AcademyOS) |
-| `ENFORCE_MFA` | `true`/`false` — force MFA for privileged users (defaults on in production) |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Durable multi-instance rate limiting |
-| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile for public admissions inquiry |
-| `ALLOW_SQUARE_PLANNED` | Dev-only simulated payments — **never** set in production |
-| `EXEC_OPERATING_MODE` | Exec Command Center: `demo` \| `tenant` (prefer unset / tenant in production) |
-| `ALLOW_EXEC_DEMO_MODE` | Production opt-in for exec demo mode — **unset** unless explicitly approved |
+| `RESEND_FROM_EMAIL` / `RESEND_FROM_NAME` | Sender identity (verified domain in Resend) |
+| `ENFORCE_MFA` | Force MFA for privileged users (default on in production) |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Durable rate limiting |
+| `TURNSTILE_SECRET_KEY` | Public admissions inquiry |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_HEADERS` / `OTEL_SERVICE_NAME` | OpenTelemetry export |
+| `OBSERVABILITY_LOG_LEVEL` | Structured log level |
+| `NEXT_PUBLIC_RUM_SAMPLE_RATE` | RUM sample 0–1 |
+| `OBSERVABILITY_SLOW_QUERY_MS` | Slow query threshold |
+
+## Never in production
+
+| Variable | Why |
+|----------|-----|
+| `ALLOW_SQUARE_PLANNED` | Simulated payments (dev/preview only in schema) |
+| `ALLOW_EXEC_DEMO_MODE` | Unless explicitly approved |
+| `EXEC_OPERATING_MODE=demo` | Prefer unset / tenant |
 
 ## Vercel cron
 
-`vercel.json` schedules `GET /api/platform/process-queues` daily at midnight UTC (`0 0 * * *`). Set `CRON_SECRET` in Vercel; the route accepts `Authorization: Bearer <CRON_SECRET>`. Manual drain and recovery: `docs/operations/phase-f/runbooks/15_QUEUE_RECOVERY.md`.
+`vercel.json` schedules `GET /api/platform/process-queues`. Set `CRON_SECRET`. Recovery: `docs/operations/phase-f/runbooks/15_QUEUE_RECOVERY.md`.
 
 ## Local template
 
-Create `.env.local` from this template:
+See `.env.example`. RC-2/RC-3 note: starting production mode without the required secrets causes instrumentation to fail and the server will not serve traffic correctly.
 
-```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
-CRON_SECRET=local-dev-cron-secret
-VAULT_ENCRYPTION_KEY=local-dev-vault-key-min-32-chars
-SENDGRID_API_KEY=
-SENDGRID_FROM_EMAIL=noreply@localhost
-SENDGRID_FROM_NAME=AcademyOS
-```
+## Rotation
+
+`docs/operations/phase-f/runbooks/14_SECRETS_AND_CERTIFICATES.md`

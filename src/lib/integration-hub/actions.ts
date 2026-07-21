@@ -111,9 +111,21 @@ export async function createApiKeyAction(formData: FormData): Promise<void> {
 
 export async function createSandboxKeyAction(formData: FormData): Promise<void> {
   const { ctx, supabase, orgId } = await resolveHub();
+  if (!canManageIntegrationHub(ctx)) return;
   await createSandboxKey(supabase, {
     organizationId: orgId,
     keyName: formData.get("key_name")?.toString() ?? "Sandbox",
+  });
+  const { logSecurityEvent } = await import("@/lib/platform/identity/security");
+  await logSecurityEvent(supabase, {
+    eventType: "sensitive_access",
+    summary: "Integration hub sandbox API key created",
+    actorUserId: ctx.effectiveUserId,
+    userId: ctx.effectiveUserId,
+    metadata: {
+      organizationId: orgId,
+      keyName: formData.get("key_name")?.toString() ?? "Sandbox",
+    },
   });
   revalidatePath("/dashboard/integrations/developer");
 }
@@ -147,11 +159,25 @@ export async function installMarketplaceAction(formData: FormData): Promise<void
 export async function rotateCredentialAction(formData: FormData): Promise<void> {
   const { ctx, supabase, orgId } = await resolveHub();
   if (!canManageIntegrationHub(ctx)) return;
+  const vaultKey = formData.get("vault_key")?.toString() ?? "default";
+  const credentialType = formData.get("credential_type")?.toString() ?? "api_key";
   await storeCredential(supabase, {
     organizationId: orgId,
-    vaultKey: formData.get("vault_key")?.toString() ?? "default",
-    credentialType: formData.get("credential_type")?.toString() ?? "api_key",
+    vaultKey,
+    credentialType,
     secretValue: formData.get("secret_value")?.toString() ?? "",
+  });
+  const { logSecurityEvent } = await import("@/lib/platform/identity/security");
+  await logSecurityEvent(supabase, {
+    eventType: "sensitive_access",
+    summary: "Integration credential rotated",
+    actorUserId: ctx.effectiveUserId,
+    userId: ctx.effectiveUserId,
+    metadata: {
+      organizationId: orgId,
+      vaultKey,
+      credentialType,
+    },
   });
   revalidatePath("/dashboard/integrations/security");
 }
@@ -170,6 +196,7 @@ export async function publishTestEventAction(formData: FormData): Promise<void> 
 
 export async function runLabTestAction(formData: FormData): Promise<void> {
   const { ctx, supabase, orgId } = await resolveHub();
+  if (!canManageIntegrationHub(ctx)) return;
   await runLabTest(supabase, {
     organizationId: orgId,
     scenario: formData.get("scenario")?.toString() ?? "api_calls",

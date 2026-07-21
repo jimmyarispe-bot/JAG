@@ -1,15 +1,25 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { InvoiceList } from "./InvoiceList";
 import { PaymentList } from "./PaymentList";
-import { BillingForms } from "./BillingForms";
 import { formatCurrency } from "@/lib/format";
 import { buildFamilyProfileSectionHref } from "@/lib/families/profile/href";
+import { ListSkeleton } from "@/components/experience-system";
 import type {
   BillingAccount,
   Invoice,
   Payment,
   TuitionPlan,
 } from "@/lib/finance/queries";
+
+/** P010 — BillingForms only on create view; keep invoice/payment tabs lean. */
+const BillingForms = dynamic(
+  () =>
+    import("./BillingForms").then((m) => ({
+      default: m.BillingForms,
+    })),
+  { ssr: true, loading: () => <ListSkeleton rows={8} label="Loading billing forms…" /> }
+);
 
 interface FinanceTabsProps {
   view: string;

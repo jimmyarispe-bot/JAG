@@ -178,7 +178,7 @@ P0 modules only: Admissions, Students, Scheduling, Teacher Studio, Finance, Work
 - `src/lib/admissions/decisions.ts` — decision emails
 - `src/lib/executive/reporting.ts` — board report header
 - `src/app/api/portal/calendar.ics/route.ts`
-- `src/lib/platform/email/sendgrid.ts`
+- `src/lib/platform/email/` (Resend EmailProvider — C-6.2)
 - `src/components/platform/ImpersonationBanner.tsx`
 
 ### Admin configuration UI

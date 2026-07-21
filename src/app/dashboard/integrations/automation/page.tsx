@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/integration-hub/context";
 import { getWorkflows, getWorkflowTemplates, getWorkflowRuns, getWorkflowAnalytics, getWorkflowStepTypes } from "@/lib/integration-hub/automation-studio";
 import { IntHubShell } from "@/components/integration-hub/IntHubNav";
 import { IntHubTable, AiReadinessNote } from "@/components/integration-hub/IntHubPanels";
+import { ExperienceForm, IntHubIdButton } from "@/components/integration-hub/IntHubMutationControls";
 import { createWorkflowAction, publishWorkflowAction, runWorkflowAction } from "@/lib/integration-hub/actions";
 
 export default async function AutomationStudioPage() {
@@ -36,7 +37,16 @@ export default async function AutomationStudioPage() {
         </div>
       </div>
 
-      <form action={createWorkflowAction} className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
+      <ExperienceForm
+        action={createWorkflowAction}
+        verb="create"
+        labels={{ idle: "Create draft", loading: "Creating…", success: "✓ Created" }}
+        progressLabel="Saving automation rule…"
+        successToast="✓ Workflow draft created."
+        errorToast="Unable to create workflow."
+        className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"
+        buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+      >
         <input name="workflow_name" placeholder="Workflow name" className="rounded-lg border px-3 py-2 text-sm" required />
         <input name="workflow_key" placeholder="workflow_key" className="rounded-lg border px-3 py-2 text-sm" />
         <select name="trigger_type" className="rounded-lg border px-3 py-2 text-sm">
@@ -45,8 +55,7 @@ export default async function AutomationStudioPage() {
           <option value="webhook">Webhook</option>
           <option value="manual">Manual</option>
         </select>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Create draft</button>
-      </form>
+      </ExperienceForm>
 
       <section>
         <h2 className="mb-2 font-semibold">Workflows ({workflows.length})</h2>
@@ -56,8 +65,28 @@ export default async function AutomationStudioPage() {
         ]} />
         {workflows.map((wf) => (
           <div key={String(wf.id)} className="mt-2 flex gap-2">
-            <form action={publishWorkflowAction}><input type="hidden" name="workflow_id" value={String(wf.id)} /><button type="submit" className="rounded bg-slate-100 px-3 py-1 text-xs">Publish</button></form>
-            <form action={runWorkflowAction}><input type="hidden" name="workflow_id" value={String(wf.id)} /><button type="submit" className="rounded bg-indigo-100 px-3 py-1 text-xs text-indigo-800">Test run</button></form>
+            <IntHubIdButton
+              action={publishWorkflowAction}
+              idField="workflow_id"
+              idValue={String(wf.id)}
+              verb="publish"
+              labels={{ idle: "Publish", loading: "Publishing…", success: "✓ Published" }}
+              progressLabel="Publishing workflow…"
+              successToast="✓ Workflow published."
+              errorToast="Unable to publish."
+              className="!rounded !bg-slate-100 !px-3 !py-1 !text-xs"
+            />
+            <IntHubIdButton
+              action={runWorkflowAction}
+              idField="workflow_id"
+              idValue={String(wf.id)}
+              verb="run"
+              labels={{ idle: "Test run", loading: "Running…", success: "✓ Ran" }}
+              progressLabel="Running workflow…"
+              successToast="✓ Workflow run started."
+              errorToast="Unable to run workflow."
+              className="!rounded !bg-indigo-100 !px-3 !py-1 !text-xs !text-indigo-800"
+            />
           </div>
         ))}
       </section>

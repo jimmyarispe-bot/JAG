@@ -5,9 +5,13 @@ import {
   JagOrganizationContextBar,
   JagOrganizationContextPanel,
   JagWorkPanel,
+  KpiTilesSkeleton,
+  ListSkeleton,
   MetricCard,
+  ProgressivePageShell,
   QuickActions,
   TeacherExperienceShell,
+  progressiveShellProps,
   type XesNavItem,
   type XesWorkspaceOption,
 } from "@/components/experience-system";
@@ -56,17 +60,21 @@ export async function TeacherPageContent({ searchParams }: TeacherPageContentPro
 
   const workPerspective = resolveJagWorkPerspective("teacher", sp.work ?? sp.workflow ?? sp.task ?? sp.view);
 
-  const execution = await executeWorkspace({
-    workspaceKey: "teacher",
-    identity: ctx,
-    activeView: workPerspective,
-    recommendationFacts: { has_permission: ctx.permissions.length > 0 },
-  });
+  // P004: overlap engine with auth + employee resolution (independent of recommendations).
+  const [execution, { supabase, employeeId }] = await Promise.all([
+    executeWorkspace({
+      workspaceKey: "teacher",
+      identity: ctx,
+      activeView: workPerspective,
+      recommendationFacts: { has_permission: ctx.permissions.length > 0 },
+    }),
+    createAuthClient().then(async (supabase) => ({
+      supabase,
+      employeeId: await getTeacherEmployeeId(supabase, ctx.effectiveUserId),
+    })),
+  ]);
 
   const workspaceState = execution.state;
-
-  const supabase = await createAuthClient();
-  const employeeId = await getTeacherEmployeeId(supabase, ctx.effectiveUserId);
 
   if (!employeeId) {
     return (
@@ -289,14 +297,9 @@ export async function TeacherPageContent({ searchParams }: TeacherPageContentPro
 
 export function TeacherPageSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-8 w-48 rounded-lg bg-slate-200" />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 rounded-2xl bg-slate-100" />
-        ))}
-      </div>
-      <div className="h-64 rounded-2xl bg-slate-100" />
-    </div>
+    <ProgressivePageShell {...progressiveShellProps("teacher")} showDefaultBody={false}>
+      <KpiTilesSkeleton count={4} />
+      <ListSkeleton rows={8} />
+    </ProgressivePageShell>
   );
 }

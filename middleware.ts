@@ -8,11 +8,11 @@ import {
   passwordResetRequiredResponse,
   userMustResetPassword,
 } from "@/lib/auth/must-reset-password";
-import { loadAuthzSnapshot } from "@/lib/platform/identity/load-authz-snapshot";
 import {
-  authorizeRoute,
-  requiredPermissionsForRoute,
-} from "@/lib/platform/identity/route-authorization";
+  applyTraceHeaders,
+  resolveRequestTraceIds,
+} from "@/lib/observability/request-ids";
+import { ServerTimingCollector } from "@/lib/performance/server-timing";
 
 function isProtectedPage(pathname: string): boolean {
   return (
@@ -34,17 +34,31 @@ function isProtectedApi(pathname: string): boolean {
   return pathname.startsWith("/api/") && !isPublicApiPath(pathname);
 }
 
+/**
+ * Sprint P002 — middleware authenticates only (session present).
+ * Catalog authorization runs once in RSC layouts via requireAuthorizedRoute /
+ * getIdentityContext (request-scoped). Avoids duplicate role/permission I/O.
+ */
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
-  const search = req.nextUrl.search;
+  const timing = new ServerTimingCollector();
+  const middlewareStarted =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-pathname", pathname);
-  if (search) requestHeaders.set("x-url", `${pathname}${search}`);
+  if (req.nextUrl.search) requestHeaders.set("x-url", `${pathname}${req.nextUrl.search}`);
+
+  // RC-1 — propagate request/trace ids (edge-safe; no Node ALS).
+  const traceIds = resolveRequestTraceIds(requestHeaders);
+  applyTraceHeaders(requestHeaders, traceIds);
 
   let res = NextResponse.next({
     request: { headers: requestHeaders },
   });
+  applyTraceHeaders(res.headers, traceIds);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -71,52 +85,53 @@ export async function middleware(req: NextRequest) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await timing.measure("mw_auth_getUser", () => supabase.auth.getUser(), "Supabase session");
 
   const protectedPage = isProtectedPage(pathname);
   const protectedApi = isProtectedApi(pathname);
 
+  const finish = (response: NextResponse) => {
+    const end =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    timing.add("mw_total", end - middlewareStarted, "Middleware total");
+    timing.apply(response.headers);
+    applyTraceHeaders(response.headers, traceIds);
+    return response;
+  };
+
   if ((protectedPage || protectedApi) && !user) {
     if (protectedApi) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return finish(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
     }
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    return finish(NextResponse.redirect(loginUrl));
   }
 
   if (user && userMustResetPassword(user) && !isPasswordResetExemptPath(pathname)) {
     if (protectedApi || protectedPage) {
       if (protectedApi) {
-        return passwordResetRequiredResponse();
+        return finish(passwordResetRequiredResponse());
       }
       const resetUrl = new URL(PASSWORD_RESET_PATH, req.url);
       resetUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(resetUrl);
+      return finish(NextResponse.redirect(resetUrl));
     }
   }
 
-  // Centralized catalog authorization for application / module routes
-  const required = requiredPermissionsForRoute(pathname, search);
-  if (user && required.length > 0) {
-    const snapshot = await loadAuthzSnapshot(supabase, user.id);
-    const decision = authorizeRoute(snapshot, pathname, search);
-    if (!decision.ok) {
-      if (protectedApi) {
-        return NextResponse.json(
-          { error: "Forbidden", missing: decision.missing },
-          { status: 403 }
-        );
-      }
-      const redirectUrl = new URL(decision.redirectTo, req.url);
-      if (decision.missing === "ACADEMYOS_ACCESS") {
-        redirectUrl.searchParams.set("error", "forbidden");
-      }
-      return NextResponse.redirect(redirectUrl);
+  if (user) {
+    requestHeaders.set("x-jag-authenticated", "1");
+    requestHeaders.set("x-jag-user-id", user.id);
+    const cookies = res.cookies.getAll();
+    res = NextResponse.next({ request: { headers: requestHeaders } });
+    for (const cookie of cookies) {
+      res.cookies.set(cookie.name, cookie.value);
     }
   }
 
-  return res;
+  return finish(res);
 }
 
 export const config = {

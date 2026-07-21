@@ -31,7 +31,7 @@
 | Issue | Action |
 |-------|--------|
 | Lead not visible | School/permission scope |
-| Email not sending | SendGrid env — escalate IT |
+| Email not sending | Resend env (`RESEND_API_KEY` / from domain) — escalate IT |
 | Portal user stuck | Auth + application linkage |
 
 ## Related documents

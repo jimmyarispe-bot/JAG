@@ -1,8 +1,8 @@
 import { EmployeeList } from "./EmployeeList";
 import { HrForms } from "./HrForms";
+import { PayrollApproveButton } from "./PayrollApproveButton";
 import { RecruitingPanel } from "./RecruitingPanel";
 import { WorkforceAnalyticsPanel } from "./WorkforceAnalyticsPanel";
-import { approvePayrollFormAction } from "@/lib/hr/actions";
 import { formatCurrency } from "@/lib/format";
 import type {
   Certification,
@@ -190,10 +190,7 @@ export function HrTabs({
                   <td className="px-4 py-3 capitalize">{p.pay_status}</td>
                   <td className="px-4 py-3">
                     {p.pay_status === "pending" && canRunPayroll && (
-                      <form action={approvePayrollFormAction}>
-                        <input type="hidden" name="payroll_id" value={p.id} />
-                        <button type="submit" className="text-xs text-brand-600">Approve & allocate</button>
-                      </form>
+                      <PayrollApproveButton payrollId={p.id} />
                     )}
                   </td>
                 </tr>

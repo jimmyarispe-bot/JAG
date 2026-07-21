@@ -2,7 +2,11 @@ import type { createAuthClient } from "@/lib/supabase/server-auth";
 import type { ClassProfitabilityRow, TeacherProfitabilityRow, ProgramProfitabilityRow, StudentEconomicsRow } from "@/lib/financial-intelligence/types";
 import { healthFromMargin } from "@/lib/financial-intelligence/types";
 import { getAllocationRates, allocateCosts, estimatePayrollCosts } from "@/lib/financial-intelligence/cost-allocation";
-import { getSectionRevenue, getProgramRevenue, getStudentRevenue } from "@/lib/financial-intelligence/revenue-allocation";
+import {
+  getSectionsRevenue,
+  getProgramRevenue,
+  getStudentsRevenue,
+} from "@/lib/financial-intelligence/revenue-allocation";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -39,10 +43,54 @@ export async function computeClassProfitability(
     return (c as { school_id?: string })?.school_id === schoolId;
   });
 
+  const sectionIds = filtered.map((s) => s.id);
+  const instructorIds = [
+    ...new Set(filtered.map((s) => s.instructor_employee_id).filter(Boolean)),
+  ] as string[];
+
+  const [revenueBySection, { data: payrollRows }, { data: allSessions }] = await Promise.all([
+    getSectionsRevenue(supabase, sectionIds, periodStart, periodEnd),
+    instructorIds.length
+      ? supabase
+          .from("payroll_cost_allocations")
+          .select("employee_id, allocated_amount, period_start, period_end")
+          .in("employee_id", instructorIds)
+          .gte("period_start", periodStart)
+          .lte("period_end", periodEnd)
+      : Promise.resolve({ data: [] as Array<{ employee_id: string; allocated_amount: number }> }),
+    sectionIds.length
+      ? supabase
+          .from("instructional_sessions")
+          .select("course_section_id, scheduled_start, scheduled_end")
+          .in("course_section_id", sectionIds)
+          .gte("scheduled_start", `${periodStart}T00:00:00`)
+          .lte("scheduled_start", `${periodEnd}T23:59:59`)
+      : Promise.resolve({ data: [] as Array<{ course_section_id: string; scheduled_start: string; scheduled_end: string }> }),
+  ]);
+
+  const payrollByEmployee = new Map<string, number>();
+  for (const row of payrollRows ?? []) {
+    if (!row.employee_id || payrollByEmployee.has(row.employee_id)) continue;
+    payrollByEmployee.set(row.employee_id, Number(row.allocated_amount ?? 0));
+  }
+
+  const sessionsBySection = new Map<string, Array<{ scheduled_start: string; scheduled_end: string }>>();
+  for (const sess of allSessions ?? []) {
+    if (!sess.course_section_id) continue;
+    const list = sessionsBySection.get(sess.course_section_id) ?? [];
+    list.push(sess);
+    sessionsBySection.set(sess.course_section_id, list);
+  }
+
   const rows: ClassProfitabilityRow[] = [];
 
   for (const section of filtered) {
-    const rev = await getSectionRevenue(supabase, section.id, periodStart, periodEnd);
+    const rev = revenueBySection.get(section.id) ?? {
+      revenue: 0,
+      scholarships: 0,
+      stateFunding: 0,
+      enrollment: 0,
+    };
     const enrollment = rev.enrollment;
     const capacity = section.max_capacity ?? 30;
 
@@ -50,28 +98,18 @@ export async function computeClassProfitability(
     let benefits = 0;
     let payrollTaxes = 0;
     if (section.instructor_employee_id) {
-      const { data: payroll } = await supabase
-        .from("payroll_cost_allocations")
-        .select("allocated_amount")
-        .eq("employee_id", section.instructor_employee_id)
-        .gte("period_start", periodStart)
-        .lte("period_end", periodEnd)
-        .limit(1);
-      const gross = Number(payroll?.[0]?.allocated_amount ?? rev.enrollment * 500);
+      const gross = payrollByEmployee.has(section.instructor_employee_id)
+        ? payrollByEmployee.get(section.instructor_employee_id)!
+        : rev.enrollment * 500;
       const est = estimatePayrollCosts(gross);
       teacherPay = est.grossPay;
       benefits = est.benefits;
       payrollTaxes = est.payrollTaxes;
     }
 
-    const { data: sessions } = await supabase
-      .from("instructional_sessions")
-      .select("scheduled_start, scheduled_end")
-      .eq("course_section_id", section.id)
-      .gte("scheduled_start", `${periodStart}T00:00:00`)
-      .lte("scheduled_start", `${periodEnd}T23:59:59`);
+    const sessions = sessionsBySection.get(section.id) ?? [];
 
-    const instructionalHours = (sessions ?? []).reduce((s, sess) => {
+    const instructionalHours = sessions.reduce((s, sess) => {
       return s + (new Date(sess.scheduled_end).getTime() - new Date(sess.scheduled_start).getTime()) / 3600000;
     }, 0) || (enrollment * (section.instructional_minutes ?? 60) / 60);
 
@@ -170,42 +208,80 @@ export async function computeTeacherProfitability(
     .eq("school_id", schoolId)
     .eq("employment_status", "active");
 
+  const employeeIds = (employees ?? []).map((e) => e.id);
+  if (!employeeIds.length) return [];
+
+  const [{ data: allSections }, { data: allPayroll }, { data: allSessions }] = await Promise.all([
+    supabase
+      .from("course_sections")
+      .select("id, max_capacity, instructor_employee_id")
+      .in("instructor_employee_id", employeeIds)
+      .eq("status", "open"),
+    supabase
+      .from("payroll_cost_allocations")
+      .select("employee_id, allocated_amount")
+      .in("employee_id", employeeIds)
+      .gte("period_start", periodStart)
+      .lte("period_end", periodEnd),
+    supabase
+      .from("instructional_sessions")
+      .select("instructor_employee_id, scheduled_start, scheduled_end")
+      .in("instructor_employee_id", employeeIds)
+      .gte("scheduled_start", `${periodStart}T00:00:00`),
+  ]);
+
+  const sectionsByEmployee = new Map<string, Array<{ id: string; max_capacity: number | null }>>();
+  for (const sec of allSections ?? []) {
+    if (!sec.instructor_employee_id) continue;
+    const list = sectionsByEmployee.get(sec.instructor_employee_id) ?? [];
+    list.push(sec);
+    sectionsByEmployee.set(sec.instructor_employee_id, list);
+  }
+
+  const allSectionIds = (allSections ?? []).map((s) => s.id);
+  const revenueBySection = await getSectionsRevenue(supabase, allSectionIds, periodStart, periodEnd);
+
+  const payrollByEmployee = new Map<string, number>();
+  for (const p of allPayroll ?? []) {
+    if (!p.employee_id) continue;
+    payrollByEmployee.set(
+      p.employee_id,
+      (payrollByEmployee.get(p.employee_id) ?? 0) + Number(p.allocated_amount ?? 0)
+    );
+  }
+
+  const sessionsByEmployee = new Map<string, Array<{ scheduled_start: string; scheduled_end: string }>>();
+  for (const sess of allSessions ?? []) {
+    if (!sess.instructor_employee_id) continue;
+    const list = sessionsByEmployee.get(sess.instructor_employee_id) ?? [];
+    list.push(sess);
+    sessionsByEmployee.set(sess.instructor_employee_id, list);
+  }
+
   const rows: TeacherProfitabilityRow[] = [];
 
   for (const emp of employees ?? []) {
-    const { data: sections } = await supabase
-      .from("course_sections")
-      .select("id, max_capacity")
-      .eq("instructor_employee_id", emp.id)
-      .eq("status", "open");
-
+    const sections = sectionsByEmployee.get(emp.id) ?? [];
     let revenueGenerated = 0;
     let studentsServed = 0;
-    for (const sec of sections ?? []) {
-      const rev = await getSectionRevenue(supabase, sec.id, periodStart, periodEnd);
+    for (const sec of sections) {
+      const rev = revenueBySection.get(sec.id) ?? {
+        revenue: 0,
+        scholarships: 0,
+        stateFunding: 0,
+        enrollment: 0,
+      };
       revenueGenerated += rev.revenue;
       studentsServed += rev.enrollment;
     }
 
-    const { data: payroll } = await supabase
-      .from("payroll_cost_allocations")
-      .select("allocated_amount")
-      .eq("employee_id", emp.id)
-      .gte("period_start", periodStart)
-      .lte("period_end", periodEnd);
-
-    const gross = (payroll ?? []).reduce((s, p) => s + Number(p.allocated_amount), 0) || 5000;
+    const gross = payrollByEmployee.get(emp.id) || 5000;
     const { grossPay, benefits, payrollTaxes, total } = estimatePayrollCosts(gross);
     const allocatedOverhead = revenueGenerated * (rates.adminOverheadPct + rates.technologyPct);
     const totalCost = total + allocatedOverhead;
 
-    const { data: sessions } = await supabase
-      .from("instructional_sessions")
-      .select("scheduled_start, scheduled_end")
-      .eq("instructor_employee_id", emp.id)
-      .gte("scheduled_start", `${periodStart}T00:00:00`);
-
-    const instructionalHours = (sessions ?? []).reduce(
+    const sessions = sessionsByEmployee.get(emp.id) ?? [];
+    const instructionalHours = sessions.reduce(
       (s, sess) => s + (new Date(sess.scheduled_end).getTime() - new Date(sess.scheduled_start).getTime()) / 3600000,
       0
     );
@@ -218,7 +294,7 @@ export async function computeTeacherProfitability(
       employeeId: emp.id,
       employeeName: (user as { full_name?: string })?.full_name,
       revenueGenerated,
-      classesTaught: sections?.length ?? 0,
+      classesTaught: sections.length,
       studentsServed,
       instructionalHours,
       payroll: grossPay,
@@ -252,16 +328,25 @@ export async function computeProgramProfitability(
   const programs = [...new Set((invoices ?? []).map((i) => i.program ?? "General"))];
   const rows: ProgramProfitabilityRow[] = [];
 
-  for (const program of programs) {
-    const rev = await getProgramRevenue(supabase, schoolId, program, periodStart, periodEnd);
-    const { data: allocations } = await supabase
+  const [{ data: allAllocations }, ...programRevenues] = await Promise.all([
+    supabase
       .from("payroll_cost_allocations")
-      .select("allocated_amount")
+      .select("program, allocated_amount")
       .eq("school_id", schoolId)
-      .eq("program", program)
-      .gte("period_start", periodStart);
+      .gte("period_start", periodStart),
+    ...programs.map((program) => getProgramRevenue(supabase, schoolId, program, periodStart, periodEnd)),
+  ]);
 
-    const payroll = (allocations ?? []).reduce((s, a) => s + Number(a.allocated_amount), 0);
+  const payrollByProgram = new Map<string, number>();
+  for (const a of allAllocations ?? []) {
+    const key = a.program ?? "General";
+    payrollByProgram.set(key, (payrollByProgram.get(key) ?? 0) + Number(a.allocated_amount ?? 0));
+  }
+
+  for (let i = 0; i < programs.length; i++) {
+    const program = programs[i];
+    const rev = programRevenues[i];
+    const payroll = payrollByProgram.get(program) ?? 0;
     const administration = rev.revenue * rates.adminOverheadPct;
     const technology = rev.revenue * rates.technologyPct;
     const occupancy = rev.revenue * rates.occupancyPct;
@@ -323,10 +408,19 @@ export async function computeStudentEconomics(
     .eq("lifecycle_stage", "active")
     .limit(limit);
 
+  const studentIds = (students ?? []).map((s) => s.id);
+  const revenueByStudent = await getStudentsRevenue(supabase, studentIds);
   const rows: StudentEconomicsRow[] = [];
 
   for (const st of students ?? []) {
-    const rev = await getStudentRevenue(supabase, st.id);
+    const rev = revenueByStudent.get(st.id) ?? {
+      tuition: 0,
+      scholarships: 0,
+      esa: 0,
+      stateFunding: 0,
+      grants: 0,
+      totalRevenue: 0,
+    };
     const allocatedCosts = rev.totalRevenue * (rates.adminOverheadPct + rates.technologyPct + 0.15);
     const profitability = rev.totalRevenue - allocatedCosts;
     const marginPct = rev.totalRevenue ? (profitability / rev.totalRevenue) * 100 : 0;

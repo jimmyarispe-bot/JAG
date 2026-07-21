@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { parseImprovementAttachmentRefs } from "@/lib/instruction/continuous-improvement-parse";
 import { completeSessionAction, updateSessionDeliveryAction } from "@/lib/teacher/actions";
 
@@ -23,7 +24,20 @@ interface SessionWorkspaceFormProps {
 }
 
 export function SessionWorkspaceForm({ sessionId, delivery }: SessionWorkspaceFormProps) {
-  const [pending, startTransition] = useTransition();
+  const saveAction = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Save lesson plan" },
+    successToast: "✓ Lesson plan saved.",
+    errorToast: "Unable to save lesson plan.",
+    progressLabel: "Saving lesson plan…",
+  });
+  const completeAction = useActionFeedback({
+    verb: "custom",
+    labels: { idle: "Complete session", loading: "Completing…", success: "✓ Completed", error: "Unable to complete" },
+    successToast: "✓ Session completed.",
+    errorToast: "Unable to complete session.",
+    progressLabel: "Completing session…",
+  });
   const improvementMeta = parseImprovementAttachmentRefs(delivery?.attachment_refs);
 
   return (
@@ -32,7 +46,7 @@ export function SessionWorkspaceForm({ sessionId, delivery }: SessionWorkspaceFo
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        startTransition(async () => {
+        void saveAction.run(async () => {
           const fd = new FormData(e.currentTarget);
           fd.set("session_id", sessionId);
           const toJson = (name: string) => {
@@ -42,7 +56,9 @@ export function SessionWorkspaceForm({ sessionId, delivery }: SessionWorkspaceFo
           toJson("lesson_objectives");
           toJson("learning_targets");
           toJson("activities");
-          await updateSessionDeliveryAction(fd);
+          const result = await updateSessionDeliveryAction(fd);
+          assertActionResult(result);
+          return result ?? { success: true };
         });
       }}
     >
@@ -123,14 +139,22 @@ export function SessionWorkspaceForm({ sessionId, delivery }: SessionWorkspaceFo
         </select>
       </div>
       <div className="flex flex-wrap gap-2">
-        <button type="submit" disabled={pending} className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
-          {pending ? "Saving…" : "Save lesson plan"}
-        </button>
-        <button
+        <ActionButton
+          type="submit"
+          status={saveAction.status}
+          verb="save"
+          labels={{ idle: "Save lesson plan" }}
+          className="!bg-slate-800 hover:!bg-slate-900"
+          errorMessage={saveAction.errorMessage}
+        />
+        <ActionButton
           type="button"
-          disabled={pending}
+          status={completeAction.status}
+          verb="custom"
+          labels={{ idle: "Complete session", loading: "Completing…", success: "✓ Completed", error: "Unable to complete" }}
+          errorMessage={completeAction.errorMessage}
           onClick={() => {
-            startTransition(async () => {
+            void completeAction.run(async () => {
               const form = document.getElementById("session-workspace-form") as HTMLFormElement | null;
               const notes = (form?.querySelector('[name="session_notes"]') as HTMLTextAreaElement)?.value ?? "";
               const hw = (form?.querySelector('[name="homework"]') as HTMLTextAreaElement)?.value ?? "";
@@ -144,13 +168,12 @@ export function SessionWorkspaceForm({ sessionId, delivery }: SessionWorkspaceFo
               fd.set("homework", hw);
               fd.set("teacher_reflection", reflection);
               fd.set("learner_engagement", engagement);
-              await completeSessionAction(fd);
+              const result = await completeSessionAction(fd);
+              assertActionResult(result);
+              return result ?? { success: true };
             });
           }}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          Complete session
-        </button>
+        />
       </div>
     </form>
   );

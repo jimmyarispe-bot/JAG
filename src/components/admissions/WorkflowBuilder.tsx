@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
 import {
   duplicateWorkflow,
   publishWorkflow,
@@ -16,6 +15,8 @@ import {
   type WorkflowDefinition,
   type WorkflowStep,
 } from "@/lib/admissions/automation/types";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface WorkflowBuilderProps {
   workflows: WorkflowDefinition[];
@@ -30,7 +31,12 @@ export function WorkflowBuilder({
   steps,
   schools,
 }: WorkflowBuilderProps) {
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to update workflow.",
+    progressLabel: "Updating workflow…",
+  });
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -71,70 +77,89 @@ export function WorkflowBuilder({
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button
+              <ActionButton
                 type="button"
-                disabled={isPending}
-                onClick={() =>
-                  startTransition(async () => {
-                    await toggleWorkflow(wf.id, !wf.is_active);
-                  })
-                }
-                className="text-xs font-medium text-brand-600"
-              >
-                {wf.is_active ? "Disable" : "Enable"}
-              </button>
-              <button
+                status={action.status}
+                verb="save"
+                variant="ghost"
+                size="xs"
+                labels={{
+                  idle: wf.is_active ? "Disable" : "Enable",
+                  loading: "Updating…",
+                  success: "✓ Updated",
+                }}
+                onClick={() => {
+                  void action.run(async () => {
+                    const r = await toggleWorkflow(wf.id, !wf.is_active);
+                    assertActionResult(r);
+                    return r;
+                  });
+                }}
+              />
+              <ActionButton
                 type="button"
-                disabled={isPending}
-                onClick={() =>
-                  startTransition(async () => {
-                    await duplicateWorkflow(wf.id);
-                  })
-                }
-                className="text-xs font-medium text-slate-600"
-              >
-                Duplicate
-              </button>
+                status={action.status}
+                verb="create"
+                variant="secondary"
+                size="xs"
+                labels={{ idle: "Duplicate", loading: "Duplicating…", success: "✓ Duplicated" }}
+                onClick={() => {
+                  void action.run(async () => {
+                    const r = await duplicateWorkflow(wf.id);
+                    assertActionResult(r);
+                    return r;
+                  });
+                }}
+              />
               {wf.lifecycle_status === "draft" && (
-                <button
+                <ActionButton
                   type="button"
-                  disabled={isPending}
-                  onClick={() =>
-                    startTransition(async () => {
-                      await publishWorkflow(wf.id);
-                    })
-                  }
-                  className="text-xs font-medium text-emerald-600"
-                >
-                  Publish
-                </button>
+                  status={action.status}
+                  verb="publish"
+                  variant="success"
+                  size="xs"
+                  labels={{ idle: "Publish", loading: "Publishing…", success: "✓ Published" }}
+                  onClick={() => {
+                    void action.run(async () => {
+                      const r = await publishWorkflow(wf.id);
+                      assertActionResult(r);
+                      return r;
+                    });
+                  }}
+                />
               )}
               {wf.lifecycle_status === "active" && (
                 <>
-                  <button
+                  <ActionButton
                     type="button"
-                    disabled={isPending}
-                    onClick={() =>
-                      startTransition(async () => {
-                        await createWorkflowDraftFromActive(wf.id);
-                      })
-                    }
-                    className="text-xs font-medium text-brand-600"
-                  >
-                    Edit as draft
-                  </button>
-                  <button
+                    status={action.status}
+                    verb="create"
+                    variant="secondary"
+                    size="xs"
+                    labels={{ idle: "Edit as draft", loading: "Creating…", success: "✓ Created" }}
+                    onClick={() => {
+                      void action.run(async () => {
+                        const r = await createWorkflowDraftFromActive(wf.id);
+                        assertActionResult(r);
+                        return r;
+                      });
+                    }}
+                  />
+                  <ActionButton
                     type="button"
-                    disabled={isPending}
-                    onClick={() =>
-                      startTransition(async () => {
-                        await archiveWorkflow(wf.id);
-                      })
-                    }
-                    className="text-xs font-medium text-red-600"
-                  >
-                    Archive
-                  </button>
+                    status={action.status}
+                    verb="delete"
+                    variant="danger"
+                    size="xs"
+                    labels={{ idle: "Archive", loading: "Archiving…", success: "✓ Archived" }}
+                    onClick={() => {
+                      void action.run(async () => {
+                        const r = await archiveWorkflow(wf.id);
+                        assertActionResult(r);
+                        return r;
+                      });
+                    }}
+                  />
                 </>
               )}
             </div>
@@ -196,9 +221,13 @@ export function WorkflowBuilder({
 
             <form
               className="rounded-2xl border border-slate-200/80 bg-white p-6 space-y-4"
-              action={(fd) => {
-                startTransition(async () => {
-                  await saveWorkflowStep(fd);
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                void action.run(async () => {
+                  const r = await saveWorkflowStep(fd);
+                  assertActionResult(r);
+                  return r;
                 });
               }}
             >
@@ -233,13 +262,12 @@ export function WorkflowBuilder({
                 defaultValue="{}"
               />
               <input type="hidden" name="step_order" value={String(steps.length + 1)} />
-              <button
+              <ActionButton
                 type="submit"
-                disabled={isPending}
-                className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-              >
-                Add step
-              </button>
+                status={action.status}
+                verb="create"
+                labels={{ idle: "Add step", loading: "Adding…", success: "✓ Added" }}
+              />
             </form>
           </>
         ) : (
@@ -250,9 +278,13 @@ export function WorkflowBuilder({
 
         <form
           className="rounded-2xl border border-slate-200/80 bg-white p-6 space-y-4"
-          action={(fd) => {
-            startTransition(async () => {
-              await saveWorkflow(fd);
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            void action.run(async () => {
+              const r = await saveWorkflow(fd);
+              assertActionResult(r);
+              return r;
             });
           }}
         >
@@ -287,12 +319,13 @@ export function WorkflowBuilder({
           </div>
           <input type="hidden" name="category" value="general" />
           <input type="hidden" name="sort_order" value="100" />
-          <button
+          <ActionButton
             type="submit"
-            className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            Create workflow
-          </button>
+            status={action.status}
+            verb="create"
+            labels={{ idle: "Create workflow", loading: "Creating…", success: "✓ Created" }}
+            errorMessage={action.errorMessage}
+          />
         </form>
       </div>
     </div>

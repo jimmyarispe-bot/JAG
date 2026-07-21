@@ -167,6 +167,10 @@ export const PERMISSION_GROUP_DEFINITIONS: PermissionGroupMap = {
       "admissions.manage",
       "scholarships.view",
       "scholarships.approve",
+      // Launch 002 — admissions staff enroll students and manage family links
+      "students.view",
+      "students.edit",
+      "families.manage",
     ],
   },
   SIS_ACCESS: {
@@ -178,6 +182,7 @@ export const PERMISSION_GROUP_DEFINITIONS: PermissionGroupMap = {
       "SIS_ACCESS",
       "students.view",
       "students.edit",
+      "families.manage",
       "ferpa.view_iep",
       "ferpa.view_medical",
       "ferpa.view_discipline",
@@ -440,7 +445,13 @@ export type MappedIamRole = keyof typeof ROLE_PERMISSION_GROUPS;
  * Used for grants that do not fit a shared catalog group without over-granting other roles.
  */
 export const ROLE_EXTRA_PERMISSIONS = {
-  EXECUTIVE_DIRECTOR: ["schools.access_all"],
+  /** Launch 002 — ED can manage enrollment family links without full SIS_ACCESS. */
+  EXECUTIVE_DIRECTOR: [
+    "schools.access_all",
+    "students.view",
+    "students.edit",
+    "families.manage",
+  ],
 } as const satisfies Partial<Record<EduRoleName, readonly PermissionKey[]>>;
 
 export function isMappedIamRole(role: string): role is MappedIamRole {

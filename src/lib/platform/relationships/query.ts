@@ -1,3 +1,7 @@
+import {
+  PLATFORM_RELATIONSHIP_COLS,
+  RELATIONSHIP_TYPE_DEF_COLS,
+} from "@/lib/platform/relationships/projections";
 import type {
   PlatformRelationship,
   RelationshipQueryFilters,
@@ -12,7 +16,7 @@ export async function getRelationshipTypeDefinitions(
 ): Promise<RelationshipTypeDefinition[]> {
   const { data } = await supabase
     .from("platform_relationship_type_definitions")
-    .select("*")
+    .select(RELATIONSHIP_TYPE_DEF_COLS)
     .order("sort_order");
   return (data ?? []) as RelationshipTypeDefinition[];
 }
@@ -25,7 +29,7 @@ export async function getRelationshipsFrom(
 ): Promise<PlatformRelationship[]> {
   let q = supabase
     .from("platform_relationships")
-    .select("*")
+    .select(PLATFORM_RELATIONSHIP_COLS)
     .eq("from_entity_type", fromEntityType)
     .eq("from_entity_id", fromEntityId)
     .order("is_primary", { ascending: false })
@@ -59,7 +63,7 @@ export async function getRelationshipsTo(
 ): Promise<PlatformRelationship[]> {
   let q = supabase
     .from("platform_relationships")
-    .select("*")
+    .select(PLATFORM_RELATIONSHIP_COLS)
     .eq("to_entity_type", toEntityType)
     .eq("to_entity_id", toEntityId)
     .order("effective_date", { ascending: false });
@@ -165,7 +169,7 @@ export async function getFamilyGuardianRelationships(
 
   let query = supabase
     .from("platform_relationships")
-    .select("*")
+    .select(PLATFORM_RELATIONSHIP_COLS)
     .eq("from_entity_type", "student")
     .in("from_entity_id", studentIds)
     .eq("relationship_type", "student.guardian");

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useActionFeedback } from "@/components/experience-system/feedback";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
 import { LEAD_STAGES } from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
@@ -18,11 +18,18 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ leads }: KanbanBoardProps) {
-  const [, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Update stage", loading: "Updating…", success: "✓ Updated" },
+    successToast: "✓ Stage updated.",
+    errorToast: "Unable to update stage.",
+    progressLabel: "Updating lead stage…",
+  });
 
   function handleStageChange(leadId: string, stage: string) {
-    startTransition(async () => {
+    void action.run(async () => {
       await updateLeadStage(leadId, stage as (typeof LEAD_STAGES)[number]["value"]);
+      return { success: true };
     });
   }
 
@@ -73,8 +80,10 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
                     )}
                     <select
                       value={lead.lead_stage}
+                      disabled={action.isBusy}
                       onChange={(e) => handleStageChange(lead.id, e.target.value)}
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
+                      aria-busy={action.isBusy || undefined}
                     >
                       {LEAD_STAGES.map((s) => (
                         <option key={s.value} value={s.value}>

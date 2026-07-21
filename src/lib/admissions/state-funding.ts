@@ -157,47 +157,56 @@ export async function getReconciliationByAward() {
       admissions_applications(admissions_leads(first_name, last_name, schools(name)))
     `);
 
-  const results = await Promise.all(
-    (awards ?? []).map(async (award) => {
-      const [expected, received] = await Promise.all([
-        supabase
-          .from("state_funding_expected_payments")
-          .select("expected_amount")
-          .eq("state_funding_verification_id", award.id),
-        supabase
-          .from("state_funding_received_payments")
-          .select("amount")
-          .eq("state_funding_verification_id", award.id),
-      ]);
+  const awardIds = (awards ?? []).map((a) => a.id);
+  if (!awardIds.length) return [];
 
-      const expectedSum = (expected.data ?? []).reduce(
-        (s, r) => s + Number(r.expected_amount ?? 0),
-        0
-      );
-      const receivedSum = (received.data ?? []).reduce(
-        (s, r) => s + Number(r.amount ?? 0),
-        0
-      );
-      const fallbackExpected = Number(award.award_amount ?? 0);
+  const [{ data: expectedRows }, { data: receivedRows }] = await Promise.all([
+    supabase
+      .from("state_funding_expected_payments")
+      .select("state_funding_verification_id, expected_amount")
+      .in("state_funding_verification_id", awardIds),
+    supabase
+      .from("state_funding_received_payments")
+      .select("state_funding_verification_id, amount")
+      .in("state_funding_verification_id", awardIds),
+  ]);
 
-      return {
-        id: award.id,
-        studentName: (() => {
-          const lead = (
-            award.admissions_applications as {
-              admissions_leads?: { first_name: string; last_name: string };
-            } | null
-          )?.admissions_leads;
-          return lead ? `${lead.first_name} ${lead.last_name}` : "—";
-        })(),
-        expected: expectedSum || fallbackExpected,
-        received: receivedSum,
-        variance: receivedSum - (expectedSum || fallbackExpected),
-      };
-    })
-  );
+  const expectedByAward = new Map<string, number>();
+  for (const row of expectedRows ?? []) {
+    if (!row.state_funding_verification_id) continue;
+    expectedByAward.set(
+      row.state_funding_verification_id,
+      (expectedByAward.get(row.state_funding_verification_id) ?? 0) + Number(row.expected_amount ?? 0)
+    );
+  }
 
-  return results;
+  const receivedByAward = new Map<string, number>();
+  for (const row of receivedRows ?? []) {
+    if (!row.state_funding_verification_id) continue;
+    receivedByAward.set(
+      row.state_funding_verification_id,
+      (receivedByAward.get(row.state_funding_verification_id) ?? 0) + Number(row.amount ?? 0)
+    );
+  }
+
+  return (awards ?? []).map((award) => {
+    const expectedSum = expectedByAward.get(award.id) ?? 0;
+    const receivedSum = receivedByAward.get(award.id) ?? 0;
+    const fallbackExpected = Number(award.award_amount ?? 0);
+    const lead = (
+      award.admissions_applications as {
+        admissions_leads?: { first_name: string; last_name: string };
+      } | null
+    )?.admissions_leads;
+
+    return {
+      id: award.id,
+      studentName: lead ? `${lead.first_name} ${lead.last_name}` : "—",
+      expected: expectedSum || fallbackExpected,
+      received: receivedSum,
+      variance: receivedSum - (expectedSum || fallbackExpected),
+    };
+  });
 }
 
 export function buildFundingExportCsv(

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { formatCount } from "@/lib/format";
 import type { LoopGapReport, OperationalLoopSummary } from "@/lib/platform/operational-loop/types";
 import { OPERATIONAL_LOOP_STAGES } from "@/lib/platform/operational-loop/types";
-import { retryLoopTransitionAction } from "@/lib/platform/operational-loop/actions";
+import { RetryLoopButton } from "@/components/executive/RetryLoopButton";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
 
 interface OperationalLoopDashboardProps {
   summary: OperationalLoopSummary;
@@ -80,17 +80,7 @@ export function OperationalLoopDashboard({ summary, gapReports }: OperationalLoo
                       {new Date(t.createdAt).toLocaleString()} · {t.status}
                     </p>
                   </div>
-                  {t.status === "failed" && (
-                    <form action={retryLoopTransitionAction}>
-                      <input type="hidden" name="audit_entry_id" value={t.id} />
-                      <button
-                        type="submit"
-                        className="rounded-lg border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100"
-                      >
-                        Retry
-                      </button>
-                    </form>
-                  )}
+                  {t.status === "failed" && <RetryLoopButton auditEntryId={t.id} />}
                 </div>
               </li>
             ))}
@@ -107,12 +97,9 @@ export function OperationalLoopDashboard({ summary, gapReports }: OperationalLoo
             {gapReports.slice(0, 15).map((report) => (
               <li key={report.studentId} className="rounded-lg border border-slate-100 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <Link
-                    href={`/dashboard/students/${report.studentId}`}
-                    className="font-medium text-brand-700 hover:underline"
-                  >
+                  <ActionChip href={`/dashboard/students/${report.studentId}`} size="sm">
                     {report.studentName}
-                  </Link>
+                  </ActionChip>
                   <span className="text-xs text-slate-500">{report.completenessPct}% complete</span>
                 </div>
                 <ul className="mt-2 space-y-1">

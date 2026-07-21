@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/intelligence-platform/context";
 import { getPrompts } from "@/lib/intelligence-platform/prompt-registry";
 import { AipShell } from "@/components/intelligence-platform/AipNav";
 import { HistoryTable } from "@/components/intelligence-platform/AipPanels";
+import { ExperienceForm, PublishPromptButton } from "@/components/intelligence-platform/AipMutationControls";
 import { createPromptAction, publishPromptAction } from "@/lib/intelligence-platform/actions";
 import { PROMPT_CATEGORIES } from "@/lib/intelligence-platform/types";
 
@@ -17,7 +18,15 @@ export default async function PromptsPage() {
   return (
     <AipShell title="Prompt Registry" subtitle="Central prompt storage with versioning, approval, and rollback">
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={createPromptAction} className="space-y-4">
+        <ExperienceForm
+          action={createPromptAction}
+          verb="create"
+          labels={{ idle: "Create prompt", loading: "Creating…", success: "✓ Created" }}
+          progressLabel="Creating prompt…"
+          successToast="✓ Prompt created."
+          errorToast="Unable to create prompt."
+          className="space-y-4"
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm">
               Name
@@ -37,10 +46,7 @@ export default async function PromptsPage() {
             Template
             <textarea name="template" rows={4} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs" />
           </label>
-          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Create prompt
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section>
@@ -55,12 +61,16 @@ export default async function PromptsPage() {
             { key: "current_version", label: "Version" },
           ]}
         />
-        {prompts.filter((p) => p.status === "draft").map((p) => (
-          <form key={p.id} action={publishPromptAction} className="mt-2 inline-block mr-2">
-            <input type="hidden" name="prompt_id" value={p.id} />
-            <button type="submit" className="text-sm text-brand-600 hover:underline">Publish {p.name}</button>
-          </form>
-        ))}
+        <div className="mt-2 flex flex-wrap gap-3">
+          {prompts.filter((p) => p.status === "draft").map((p) => (
+            <PublishPromptButton
+              key={p.id}
+              promptId={p.id}
+              promptName={p.name}
+              publishAction={publishPromptAction}
+            />
+          ))}
+        </div>
       </section>
     </AipShell>
   );

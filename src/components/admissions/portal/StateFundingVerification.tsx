@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { updateStateFundingVerification } from "@/lib/admissions/portal/actions";
 import { VERIFICATION_STATUS_LABELS } from "@/lib/constants/admissions-portal";
 import { fundingSourceLabel } from "@/lib/constants/programs";
 import type { PortalStateFundingVerification } from "@/lib/admissions/portal/queries";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 import { portalInputClass, portalLabelClass, portalSectionClass } from "./styles";
 
 interface StateFundingVerificationProps {
@@ -54,9 +55,16 @@ function VerificationRow({
   applicationId: string;
   leadId: string;
 }) {
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Save Verification Info", loading: "Saving…", success: "✓ Saved" },
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to save.",
+    progressLabel: "Saving verification info…",
+    onError: (err) => setError(err.message),
+  });
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,13 +75,11 @@ function VerificationRow({
     formData.set("application_id", applicationId);
     formData.set("lead_id", leadId);
 
-    startTransition(async () => {
+    void action.run(async () => {
       const result = await updateStateFundingVerification(formData);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
+      if (result.error) throw new Error(result.error);
       setSaved(true);
+      return result;
     });
   }
 
@@ -129,13 +135,15 @@ function VerificationRow({
       {error && <p className="text-xs text-red-600">{error}</p>}
       {saved && <p className="text-xs text-emerald-600">Verification details saved.</p>}
 
-      <button
+      <ActionButton
         type="submit"
-        disabled={isPending || verification.verification_status === "verified"}
-        className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-      >
-        {isPending ? "Saving…" : "Save Verification Info"}
-      </button>
+        status={action.status}
+        verb="save"
+        labels={{ idle: "Save Verification Info", loading: "Saving…", success: "✓ Saved" }}
+        disabled={verification.verification_status === "verified"}
+        errorMessage={action.errorMessage}
+        className="!rounded-lg !px-3 !py-1.5 !text-xs"
+      />
     </form>
   );
 }

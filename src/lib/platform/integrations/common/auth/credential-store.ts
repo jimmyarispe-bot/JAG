@@ -1,5 +1,6 @@
 /**
- * Credential storage — in-memory placeholder. Replace with encrypted vault later.
+ * Credential storage — in-memory for connector CI / local demos.
+ * Production vault: https://github.com/jimmyarispe-bot/JAG/issues/3
  * Never returns secrets in logs; only opaque presence checks for UI.
  */
 

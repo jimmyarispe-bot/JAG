@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   AiRecommendationCard,
   AlertCard,
@@ -15,6 +14,7 @@ import {
   WarningBanner,
   type XesTimelineEntry,
 } from "@/components/experience-system";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
 import type { InstructionDeliveryContext } from "@/lib/instruction/delivery-context";
 import type { SessionCloseoutSummary } from "@/lib/instruction/session-closeout";
 
@@ -268,12 +268,11 @@ export function InstructionDeliveryPanel({
           />
         )}
 
-        <Link
-          href={`/dashboard/teacher/students/${ctx.student.id}`}
-          className="block text-center text-sm font-medium text-brand-600 hover:underline"
-        >
-          Open full growth plan →
-        </Link>
+        <div className="flex justify-center">
+          <ActionChip href={`/dashboard/teacher/students/${ctx.student.id}`} size="sm" variant="primary">
+            Open full growth plan
+          </ActionChip>
+        </div>
       </aside>
     </div>
   );

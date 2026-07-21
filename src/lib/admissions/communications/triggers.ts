@@ -76,22 +76,29 @@ export async function scheduleInterviewReminders(
 
   if (!lead?.school_id) return;
 
-  for (const { event, hoursBefore } of reminders) {
-    const { data: templates } = await supabase
-      .from("admissions_communication_templates")
-      .select("*")
-      .eq("trigger_event", event)
-      .eq("is_active", true)
-      .or(`school_id.is.null,school_id.eq.${lead.school_id}`);
+  const templateSets = await Promise.all(
+    reminders.map(({ event }) =>
+      supabase
+        .from("admissions_communication_templates")
+        .select("id, template_key, channel")
+        .eq("trigger_event", event)
+        .eq("is_active", true)
+        .or(`school_id.is.null,school_id.eq.${lead.school_id}`)
+    )
+  );
 
-    for (const template of templates ?? []) {
+  const queueRows = [];
+  for (let i = 0; i < reminders.length; i++) {
+    const { event, hoursBefore } = reminders[i];
+    const templates = templateSets[i].data ?? [];
+    for (const template of templates) {
       const scheduledFor = new Date(
         interviewDate.getTime() - hoursBefore * 60 * 60 * 1000
       ).toISOString();
 
       if (new Date(scheduledFor) <= new Date()) continue;
 
-      await supabase.from("admissions_communication_queue").insert({
+      queueRows.push({
         lead_id: leadId,
         application_id: applicationId,
         template_id: template.id,
@@ -102,6 +109,10 @@ export async function scheduleInterviewReminders(
         status: "pending",
       });
     }
+  }
+
+  if (queueRows.length) {
+    await supabase.from("admissions_communication_queue").insert(queueRows);
   }
 }
 

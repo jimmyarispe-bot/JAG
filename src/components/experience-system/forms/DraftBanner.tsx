@@ -1,3 +1,7 @@
+"use client";
+
+import { ActionChip, ActionChipGroup } from "@/components/ui/cta";
+
 export function DraftBanner({
   onDiscard,
   onRestore,
@@ -8,16 +12,16 @@ export function DraftBanner({
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
       <span>You have an unsaved draft.</span>
-      <div className="flex gap-2">
+      <ActionChipGroup>
         {onRestore && (
-          <button type="button" className="font-medium text-brand-600 hover:underline" onClick={onRestore}>
+          <ActionChip type="button" size="xs" variant="primary" onClick={onRestore}>
             Restore
-          </button>
+          </ActionChip>
         )}
-        <button type="button" className="font-medium text-slate-600 hover:underline" onClick={onDiscard}>
+        <ActionChip type="button" size="xs" variant="ghost" onClick={onDiscard}>
           Discard
-        </button>
-      </div>
+        </ActionChip>
+      </ActionChipGroup>
     </div>
   );
 }

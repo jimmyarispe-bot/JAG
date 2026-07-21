@@ -1,4 +1,9 @@
-export { registerComplianceObligation, computeNextDueDate, completeObligationAndScheduleNext } from "@/lib/compliance/registry";
+export {
+  registerComplianceObligation,
+  registerComplianceObligationsBatch,
+  computeNextDueDate,
+  completeObligationAndScheduleNext,
+} from "@/lib/compliance/registry";
 export { syncComplianceToMissionControl, syncModuleDeadlinesToCompliance } from "@/lib/compliance/automation";
 export { syncUniversalDeadlines } from "@/lib/compliance/sync-deadlines";
 export {

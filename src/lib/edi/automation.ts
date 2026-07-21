@@ -8,16 +8,36 @@ import { computeEducationalRoi } from "@/lib/edi/educational-roi";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
+const SCHOOL_CONCURRENCY = 3;
+
+async function mapPool<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  if (!items.length) return;
+  let index = 0;
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (index < items.length) {
+      const current = items[index++]!;
+      await worker(current);
+    }
+  });
+  await Promise.all(runners);
+}
+
 export async function syncExecutiveDecisionIntelligence(supabase: AuthClient) {
   const { data: schools } = await supabase.from("schools").select("id").limit(50);
 
-  for (const school of schools ?? []) {
-    await generateAllRecommendations(supabase, school.id);
-    await computeExecutiveScorecard(supabase, school.id);
-    await computeCapacitySnapshot(supabase, school.id);
-    await computeEducationalRoi(supabase, school.id);
-    await generateExecutiveBriefings(supabase, school.id);
-  }
+  await mapPool(schools ?? [], SCHOOL_CONCURRENCY, async (school) => {
+    await Promise.all([
+      generateAllRecommendations(supabase, school.id),
+      computeExecutiveScorecard(supabase, school.id),
+      computeCapacitySnapshot(supabase, school.id),
+      computeEducationalRoi(supabase, school.id),
+      generateExecutiveBriefings(supabase, school.id),
+    ]);
+  });
 
   await syncEdiAlertsToMissionControl(supabase);
 }
@@ -25,32 +45,40 @@ export async function syncExecutiveDecisionIntelligence(supabase: AuthClient) {
 export async function syncEdiAlertsToMissionControl(supabase: AuthClient) {
   const { data: schools } = await supabase.from("schools").select("id").limit(50);
 
-  for (const school of schools ?? []) {
+  await mapPool(schools ?? [], SCHOOL_CONCURRENCY, async (school) => {
     const recs = await getTopRecommendations(supabase, school.id, 30);
+    const critical = recs.filter(
+      (r) => (r.priority === "critical" || r.riskLevel === "critical") && r.id
+    );
+    if (!critical.length) return;
 
-    for (const rec of recs.filter((r) => r.priority === "critical" || r.riskLevel === "critical")) {
-      const { data: existing } = await supabase
-        .from("platform_mission_control_items")
-        .select("id")
-        .eq("entity_type", "edi_recommendations")
-        .eq("entity_id", rec.id)
-        .eq("is_resolved", false)
-        .maybeSingle();
+    const entityIds = critical.map((r) => r.id as string);
+    const { data: existing } = await supabase
+      .from("platform_mission_control_items")
+      .select("entity_id")
+      .eq("entity_type", "edi_recommendations")
+      .eq("is_resolved", false)
+      .in("entity_id", entityIds);
 
-      if (existing || !rec.id) continue;
+    const existingIds = new Set((existing ?? []).map((row) => row.entity_id));
 
-      await createMissionControlItem(supabase, {
-        schoolId: school.id,
-        module: "executive",
-        itemType: "executive_alert",
-        title: `EDI: ${rec.issue}`,
-        body: rec.recommendedAction,
-        href: "/dashboard/executive/decisions",
-        entityType: "edi_recommendations",
-        entityId: rec.id,
-        assignedRole: rec.decisionOwnerRole ?? "SCHOOL_LEADER",
-        severity: rec.priority === "critical" ? "critical" : "high",
-      });
-    }
-  }
+    await Promise.all(
+      critical
+        .filter((rec) => rec.id && !existingIds.has(rec.id))
+        .map((rec) =>
+          createMissionControlItem(supabase, {
+            schoolId: school.id,
+            module: "executive",
+            itemType: "executive_alert",
+            title: `EDI: ${rec.issue}`,
+            body: rec.recommendedAction,
+            href: "/dashboard/executive/decisions",
+            entityType: "edi_recommendations",
+            entityId: rec.id,
+            assignedRole: rec.decisionOwnerRole ?? "SCHOOL_LEADER",
+            severity: rec.priority === "critical" ? "critical" : "high",
+          })
+        )
+    );
+  });
 }

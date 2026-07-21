@@ -145,6 +145,54 @@ import type {
   WisdomStack,
 } from "@/lib/platform/intelligence/wisdom";
 import type {
+  CreateSynthesisOptions,
+  SynthesisStack,
+} from "@/lib/platform/intelligence/synthesis";
+import type {
+  CreateBriefingOptions,
+  BriefingStack,
+} from "@/lib/platform/intelligence/briefing";
+import type {
+  CreateExecutiveMemoryOptions,
+  ExecutiveMemoryStack,
+} from "@/lib/platform/intelligence/executive-memory";
+import type {
+  CreateDecisionIntelligenceOptions,
+  DecisionIntelligenceStack,
+} from "@/lib/platform/intelligence/decision-intelligence";
+import type {
+  CreateExecutivePredictiveOptions,
+  ExecutivePredictiveStack,
+} from "@/lib/platform/intelligence/executive-predictive";
+import type {
+  CreateExecutiveAutonomousOptions,
+  ExecutiveAutonomousStack,
+} from "@/lib/platform/intelligence/executive-autonomous";
+import type {
+  CreateExecutiveCopilotOptions,
+  ExecutiveCopilotStack,
+} from "@/lib/platform/intelligence/executive-copilot";
+import type {
+  CreateExecutiveCommandCenterOptions,
+  ExecutiveCommandCenterStack,
+} from "@/lib/platform/intelligence/executive-command-center";
+import type {
+  CreateInitiativeIntelligenceOptions,
+  InitiativeIntelligenceStack,
+} from "@/lib/platform/intelligence/initiative-intelligence";
+import type {
+  CreatePortfolioIntelligenceOptions,
+  PortfolioIntelligenceStack,
+} from "@/lib/platform/intelligence/portfolio-intelligence";
+import type {
+  CreateDigitalTwinOptions,
+  DigitalTwinStack,
+} from "@/lib/platform/intelligence/digital-twin";
+import type {
+  CreateEcosystemFederationOptions,
+  EcosystemFederationStack,
+} from "@/lib/platform/intelligence/ecosystem-intelligence";
+import type {
   CreateOiosOptions,
   OiosStack,
 } from "@/lib/platform/oios";
@@ -159,6 +207,11 @@ import type { IntelligenceRouter } from "@/lib/platform/intelligence/router";
 
 /** Optional overrides for {@link createIntelligenceService} (test / advanced DI). */
 export interface CreateIntelligenceServiceOptions {
+  /**
+   * P005: when true, materialise every domain stack (+ platform) immediately.
+   * Default false — stacks are created on first property access.
+   */
+  eagerStacks?: boolean;
   registry?: IntelligenceDomainRegistry;
   router?: IntelligenceRouter;
   orchestrator?: IntelligenceOrchestrator;
@@ -238,6 +291,30 @@ export interface CreateIntelligenceServiceOptions {
   collectiveOptions?: CreateCollectiveOptions;
   wisdom?: WisdomStack;
   wisdomOptions?: CreateWisdomOptions;
+  synthesis?: SynthesisStack;
+  synthesisOptions?: CreateSynthesisOptions;
+  briefing?: BriefingStack;
+  briefingOptions?: CreateBriefingOptions;
+  executiveMemory?: ExecutiveMemoryStack;
+  executiveMemoryOptions?: CreateExecutiveMemoryOptions;
+  decisionIntelligence?: DecisionIntelligenceStack;
+  decisionIntelligenceOptions?: CreateDecisionIntelligenceOptions;
+  executivePredictive?: ExecutivePredictiveStack;
+  executivePredictiveOptions?: CreateExecutivePredictiveOptions;
+  executiveAutonomous?: ExecutiveAutonomousStack;
+  executiveAutonomousOptions?: CreateExecutiveAutonomousOptions;
+  executiveCopilot?: ExecutiveCopilotStack;
+  executiveCopilotOptions?: CreateExecutiveCopilotOptions;
+  executiveCommandCenter?: ExecutiveCommandCenterStack;
+  executiveCommandCenterOptions?: CreateExecutiveCommandCenterOptions;
+  initiativeIntelligence?: InitiativeIntelligenceStack;
+  initiativeIntelligenceOptions?: CreateInitiativeIntelligenceOptions;
+  portfolioIntelligence?: PortfolioIntelligenceStack;
+  portfolioIntelligenceOptions?: CreatePortfolioIntelligenceOptions;
+  digitalTwin?: DigitalTwinStack;
+  digitalTwinOptions?: CreateDigitalTwinOptions;
+  ecosystemIntelligence?: EcosystemFederationStack;
+  ecosystemIntelligenceOptions?: CreateEcosystemFederationOptions;
   intelligencePlatform?: IntelligencePlatformStack;
   intelligencePlatformOptions?: CreateIntelligencePlatformOptions;
 }

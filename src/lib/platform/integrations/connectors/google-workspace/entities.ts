@@ -6,13 +6,16 @@
 
 export const GOOGLE_WORKSPACE_OBJECT_TYPES = [
   "message",
-  "label",
   "thread",
+  "label",
+  "attachment",
   "calendar_event",
   "drive_file",
   "drive_folder",
   "doc",
   "sheet",
+  "slide",
+  "contact",
   "meet",
   "task_list",
   "task",
@@ -61,3 +64,26 @@ export const DEFAULT_GOOGLE_WORKSPACE_PRIVACY: GoogleWorkspacePrivacyPolicy = {
   storeEmailBodies: false,
   storeDocumentContents: false,
 };
+
+/** Knowledge-graph canonical entity kinds (never raw Google objects). */
+export const GOOGLE_WORKSPACE_KG_KINDS = [
+  "Person",
+  "Meeting",
+  "CalendarEvent",
+  "Attendee",
+  "Room",
+  "Resource",
+  "Communication",
+  "Email",
+  "Conversation",
+  "Attachment",
+  "Document",
+  "Folder",
+  "Owner",
+  "Permission",
+  "Revision",
+  "Task",
+  "Organization",
+] as const;
+
+export type GoogleWorkspaceKgKind = (typeof GOOGLE_WORKSPACE_KG_KINDS)[number];

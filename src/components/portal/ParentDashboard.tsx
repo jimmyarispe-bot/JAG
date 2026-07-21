@@ -3,6 +3,7 @@ import { formatCurrency } from "@/lib/format";
 import type { PortalStudentSummary } from "@/lib/portal/dashboard";
 import type { DeadlineBucket } from "@/lib/compliance/types";
 import { MyDeadlinesWidget } from "@/components/portal/MyDeadlinesWidget";
+import { ActionChip } from "@/components/ui/cta";
 
 interface ParentDashboardProps {
   students: PortalStudentSummary[];
@@ -38,7 +39,9 @@ export function ParentDashboard({ students, financial, tasks, deadlines, unreadN
         <article className="rounded-2xl border border-slate-200 bg-white p-5">
           <p className="text-sm text-slate-500">Outstanding balance</p>
           <p className="text-2xl font-semibold text-amber-700">{formatCurrency(financial.combinedBalance)}</p>
-          <Link href="/portal/finance" className="text-xs text-brand-600 hover:underline">View finance →</Link>
+          <ActionChip href="/portal/finance" size="xs" className="mt-2">
+            View finance
+          </ActionChip>
         </article>
         <article className="rounded-2xl border border-slate-200 bg-white p-5">
           <p className="text-sm text-slate-500">Open tasks</p>
@@ -47,7 +50,9 @@ export function ParentDashboard({ students, financial, tasks, deadlines, unreadN
         <article className="rounded-2xl border border-slate-200 bg-white p-5">
           <p className="text-sm text-slate-500">Notifications</p>
           <p className="text-3xl font-semibold">{unreadNotifications}</p>
-          <Link href="/portal/notifications" className="text-xs text-brand-600 hover:underline">View all →</Link>
+          <ActionChip href="/portal/notifications" size="xs" className="mt-2">
+            View all
+          </ActionChip>
         </article>
       </section>
 

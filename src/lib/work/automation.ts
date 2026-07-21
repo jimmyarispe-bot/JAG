@@ -8,15 +8,36 @@ const today = () => new Date().toISOString().split("T")[0];
 
 export async function syncWorkToMissionControl(supabase: AuthClient) {
   await markOverdueTasks(supabase);
-  await syncBlockedProjects(supabase);
-  await syncCriticalTasks(supabase);
-  await syncWaitingApprovals(supabase);
+  await Promise.all([
+    syncBlockedProjects(supabase),
+    syncCriticalTasks(supabase),
+    syncWaitingApprovals(supabase),
+  ]);
   await refreshAllProjectHealth(supabase);
 }
 
 async function markOverdueTasks(supabase: AuthClient) {
   // Overdue tasks are surfaced via Mission Control — status remains unchanged for user workflow
   void supabase;
+}
+
+async function existingMcEntityIds(
+  supabase: AuthClient,
+  entityType: string,
+  entityIds: string[]
+): Promise<Set<string>> {
+  const existing = new Set<string>();
+  if (!entityIds.length) return existing;
+  const { data } = await supabase
+    .from("platform_mission_control_items")
+    .select("entity_id")
+    .eq("entity_type", entityType)
+    .in("entity_id", entityIds)
+    .eq("is_resolved", false);
+  for (const row of data ?? []) {
+    if (row.entity_id) existing.add(row.entity_id);
+  }
+  return existing;
 }
 
 async function syncBlockedProjects(supabase: AuthClient) {
@@ -26,30 +47,27 @@ async function syncBlockedProjects(supabase: AuthClient) {
     .eq("health_indicator", "red")
     .in("status", ["active", "blocked", "planning"]);
 
-  for (const p of projects ?? []) {
-    const { data: existing } = await supabase
-      .from("platform_mission_control_items")
-      .select("id")
-      .eq("entity_type", "work_projects")
-      .eq("entity_id", p.id)
-      .eq("is_resolved", false)
-      .maybeSingle();
+  const ids = (projects ?? []).map((p) => p.id);
+  const existing = await existingMcEntityIds(supabase, "work_projects", ids);
 
-    if (existing) continue;
-
-    await createMissionControlItem(supabase, {
-      schoolId: p.school_id,
-      module: "compliance",
-      itemType: "compliance_alert",
-      title: `Blocked project: ${p.name}`,
-      body: "Project health is red — review overdue or blocked tasks",
-      href: `/dashboard/projects?id=${p.id}`,
-      entityType: "work_projects",
-      entityId: p.id,
-      assignedRole: "SCHOOL_LEADER",
-      severity: "high",
-    });
-  }
+  await Promise.all(
+    (projects ?? [])
+      .filter((p) => !existing.has(p.id))
+      .map((p) =>
+        createMissionControlItem(supabase, {
+          schoolId: p.school_id,
+          module: "compliance",
+          itemType: "compliance_alert",
+          title: `Blocked project: ${p.name}`,
+          body: "Project health is red — review overdue or blocked tasks",
+          href: `/dashboard/projects?id=${p.id}`,
+          entityType: "work_projects",
+          entityId: p.id,
+          assignedRole: "SCHOOL_LEADER",
+          severity: "high",
+        })
+      )
+  );
 }
 
 async function syncCriticalTasks(supabase: AuthClient) {
@@ -61,29 +79,26 @@ async function syncCriticalTasks(supabase: AuthClient) {
     .not("status", "in", '("completed","cancelled")')
     .or(`due_date.lt.${t},priority.eq.critical`);
 
-  for (const task of tasks ?? []) {
-    const { data: existing } = await supabase
-      .from("platform_mission_control_items")
-      .select("id")
-      .eq("entity_type", "work_tasks")
-      .eq("entity_id", task.id)
-      .eq("is_resolved", false)
-      .maybeSingle();
+  const ids = (tasks ?? []).map((t) => t.id);
+  const existing = await existingMcEntityIds(supabase, "work_tasks", ids);
 
-    if (existing) continue;
-
-    await createMissionControlItem(supabase, {
-      schoolId: task.school_id,
-      module: "compliance",
-      itemType: "compliance_alert",
-      title: task.due_date && task.due_date < t ? `Overdue: ${task.title}` : `Critical: ${task.title}`,
-      href: `/dashboard/tasks?id=${task.id}`,
-      entityType: "work_tasks",
-      entityId: task.id,
-      assignedUserId: task.owner_user_id,
-      severity: task.priority === "critical" ? "critical" : "high",
-    });
-  }
+  await Promise.all(
+    (tasks ?? [])
+      .filter((task) => !existing.has(task.id))
+      .map((task) =>
+        createMissionControlItem(supabase, {
+          schoolId: task.school_id,
+          module: "compliance",
+          itemType: "compliance_alert",
+          title: task.due_date && task.due_date < t ? `Overdue: ${task.title}` : `Critical: ${task.title}`,
+          href: `/dashboard/tasks?id=${task.id}`,
+          entityType: "work_tasks",
+          entityId: task.id,
+          assignedUserId: task.owner_user_id,
+          severity: task.priority === "critical" ? "critical" : "high",
+        })
+      )
+  );
 }
 
 async function syncWaitingApprovals(supabase: AuthClient) {
@@ -93,19 +108,21 @@ async function syncWaitingApprovals(supabase: AuthClient) {
     .eq("status", "needs_review")
     .eq("task_type", "approval");
 
-  for (const task of tasks ?? []) {
-    await createMissionControlItem(supabase, {
-      schoolId: task.school_id,
-      module: "executive",
-      itemType: "executive_alert",
-      title: `Approval waiting: ${task.title}`,
-      href: `/dashboard/work?view=approvals`,
-      entityType: "work_tasks",
-      entityId: task.id,
-      assignedUserId: task.owner_user_id,
-      severity: "normal",
-    });
-  }
+  await Promise.all(
+    (tasks ?? []).map((task) =>
+      createMissionControlItem(supabase, {
+        schoolId: task.school_id,
+        module: "executive",
+        itemType: "executive_alert",
+        title: `Approval waiting: ${task.title}`,
+        href: `/dashboard/work?view=approvals`,
+        entityType: "work_tasks",
+        entityId: task.id,
+        assignedUserId: task.owner_user_id,
+        severity: "normal",
+      })
+    )
+  );
 }
 
 async function refreshAllProjectHealth(supabase: AuthClient) {
@@ -114,7 +131,5 @@ async function refreshAllProjectHealth(supabase: AuthClient) {
     .select("id")
     .in("status", ["active", "planning", "blocked"]);
 
-  for (const p of projects ?? []) {
-    await updateProjectHealth(supabase, p.id);
-  }
+  await Promise.all((projects ?? []).map((p) => updateProjectHealth(supabase, p.id)));
 }

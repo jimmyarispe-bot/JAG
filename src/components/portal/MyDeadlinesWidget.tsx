@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import type { DeadlineBucket } from "@/lib/compliance/types";
 import { completePortalObligationAction } from "@/lib/compliance/deadline-actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface PortalTask {
   id: string;
@@ -44,7 +46,13 @@ function actionLabel(actionType?: string) {
 export function MyDeadlinesWidget({ deadlines, tasks, students }: MyDeadlinesWidgetProps) {
   const [filterStudentId, setFilterStudentId] = useState<string>("");
   const [activeSection, setActiveSection] = useState<Section>("today");
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Mark done", loading: "Updating…", success: "✓ Done" },
+    successToast: "✓ Marked done.",
+    errorToast: "Unable to update.",
+    progressLabel: "Updating deadline…",
+  });
 
   const filteredTasks = useMemo(() => {
     if (!filterStudentId) return tasks;
@@ -76,8 +84,10 @@ export function MyDeadlinesWidget({ deadlines, tasks, students }: MyDeadlinesWid
   const visible = sectionTasks[activeSection];
 
   function markComplete(id: string) {
-    startTransition(async () => {
-      await completePortalObligationAction(id);
+    void action.run(async () => {
+      const result = await completePortalObligationAction(id);
+      assertActionResult(result);
+      return result;
     });
   }
 
@@ -145,14 +155,14 @@ export function MyDeadlinesWidget({ deadlines, tasks, students }: MyDeadlinesWid
                 </Link>
               )}
               {t.parentCanComplete && (
-                <button
+                <ActionButton
                   type="button"
-                  disabled={pending}
+                  status={action.status}
+                  verb="save"
+                  labels={{ idle: "Mark done", loading: "Updating…", success: "✓ Done" }}
+                  className="!rounded-md !bg-emerald-600 !px-2 !py-1 !text-xs hover:!bg-emerald-700"
                   onClick={() => markComplete(t.id)}
-                  className="rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  Mark done
-                </button>
+                />
               )}
             </div>
           </li>

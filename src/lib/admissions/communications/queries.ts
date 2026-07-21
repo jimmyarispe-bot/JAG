@@ -1,9 +1,28 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import {
+  COMMUNICATION_TEMPLATE_COLS,
+  PORTAL_NOTIFICATION_COLS,
+  QUEUED_COMMUNICATION_COLS,
+  STAFF_NOTIFICATION_COLS,
+  TIMELINE_COMMUNICATION_COLS,
+  TIMELINE_DECISION_COLS,
+  TIMELINE_NOTE_COLS,
+  TIMELINE_STAGE_COLS,
+  type StaffNotificationDto,
+} from "@/lib/admissions/communications/projections";
 import type {
   CommunicationRecord,
   CommunicationTemplate,
   QueuedCommunication,
 } from "@/lib/admissions/communications/types";
+
+function userFullName(
+  users: { full_name: string | null } | { full_name: string | null }[] | null | undefined
+): string | null {
+  if (!users) return null;
+  const row = Array.isArray(users) ? users[0] : users;
+  return row?.full_name ?? null;
+}
 
 export interface ApplicantTimelineEntry {
   id: string;
@@ -22,11 +41,13 @@ export async function getLeadCommunications(leadId: string) {
   const supabase = await createAuthClient();
   const { data } = await supabase
     .from("admissions_communications")
-    .select("*, users(full_name)")
+    .select(
+      "id, lead_id, application_id, communication_type, subject, body, sent_to, sent_by, sent_at, template_id, template_key, trigger_event, delivery_status, open_status, opened_at, is_staff_notification, users(full_name)"
+    )
     .eq("lead_id", leadId)
     .order("sent_at", { ascending: false });
 
-  return (data ?? []) as CommunicationRecord[];
+  return (data ?? []) as unknown as CommunicationRecord[];
 }
 
 export async function getApplicantTimeline(leadId: string): Promise<ApplicantTimelineEntry[]> {
@@ -35,17 +56,14 @@ export async function getApplicantTimeline(leadId: string): Promise<ApplicantTim
   const [communications, notes, history, decisions] = await Promise.all([
     supabase
       .from("admissions_communications")
-      .select("*, users(full_name)")
+      .select(TIMELINE_COMMUNICATION_COLS)
       .eq("lead_id", leadId),
-    supabase
-      .from("admissions_notes")
-      .select("*, users(full_name)")
-      .eq("lead_id", leadId),
+    supabase.from("admissions_notes").select(TIMELINE_NOTE_COLS).eq("lead_id", leadId),
     supabase
       .from("admissions_lead_stage_history")
-      .select("*, users(full_name)")
+      .select(TIMELINE_STAGE_COLS)
       .eq("lead_id", leadId),
-    supabase.from("admissions_decisions").select("*, users(full_name)").eq("lead_id", leadId),
+    supabase.from("admissions_decisions").select(TIMELINE_DECISION_COLS).eq("lead_id", leadId),
   ]);
 
   const entries: ApplicantTimelineEntry[] = [];
@@ -58,7 +76,7 @@ export async function getApplicantTimeline(leadId: string): Promise<ApplicantTim
       title: c.subject,
       body: c.body,
       timestamp: c.sent_at,
-      sentBy: c.users?.full_name ?? null,
+      sentBy: userFullName(c.users),
       deliveryStatus: c.delivery_status,
       openStatus: c.open_status,
       templateKey: c.template_key,
@@ -72,7 +90,7 @@ export async function getApplicantTimeline(leadId: string): Promise<ApplicantTim
       title: "Internal Note",
       body: n.note_text,
       timestamp: n.created_at,
-      sentBy: n.users?.full_name ?? null,
+      sentBy: userFullName(n.users),
     });
   }
 
@@ -85,7 +103,7 @@ export async function getApplicantTimeline(leadId: string): Promise<ApplicantTim
         ? `From ${(h.previous_stage as string).replace(/_/g, " ")}`
         : "Initial stage",
       timestamp: h.changed_at,
-      sentBy: h.users?.full_name ?? null,
+      sentBy: userFullName(h.users),
     });
   }
 
@@ -96,7 +114,7 @@ export async function getApplicantTimeline(leadId: string): Promise<ApplicantTim
       title: `Decision: ${(d.decision_type as string).replace(/_/g, " ")}`,
       body: d.decision_notes ?? d.email_subject ?? "",
       timestamp: d.decided_at,
-      sentBy: d.users?.full_name ?? null,
+      sentBy: userFullName(d.users),
     });
   }
 
@@ -109,7 +127,7 @@ export async function getCommunicationTemplates(schoolId?: string) {
   const supabase = await createAuthClient();
   let query = supabase
     .from("admissions_communication_templates")
-    .select("*")
+    .select(COMMUNICATION_TEMPLATE_COLS)
     .order("trigger_event")
     .order("channel");
 
@@ -125,7 +143,7 @@ export async function getPendingQueue(leadId?: string) {
   const supabase = await createAuthClient();
   let query = supabase
     .from("admissions_communication_queue")
-    .select("*")
+    .select(QUEUED_COMMUNICATION_COLS)
     .eq("status", "pending")
     .order("scheduled_for");
 
@@ -135,11 +153,14 @@ export async function getPendingQueue(leadId?: string) {
   return (data ?? []) as QueuedCommunication[];
 }
 
-export async function getStaffNotifications(userId: string, unreadOnly = true) {
+export async function getStaffNotifications(
+  userId: string,
+  unreadOnly = true
+): Promise<StaffNotificationDto[]> {
   const supabase = await createAuthClient();
   let query = supabase
     .from("admissions_staff_notifications")
-    .select("*")
+    .select(STAFF_NOTIFICATION_COLS)
     .or(`user_id.eq.${userId},user_id.is.null`)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -147,14 +168,14 @@ export async function getStaffNotifications(userId: string, unreadOnly = true) {
   if (unreadOnly) query = query.is("read_at", null);
 
   const { data } = await query;
-  return data ?? [];
+  return (data ?? []) as StaffNotificationDto[];
 }
 
 export async function getPortalNotifications(leadId: string) {
   const supabase = await createAuthClient();
   const { data } = await supabase
     .from("admissions_portal_notifications")
-    .select("*")
+    .select(PORTAL_NOTIFICATION_COLS)
     .eq("lead_id", leadId)
     .order("created_at", { ascending: false });
 

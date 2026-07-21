@@ -25994,6 +25994,37 @@ export type Database = {
         Args: { p_funding_source_ids: string[]; p_student_id: string }
         Returns: undefined
       }
+      create_student_record: {
+        Args: {
+          p_school_id: string
+          p_first_name: string
+          p_last_name: string
+          p_family_id?: string | null
+          p_preferred_name?: string | null
+          p_date_of_birth?: string | null
+          p_grade_level?: string | null
+          p_gender?: string | null
+          p_program?: string | null
+          p_enrollment_status?: string | null
+          p_funding_source_codes?: string[]
+        }
+        Returns: string
+      }
+      create_family_with_guardians: {
+        Args: {
+          p_school_id: string
+          p_family_name: string
+          p_guardians?: Json
+          p_student_id?: string | null
+          p_billing_email?: string | null
+          p_billing_phone?: string | null
+        }
+        Returns: Json
+      }
+      link_student_to_family: {
+        Args: { p_student_id: string; p_family_id: string }
+        Returns: string
+      }
       scheduling_policy: {
         Args: { check_permission?: string; check_school_id: string }
         Returns: boolean

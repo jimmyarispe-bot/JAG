@@ -1,10 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
 import { requestConferenceAction, respondToMeetingAction } from "@/lib/portal/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 const inputClass = "mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
-const btn = "rounded-lg bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-50";
 
 interface MeetingRow {
   id: string;
@@ -36,7 +37,12 @@ function studentName(row: { students?: MeetingRow["students"] }) {
 }
 
 export function PortalConferencesPanel({ meetings, requests, students }: PortalConferencesPanelProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "submit",
+    successToast: "✓ Updated",
+    errorToast: "Unable to update.",
+    progressLabel: "Updating conference…",
+  });
 
   return (
     <div className="space-y-8">
@@ -44,11 +50,14 @@ export function PortalConferencesPanel({ meetings, requests, students }: PortalC
         className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3 max-w-lg"
         onSubmit={(e) => {
           e.preventDefault();
-          startTransition(async () => {
-            const fd = new FormData(e.currentTarget);
-            fd.set("preferred_times", JSON.stringify([fd.get("preferred_time")]));
-            await requestConferenceAction(fd);
-            e.currentTarget.reset();
+          const form = e.currentTarget;
+          const fd = new FormData(form);
+          fd.set("preferred_times", JSON.stringify([fd.get("preferred_time")]));
+          void action.run(async () => {
+            const result = await requestConferenceAction(fd);
+            assertActionResult(result);
+            form.reset();
+            return result;
           });
         }}
       >
@@ -58,7 +67,13 @@ export function PortalConferencesPanel({ meetings, requests, students }: PortalC
         </select>
         <input name="preferred_time" type="datetime-local" required className={inputClass} />
         <textarea name="notes" placeholder="Notes for the school" rows={3} className={inputClass} />
-        <button type="submit" disabled={pending} className={btn}>Submit request</button>
+        <ActionButton
+          type="submit"
+          status={action.status}
+          verb="submit"
+          labels={{ idle: "Submit request", loading: "Submitting…", success: "✓ Submitted" }}
+          errorMessage={action.errorMessage}
+        />
       </form>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -70,12 +85,36 @@ export function PortalConferencesPanel({ meetings, requests, students }: PortalC
               <p className="text-slate-500">{studentName(m)} · {m.scheduled_at ? new Date(m.scheduled_at).toLocaleString() : "TBD"}</p>
               {m.agenda && <p className="mt-2 text-slate-600">{m.agenda}</p>}
               {m.virtual_meeting_url && (
-                <a href={m.virtual_meeting_url} className="mt-2 inline-block text-brand-600 hover:underline">Join virtual meeting</a>
+                <div className="mt-2">
+                  <ActionChip href={m.virtual_meeting_url} size="sm" variant="primary">
+                    Join virtual meeting
+                  </ActionChip>
+                </div>
               )}
               {m.notes && <p className="mt-2 text-slate-600"><strong>Notes:</strong> {m.notes}</p>}
               {m.parent_response_status !== "accepted" && m.scheduled_at && (
-                <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); startTransition(async () => { const fd = new FormData(e.currentTarget); fd.set("meeting_id", m.id); fd.set("response", "accepted"); await respondToMeetingAction(fd); }); }}>
-                  <button type="submit" disabled={pending} className="text-xs text-brand-600">Accept</button>
+                <form
+                  className="mt-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.currentTarget);
+                    fd.set("meeting_id", m.id);
+                    fd.set("response", "accepted");
+                    void action.run(async () => {
+                      const result = await respondToMeetingAction(fd);
+                      assertActionResult(result);
+                      return result;
+                    });
+                  }}
+                >
+                  <ActionButton
+                    type="submit"
+                    status={action.status}
+                    verb="approve"
+                    variant="success"
+                    size="xs"
+                    labels={{ idle: "Confirm", loading: "Confirming…", success: "✓ Confirmed" }}
+                  />
                 </form>
               )}
             </li>

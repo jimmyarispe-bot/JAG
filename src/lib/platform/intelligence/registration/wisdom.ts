@@ -1,5 +1,5 @@
 /**
- * Wisdom stack registration (terminal domain).
+ * Wisdom stack registration (Sprint 060; synthesis 061 depends on this).
  */
 
 import {

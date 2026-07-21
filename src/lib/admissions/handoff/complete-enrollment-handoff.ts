@@ -15,6 +15,7 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import { triggerCommunications } from "@/lib/admissions/communications/engine";
+import { parseProgramValue } from "@/lib/constants/programs";
 import {
   convertAcceptedApplicantToStudent,
   type ConversionResult,
@@ -98,7 +99,7 @@ export async function completeEnrollmentHandoff(
     applicationId,
     schoolId: lead.school_id,
     schoolYearId: application.school_year_id,
-    program: lead.program,
+    program: parseProgramValue(lead.program),
     gradeLevel: lead.applying_for_grade ?? lead.current_grade,
     guardianEmail: lead.guardian_email,
     actorUserId,

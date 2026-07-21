@@ -21,10 +21,10 @@ export function HomeDashboard({ data }: { data: ExecHomeViewModel }) {
             Open Brief
           </Link>
           <Link
-            href="/exec/actions"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            href="/dashboard/executive/decisions"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
           >
-            Review Approvals
+            Review Decisions
           </Link>
         </div>
       </div>
@@ -107,7 +107,7 @@ export function HomeDashboard({ data }: { data: ExecHomeViewModel }) {
       {/* Row E */}
       <div className="grid gap-4 lg:grid-cols-2">
         <WidgetFrame {...data.timeline}>
-          <ItemList items={data.timeline.items} />
+          <ItemList items={data.timeline.items} empty="No recent events in the last 7 days" />
         </WidgetFrame>
         <WidgetFrame {...data.graph}>
           <p className="text-sm font-medium text-slate-900">{data.graph.status}</p>

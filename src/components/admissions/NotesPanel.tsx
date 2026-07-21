@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { addLeadNote } from "@/lib/admissions/actions";
 import type { AdmissionNote } from "@/lib/admissions/queries";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface NotesPanelProps {
   leadId: string;
@@ -11,14 +13,23 @@ interface NotesPanelProps {
 
 export function NotesPanel({ leadId, notes }: NotesPanelProps) {
   const [text, setText] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "create",
+    labels: { idle: "Add Note", loading: "Saving…", success: "✓ Saved" },
+    successToast: "✓ Note saved.",
+    errorToast: "Unable to save note.",
+    progressLabel: "Saving note…",
+  });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;
-    startTransition(async () => {
-      await addLeadNote(leadId, text.trim());
+    const noteText = text.trim();
+    void action.run(async () => {
+      const result = await addLeadNote(leadId, noteText);
+      assertActionResult(result);
       setText("");
+      return result;
     });
   }
 
@@ -33,13 +44,15 @@ export function NotesPanel({ leadId, notes }: NotesPanelProps) {
           placeholder="Add a note…"
           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
         />
-        <button
+        <ActionButton
           type="submit"
-          disabled={isPending || !text.trim()}
-          className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          Add Note
-        </button>
+          status={action.status}
+          verb="create"
+          labels={{ idle: "Add Note", loading: "Saving…", success: "✓ Saved" }}
+          disabled={!text.trim()}
+          errorMessage={action.errorMessage}
+          className="!rounded-lg !px-3 !py-1.5 !text-xs"
+        />
       </form>
       <ul className="mt-4 space-y-3">
         {notes.map((note) => (

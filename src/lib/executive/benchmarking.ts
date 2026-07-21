@@ -1,4 +1,11 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import {
+  RPT_ENROLLMENT_PROGRAM_COLS,
+  RPT_ENROLLMENT_SCHOOL_COLS,
+  RPT_FINANCIAL_KPI_COLS,
+  RPT_OUTCOMES_COLS,
+  RPT_WORKFORCE_COLS,
+} from "@/lib/executive/report-projections";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -13,10 +20,18 @@ export interface BenchmarkRow {
 }
 
 export async function getSchoolBenchmarks(supabase: AuthClient, metric: "enrollment" | "revenue" | "success_score" | "staffing") {
-  const { data: enrollment } = await supabase.from("rpt_enrollment_summary").select("*");
-  const { data: financial } = await supabase.from("rpt_financial_kpis").select("*");
-  const { data: outcomes } = await supabase.from("rpt_student_outcomes").select("*");
-  const { data: workforce } = await supabase.from("rpt_workforce_kpis").select("*");
+  const { data: enrollment } = await supabase
+    .from("rpt_enrollment_summary")
+    .select(RPT_ENROLLMENT_SCHOOL_COLS);
+  const { data: financial } = await supabase
+    .from("rpt_financial_kpis")
+    .select(RPT_FINANCIAL_KPI_COLS);
+  const { data: outcomes } = await supabase
+    .from("rpt_student_outcomes")
+    .select(RPT_OUTCOMES_COLS);
+  const { data: workforce } = await supabase
+    .from("rpt_workforce_kpis")
+    .select(RPT_WORKFORCE_COLS);
 
   const schoolMetrics = new Map<string, { label: string; value: number }>();
 
@@ -68,7 +83,7 @@ export async function getSchoolBenchmarks(supabase: AuthClient, metric: "enrollm
 export async function getProgramBenchmarks(supabase: AuthClient, schoolId: string) {
   const { data } = await supabase
     .from("rpt_enrollment_summary")
-    .select("*")
+    .select(RPT_ENROLLMENT_PROGRAM_COLS)
     .eq("school_id", schoolId);
 
   const byProgram = new Map<string, number>();

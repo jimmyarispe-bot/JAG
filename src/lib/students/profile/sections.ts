@@ -342,14 +342,18 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     loadData: async (supabase, envelope) => {
       const env = studentEnvelope(envelope);
       if (!env) return null;
-      const { getGuardiansByFamily, getStudentById } = await import("@/lib/students/queries");
+      const { getGuardiansByFamily, getStudentById, searchFamilies } = await import(
+        "@/lib/students/queries"
+      );
       const {
         getStudentAuthorizedContacts,
       } = await import("@/lib/sis/queries");
       const { getFamilyHouseholds, getStudentSiblings } = await import("@/lib/ssis/family");
       const { getStudentRelationships } = await import("@/lib/platform/relationships");
       const familyId = env.familyId;
-      const [student, guardians, authorizedContacts, siblings, households, relationships] =
+      const canManageFamily =
+        env.permissions.includes("families.manage") || env.permissions.includes("students.edit");
+      const [student, guardians, authorizedContacts, siblings, households, relationships, families] =
         await Promise.all([
           getStudentById(env.studentId),
           familyId ? getGuardiansByFamily(familyId) : Promise.resolve([]),
@@ -357,8 +361,18 @@ export const STUDENT_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
           getStudentSiblings(env.studentId),
           familyId ? getFamilyHouseholds(familyId) : Promise.resolve([]),
           getStudentRelationships(supabase, env.studentId),
+          env.schoolId ? searchFamilies(env.schoolId, "", 100) : Promise.resolve([]),
         ]);
-      return { student, guardians, authorizedContacts, siblings, households, relationships };
+      return {
+        student,
+        guardians,
+        authorizedContacts,
+        siblings,
+        households,
+        relationships,
+        families,
+        canManageFamily,
+      };
     },
   }),
   section({

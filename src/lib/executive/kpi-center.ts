@@ -71,7 +71,9 @@ export async function getKpiCenter(
   const [definitions, aggregate, kpiPair] = await Promise.all([
     supabase
       .from("executive_kpi_definitions")
-      .select("*")
+      .select(
+        "kpi_key, display_name, category, unit, target_value, warning_threshold, critical_threshold, higher_is_better, sort_order"
+      )
       .eq("is_active", true)
       .order("sort_order"),
     getExecutiveAggregateMetrics(supabase, filters),

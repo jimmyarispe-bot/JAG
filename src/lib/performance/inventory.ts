@@ -71,7 +71,14 @@ export function buildBundleReport() {
       clientComponentCount: 6,
       serverComponentHint: "Prefer Server Components for page bodies",
       notes:
-        "ExecShell, ExecNav, OpportunityPage, WisdomPage, IntegrationsPage, IntegrationDetailPage are client boundaries.",
+        "P010: IntegrationsPage / IntegrationDetailPage are dynamic()-split on their routes; ExecShell/Nav remain chrome.",
+    },
+    {
+      area: "executive + edi panels",
+      clientComponentCount: 0,
+      serverComponentHint: "Per-panel modules + route dynamic()",
+      notes:
+        "P010: ExecutivePanels/EdiPanels barrels re-export split files; pages import panels via next/dynamic.",
     },
     {
       area: "app/exec routes",
@@ -91,6 +98,12 @@ export function buildBundleReport() {
       serverComponentHint: "Server-only",
       notes:
         "Connector registry + bootstrap must remain server-side; never import into client components.",
+    },
+    {
+      area: "Bundle tooling",
+      clientComponentCount: 0,
+      serverComponentHint: "n/a",
+      notes: "npm run analyze (webpack analyzer) + npm run bundle:budget (client source ceilings).",
     },
   ];
 }

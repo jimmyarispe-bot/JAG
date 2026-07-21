@@ -3,24 +3,18 @@ import { FounderMorningBriefSections } from "@/components/dashboard/FounderMorni
 import { FounderDashboardCards } from "@/components/dashboard/FounderDashboardCards";
 import { FounderDashboardNav } from "@/components/dashboard/FounderDashboardNav";
 import { ExecutiveDirectorDashboard } from "@/components/dashboard/ExecutiveDirectorDashboard";
-import { getSessionUser } from "@/lib/auth/session";
 import { canViewExecutiveDirectorDashboard } from "@/lib/dashboard/executive-director-dashboard";
 import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-access";
 import { getFounderMorningBrief } from "@/lib/dashboard/morning-brief";
 import { getVisibleQuickLaunchModuleIds } from "@/lib/dashboard/morning-brief-access";
-import { getIdentityContext } from "@/lib/platform/identity/context";
-import { createAuthClient } from "@/lib/supabase/server-auth";
-import { loadOrganizationBranding } from "@/lib/branding";
+import { getRequestWorkspaceContext } from "@/lib/platform/identity/request-context";
 
 export default async function DashboardHomePage() {
-  const supabase = await createAuthClient();
-  const ctx = await getIdentityContext();
-  if (!ctx) return null;
+  // Sprint P002 — shared request context (identity + branding already loaded by layout).
+  const workspace = await getRequestWorkspaceContext();
+  if (!workspace) return null;
 
-  const [sessionUser, branding] = await Promise.all([
-    getSessionUser(),
-    loadOrganizationBranding(supabase),
-  ]);
+  const { identity: ctx, branding } = workspace;
 
   const greeting = getGreeting();
   const today = new Date().toLocaleDateString("en-US", {
@@ -44,7 +38,7 @@ export default async function DashboardHomePage() {
             Founder &amp; CEO
           </h2>
           <p className="mt-2 text-sm text-indigo-100/90">
-            Welcome back, {sessionUser?.fullName ?? "there"}
+            Welcome back, {ctx.fullName}
           </p>
           <p className="mt-3 max-w-2xl text-sm text-indigo-100/90 sm:text-base">
             Your founder operating home for {branding.productName}
@@ -83,8 +77,8 @@ export default async function DashboardHomePage() {
   if (canViewExecutiveDirectorDashboard(ctx)) {
     return (
       <ExecutiveDirectorDashboard
-        fullName={sessionUser?.fullName ?? "there"}
-        roleLabel={sessionUser?.roleLabel ?? "Executive Director"}
+        fullName={ctx.fullName}
+        roleLabel={ctx.roleLabel}
         productName={branding.productName}
         greeting={greeting}
         today={today}
@@ -107,11 +101,11 @@ export default async function DashboardHomePage() {
           {branding.productName}
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          Welcome back, {sessionUser?.fullName ?? "there"}
+          Welcome back, {ctx.fullName}
         </p>
-        {sessionUser?.roleLabel && (
+        {ctx.roleLabel && (
           <p className="mt-4 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-            {sessionUser.roleLabel}
+            {ctx.roleLabel}
           </p>
         )}
       </section>

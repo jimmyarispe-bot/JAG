@@ -23,7 +23,8 @@ export async function buildStudentProfileEnvelope(
 
   if (!student) return null;
 
-  if (!canAccessSchool(identity, student.school_id)) {
+  // Newly created students must have a school; missing/inaccessible → 404, not 500.
+  if (!student.school_id || !canAccessSchool(identity, student.school_id)) {
     notFound();
   }
 

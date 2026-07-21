@@ -1,0 +1,12 @@
+export { DecisionIntelligenceCard } from "@/components/decision-intelligence/DecisionCard";
+export type { DecisionIntelligenceCardProps } from "@/components/decision-intelligence/DecisionCard";
+export { RecommendationPanel } from "@/components/decision-intelligence/RecommendationPanel";
+export type { RecommendationPanelProps } from "@/components/decision-intelligence/RecommendationPanel";
+export { OptionComparisonTable } from "@/components/decision-intelligence/OptionComparisonTable";
+export type { OptionComparisonTableProps } from "@/components/decision-intelligence/OptionComparisonTable";
+export { TradeoffView } from "@/components/decision-intelligence/TradeoffView";
+export type { TradeoffViewProps } from "@/components/decision-intelligence/TradeoffView";
+export { ConfidenceIndicator } from "@/components/decision-intelligence/ConfidenceIndicator";
+export type { ConfidenceIndicatorProps } from "@/components/decision-intelligence/ConfidenceIndicator";
+export { EvidencePanel } from "@/components/decision-intelligence/EvidencePanel";
+export type { EvidencePanelProps } from "@/components/decision-intelligence/EvidencePanel";

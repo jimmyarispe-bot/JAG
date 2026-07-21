@@ -1,4 +1,8 @@
 import { StatCard } from "@/components/dashboard/StatCard";
+import {
+  DashboardSkeleton,
+  ProgressivePageShell,
+} from "@/components/experience-system";
 import { ViewTabs } from "@/components/ui/ViewTabs";
 import { PageHeader } from "@/components/ui/PageHeader";
 import {
@@ -28,7 +32,7 @@ import type { ScenarioResult } from "@/lib/financial-intelligence/types";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { ActionChip, ActionChipGroup } from "@/components/experience-system/feedback/ActionChip";
 
 interface IntelligencePageContentProps {
   searchParams: Promise<{ view?: string }>;
@@ -93,11 +97,11 @@ export async function IntelligencePageContent({ searchParams }: IntelligencePage
           title="Financial Intelligence"
           subtitle="Enterprise business analytics — profitability, forecasting, scenarios, and executive dashboards"
         />
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/dashboard/finance" className="text-brand-600 hover:underline">Finance →</Link>
-          <Link href="/dashboard/executive" className="text-brand-600 hover:underline">Executive Intelligence →</Link>
-          <Link href="/api/financial-intelligence/reports?type=classes" className="text-brand-600 hover:underline">Export CSV →</Link>
-        </div>
+        <ActionChipGroup>
+          <ActionChip href="/dashboard/finance" size="sm">Finance</ActionChip>
+          <ActionChip href="/dashboard/executive" size="sm">Executive Intelligence</ActionChip>
+          <ActionChip href="/api/financial-intelligence/reports?type=classes" size="sm">Export CSV</ActionChip>
+        </ActionChipGroup>
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -125,13 +129,14 @@ export async function IntelligencePageContent({ searchParams }: IntelligencePage
 
 export function IntelligencePageSkeleton() {
   return (
-    <div className="mx-auto max-w-7xl space-y-6 animate-pulse">
-      <div className="h-8 w-64 rounded-lg bg-slate-200" />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 rounded-2xl bg-slate-100" />
-        ))}
-      </div>
-    </div>
+    <ProgressivePageShell
+      title="Financial Intelligence"
+      subtitle="Profitability, scenarios, and forecasting"
+      breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Intelligence" }]}
+      label="Loading financial intelligence…"
+      showDefaultBody={false}
+    >
+      <DashboardSkeleton />
+    </ProgressivePageShell>
   );
 }

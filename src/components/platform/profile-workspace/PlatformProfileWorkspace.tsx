@@ -5,7 +5,10 @@ import { ProfileSectionRenderer } from "@/components/platform/profile-workspace/
 import { ProfileTagsList } from "@/components/platform/profile-sections/ProfileTagsList";
 import { ProfileWorkspaceSectionNav } from "@/components/platform/profile-workspace/ProfileWorkspaceSectionNav";
 import { ProfileWorkspaceShell } from "@/components/platform/profile-workspace/ProfileWorkspaceShell";
-import { findActiveSectionDef } from "@/lib/platform/profile/navigation";
+import {
+  findActiveSectionDef,
+  toClientProfileNavigation,
+} from "@/lib/platform/profile/navigation";
 import type { PlatformProfileWorkspaceConfig } from "@/lib/platform/profile/workspace/types";
 
 function mergeContext(config: PlatformProfileWorkspaceConfig) {
@@ -58,10 +61,13 @@ export function PlatformProfileWorkspace({ config }: { config: PlatformProfileWo
     return null;
   }
 
+  // Client nav must not receive loadData (or any functions) — RSC serialization.
+  const clientNavigation = toClientProfileNavigation(config.navigation);
+
   return (
     <ProfileWorkspaceShell
       header={mergeHeader(config)}
-      sectionNav={<ProfileWorkspaceSectionNav navigation={config.navigation} />}
+      sectionNav={<ProfileWorkspaceSectionNav navigation={clientNavigation} />}
       workspaceAlerts={config.sectionContributions?.workspaceAlerts ?? config.workspaceAlerts}
       context={mergeContext(config)}
       contextTitle={config.contextTitle}

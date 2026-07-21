@@ -26,6 +26,18 @@ describe("B.1 security remediation", () => {
     });
   });
 
+  it("RC-3: unrestricted roles may access any school id", () => {
+    const ctx = {
+      hasUnrestrictedSchoolAccess: true,
+      accessibleSchoolIds: [],
+    } as unknown as Parameters<typeof requireSchoolAccess>[0];
+    expect(requireSchoolAccess(ctx, "any-school")).toBe(true);
+    expect(requireSchoolAccess(ctx, null)).toEqual({
+      error: "Forbidden",
+      code: "TENANT_SCOPE",
+    });
+  });
+
   it("lists privileged MFA permission keys", () => {
     expect(MFA_REQUIRED_PERMISSIONS).toContain("FINANCE_ACCESS");
     expect(MFA_REQUIRED_PERMISSIONS).toContain("JAG_ACCESS");

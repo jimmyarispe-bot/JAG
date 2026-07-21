@@ -69,7 +69,7 @@ See `12_PRODUCTION_ACCEPTANCE_REPORT.md` and `docs/launch/phase-h/00_EXECUTIVE_G
 | Migrations 171 & 172 in repo | Present |
 | Cron schedule documented | `0 0 * * *` matches `vercel.json` |
 | Health/ready routes | Present (`/api/health`, `/api/ready`) |
-| Env schema production secrets | CRON_SECRET, SENDGRID_*, VAULT_ENCRYPTION_KEY required |
+| Env schema production secrets | CRON_SECRET, RESEND_*, VAULT_ENCRYPTION_KEY required |
 
 ---
 

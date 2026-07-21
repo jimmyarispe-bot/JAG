@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
 import { formatCount, formatCurrency } from "@/lib/dashboard/metrics";
 import type { FounderDashboardData } from "@/lib/dashboard/founder-dashboard";
 import type { FounderDashboardCardKey } from "@/lib/dashboard/founder-dashboard-access";
@@ -42,9 +42,9 @@ function DashboardEmptyCard({
       <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
       <p className="mt-2 text-sm text-slate-500">{description}</p>
       {href && linkLabel && (
-        <Link href={href} className="mt-3 inline-block text-sm font-medium text-brand-600 hover:text-brand-700">
-          {linkLabel} →
-        </Link>
+        <ActionChip href={href} size="sm" className="mt-3">
+          {linkLabel.replace(/\s*→\s*$/, "")}
+        </ActionChip>
       )}
     </section>
   );
@@ -297,12 +297,9 @@ export function FounderDashboardCards({
                   <h2 className="text-lg font-semibold text-slate-900">Upcoming Classes</h2>
                   <p className="mt-1 text-sm text-slate-500">Next scheduled instructional sessions</p>
                 </div>
-                <Link
-                  href="/dashboard/scheduling"
-                  className="text-sm font-medium text-brand-600 hover:text-brand-700"
-                >
-                  Open scheduling →
-                </Link>
+                <ActionChip href="/dashboard/scheduling" size="sm">
+                  Open scheduling
+                </ActionChip>
               </div>
               {data.upcomingClasses.length ? (
                 <ul className="mt-4 space-y-2">
@@ -341,12 +338,9 @@ export function FounderDashboardCards({
                   <h2 className="text-lg font-semibold text-slate-900">Executive Alerts</h2>
                   <p className="mt-1 text-sm text-slate-500">Active insights requiring attention</p>
                 </div>
-                <Link
-                  href="/dashboard/executive"
-                  className="text-sm font-medium text-brand-600 hover:text-brand-700"
-                >
-                  Open Executive Intelligence →
-                </Link>
+                <ActionChip href="/dashboard/executive" size="sm">
+                  Open Executive Intelligence
+                </ActionChip>
               </div>
               {data.executiveAlerts.length ? (
                 <ul className="mt-4 space-y-2">
@@ -363,9 +357,9 @@ export function FounderDashboardCards({
                           )}
                         </div>
                         {alert.href && (
-                          <Link href={alert.href} className="shrink-0 text-xs font-medium underline">
+                          <ActionChip href={alert.href} size="xs" className="shrink-0">
                             Review
-                          </Link>
+                          </ActionChip>
                         )}
                       </div>
                     </li>
@@ -390,12 +384,9 @@ export function FounderDashboardCards({
                 Profitability, collections, and risk from {financialIntelligenceLabel}
               </p>
             </div>
-            <Link
-              href="/dashboard/finance/intelligence"
-              className="text-sm font-medium text-brand-600 hover:text-brand-700"
-            >
-              Open {financialIntelligenceLabel} →
-            </Link>
+            <ActionChip href="/dashboard/finance/intelligence" size="sm">
+              Open {financialIntelligenceLabel}
+            </ActionChip>
           </div>
           {data.financialIntelligence ? (
             <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

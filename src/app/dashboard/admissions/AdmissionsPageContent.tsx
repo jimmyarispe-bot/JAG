@@ -6,8 +6,12 @@ import {
   JagOrganizationContextBar,
   JagOrganizationContextPanel,
   JagWorkPanel,
+  KpiTilesSkeleton,
+  ListSkeleton,
   MetricCard,
+  ProgressivePageShell,
   QuickActions,
+  progressiveShellProps,
   type XesNavItem,
 } from "@/components/experience-system";
 import { AdmissionsReporting } from "@/components/admissions/AdmissionsReporting";
@@ -113,16 +117,18 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
   if (!ctx) return null;
 
   const workPerspective = resolveJagWorkPerspective("admissions", sp.work);
-  const execution = await executeWorkspace({
-    workspaceKey: "admissions",
-    identity: ctx,
-    activeView: workPerspective,
-    recommendationFacts: { has_permission: ctx.permissions.length > 0 },
-  });
+  // P004: overlap engine with independent admissions domain loads.
+  const [execution, supabase, [leads, workData]] = await Promise.all([
+    executeWorkspace({
+      workspaceKey: "admissions",
+      identity: ctx,
+      activeView: workPerspective,
+      recommendationFacts: { has_permission: ctx.permissions.length > 0 },
+    }),
+    createAuthClient(),
+    Promise.all([getLeads(), getAdmissionsWorkData()]),
+  ]);
   const workspaceState = execution.state;
-
-  const supabase = await createAuthClient();
-  const [leads, workData] = await Promise.all([getLeads(), getAdmissionsWorkData()]);
 
   const workQueue = await resolveJagWorkQueue({
     workspaceKey: "admissions",
@@ -211,14 +217,9 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
 
 export function AdmissionsPageSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-8 w-48 rounded-lg bg-slate-200" />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 rounded-2xl bg-slate-100" />
-        ))}
-      </div>
-      <div className="h-64 rounded-2xl bg-slate-100" />
-    </div>
+    <ProgressivePageShell {...progressiveShellProps("admissions")} showDefaultBody={false}>
+      <KpiTilesSkeleton count={4} />
+      <ListSkeleton rows={8} />
+    </ProgressivePageShell>
   );
 }

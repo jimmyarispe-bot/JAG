@@ -1,10 +1,10 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
 import { getModuleByPath } from "@/lib/dashboard/navigation";
 import { StaffNotificationsBell } from "@/components/admissions/StaffNotificationsBell";
 import { useBranding } from "@/components/branding/BrandingContext";
-import { usePathname, useRouter } from "next/navigation";
+import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { usePathname } from "next/navigation";
 
 interface TopNavProps {
   fullName: string;
@@ -21,17 +21,9 @@ interface TopNavProps {
 }
 
 export function TopNav({ fullName, roleLabel, notifications = [], onMenuClick }: TopNavProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const branding = useBranding();
   const currentModule = getModuleByPath(pathname, branding);
-
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  };
 
   const initials = fullName
     .split(" ")
@@ -82,14 +74,7 @@ export function TopNav({ fullName, roleLabel, notifications = [], onMenuClick }:
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSignOut}
-          aria-label={`Sign out of ${branding.productName}`}
-          className="inline-flex h-10 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
-        >
-          Sign out
-        </button>
+        <SignOutButton productName={branding.productName} />
       </div>
     </header>
   );

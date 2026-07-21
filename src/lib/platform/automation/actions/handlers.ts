@@ -234,9 +234,28 @@ export const sendNotificationActionHandler: AutomationActionHandler = async (con
 };
 
 export const sendEmailActionHandler: AutomationActionHandler = async (context, action, step) => {
+  const config = step.config ?? {};
+  const to = String(config.to ?? config.email ?? "").trim();
+  const subject = String(config.subject ?? "AcademyOS notification").trim();
+  const body = String(config.body ?? config.message ?? "").trim();
+
+  if (!to || !to.includes("@")) {
+    return baseResult(action, step, { error: "send_email requires config.to (email)" });
+  }
+  if (!body) {
+    return baseResult(action, step, { error: "send_email requires config.body" });
+  }
+
+  const { sendSystemNotificationEmail } = await import("@/lib/platform/email");
+  const result = await sendSystemNotificationEmail({ to, subject, body });
+
   return baseResult(action, step, {
-    success: false,
-    error: 'Action "send_email" is a stub — email provider deferred to Phase 2',
+    success: result.success,
+    auditSummary: result.success
+      ? `Email sent via ${result.provider}`
+      : `Email failed via ${result.provider}`,
+    output: { provider: result.provider, messageId: result.messageId },
+    error: result.error,
   });
 };
 

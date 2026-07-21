@@ -142,31 +142,33 @@ export async function getFounderMorningBrief(ctx: IdentityContext): Promise<Foun
 
   const kpis = "error" in kpisResult ? ZERO_KPIS : kpisResult.data;
 
-  const founderDashboard = await getFounderDashboardData(ctx, {
-    preloadedKpis: kpisResult,
-    preloadedWorkspace: workspace,
-  });
-
-  const executiveBase = await composeMorningBriefExecutiveV2({
-    supabase,
-    identity: ctx,
-    schoolId,
-    branding: {
-      founderWorkspaceLabel: branding.founderWorkspaceLabel,
-      intelligenceEngineLabel: branding.intelligenceEngineLabel,
-      missionControlLabel: branding.missionControlLabel,
-      financialIntelligenceLabel: branding.financialIntelligenceLabel,
-      productName: branding.productName,
-    },
-    missionControlPriorities: {
-      critical: workspace.missionControlCritical,
-      high: [],
-      medium: [],
-      low: [],
-    },
-    missionControlAccessDenied: false,
-    preloadedWorkspace: workspace,
-  });
+  // P004: founder dashboard + executive brief compose are independent once workspace is loaded.
+  const [founderDashboard, executiveBase] = await Promise.all([
+    getFounderDashboardData(ctx, {
+      preloadedKpis: kpisResult,
+      preloadedWorkspace: workspace,
+    }),
+    composeMorningBriefExecutiveV2({
+      supabase,
+      identity: ctx,
+      schoolId,
+      branding: {
+        founderWorkspaceLabel: branding.founderWorkspaceLabel,
+        intelligenceEngineLabel: branding.intelligenceEngineLabel,
+        missionControlLabel: branding.missionControlLabel,
+        financialIntelligenceLabel: branding.financialIntelligenceLabel,
+        productName: branding.productName,
+      },
+      missionControlPriorities: {
+        critical: workspace.missionControlCritical,
+        high: [],
+        medium: [],
+        low: [],
+      },
+      missionControlAccessDenied: false,
+      preloadedWorkspace: workspace,
+    }),
+  ]);
 
   return {
     founderDashboard,

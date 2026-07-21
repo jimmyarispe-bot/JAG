@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
 import { updateChecklistTemplateItem } from "@/lib/admissions/sprint15-actions";
 import type { ChecklistTemplateItem } from "@/lib/admissions/checklist";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface ChecklistSettingsPanelProps {
   schools: { id: string; name: string }[];
@@ -16,7 +17,13 @@ export function ChecklistSettingsPanel({
   selectedSchoolId,
   template,
 }: ChecklistSettingsPanelProps) {
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Toggle required", loading: "Saving…", success: "✓ Saved" },
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to save.",
+    progressLabel: "Updating checklist template…",
+  });
 
   return (
     <div className="space-y-4">
@@ -57,11 +64,15 @@ export function ChecklistSettingsPanel({
                 <td className="px-4 py-3">{item.sort_order}</td>
                 <td className="px-4 py-3">{item.is_active ? "Yes" : "No"}</td>
                 <td className="px-4 py-3">
-                  <button
+                  <ActionButton
                     type="button"
-                    disabled={isPending}
+                    status={action.status}
+                    verb="save"
+                    variant="ghost"
+                    size="xs"
+                    labels={{ idle: "Toggle required", loading: "Saving…", success: "✓ Saved" }}
                     onClick={() => {
-                      startTransition(async () => {
+                      void action.run(async () => {
                         const fd = new FormData();
                         fd.set("id", item.id);
                         fd.set("school_id", selectedSchoolId);
@@ -69,13 +80,12 @@ export function ChecklistSettingsPanel({
                         fd.set("is_required", String(!item.is_required));
                         fd.set("is_active", String(item.is_active));
                         fd.set("sort_order", String(item.sort_order));
-                        await updateChecklistTemplateItem(fd);
+                        const result = await updateChecklistTemplateItem(fd);
+                        assertActionResult(result);
+                        return result;
                       });
                     }}
-                    className="text-xs font-medium text-brand-600 hover:underline disabled:opacity-50"
-                  >
-                    Toggle required
-                  </button>
+                  />
                 </td>
               </tr>
             ))}

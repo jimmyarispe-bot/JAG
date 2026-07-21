@@ -114,35 +114,42 @@ export async function generateExecutiveInsights(supabase: AuthClient, schoolId?:
     });
   }
 
-  for (const insight of insights) {
-    const { data: existing } = await supabase
+  if (insights.length) {
+    const titles = insights.map((i) => i.title);
+    const { data: existingRows } = await supabase
       .from("executive_insights")
-      .select("id")
-      .eq("title", insight.title)
-      .eq("is_dismissed", false)
-      .maybeSingle();
+      .select("title")
+      .in("title", titles)
+      .eq("is_dismissed", false);
 
-    if (existing) continue;
+    const existingTitles = new Set((existingRows ?? []).map((row) => row.title));
+    const toInsert = insights.filter((insight) => !existingTitles.has(insight.title));
 
-    const { data: inserted } = await supabase
-      .from("executive_insights")
-      .insert(insight)
-      .select("id")
-      .single();
+    if (toInsert.length) {
+      const { data: inserted } = await supabase
+        .from("executive_insights")
+        .insert(toInsert)
+        .select("id, title, body, href, severity");
 
-    if (inserted && insight.severity === "critical" && schoolId) {
-      await createMissionControlItem(supabase, {
-        schoolId,
-        module: "executive",
-        itemType: "executive_alert",
-        title: insight.title,
-        body: insight.body,
-        href: insight.href ?? "/dashboard/executive",
-        entityType: "executive_insights",
-        entityId: inserted.id,
-        assignedRole: "CEO",
-        severity: "high",
-      });
+      const critical = (inserted ?? []).filter((row) => row.severity === "critical");
+      if (critical.length && schoolId) {
+        await Promise.all(
+          critical.map((row) =>
+            createMissionControlItem(supabase, {
+              schoolId,
+              module: "executive",
+              itemType: "executive_alert",
+              title: row.title,
+              body: row.body,
+              href: row.href ?? "/dashboard/executive",
+              entityType: "executive_insights",
+              entityId: row.id,
+              assignedRole: "CEO",
+              severity: "high",
+            })
+          )
+        );
+      }
     }
   }
 

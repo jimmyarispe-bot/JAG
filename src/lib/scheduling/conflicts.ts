@@ -119,23 +119,43 @@ export async function detectSchedulingConflicts(
     }
   }
 
-  // Teacher availability mismatches
+  // Teacher availability mismatches — one batched availability load
+  const instructorIds = [
+    ...new Set(schoolSessions.map((s) => s.instructor_employee_id).filter(Boolean)),
+  ] as string[];
+  const availabilityByEmployee = new Map<
+    string,
+    Array<{ day_of_week: number; start_time: string; end_time: string }>
+  >();
+
+  if (instructorIds.length) {
+    const { data: availabilityRows } = await supabase
+      .from("employee_availability")
+      .select("employee_id, day_of_week, start_time, end_time")
+      .in("employee_id", instructorIds)
+      .eq("is_available", true);
+
+    for (const row of availabilityRows ?? []) {
+      if (!row.employee_id) continue;
+      const list = availabilityByEmployee.get(row.employee_id) ?? [];
+      list.push(row);
+      availabilityByEmployee.set(row.employee_id, list);
+    }
+  }
+
   for (const s of schoolSessions) {
     if (!s.instructor_employee_id) continue;
     const sessionDay = new Date(s.scheduled_start).getDay();
     const sessionStart = new Date(s.scheduled_start).toTimeString().slice(0, 8);
     const sessionEnd = new Date(s.scheduled_end).toTimeString().slice(0, 8);
 
-    const { data: availability } = await supabase
-      .from("employee_availability")
-      .select("start_time, end_time")
-      .eq("employee_id", s.instructor_employee_id)
-      .eq("day_of_week", sessionDay)
-      .eq("is_available", true);
+    const availability = (availabilityByEmployee.get(s.instructor_employee_id) ?? []).filter(
+      (a) => a.day_of_week === sessionDay
+    );
 
-    if ((availability ?? []).length === 0) continue;
+    if (availability.length === 0) continue;
 
-    const inWindow = (availability ?? []).some(
+    const inWindow = availability.some(
       (a) => String(a.start_time) <= sessionStart && String(a.end_time) >= sessionEnd
     );
 
@@ -152,28 +172,41 @@ export async function detectSchedulingConflicts(
     }
   }
 
-  // Academy Way capacity
+  // Academy Way capacity — batched enrollment counts
   const { data: sections } = await supabase
     .from("course_sections")
     .select("id, min_capacity, max_capacity, delivery_mode, courses(academy_subject, school_id)")
     .limit(100);
 
-  for (const section of sections ?? []) {
+  const schoolSections = (sections ?? []).filter((section) => {
     const course = Array.isArray(section.courses) ? section.courses[0] : section.courses;
-    if ((course as { school_id?: string })?.school_id !== schoolId) continue;
+    return (course as { school_id?: string })?.school_id === schoolId;
+  });
+  const sectionIds = schoolSections.map((s) => s.id);
+  const enrollmentCounts = new Map<string, number>();
 
-    const { count } = await supabase
+  if (sectionIds.length) {
+    const { data: sectionEnrollments } = await supabase
       .from("student_enrollments")
-      .select("id", { count: "exact", head: true })
-      .eq("course_section_id", section.id)
+      .select("course_section_id")
+      .in("course_section_id", sectionIds)
       .eq("enrollment_status", "enrolled");
+    for (const e of sectionEnrollments ?? []) {
+      if (!e.course_section_id) continue;
+      enrollmentCounts.set(e.course_section_id, (enrollmentCounts.get(e.course_section_id) ?? 0) + 1);
+    }
+  }
+
+  for (const section of schoolSections) {
+    const course = Array.isArray(section.courses) ? section.courses[0] : section.courses;
+    const enrolled = enrollmentCounts.get(section.id) ?? 0;
 
     const validation = validateSectionAgainstAcademyWay({
       academySubject: (course as { academy_subject?: AcademySubject })?.academy_subject,
       deliveryMode: section.delivery_mode,
       minCapacity: section.min_capacity,
       maxCapacity: section.max_capacity,
-      enrolledCount: count ?? 0,
+      enrolledCount: enrolled,
     });
 
     if (!validation.valid) {
@@ -188,7 +221,6 @@ export async function detectSchedulingConflicts(
       });
     }
 
-    const enrolled = count ?? 0;
     const max = section.max_capacity ?? 30;
     const subject = (course as { academy_subject?: string })?.academy_subject;
     if (subject === "structured_literacy" && enrolled > effectiveSectionCapacity("structured_literacy", max, config)) {
@@ -224,22 +256,33 @@ export async function detectSchedulingConflicts(
     .eq("status", "active")
     .eq("enrollment_status", "enrolled");
 
-  for (const student of unplacedStudents ?? []) {
-    const { count: enrCount } = await supabase
+  const candidateIds = (unplacedStudents ?? []).map((s) => s.id);
+  const studentsWithEnrollment = new Set<string>();
+  if (candidateIds.length) {
+    const { data: studentEnrollments } = await supabase
       .from("student_enrollments")
-      .select("id", { count: "exact", head: true })
-      .eq("student_id", student.id)
+      .select("student_id")
+      .in("student_id", candidateIds)
       .eq("enrollment_status", "enrolled");
+    for (const e of studentEnrollments ?? []) {
+      if (e.student_id) studentsWithEnrollment.add(e.student_id);
+    }
+  }
 
-    if ((enrCount ?? 0) > 0) continue;
+  const needingPlacement = (unplacedStudents ?? []).filter((s) => !studentsWithEnrollment.has(s.id));
+  const placements = await Promise.all(
+    needingPlacement.map(async (student) => {
+      const placement = await findBestSectionForStudent(supabase, {
+        studentId: student.id,
+        schoolId,
+        program: student.program,
+        academySubject: "structured_literacy",
+      });
+      return { student, placement };
+    })
+  );
 
-    const placement = await findBestSectionForStudent(supabase, {
-      studentId: student.id,
-      schoolId,
-      program: student.program,
-      academySubject: "structured_literacy",
-    });
-
+  for (const { student, placement } of placements) {
     if (!placement.sectionId) {
       conflicts.push({
         conflictType: "student",
@@ -253,30 +296,34 @@ export async function detectSchedulingConflicts(
     }
   }
 
-  // Persist unresolved conflicts (skip duplicates from recent scans)
-  for (const c of conflicts) {
-    const { data: existing } = await supabase
-      .from("schedule_conflicts")
-      .select("id")
-      .eq("school_id", schoolId)
-      .eq("entity_type", c.entityType)
-      .eq("entity_id", c.entityId)
-      .eq("conflict_type", c.conflictType)
-      .eq("is_resolved", false)
-      .maybeSingle();
+  // Persist unresolved conflicts — prefetch open conflicts once
+  const { data: existingConflicts } = await supabase
+    .from("schedule_conflicts")
+    .select("entity_type, entity_id, conflict_type")
+    .eq("school_id", schoolId)
+    .eq("is_resolved", false);
 
-    if (existing) continue;
+  const existingKeys = new Set(
+    (existingConflicts ?? []).map((e) => `${e.entity_type}|${e.entity_id}|${e.conflict_type}`)
+  );
 
-    await supabase.from("schedule_conflicts").insert({
-      school_id: schoolId,
-      conflict_type: c.conflictType,
-      severity: c.severity,
-      entity_type: c.entityType,
-      entity_id: c.entityId,
-      title: c.title,
-      description: c.description,
-      recommendation: c.recommendation ?? null,
-    });
+  const toInsert = conflicts.filter(
+    (c) => !existingKeys.has(`${c.entityType}|${c.entityId}|${c.conflictType}`)
+  );
+
+  if (toInsert.length) {
+    await supabase.from("schedule_conflicts").insert(
+      toInsert.map((c) => ({
+        school_id: schoolId,
+        conflict_type: c.conflictType,
+        severity: c.severity,
+        entity_type: c.entityType,
+        entity_id: c.entityId,
+        title: c.title,
+        description: c.description,
+        recommendation: c.recommendation ?? null,
+      }))
+    );
   }
 
   return conflicts;

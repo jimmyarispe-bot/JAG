@@ -4,6 +4,7 @@ import { getDeploymentRollouts, getCloudDeployments } from "@/lib/operations-pla
 import { OpsShell } from "@/components/operations-platform/OpsNav";
 import { OpsTable } from "@/components/operations-platform/OpsPanels";
 import { createDeploymentAction } from "@/lib/operations-platform/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function OperationsDeploymentsPage() {
   await requireOperationsPermission(["operations.manage"]);
@@ -12,14 +13,20 @@ export default async function OperationsDeploymentsPage() {
 
   return (
     <OpsShell title="Deployment Center" subtitle="Release history, rollback, blue/green, canary, feature flags, regional rollout, maintenance windows">
-      <form action={createDeploymentAction} className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
-        <input name="release_version" placeholder="Release version" className="rounded-lg border px-3 py-2 text-sm" required />
-        <select name="strategy" className="rounded-lg border px-3 py-2 text-sm">
+      <ExperienceForm
+          action={createDeploymentAction}
+          verb="create"
+          labels={{ idle: "Deploy" }}
+          progressLabel="Deploy…"
+          className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"
+          buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+        >
+          <input name="release_version" placeholder="Release version" className="rounded-lg border px-3 py-2 text-sm" required />
+          <select name="strategy" className="rounded-lg border px-3 py-2 text-sm">
           <option value="rolling">Rolling</option><option value="blue_green">Blue/Green</option>
           <option value="canary">Canary</option><option value="regional">Regional</option>
-        </select>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Deploy</button>
-      </form>
+          </select>
+        </ExperienceForm>
       <h2 className="font-semibold">Rollouts</h2>
       <OpsTable rows={rollouts} columns={[
         { key: "release_version", label: "Release" }, { key: "deployment_strategy", label: "Strategy" },

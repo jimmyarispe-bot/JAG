@@ -1,10 +1,11 @@
 # DOCUMENT 59 — The JAG Knowledge Graph™
 
 **The JAG™ — Knowledge System Foundational Governance**  
-**Status:** Enterprise Knowledge Graph Architecture — No Implementation  
+**Status:** Enterprise Knowledge Graph Architecture — **Partial runtime** (AcademyOS RC-4 unified graph at `src/lib/platform/knowledge-graph/`; full Doc 59 semantic layers not yet complete)  
 **Version:** 1.0  
 **Effective:** June 27, 2026  
-**Parent:** Document 57 — The JAG Knowledge System™
+**Parent:** Document 57 — The JAG Knowledge System™  
+**Runtime map:** [`docs/platform/rc-packages.md`](../../platform/rc-packages.md)
 
 ---
 

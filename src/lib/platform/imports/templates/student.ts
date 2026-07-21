@@ -1,0 +1,162 @@
+import type { ImportTemplate } from "../types";
+
+const STUDENT_HEADERS = [
+  "First Name",
+  "Last Name",
+  "DOB",
+  "Grade",
+  "Gender",
+  "Parent Name",
+  "Parent Email",
+  "Parent Phone",
+  "Scholarship",
+  "Address",
+  "City",
+  "State",
+  "Zip",
+  "Emergency Contact",
+  "Notes",
+];
+
+export const STUDENT_TEMPLATES: ImportTemplate[] = [
+  {
+    id: "student_new",
+    entityType: "student",
+    name: "New Student Template",
+    description: "Standard roster for new student enrollment imports.",
+    fileName: "jag-new-student-template.csv",
+    headers: STUDENT_HEADERS,
+    sampleRows: [
+      [
+        "Ava",
+        "Nguyen",
+        "2015-04-12",
+        "4th Grade",
+        "F",
+        "Linh Nguyen",
+        "linh.nguyen@example.com",
+        "555-0101",
+        "Step Up For Students",
+        "100 Oak St",
+        "Tampa",
+        "FL",
+        "33601",
+        "Linh Nguyen",
+        "New family",
+      ],
+    ],
+  },
+  {
+    id: "student_transfer",
+    entityType: "student",
+    name: "Transfer Template",
+    description: "Transfer students with prior school notes.",
+    fileName: "jag-transfer-student-template.csv",
+    headers: [...STUDENT_HEADERS, "Prior School"],
+    sampleRows: [
+      [
+        "Jordan",
+        "Lee",
+        "2012-09-01",
+        "7th Grade",
+        "M",
+        "Casey Lee",
+        "casey.lee@example.com",
+        "555-0202",
+        "ESA",
+        "22 Pine Ave",
+        "Atlanta",
+        "GA",
+        "30301",
+        "Casey Lee",
+        "Mid-year transfer",
+        "Previous Academy",
+      ],
+    ],
+  },
+  {
+    id: "student_scholarship",
+    entityType: "student",
+    name: "Scholarship Template",
+    description: "Import focused on scholarship / funding assignment.",
+    fileName: "jag-scholarship-student-template.csv",
+    headers: [
+      "First Name",
+      "Last Name",
+      "DOB",
+      "Grade",
+      "Parent Email",
+      "Scholarship",
+      "Scholarship Type",
+      "Notes",
+    ],
+    sampleRows: [
+      [
+        "Maya",
+        "Brooks",
+        "2014-01-20",
+        "5th Grade",
+        "parent@example.com",
+        "FES-UA",
+        "Florida scholarship",
+        "Award pending verification",
+      ],
+    ],
+  },
+  {
+    id: "student_family",
+    entityType: "student",
+    name: "Family Template",
+    description: "Multi-sibling import — shared parent email groups into one family.",
+    fileName: "jag-family-student-template.csv",
+    headers: STUDENT_HEADERS,
+    sampleRows: [
+      [
+        "Sam",
+        "Carter",
+        "2016-03-03",
+        "3rd Grade",
+        "M",
+        "Riley Carter",
+        "carter.family@example.com",
+        "555-0303",
+        "Private Pay",
+        "9 Maple Rd",
+        "Orlando",
+        "FL",
+        "32801",
+        "Riley Carter",
+        "Sibling 1",
+      ],
+      [
+        "Taylor",
+        "Carter",
+        "2018-07-15",
+        "Kindergarten",
+        "F",
+        "Riley Carter",
+        "carter.family@example.com",
+        "555-0303",
+        "Private Pay",
+        "9 Maple Rd",
+        "Orlando",
+        "FL",
+        "32801",
+        "Riley Carter",
+        "Sibling 2",
+      ],
+    ],
+  },
+];
+
+export function templateToCsv(template: ImportTemplate): string {
+  const escape = (value: string) => {
+    if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+    return value;
+  };
+  const lines = [
+    template.headers.map(escape).join(","),
+    ...template.sampleRows.map((row) => row.map(escape).join(",")),
+  ];
+  return lines.join("\n");
+}

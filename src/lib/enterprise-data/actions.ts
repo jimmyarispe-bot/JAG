@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import {
+  requireOrganizationAccess,
+  requireSchoolAccess,
+} from "@/lib/platform/identity/tenant-access";
 import { canImportData, canExportData, canManageDataPlatform, canAdminDataPlatform } from "@/lib/enterprise-data/access";
 import { getPrimaryOrganizationId } from "@/lib/enterprise-data/context";
 import { createImportBatch, parseAndStageImport, commitImportBatch, rollbackImportBatch } from "@/lib/enterprise-data/import-engine";
@@ -22,17 +26,28 @@ import { computeQualitySnapshot } from "@/lib/enterprise-data/quality";
 import { captureWarehouseSnapshots } from "@/lib/enterprise-data/warehouse";
 import { COMMITTABLE_IMPORT_TYPES, type EdpImportType, type EdpSourceFormat, type EdpExportFormat, type MigrationStep } from "@/lib/enterprise-data/types";
 
-async function resolveOrg(formOrgId?: string | null) {
+/** RC-3 — resolve org with membership check; optional school membership. */
+async function resolveOrg(formOrgId?: string | null, formSchoolId?: string | null) {
   const ctx = await getIdentityContext();
   if (!ctx) throw new Error("Unauthorized");
   const supabase = await createAuthClient();
   const orgId = formOrgId || (await getPrimaryOrganizationId(supabase));
   if (!orgId) throw new Error("Organization not found");
+  const orgScope = await requireOrganizationAccess(supabase, ctx.effectiveUserId, orgId);
+  if (orgScope !== true) throw new Error("Forbidden");
+  if (formSchoolId) {
+    const schoolScope = requireSchoolAccess(ctx, formSchoolId);
+    if (schoolScope !== true) throw new Error("Forbidden");
+  }
   return { ctx, supabase, orgId };
 }
 
 export async function runImportAction(formData: FormData): Promise<void> {
-  const { ctx, supabase, orgId } = await resolveOrg(formData.get("organization_id")?.toString());
+  const schoolId = formData.get("school_id")?.toString();
+  const { ctx, supabase, orgId } = await resolveOrg(
+    formData.get("organization_id")?.toString(),
+    schoolId
+  );
   if (!canImportData(ctx)) return;
 
   const importType = (formData.get("import_type")?.toString() ?? "student") as EdpImportType;
@@ -45,7 +60,7 @@ export async function runImportAction(formData: FormData): Promise<void> {
     sourceFormat,
     fileName: formData.get("file_name")?.toString(),
     importedBy: ctx.effectiveUserId,
-    schoolId: formData.get("school_id")?.toString(),
+    schoolId,
   });
 
   if (batch.error || !batch.batchId) return;
@@ -70,14 +85,18 @@ export async function runImportAction(formData: FormData): Promise<void> {
 }
 
 export async function runExportAction(formData: FormData): Promise<void> {
-  const { ctx, supabase, orgId } = await resolveOrg(formData.get("organization_id")?.toString());
+  const schoolId = formData.get("school_id")?.toString();
+  const { ctx, supabase, orgId } = await resolveOrg(
+    formData.get("organization_id")?.toString(),
+    schoolId
+  );
   if (!canExportData(ctx)) return;
 
-  const result = await runExport(supabase, {
+  await runExport(supabase, {
     organizationId: orgId,
     exportType: formData.get("export_type")?.toString() ?? "students",
     exportFormat: (formData.get("export_format")?.toString() ?? "csv") as EdpExportFormat,
-    schoolId: formData.get("school_id")?.toString(),
+    schoolId,
     exportedBy: ctx.effectiveUserId,
   });
 
@@ -176,13 +195,17 @@ export async function testWebhookAction(formData: FormData): Promise<void> {
 }
 
 export async function createBackupAction(formData: FormData): Promise<void> {
-  const { ctx, supabase, orgId } = await resolveOrg(formData.get("organization_id")?.toString());
+  const schoolId = formData.get("school_id")?.toString();
+  const { ctx, supabase, orgId } = await resolveOrg(
+    formData.get("organization_id")?.toString(),
+    schoolId
+  );
   if (!canExportData(ctx)) return;
 
   await createBackup(supabase, {
     organizationId: orgId,
     backupType: formData.get("backup_type")?.toString(),
-    schoolId: formData.get("school_id")?.toString(),
+    schoolId,
     createdBy: ctx.effectiveUserId,
   });
 

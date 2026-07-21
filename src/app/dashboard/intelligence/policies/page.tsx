@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/intelligence-platform/context";
 import { getPolicies, getKnowledgeSources } from "@/lib/intelligence-platform/policies-knowledge";
 import { AipShell } from "@/components/intelligence-platform/AipNav";
 import { HistoryTable } from "@/components/intelligence-platform/AipPanels";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 import { createPolicyAction, registerKnowledgeAction } from "@/lib/intelligence-platform/actions";
 
 export default async function PoliciesPage() {
@@ -18,29 +19,40 @@ export default async function PoliciesPage() {
   return (
     <AipShell title="AI Policies & Knowledge Registry" subtitle="Usage policies, FERPA rules, and future knowledge source registration">
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={createPolicyAction} className="flex flex-wrap items-end gap-4">
+        <ExperienceForm
+          action={createPolicyAction}
+          verb="create"
+          labels={{ idle: "Create policy", loading: "Creating…", success: "✓ Created" }}
+          progressLabel="Creating policy…"
+          successToast="✓ Policy created."
+          errorToast="Unable to create policy."
+          className="flex flex-wrap items-end gap-4"
+        >
           <label className="block text-sm">
             Policy name
             <input name="policy_name" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2" defaultValue="FERPA Masking Policy" />
           </label>
           <input type="hidden" name="policy_type" value="ferpa" />
-          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Create policy
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={registerKnowledgeAction} className="flex flex-wrap items-end gap-4">
+        <ExperienceForm
+          action={registerKnowledgeAction}
+          verb="create"
+          labels={{ idle: "Register source", loading: "Registering…", success: "✓ Registered" }}
+          progressLabel="Registering knowledge source…"
+          successToast="✓ Source registered."
+          errorToast="Unable to register source."
+          className="flex flex-wrap items-end gap-4"
+          buttonVariant="secondary"
+        >
           <label className="block text-sm">
             Source name
             <input name="source_name" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2" defaultValue="Employee Handbook" />
           </label>
           <input type="hidden" name="source_type" value="hr_manual" />
-          <button type="submit" className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50">
-            Register source
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section>
@@ -50,7 +62,7 @@ export default async function PoliciesPage() {
 
       <section>
         <h2 className="mb-3 font-semibold">Knowledge sources</h2>
-        <HistoryTable rows={sources} columns={[{ key: "source_name", label: "Name" }, { key: "source_type", label: "Type" }, { key: "classification", label: "Classification" }]} />
+        <HistoryTable rows={sources} columns={[{ key: "source_name", label: "Name" }, { key: "source_type", label: "Type" }, { key: "status", label: "Status" }]} />
       </section>
     </AipShell>
   );

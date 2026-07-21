@@ -1719,6 +1719,194 @@ export type {
   ExecutiveJudgmentFramework,
 } from "@/lib/platform/intelligence/wisdom";
 export {
+  createSynthesisIntelligence,
+  SYNTHESIS_INTELLIGENCE_VERSION,
+  SYNTHESIS_MODULE_ID,
+  SYNTHESIS_PRIORITIES,
+  SYNTHESIS_HORIZONS,
+  SYNTHESIS_TREND_WINDOWS,
+} from "@/lib/platform/intelligence/synthesis";
+export type {
+  CreateSynthesisOptions,
+  SynthesisStack,
+  SynthesisRequest,
+  SynthesisResult,
+  ExecutiveBrief as SynthesisExecutiveBrief,
+  SynthesizedInsight,
+  DomainSignalLight,
+  SynthesisAnalyzer,
+} from "@/lib/platform/intelligence/synthesis";
+export {
+  createBriefingIntelligence,
+  BRIEFING_INTELLIGENCE_VERSION,
+  BRIEFING_MODULE_ID,
+  BRIEFING_ROLES,
+  BRIEFING_TIMELINE_WINDOWS,
+  BRIEFING_ACTIONS,
+} from "@/lib/platform/intelligence/briefing";
+export type {
+  CreateBriefingOptions,
+  BriefingStack,
+  BriefingRequest,
+  BriefingResult,
+  ExecutiveBriefing,
+  MorningBriefSections,
+  DecisionCard as BriefingDecisionCard,
+  OpportunityCard as BriefingOpportunityCard,
+  BriefingCard,
+  BriefingPersonalizer,
+} from "@/lib/platform/intelligence/briefing";
+export {
+  createExecutiveMemoryIntelligence,
+  EXECUTIVE_MEMORY_VERSION,
+  EXECUTIVE_MEMORY_MODULE_ID,
+  MEMORY_ENTITY_KINDS,
+  MEMORY_RETENTION_POLICIES,
+} from "@/lib/platform/intelligence/executive-memory";
+export type {
+  CreateExecutiveMemoryOptions,
+  ExecutiveMemoryStack,
+  ExecutiveMemoryRequest,
+  ExecutiveMemoryResult,
+  MemoryRecallQuery,
+  MemoryRecallResult,
+  DecisionMemory,
+  BriefingMemory,
+  LessonMemory,
+} from "@/lib/platform/intelligence/executive-memory";
+export {
+  createDecisionIntelligence,
+  DECISION_INTELLIGENCE_VERSION,
+  DECISION_INTELLIGENCE_MODULE_ID,
+  DECISION_APPROVAL_LEVELS,
+  DECISION_ISSUE_KINDS,
+} from "@/lib/platform/intelligence/decision-intelligence";
+export type {
+  CreateDecisionIntelligenceOptions,
+  DecisionIntelligenceStack,
+  DecisionIntelligenceRequest,
+  DecisionIntelligenceResult,
+  DecisionRecommendation,
+  DecisionOption,
+  DecisionScorecard,
+} from "@/lib/platform/intelligence/decision-intelligence";
+export {
+  createExecutivePredictiveIntelligence,
+  EXECUTIVE_PREDICTIVE_VERSION,
+  EXECUTIVE_PREDICTIVE_MODULE_ID,
+  FORECAST_SUBJECTS,
+  FORECAST_HORIZONS,
+  SCENARIO_KINDS,
+} from "@/lib/platform/intelligence/executive-predictive";
+export type {
+  CreateExecutivePredictiveOptions,
+  ExecutivePredictiveStack,
+  ExecutivePredictiveRequest,
+  ExecutivePredictiveResult,
+  OrganizationalForecast,
+  ScenarioProjection,
+  EmergingSignal,
+  DecisionImpactForecast,
+} from "@/lib/platform/intelligence/executive-predictive";
+export {
+  createExecutiveAutonomousIntelligence,
+  EXECUTIVE_AUTONOMOUS_VERSION,
+  EXECUTIVE_AUTONOMOUS_MODULE_ID,
+  WORKFLOW_KINDS,
+  APPROVAL_ROLES,
+  READINESS_STATES,
+} from "@/lib/platform/intelligence/executive-autonomous";
+export type {
+  CreateExecutiveAutonomousOptions,
+  ExecutiveAutonomousStack,
+  AutonomousRequest,
+  AutonomousResult,
+  ExecutionPlan,
+  AutonomousPreparation,
+} from "@/lib/platform/intelligence/executive-autonomous";
+export {
+  createExecutiveCopilotIntelligence,
+  EXECUTIVE_COPILOT_VERSION,
+  EXECUTIVE_COPILOT_MODULE_ID,
+  COPILOT_INTENTS,
+  COPILOT_DOMAIN_KEYS,
+} from "@/lib/platform/intelligence/executive-copilot";
+export type {
+  CreateExecutiveCopilotOptions,
+  ExecutiveCopilotStack,
+  CopilotRequest,
+  CopilotResult,
+  CopilotExplainability,
+  CopilotInvestigation,
+} from "@/lib/platform/intelligence/executive-copilot";
+export {
+  createExecutiveCommandCenter,
+  EXECUTIVE_COMMAND_CENTER_VERSION,
+  EXECUTIVE_COMMAND_CENTER_MODULE_ID,
+  COMMAND_CENTER_ROLES,
+  DRILL_DOWN_ACTIONS,
+} from "@/lib/platform/intelligence/executive-command-center";
+export type {
+  CreateExecutiveCommandCenterOptions,
+  ExecutiveCommandCenterStack,
+  CommandCenterRequest,
+  CommandCenterResult,
+  WorkspaceWidget,
+  CommandCenterRole,
+} from "@/lib/platform/intelligence/executive-command-center";
+export {
+  createInitiativeIntelligence,
+  INITIATIVE_INTELLIGENCE_VERSION,
+  INITIATIVE_INTELLIGENCE_MODULE_ID,
+  INITIATIVE_LIFECYCLE_STATES,
+  INITIATIVE_OWNERSHIP_ROLES,
+} from "@/lib/platform/intelligence/initiative-intelligence";
+export type {
+  CreateInitiativeIntelligenceOptions,
+  InitiativeIntelligenceStack,
+  InitiativeRequest,
+  InitiativeResult,
+  Initiative,
+  InitiativeLifecycleState,
+} from "@/lib/platform/intelligence/initiative-intelligence";
+export {
+  createPortfolioIntelligence,
+  PORTFOLIO_INTELLIGENCE_VERSION,
+  PORTFOLIO_INTELLIGENCE_MODULE_ID,
+  PORTFOLIO_HEALTH_STATES,
+} from "@/lib/platform/intelligence/portfolio-intelligence";
+export type {
+  CreatePortfolioIntelligenceOptions,
+  PortfolioIntelligenceStack,
+  PortfolioRequest,
+  PortfolioResult,
+  PortfolioHealth,
+} from "@/lib/platform/intelligence/portfolio-intelligence";
+export {
+  createDigitalTwin,
+  DIGITAL_TWIN_VERSION,
+  DIGITAL_TWIN_MODULE_ID,
+} from "@/lib/platform/intelligence/digital-twin";
+export type {
+  CreateDigitalTwinOptions,
+  DigitalTwinStack,
+  TwinRequest,
+  TwinResult,
+  SimulationState,
+  ScenarioKind as DigitalTwinScenarioKind,
+} from "@/lib/platform/intelligence/digital-twin";
+export {
+  createEcosystemFederation,
+  ECOSYSTEM_FEDERATION_VERSION,
+  ECOSYSTEM_INTELLIGENCE_MODULE_ID,
+} from "@/lib/platform/intelligence/ecosystem-intelligence";
+export type {
+  CreateEcosystemFederationOptions,
+  EcosystemFederationStack,
+  EcosystemFederationRequest,
+  EcosystemFederationResult,
+} from "@/lib/platform/intelligence/ecosystem-intelligence";
+export {
   INTELLIGENCE_PLATFORM_VERSION,
   createIntelligencePlatform,
   createIntelligenceRegistry,

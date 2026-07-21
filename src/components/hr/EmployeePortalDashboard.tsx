@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { completeOnboardingTaskAction, submitLeaveRequestAction } from "@/lib/hr/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 const inputClass = "mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
 
@@ -20,7 +21,12 @@ interface EmployeePortalDashboardProps {
 }
 
 export function EmployeePortalDashboard({ data }: EmployeePortalDashboardProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "submit",
+    successToast: "✓ Updated",
+    errorToast: "Unable to update.",
+    progressLabel: "Updating employee portal…",
+  });
   const emp = data.employee;
   const ep = Array.isArray(emp.employee_profiles) ? emp.employee_profiles[0] : emp.employee_profiles;
   const epObj = ep as { first_name?: string; last_name?: string; job_title?: string } | null;
@@ -53,7 +59,19 @@ export function EmployeePortalDashboard({ data }: EmployeePortalDashboardProps) 
       </div>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <form className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3" onSubmit={(e) => { e.preventDefault(); startTransition(async () => { await submitLeaveRequestAction(new FormData(e.currentTarget)); }); }}>
+        <form
+          className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const form = e.currentTarget;
+            void action.run(async () => {
+              const result = await submitLeaveRequestAction(new FormData(form));
+              assertActionResult(result);
+              form.reset();
+              return result;
+            });
+          }}
+        >
           <h2 className="font-semibold">Request leave</h2>
           <input type="hidden" name="employee_id" value={data.employeeId} />
           <input type="hidden" name="school_id" value={String(emp.school_id)} />
@@ -65,7 +83,13 @@ export function EmployeePortalDashboard({ data }: EmployeePortalDashboardProps) 
           <input name="start_date" type="date" required className={inputClass} />
           <input name="end_date" type="date" required className={inputClass} />
           <textarea name="reason" placeholder="Reason" className={inputClass} />
-          <button type="submit" disabled={pending} className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white">Submit</button>
+          <ActionButton
+            type="submit"
+            status={action.status}
+            verb="submit"
+            labels={{ idle: "Submit", loading: "Submitting…", success: "✓ Submitted" }}
+            errorMessage={action.errorMessage}
+          />
         </form>
 
         <article className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -74,7 +98,23 @@ export function EmployeePortalDashboard({ data }: EmployeePortalDashboardProps) 
             {data.pendingOnboarding.map((t) => (
               <li key={t.id as string} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2">
                 <span>{t.title as string}</span>
-                <button type="button" disabled={pending} className="text-xs text-brand-600" onClick={() => startTransition(async () => { const fd = new FormData(); fd.set("task_id", t.id as string); await completeOnboardingTaskAction(fd); })}>Complete</button>
+                <ActionButton
+                  type="button"
+                  status={action.status}
+                  verb="save"
+                  variant="success"
+                  size="xs"
+                  labels={{ idle: "Complete", loading: "Updating…", success: "✓ Done" }}
+                  onClick={() => {
+                    void action.run(async () => {
+                      const fd = new FormData();
+                      fd.set("task_id", t.id as string);
+                      const result = await completeOnboardingTaskAction(fd);
+                      assertActionResult(result);
+                      return result;
+                    });
+                  }}
+                />
               </li>
             ))}
             {data.pendingTraining.map((t) => (

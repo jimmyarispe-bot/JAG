@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { askJagAction } from "@/app/exec/ask/actions";
 import { DataModeBadge } from "@/components/exec/DataModeBadge";
 import { WidgetFrame } from "@/components/exec/WidgetFrame";
 import type { ExecAskViewModel } from "@/lib/exec/view-models";
 import type { CopilotAskResult, SessionMemory } from "@/lib/platform/copilot";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 type ChatRow = {
   id: string;
@@ -26,17 +27,23 @@ export function AskPage({ data }: { data: ExecAskViewModel }) {
     },
   ]);
   const [active, setActive] = useState<CopilotAskResult | null>(data.opener);
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "run",
+    labels: { idle: "Ask", loading: "Analyzing…", success: "✓ Done" },
+    successToast: "✓ Analysis ready.",
+    errorToast: "Unable to complete analysis.",
+    progressLabel: "Running executive analysis…",
+  });
 
   function submit(question: string) {
     const q = question.trim();
-    if (!q || pending) return;
+    if (!q || action.isBusy) return;
     setInput("");
     setRows((prev) => [
       ...prev,
       { id: `u-${Date.now()}`, role: "user", text: q },
     ]);
-    startTransition(async () => {
+    void action.run(async () => {
       const turn = await askJagAction({
         question: q,
         session,
@@ -48,6 +55,7 @@ export function AskPage({ data }: { data: ExecAskViewModel }) {
         ...prev,
         { id: turn.id, role: "assistant", text: turn.answer, turn },
       ]);
+      return turn;
     });
   }
 
@@ -101,7 +109,7 @@ export function AskPage({ data }: { data: ExecAskViewModel }) {
                 {row.text}
               </div>
             ))}
-            {pending && (
+            {action.isBusy && (
               <p className="text-xs text-slate-500">Reasoning across connected systems…</p>
             )}
           </div>
@@ -117,14 +125,16 @@ export function AskPage({ data }: { data: ExecAskViewModel }) {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask an executive question…"
               className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-400"
+              disabled={action.isBusy}
             />
-            <button
+            <ActionButton
               type="submit"
-              disabled={pending}
-              className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              Ask
-            </button>
+              status={action.status}
+              verb="run"
+              labels={{ idle: "Ask", loading: "Analyzing…", success: "✓ Done" }}
+              className="!rounded-xl !px-4 !py-2 !text-sm"
+              errorMessage={action.errorMessage}
+            />
           </form>
           <div className="flex flex-wrap gap-2 border-t border-slate-100 px-3 py-3">
             {data.suggestedPrompts.map((prompt) => (

@@ -1,0 +1,189 @@
+{
+  "sprint": "P010",
+  "generatedAt": "2026-07-20T13:31:38.730Z",
+  "budgets": {
+    "maxClientModuleKb": 16,
+    "maxBarrelClientKb": 2,
+    "warnClientModuleKb": 12
+  },
+  "totals": {
+    "clientModules": 289,
+    "violations": 1,
+    "warnings": 6
+  },
+  "tooling": {
+    "analyzeScript": true,
+    "bundleAnalyzerDependency": true
+  },
+  "topClientModules": [
+    {
+      "path": "src/app/dashboard/admin/users/UsersAccessView.tsx",
+      "bytes": 31385,
+      "kb": 30.6
+    },
+    {
+      "path": "src/components/exec/IntegrationDetailPage.tsx",
+      "bytes": 14072,
+      "kb": 13.7
+    },
+    {
+      "path": "src/components/finance/BillingForms.tsx",
+      "bytes": 13978,
+      "kb": 13.7
+    },
+    {
+      "path": "src/components/admissions/WorkflowBuilder.tsx",
+      "bytes": 13955,
+      "kb": 13.6
+    },
+    {
+      "path": "src/components/instruction/InstructionForms.tsx",
+      "bytes": 13903,
+      "kb": 13.6
+    },
+    {
+      "path": "src/components/exec/IntegrationsPage.tsx",
+      "bytes": 13636,
+      "kb": 13.3
+    },
+    {
+      "path": "src/components/admissions/portal/DocumentCenter.tsx",
+      "bytes": 13625,
+      "kb": 13.3
+    },
+    {
+      "path": "src/components/experience-system/feedback/ActionChip.tsx",
+      "bytes": 10923,
+      "kb": 10.7
+    },
+    {
+      "path": "src/components/integrations/GoogleWorkspaceCard.tsx",
+      "bytes": 10900,
+      "kb": 10.6
+    },
+    {
+      "path": "src/components/admissions/CommunicationTimeline.tsx",
+      "bytes": 10738,
+      "kb": 10.5
+    },
+    {
+      "path": "src/components/compliance/ComplianceObligationIslands.tsx",
+      "bytes": 9824,
+      "kb": 9.6
+    },
+    {
+      "path": "src/components/students/EnrollmentFamilyFields.tsx",
+      "bytes": 9757,
+      "kb": 9.5
+    },
+    {
+      "path": "src/components/hr/HrForms.tsx",
+      "bytes": 9555,
+      "kb": 9.3
+    },
+    {
+      "path": "src/components/experience-system/lists/ExperienceDataList.tsx",
+      "bytes": 9321,
+      "kb": 9.1
+    },
+    {
+      "path": "src/components/exec/AskPage.tsx",
+      "bytes": 8636,
+      "kb": 8.4
+    },
+    {
+      "path": "src/components/workspace-design-system/showcase/DesignSystemShowcase.tsx",
+      "bytes": 8307,
+      "kb": 8.1
+    },
+    {
+      "path": "src/components/certification/CertPanels.tsx",
+      "bytes": 8286,
+      "kb": 8.1
+    },
+    {
+      "path": "src/components/students/StudentForm.tsx",
+      "bytes": 7826,
+      "kb": 7.6
+    },
+    {
+      "path": "src/components/teacher/SessionWorkspaceForm.tsx",
+      "bytes": 7549,
+      "kb": 7.4
+    },
+    {
+      "path": "src/app/login/mfa-required/MfaRequiredForm.tsx",
+      "bytes": 7477,
+      "kb": 7.3
+    },
+    {
+      "path": "src/components/admissions/portal/ParentInquiryForm.tsx",
+      "bytes": 7456,
+      "kb": 7.3
+    },
+    {
+      "path": "src/components/admissions/ExecutiveAdmissionsDashboard.tsx",
+      "bytes": 7402,
+      "kb": 7.2
+    },
+    {
+      "path": "src/components/exec/WisdomPage.tsx",
+      "bytes": 7400,
+      "kb": 7.2
+    },
+    {
+      "path": "src/components/experience-system/integration/ExperienceWorkspaceShell.tsx",
+      "bytes": 7385,
+      "kb": 7.2
+    },
+    {
+      "path": "src/components/experience-system/feedback/useActionFeedback.ts",
+      "bytes": 7218,
+      "kb": 7
+    }
+  ],
+  "violations": [
+    {
+      "path": "src/app/dashboard/admin/users/UsersAccessView.tsx",
+      "bytes": 31385,
+      "kb": 30.6
+    }
+  ],
+  "warnings": [
+    {
+      "path": "src/components/exec/IntegrationDetailPage.tsx",
+      "bytes": 14072,
+      "kb": 13.7
+    },
+    {
+      "path": "src/components/finance/BillingForms.tsx",
+      "bytes": 13978,
+      "kb": 13.7
+    },
+    {
+      "path": "src/components/admissions/WorkflowBuilder.tsx",
+      "bytes": 13955,
+      "kb": 13.6
+    },
+    {
+      "path": "src/components/instruction/InstructionForms.tsx",
+      "bytes": 13903,
+      "kb": 13.6
+    },
+    {
+      "path": "src/components/exec/IntegrationsPage.tsx",
+      "bytes": 13636,
+      "kb": 13.3
+    },
+    {
+      "path": "src/components/admissions/portal/DocumentCenter.tsx",
+      "bytes": 13625,
+      "kb": 13.3
+    }
+  ],
+  "notes": [
+    "Budgets are source-size heuristics for client islands (not gzipped route bundles).",
+    "Run `npm run analyze` after a production build for webpack chunk graphs.",
+    "Route-level dynamic() splits prevent unused panels from entering shared dashboard chunks."
+  ]
+}

@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/enterprise-data/context";
 import { listWebhooks } from "@/lib/enterprise-data/webhook-services";
 import { EdpShell } from "@/components/enterprise-data/EdpNav";
 import { createWebhookAction, testWebhookAction } from "@/lib/enterprise-data/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function DataWebhooksPage() {
   await requirePagePermission(["data.manage", "data.admin"]);
@@ -15,29 +16,32 @@ export default async function DataWebhooksPage() {
   return (
     <EdpShell title="Webhook Center" subtitle="Incoming and outgoing webhooks with retry policies, signing, and testing console">
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={createWebhookAction} className="space-y-4">
+        <ExperienceForm
+          action={createWebhookAction}
+          verb="create"
+          labels={{ idle: "Create webhook" }}
+          progressLabel="Create webhook…"
+          className="space-y-4"
+        >
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">
-              Name
-              <input name="webhook_name" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" defaultValue="Student Events" />
-            </label>
-            <label className="block text-sm">
-              Direction
-              <select name="direction" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
-                <option value="outgoing">Outgoing</option>
-                <option value="incoming">Incoming</option>
-              </select>
-            </label>
+          <label className="block text-sm">
+          Name
+          <input name="webhook_name" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" defaultValue="Student Events" />
+          </label>
+          <label className="block text-sm">
+          Direction
+          <select name="direction" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
+          <option value="outgoing">Outgoing</option>
+          <option value="incoming">Incoming</option>
+          </select>
+          </label>
           </div>
           <label className="block text-sm">
-            Endpoint URL
-            <input name="endpoint_url" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" placeholder="https://..." />
+          Endpoint URL
+          <input name="endpoint_url" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" placeholder="https://..." />
           </label>
           <input type="hidden" name="event_types" value='["student.enrolled","student.updated"]' />
-          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Create webhook
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section>
@@ -49,10 +53,16 @@ export default async function DataWebhooksPage() {
                 <span className="font-medium">{w.webhook_name}</span>
                 <span className="ml-2 capitalize text-slate-500">{w.direction}</span>
               </div>
-              <form action={testWebhookAction}>
-                <input type="hidden" name="webhook_id" value={w.id} />
-                <button type="submit" className="text-brand-600 hover:underline">Test</button>
-              </form>
+              <ExperienceForm
+          action={testWebhookAction}
+          verb="run"
+          labels={{ idle: "Test" }}
+          progressLabel="Test…"
+          buttonVariant="secondary"
+          buttonSize="sm"
+        >
+          <input type="hidden" name="webhook_id" value={w.id} />
+        </ExperienceForm>
             </li>
           ))}
           {!webhooks.length && <li className="text-slate-500">No webhooks configured.</li>}

@@ -54,7 +54,7 @@ Runtime docs endpoints:
 |------|----------------|
 | Hosting | Vercel |
 | Data plane | Supabase (managed Postgres, Auth, Storage) |
-| Email | SendGrid |
+| Email | Resend |
 | Observability | Health/ready probes; Sentry/OTel **not** in package.json (future) |
 | CDN / images | Next config (Phase C.1 compress / image formats) |
 

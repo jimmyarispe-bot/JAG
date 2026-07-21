@@ -85,6 +85,8 @@ export function createMockSupabase(handler: QueryHandler): SupabaseClient {
         createFilterChain(table, "upsert", handler, rows),
       delete: () => createFilterChain(table, "delete", handler),
     }),
+    rpc: async (fn: string, args?: Record<string, unknown>) =>
+      handler({ table: fn, operation: "rpc", filters: {}, payload: args }),
   } as unknown as SupabaseClient;
 }
 

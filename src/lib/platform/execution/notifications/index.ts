@@ -1,5 +1,6 @@
 /**
  * Goal Execution Engine — notifications (Sprint 011).
+ * P009 — parallel list loads + batched emit; milestone scan uses one list + Map.
  */
 
 import type { GoalExecutionRepository } from "@/lib/platform/execution/repository";
@@ -45,98 +46,87 @@ export class GoalExecutionNotifications {
       throw new Error(`Execution goal not found: ${goalId}`);
     }
 
-    const nowIso = this.now().toISOString();
     const nowMs = this.now().getTime();
-    const created: ExecutionNotification[] = [];
+    const emitJobs: Array<Parameters<GoalExecutionNotifications["emit"]>[0]> = [];
 
-    const tasks = await this.repository.listTasks({ goalId });
+    const [tasks, initiatives, progress, allMilestones] = await Promise.all([
+      this.repository.listTasks({ goalId }),
+      this.repository.listInitiatives({ goalId }),
+      this.repository.listProgress({ subjectId: goalId }),
+      this.repository.listMilestones(),
+    ]);
+
     for (const task of tasks) {
       if (task.completionPercent < 100 && Date.parse(task.dueDate) < nowMs) {
-        created.push(
-          await this.emit({
-            kind: "overdue",
-            subjectKind: "task",
-            subjectId: task.id,
-            title: `Overdue task: ${task.title}`,
-            message: `Task "${task.title}" was due ${task.dueDate.slice(0, 10)} and is ${task.completionPercent}% complete.`,
-            severity: task.priority === "critical" ? "critical" : "high",
-          })
-        );
+        emitJobs.push({
+          kind: "overdue",
+          subjectKind: "task",
+          subjectId: task.id,
+          title: `Overdue task: ${task.title}`,
+          message: `Task "${task.title}" was due ${task.dueDate.slice(0, 10)} and is ${task.completionPercent}% complete.`,
+          severity: task.priority === "critical" ? "critical" : "high",
+        });
       }
       if (task.completionPercent >= 100 || task.status === "completed") {
-        created.push(
-          await this.emit({
-            kind: "completion",
-            subjectKind: "task",
-            subjectId: task.id,
-            title: `Completed task: ${task.title}`,
-            message: `Task "${task.title}" reached completion.`,
-            severity: "low",
-          })
-        );
+        emitJobs.push({
+          kind: "completion",
+          subjectKind: "task",
+          subjectId: task.id,
+          title: `Completed task: ${task.title}`,
+          message: `Task "${task.title}" reached completion.`,
+          severity: "low",
+        });
       }
     }
 
-    const initiatives = await this.repository.listInitiatives({ goalId });
-    for (const initiative of initiatives) {
-      const milestones = await this.repository.listMilestones({
-        initiativeId: initiative.id,
-      });
-      for (const milestone of milestones) {
-        const dueMs = Date.parse(milestone.dueDate);
-        const daysUntil = (dueMs - nowMs) / (1000 * 60 * 60 * 24);
-        if (
-          milestone.completionPercent < 100 &&
-          daysUntil <= 7 &&
-          Number.isFinite(daysUntil)
-        ) {
-          created.push(
-            await this.emit({
-              kind: "milestone",
-              subjectKind: "milestone",
-              subjectId: milestone.id,
-              title: `Milestone alert: ${milestone.title}`,
-              message: `Milestone "${milestone.title}" is due ${milestone.dueDate.slice(0, 10)} (${milestone.completionPercent}% complete).`,
-              severity: daysUntil < 0 ? "high" : "medium",
-            })
-          );
-        }
+    const initiativeIds = new Set(initiatives.map((i) => i.id));
+    for (const milestone of allMilestones) {
+      if (!initiativeIds.has(milestone.initiativeId)) continue;
+      const dueMs = Date.parse(milestone.dueDate);
+      const daysUntil = (dueMs - nowMs) / (1000 * 60 * 60 * 24);
+      if (
+        milestone.completionPercent < 100 &&
+        daysUntil <= 7 &&
+        Number.isFinite(daysUntil)
+      ) {
+        emitJobs.push({
+          kind: "milestone",
+          subjectKind: "milestone",
+          subjectId: milestone.id,
+          title: `Milestone alert: ${milestone.title}`,
+          message: `Milestone "${milestone.title}" is due ${milestone.dueDate.slice(0, 10)} (${milestone.completionPercent}% complete).`,
+          severity: daysUntil < 0 ? "high" : "medium",
+        });
       }
     }
 
-    const progress = await this.repository.listProgress({ subjectId: goalId });
     const latest = progress[0];
     if (
       latest &&
       (latest.healthLabel === "at_risk" || latest.healthLabel === "critical")
     ) {
-      created.push(
-        await this.emit({
-          kind: "risk",
-          subjectKind: "goal",
-          subjectId: goalId,
-          title: `Risk alert: ${goal.title}`,
-          message: `Goal "${goal.title}" health is ${latest.healthLabel} (risk ${latest.riskScore}).`,
-          severity: latest.healthLabel === "critical" ? "critical" : "high",
-        })
-      );
+      emitJobs.push({
+        kind: "risk",
+        subjectKind: "goal",
+        subjectId: goalId,
+        title: `Risk alert: ${goal.title}`,
+        message: `Goal "${goal.title}" health is ${latest.healthLabel} (risk ${latest.riskScore}).`,
+        severity: latest.healthLabel === "critical" ? "critical" : "high",
+      });
     }
 
     if (goal.status === "completed" || (latest && latest.completionPercent >= 100)) {
-      created.push(
-        await this.emit({
-          kind: "completion",
-          subjectKind: "goal",
-          subjectId: goalId,
-          title: `Goal completed: ${goal.title}`,
-          message: `Goal "${goal.title}" has reached completion.`,
-          severity: "medium",
-        })
-      );
+      emitJobs.push({
+        kind: "completion",
+        subjectKind: "goal",
+        subjectId: goalId,
+        title: `Goal completed: ${goal.title}`,
+        message: `Goal "${goal.title}" has reached completion.`,
+        severity: "medium",
+      });
     }
 
-    void nowIso;
-    return created;
+    return Promise.all(emitJobs.map((job) => this.emit(job)));
   }
 
   async list(filter?: { acknowledged?: boolean }): Promise<ExecutionNotification[]> {

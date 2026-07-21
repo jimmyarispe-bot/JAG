@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { ExecutiveFinancialDashboard } from "@/lib/financial-intelligence/types";
 import { ExecutiveFinancialPanel } from "@/components/financial-intelligence/FiPanels";
 import { ExecutiveDeadlineAnalyticsPanel } from "@/components/executive/ExecutiveDeadlineAnalyticsPanel";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
 
 interface CommandCenterDashboardProps {
   metrics: CommandCenterMetrics;
@@ -32,7 +33,7 @@ export function CommandCenterDashboard({ metrics, insights, deadlineAnalytics, f
         <article className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-2">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">Executive Insights</h2>
-            <Link href="/dashboard/executive/risk" className="text-sm text-brand-600">Risk register →</Link>
+            <ActionChip href="/dashboard/executive/risk" size="sm">Risk register</ActionChip>
           </div>
           <ul className="mt-4 space-y-3">
             {insights.map((insight) => (
@@ -56,7 +57,7 @@ export function CommandCenterDashboard({ metrics, insights, deadlineAnalytics, f
             <div className="flex justify-between"><span>Compliance alerts</span><span className="font-semibold text-rose-700">{metrics.complianceAlerts}</span></div>
             <div className="flex justify-between"><span>Intervention effectiveness</span><span className="font-semibold">{metrics.interventionEffectiveness != null ? `${metrics.interventionEffectiveness}%` : "—"}</span></div>
           </div>
-          <Link href="/dashboard/mission-control" className="mt-4 inline-block text-sm text-brand-600 hover:underline">Open Mission Control →</Link>
+          <ActionChip href="/dashboard/mission-control" size="sm" className="mt-4">Open Mission Control</ActionChip>
         </article>
       </section>
 

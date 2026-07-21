@@ -9,7 +9,7 @@ import {
   getClientIpFromHeaders,
 } from "@/lib/platform/api-rate-limit";
 import type { GradeValue } from "@/lib/constants/grades";
-import type { ProgramValue } from "@/lib/constants/programs";
+import { parseProgramValue } from "@/lib/constants/programs";
 import { parseFundingSourcesFromForm } from "@/lib/funding/helpers";
 import { recordInitialStage } from "@/lib/admissions/workflow";
 import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
@@ -73,7 +73,7 @@ export async function submitPublicInquiry(formData: FormData) {
     p_date_of_birth: (formData.get("date_of_birth") as string) || null,
     p_current_grade: (formData.get("current_grade") as GradeValue) || null,
     p_applying_for_grade: (formData.get("applying_for_grade") as GradeValue) || null,
-    p_program: (formData.get("program") as ProgramValue) || null,
+    p_program: parseProgramValue(formData.get("program") as string),
     p_referral_source: (formData.get("referral_source") as string) || null,
     p_guardian_first_name: (formData.get("guardian_first_name") as string) || null,
     p_guardian_last_name: (formData.get("guardian_last_name") as string) || null,

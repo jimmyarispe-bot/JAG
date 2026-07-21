@@ -195,29 +195,42 @@ async function loadAdmissionsPipeline(
   return { total: data.length, byStage };
 }
 
+/** Resolve billing accounts in scope so invoice/payment queries stay school-bound. */
+async function billingAccountIdsForSchools(
+  supabase: AuthClient,
+  schoolIds: SchoolScope
+): Promise<string[] | null> {
+  if (!schoolIds) return null;
+  if (schoolIds.length === 0) return [];
+  let query = supabase.from("family_billing_accounts").select("id");
+  query = applySchoolFilter(query, "school_id", schoolIds);
+  const { data, error } = await query;
+  if (error) return [];
+  return (data ?? []).map((row) => row.id);
+}
+
 async function sumMonthlyRevenue(
   supabase: AuthClient,
   schoolIds: SchoolScope
 ): Promise<number> {
   if (hasNoSchoolAccess(schoolIds)) return 0;
 
-  const { data, error } = await supabase
+  const accountIds = await billingAccountIdsForSchools(supabase, schoolIds);
+  if (accountIds && accountIds.length === 0) return 0;
+
+  let query = supabase
     .from("payments")
-    .select("amount, paid_at, invoices(family_billing_accounts(school_id))")
+    .select("amount, invoices!inner(billing_account_id)")
     .gte("paid_at", monthStartIso());
 
+  if (accountIds) {
+    query = query.in("invoices.billing_account_id", accountIds);
+  }
+
+  const { data, error } = await query;
   if (error || !data) return 0;
 
-  return data
-    .filter((payment) => {
-      if (!schoolIds) return true;
-      const invoice = Array.isArray(payment.invoices) ? payment.invoices[0] : payment.invoices;
-      const account = Array.isArray(invoice?.family_billing_accounts)
-        ? invoice?.family_billing_accounts[0]
-        : invoice?.family_billing_accounts;
-      return matchesSchool(schoolIds, (account as { school_id?: string } | null)?.school_id);
-    })
-    .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
+  return data.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
 }
 
 async function sumOutstandingTuition(
@@ -226,25 +239,25 @@ async function sumOutstandingTuition(
 ): Promise<number> {
   if (hasNoSchoolAccess(schoolIds)) return 0;
 
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("total_amount, amount_paid, invoice_status, family_billing_accounts(school_id)");
+  const accountIds = await billingAccountIdsForSchools(supabase, schoolIds);
+  if (accountIds && accountIds.length === 0) return 0;
 
+  let query = supabase
+    .from("invoices")
+    .select("total_amount, amount_paid, invoice_status, billing_account_id")
+    .not("invoice_status", "in", '("paid","void")');
+
+  if (accountIds) {
+    query = query.in("billing_account_id", accountIds);
+  }
+
+  const { data, error } = await query;
   if (error || !data) return 0;
 
-  return data
-    .filter((inv) => {
-      if (["paid", "void"].includes(inv.invoice_status)) return false;
-      if (!schoolIds) return true;
-      const account = Array.isArray(inv.family_billing_accounts)
-        ? inv.family_billing_accounts[0]
-        : inv.family_billing_accounts;
-      return matchesSchool(schoolIds, (account as { school_id?: string } | null)?.school_id);
-    })
-    .reduce(
-      (sum, inv) => sum + (Number(inv.total_amount ?? 0) - Number(inv.amount_paid ?? 0)),
-      0
-    );
+  return data.reduce(
+    (sum, inv) => sum + (Number(inv.total_amount ?? 0) - Number(inv.amount_paid ?? 0)),
+    0
+  );
 }
 
 async function countActiveStaff(
@@ -255,7 +268,7 @@ async function countActiveStaff(
 
   let query = supabase
     .from("employees")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("employment_status", "active");
   query = applySchoolFilter(query, "school_id", schoolIds);
   const { count, error } = await query;
@@ -270,23 +283,36 @@ async function loadTodaySessions(
   if (hasNoSchoolAccess(schoolIds)) return [];
 
   const { start, end } = todayRange();
-  const { data } = await supabase
+
+  // Scope sections to schools first — avoid loading all org sessions then filtering.
+  let sectionIds: string[] | null = null;
+  if (schoolIds) {
+    let coursesQuery = supabase.from("courses").select("id");
+    coursesQuery = applySchoolFilter(coursesQuery, "school_id", schoolIds);
+    const { data: courses } = await coursesQuery;
+    const courseIds = (courses ?? []).map((c) => c.id);
+    if (!courseIds.length) return [];
+    const { data: sections } = await supabase
+      .from("course_sections")
+      .select("id")
+      .in("course_id", courseIds);
+    sectionIds = (sections ?? []).map((s) => s.id);
+    if (!sectionIds.length) return [];
+  }
+
+  let query = supabase
     .from("instructional_sessions")
-    .select("id, course_sections(courses(school_id))")
+    .select("id")
     .gte("scheduled_start", start)
     .lte("scheduled_start", end)
     .in("session_status", ["scheduled", "in_progress", "completed"]);
 
-  return (data ?? [])
-    .filter((session) => {
-      if (!schoolIds) return true;
-      const section = Array.isArray(session.course_sections)
-        ? session.course_sections[0]
-        : session.course_sections;
-      const course = Array.isArray(section?.courses) ? section?.courses[0] : section?.courses;
-      return matchesSchool(schoolIds, (course as { school_id?: string } | null)?.school_id);
-    })
-    .map((s) => ({ id: s.id }));
+  if (sectionIds) {
+    query = query.in("course_section_id", sectionIds);
+  }
+
+  const { data } = await query;
+  return (data ?? []).map((s) => ({ id: s.id }));
 }
 
 async function loadTeacherAttendance(
@@ -408,7 +434,7 @@ async function countOverduePayroll(
 
   let query = supabase
     .from("payroll_records")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .in("pay_status", ["pending", "approved"])
     .lt("pay_period_end", todayIso());
   query = applySchoolFilter(query, "school_id", schoolIds);
@@ -452,7 +478,7 @@ async function countOpenVacancies(
 
   let query = supabase
     .from("hr_job_postings")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("status", "open");
   query = applySchoolFilter(query, "school_id", schoolIds);
   const { count, error } = await query;
@@ -464,11 +490,11 @@ async function countFailedIntegrations(supabase: AuthClient): Promise<number> {
   const [connectors, syncJobs] = await Promise.all([
     supabase
       .from("edp_connector_instances")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .in("health_status", ["unhealthy", "degraded"]),
     supabase
       .from("edp_sync_jobs")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("status", "failed"),
   ]);
 

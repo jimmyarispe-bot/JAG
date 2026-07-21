@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { installMarketplaceWorkflow } from "@/lib/platform/automation/server-actions";
 import { MODULE_LABELS, type MarketplaceWorkflowTemplate, type PlatformModule } from "@/lib/platform/automation/types";
 
@@ -14,7 +16,16 @@ export function WorkflowMarketplacePanel({ templates, schools }: WorkflowMarketp
   const [moduleFilter, setModuleFilter] = useState<string>("all");
   const [schoolId, setSchoolId] = useState(schools[0]?.id ?? "");
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "create",
+    labels: { idle: "Install as draft", loading: "Installing…", success: "✓ Installed" },
+    successToast: "✓ Workflow installed as draft.",
+    errorToast: "Unable to install workflow.",
+    progressLabel: "Installing marketplace workflow…",
+    onSuccess: () => {
+      setMessage("Workflow installed as draft. Review and publish in the workflow builder.");
+    },
+  });
 
   const modules = Array.from(new Set(templates.map((t) => t.module)));
   const filtered =
@@ -22,7 +33,7 @@ export function WorkflowMarketplacePanel({ templates, schools }: WorkflowMarketp
 
   function handleInstall(marketplaceKey: string, module: string) {
     if (module !== "admissions") {
-      setMessage("Only admissions templates can be installed today. Other modules are coming soon.");
+      setMessage("Install is available for admissions templates only.");
       return;
     }
     if (!schoolId) {
@@ -30,13 +41,10 @@ export function WorkflowMarketplacePanel({ templates, schools }: WorkflowMarketp
       return;
     }
 
-    startTransition(async () => {
+    void action.run(async () => {
       const result = await installMarketplaceWorkflow(marketplaceKey, schoolId);
-      if (result.error) {
-        setMessage(result.error);
-        return;
-      }
-      setMessage("Workflow installed as draft. Review and publish in the workflow builder.");
+      assertActionResult(result);
+      return result;
     });
   }
 
@@ -127,14 +135,28 @@ export function WorkflowMarketplacePanel({ templates, schools }: WorkflowMarketp
               {template.step_definitions.length} step
               {template.step_definitions.length === 1 ? "" : "s"}
             </p>
-            <button
-              type="button"
-              disabled={isPending || template.module !== "admissions"}
-              onClick={() => handleInstall(template.marketplace_key, template.module)}
-              className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {template.module === "admissions" ? "Install as draft" : "Coming soon"}
-            </button>
+            {template.module === "admissions" ? (
+              <ActionButton
+                type="button"
+                status={action.status}
+                verb="create"
+                labels={{
+                  idle: "Install as draft",
+                  loading: "Installing…",
+                  success: "✓ Installed",
+                }}
+                className="mt-4"
+                errorMessage={action.errorMessage}
+                onClick={() => handleInstall(template.marketplace_key, template.module)}
+              />
+            ) : (
+              <p
+                className="mt-4 text-xs text-slate-500"
+                title="Marketplace install is enabled for admissions templates only"
+              >
+                Install unavailable for this module
+              </p>
+            )}
           </article>
         ))}
       </div>

@@ -118,6 +118,7 @@ export async function loadExecutiveMetricsSources(
   const schoolId = resolveSchoolScopeId(scope);
   const loadedAt = new Date().toISOString();
 
+  // P004: fold financial intelligence into the domain fan-out (was a sequential tail).
   const [
     dashboard,
     admissions,
@@ -129,6 +130,7 @@ export async function loadExecutiveMetricsSources(
     operationalLoop,
     activityRecentCount,
     founderOps,
+    financialIntelligence,
   ] = await Promise.all([
     settled(getDashboardMetrics()),
     settled(getExecutiveAdmissionsMetrics()),
@@ -140,12 +142,10 @@ export async function loadExecutiveMetricsSources(
     settled(getOperationalLoopSummary(supabase, schoolId)),
     loadActivityRecentCount(supabase, scope.organizationId),
     settled(loadFounderOperationalSlice(supabase, schoolId)),
+    schoolId
+      ? settled(getExecutiveFinancialDashboard(supabase, schoolId))
+      : Promise.resolve(null),
   ]);
-
-  let financialIntelligence: ExecutiveMetricsSourceBundle["financialIntelligence"] = null;
-  if (schoolId) {
-    financialIntelligence = await settled(getExecutiveFinancialDashboard(supabase, schoolId));
-  }
 
   return {
     loadedAt,

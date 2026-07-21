@@ -40,39 +40,73 @@ export async function getTeacherTodaySessions(supabase: AuthClient, employeeId: 
     .order("scheduled_start");
 
   const sessionList = sessions ?? [];
+  if (!sessionList.length) return [];
 
-  const enriched = [];
-  for (const session of sessionList) {
-    const cs = Array.isArray(session.course_sections) ? session.course_sections[0] : session.course_sections;
-    const sectionId = session.course_section_id;
+  const sectionIds = [...new Set(sessionList.map((s) => s.course_section_id).filter(Boolean))] as string[];
+  const sessionIds = sessionList.map((s) => s.id);
 
-    const { data: enrollments } = await supabase
-      .from("student_enrollments")
-      .select("student_id, students(id, first_name, last_name, grade_level)")
-      .eq("course_section_id", sectionId)
-      .eq("enrollment_status", "enrolled");
+  type EnrollmentRow = {
+    student_id: string;
+    course_section_id: string;
+    students: unknown;
+  };
 
-    const studentIds = (enrollments ?? []).map((e) => e.student_id);
-
-    const { data: attendance } = studentIds.length
-      ? await supabase
+  const [{ data: allEnrollments }, { data: allAttendance }] = await Promise.all([
+    sectionIds.length
+      ? supabase
+          .from("student_enrollments")
+          .select("student_id, course_section_id, students(id, first_name, last_name, grade_level)")
+          .in("course_section_id", sectionIds)
+          .eq("enrollment_status", "enrolled")
+      : Promise.resolve({ data: [] as EnrollmentRow[] }),
+    sessionIds.length
+      ? supabase
           .from("session_attendance_records")
-          .select("student_id, attendance_status")
-          .eq("instructional_session_id", session.id)
-          .in("student_id", studentIds)
-      : { data: [] };
+          .select("student_id, attendance_status, instructional_session_id")
+          .in("instructional_session_id", sessionIds)
+      : Promise.resolve({
+          data: [] as Array<{ student_id: string; attendance_status: string; instructional_session_id: string }>,
+        }),
+  ]);
 
-    const attendanceMap = new Map((attendance ?? []).map((a) => [a.student_id, a.attendance_status]));
+  const enrollmentsBySection = new Map<string, EnrollmentRow[]>();
+  for (const e of (allEnrollments ?? []) as EnrollmentRow[]) {
+    const list = enrollmentsBySection.get(e.course_section_id) ?? [];
+    list.push(e);
+    enrollmentsBySection.set(e.course_section_id, list);
+  }
 
-    const alerts = await getStudentAlertsForSession(supabase, studentIds);
+  const attendanceBySession = new Map<string, Map<string, string>>();
+  for (const a of allAttendance ?? []) {
+    if (!attendanceBySession.has(a.instructional_session_id)) {
+      attendanceBySession.set(a.instructional_session_id, new Map());
+    }
+    attendanceBySession.get(a.instructional_session_id)!.set(a.student_id, a.attendance_status);
+  }
+
+  const allStudentIds = [...new Set((allEnrollments ?? []).map((e) => e.student_id))];
+  const allAlerts = await getStudentAlertsForSession(supabase, allStudentIds);
+  const alertsByStudent = new Map<string, typeof allAlerts>();
+  for (const alert of allAlerts) {
+    const list = alertsByStudent.get(alert.studentId) ?? [];
+    list.push(alert);
+    alertsByStudent.set(alert.studentId, list);
+  }
+
+  return sessionList.map((session) => {
+    const cs = Array.isArray(session.course_sections) ? session.course_sections[0] : session.course_sections;
+    const enrollments = enrollmentsBySection.get(session.course_section_id) ?? [];
+    const studentIds = enrollments.map((e) => e.student_id);
+    const attendanceMap = attendanceBySession.get(session.id) ?? new Map();
+    const alerts = studentIds.flatMap((id) => alertsByStudent.get(id) ?? []);
 
     const deliveryRaw = session.instructional_session_deliveries;
     const delivery = Array.isArray(deliveryRaw) ? deliveryRaw[0] : deliveryRaw;
     const room = Array.isArray(session.schedule_rooms) ? session.schedule_rooms[0] : session.schedule_rooms;
 
-    enriched.push({
+    return {
       ...session,
-      students: (enrollments ?? []).map((e) => {
+      students: enrollments.map((e) => {
         const st = Array.isArray(e.students) ? e.students[0] : e.students;
         return {
           id: e.student_id,
@@ -88,10 +122,8 @@ export async function getTeacherTodaySessions(supabase: AuthClient, employeeId: 
       timeDisplay:
         session.time_display ??
         `${formatAcademyTime(session.scheduled_start)} – ${formatAcademyTime(session.scheduled_end)}`,
-    });
-  }
-
-  return enriched;
+    };
+  });
 }
 
 async function getStudentAlertsForSession(supabase: AuthClient, studentIds: string[]) {
@@ -122,21 +154,31 @@ async function getStudentAlertsForSession(supabase: AuthClient, studentIds: stri
       .eq("verification_status", "pending"),
   ]);
 
+  const medicalByStudent = new Map((medical.data ?? []).map((m) => [m.student_id, m]));
+  const spedByStudent = new Map((sped.data ?? []).map((p) => [p.student_id, p]));
+  const fundingByStudent = new Map((funding.data ?? []).map((f) => [f.student_id, f]));
+  const behaviorCountByStudent = new Map<string, number>();
+  for (const row of behavior.data ?? []) {
+    behaviorCountByStudent.set(
+      row.student_id,
+      (behaviorCountByStudent.get(row.student_id) ?? 0) + 1
+    );
+  }
+
   for (const sid of studentIds) {
-    const med = (medical.data ?? []).find((m) => m.student_id === sid);
+    const med = medicalByStudent.get(sid);
     if (med?.health_alerts && Array.isArray(med.health_alerts) && med.health_alerts.length) {
       alerts.push({ studentId: sid, type: "medical", message: "Active health alerts on file" });
     }
-    const iep = (sped.data ?? []).find((p) => p.student_id === sid);
+    const iep = spedByStudent.get(sid);
     if (iep) {
       alerts.push({ studentId: sid, type: "iep", message: `${iep.plan_type} active — review accommodations` });
     }
-    const recentBehavior = (behavior.data ?? []).filter((b) => b.student_id === sid);
-    if (recentBehavior.length) {
-      alerts.push({ studentId: sid, type: "behavior", message: `${recentBehavior.length} recent behavior event(s)` });
+    const behaviorCount = behaviorCountByStudent.get(sid) ?? 0;
+    if (behaviorCount) {
+      alerts.push({ studentId: sid, type: "behavior", message: `${behaviorCount} recent behavior event(s)` });
     }
-    const fund = (funding.data ?? []).find((f) => f.student_id === sid);
-    if (fund) {
+    if (fundingByStudent.has(sid)) {
       alerts.push({ studentId: sid, type: "funding", message: "Funding verification pending" });
     }
   }
@@ -210,7 +252,7 @@ export async function getTeacherWorkloadSummary(supabase: AuthClient, employeeId
   const [todaySessions, weekSessions, interventions, outreach, missionItems] = await Promise.all([
     supabase
       .from("instructional_sessions")
-      .select("id", { count: "exact", head: true })
+      .select("id")
       .eq("instructor_employee_id", employeeId)
       .gte("scheduled_start", start)
       .lte("scheduled_start", end),
@@ -241,14 +283,7 @@ export async function getTeacherWorkloadSummary(supabase: AuthClient, employeeId
     return sum + (new Date(s.scheduled_end).getTime() - new Date(s.scheduled_start).getTime()) / 3600000;
   }, 0);
 
-  const { data: todaySessionIds } = await supabase
-    .from("instructional_sessions")
-    .select("id")
-    .eq("instructor_employee_id", employeeId)
-    .gte("scheduled_start", start)
-    .lte("scheduled_start", end);
-
-  const ids = (todaySessionIds ?? []).map((s) => s.id);
+  const ids = (todaySessions.data ?? []).map((s) => s.id);
   let pendingAttendance = ids.length;
   if (ids.length) {
     const { count } = await supabase
@@ -259,7 +294,7 @@ export async function getTeacherWorkloadSummary(supabase: AuthClient, employeeId
   }
 
   return {
-    sessionsToday: todaySessions.count ?? 0,
+    sessionsToday: ids.length,
     sessionsThisWeek: weekList.length,
     weeklyHours: Math.round(hours * 10) / 10,
     activeInterventions: interventions.count ?? 0,
@@ -271,46 +306,47 @@ export async function getTeacherWorkloadSummary(supabase: AuthClient, employeeId
 }
 
 async function getTeacherExtendedWorkload(supabase: AuthClient, employeeId: string) {
-  const { data: emp } = await supabase.from("employees").select("user_id").eq("id", employeeId).single();
-
-  const { data: sections } = await supabase
-    .from("course_sections")
-    .select("id")
-    .eq("instructor_employee_id", employeeId);
-
-  const sectionIds = (sections ?? []).map((s) => s.id);
-  let studentsServed = 0;
-  if (sectionIds.length) {
-    const { data: enrollments } = await supabase
-      .from("student_enrollments")
-      .select("student_id")
-      .in("course_section_id", sectionIds)
-      .eq("enrollment_status", "enrolled");
-    studentsServed = new Set((enrollments ?? []).map((e) => e.student_id)).size;
-  }
-
   const monthStart = new Date();
   monthStart.setDate(1);
-  let serviceMinutes = 0;
-  if (emp?.user_id) {
-    const { data: serviceSessions } = await supabase
-      .from("student_service_sessions")
-      .select("duration_minutes")
-      .eq("provider_user_id", emp.user_id)
-      .gte("scheduled_at", monthStart.toISOString());
-    serviceMinutes = (serviceSessions ?? []).reduce((sum, s) => sum + (s.duration_minutes ?? 0), 0);
-  }
 
-  const { count: sentMessages } = await supabase
-    .from("teacher_parent_outreach")
-    .select("id", { count: "exact", head: true })
-    .eq("employee_id", employeeId)
-    .eq("status", "sent");
+  const [{ data: emp }, { data: sections }] = await Promise.all([
+    supabase.from("employees").select("user_id").eq("id", employeeId).single(),
+    supabase.from("course_sections").select("id").eq("instructor_employee_id", employeeId),
+  ]);
+
+  const sectionIds = (sections ?? []).map((s) => s.id);
+  const [enrollmentsRes, serviceSessionsRes, sentMessagesRes] = await Promise.all([
+    sectionIds.length
+      ? supabase
+          .from("student_enrollments")
+          .select("student_id")
+          .in("course_section_id", sectionIds)
+          .eq("enrollment_status", "enrolled")
+      : Promise.resolve({ data: [] as { student_id: string }[] }),
+    emp?.user_id
+      ? supabase
+          .from("student_service_sessions")
+          .select("duration_minutes")
+          .eq("provider_user_id", emp.user_id)
+          .gte("scheduled_at", monthStart.toISOString())
+      : Promise.resolve({ data: [] as { duration_minutes: number | null }[] }),
+    supabase
+      .from("teacher_parent_outreach")
+      .select("id", { count: "exact", head: true })
+      .eq("employee_id", employeeId)
+      .eq("status", "sent"),
+  ]);
+
+  const studentsServed = new Set((enrollmentsRes.data ?? []).map((e) => e.student_id)).size;
+  const serviceMinutes = (serviceSessionsRes.data ?? []).reduce(
+    (sum, s) => sum + (s.duration_minutes ?? 0),
+    0
+  );
 
   return {
     studentsServed,
     serviceMinutes,
-    sentParentMessages: sentMessages ?? 0,
+    sentParentMessages: sentMessagesRes.count ?? 0,
   };
 }
 
@@ -318,23 +354,54 @@ export async function getTeacherComplianceItems(supabase: AuthClient, employeeId
   const items: { type: string; severity: string; title: string; href?: string }[] = [];
   const { start, end } = todayRange();
 
-  const { data: todaySessions } = await supabase
-    .from("instructional_sessions")
-    .select("id, scheduled_end, course_sections(section_code)")
-    .eq("instructor_employee_id", employeeId)
-    .gte("scheduled_start", start)
-    .lte("scheduled_start", end);
+  const [{ data: todaySessions }, { data: interventions }, { data: emp }, { data: sectionIds }] =
+    await Promise.all([
+      supabase
+        .from("instructional_sessions")
+        .select("id, scheduled_end, course_sections(section_code)")
+        .eq("instructor_employee_id", employeeId)
+        .gte("scheduled_start", start)
+        .lte("scheduled_start", end),
+      supabase
+        .from("student_academic_interventions")
+        .select("id, review_date, intervention_type, students(first_name, last_name)")
+        .eq("assigned_employee_id", employeeId)
+        .eq("status", "active")
+        .lte("review_date", new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]),
+      supabase.from("employees").select("user_id").eq("id", employeeId).single(),
+      supabase.from("course_sections").select("id").eq("instructor_employee_id", employeeId),
+    ]);
+
+  const todaySessionIds = (todaySessions ?? []).map((s) => s.id);
+  const sessionsWithAttendance = new Set<string>();
+  const deliveryBySession = new Map<string, string | null>();
+
+  if (todaySessionIds.length) {
+    const [{ data: attendanceRows }, { data: deliveries }] = await Promise.all([
+      supabase
+        .from("session_attendance_records")
+        .select("instructional_session_id")
+        .in("instructional_session_id", todaySessionIds),
+      supabase
+        .from("instructional_session_deliveries")
+        .select("instructional_session_id, lesson_status")
+        .in("instructional_session_id", todaySessionIds),
+    ]);
+    for (const row of attendanceRows ?? []) {
+      if (row.instructional_session_id) sessionsWithAttendance.add(row.instructional_session_id);
+    }
+    for (const d of deliveries ?? []) {
+      if (d.instructional_session_id) {
+        deliveryBySession.set(d.instructional_session_id, d.lesson_status ?? null);
+      }
+    }
+  }
 
   for (const s of todaySessions ?? []) {
     const cs = Array.isArray(s.course_sections) ? s.course_sections[0] : s.course_sections;
     const sectionCode = (cs as { section_code?: string })?.section_code ?? "session";
 
-    const { count: attCount } = await supabase
-      .from("session_attendance_records")
-      .select("id", { count: "exact", head: true })
-      .eq("instructional_session_id", s.id);
-
-    if (!attCount) {
+    if (!sessionsWithAttendance.has(s.id)) {
       items.push({
         type: "attendance",
         severity: new Date(s.scheduled_end) < new Date() ? "high" : "medium",
@@ -343,13 +410,7 @@ export async function getTeacherComplianceItems(supabase: AuthClient, employeeId
       });
     }
 
-    const { data: delivery } = await supabase
-      .from("instructional_session_deliveries")
-      .select("lesson_status")
-      .eq("instructional_session_id", s.id)
-      .maybeSingle();
-
-    if (delivery?.lesson_status !== "completed" && new Date(s.scheduled_end) < new Date()) {
+    if (deliveryBySession.get(s.id) !== "completed" && new Date(s.scheduled_end) < new Date()) {
       items.push({
         type: "documentation",
         severity: "medium",
@@ -358,13 +419,6 @@ export async function getTeacherComplianceItems(supabase: AuthClient, employeeId
       });
     }
   }
-
-  const { data: interventions } = await supabase
-    .from("student_academic_interventions")
-    .select("id, review_date, intervention_type, students(first_name, last_name)")
-    .eq("assigned_employee_id", employeeId)
-    .eq("status", "active")
-    .lte("review_date", new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]);
 
   for (const iv of interventions ?? []) {
     const st = Array.isArray(iv.students) ? iv.students[0] : iv.students;
@@ -375,7 +429,6 @@ export async function getTeacherComplianceItems(supabase: AuthClient, employeeId
     });
   }
 
-  const { data: emp } = await supabase.from("employees").select("user_id").eq("id", employeeId).single();
   if (emp?.user_id) {
     const { data: missedServices } = await supabase
       .from("student_service_sessions")
@@ -395,11 +448,6 @@ export async function getTeacherComplianceItems(supabase: AuthClient, employeeId
     }
   }
 
-  const { data: sectionIds } = await supabase
-    .from("course_sections")
-    .select("id")
-    .eq("instructor_employee_id", employeeId);
-
   const sids = (sectionIds ?? []).map((s) => s.id);
   if (sids.length) {
     const { data: enrollments } = await supabase
@@ -410,12 +458,18 @@ export async function getTeacherComplianceItems(supabase: AuthClient, employeeId
 
     const studentIds = [...new Set((enrollments ?? []).map((e) => e.student_id))];
     if (studentIds.length) {
-      const { data: spedPlans } = await supabase
-        .from("student_special_education_plans")
-        .select("student_id, plan_type, annual_review_date, students(first_name, last_name)")
-        .in("student_id", studentIds)
-        .eq("status", "active")
-        .lte("annual_review_date", new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0]);
+      const [{ data: spedPlans }, { data: medical }] = await Promise.all([
+        supabase
+          .from("student_special_education_plans")
+          .select("student_id, plan_type, annual_review_date, students(first_name, last_name)")
+          .in("student_id", studentIds)
+          .eq("status", "active")
+          .lte("annual_review_date", new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0]),
+        supabase
+          .from("student_medical_profiles")
+          .select("student_id, health_alerts, students(first_name, last_name)")
+          .in("student_id", studentIds),
+      ]);
 
       for (const plan of spedPlans ?? []) {
         const st = Array.isArray(plan.students) ? plan.students[0] : plan.students;
@@ -426,11 +480,6 @@ export async function getTeacherComplianceItems(supabase: AuthClient, employeeId
           href: buildStudentProfileSectionHref(plan.student_id, "special-ed"),
         });
       }
-
-      const { data: medical } = await supabase
-        .from("student_medical_profiles")
-        .select("student_id, health_alerts, students(first_name, last_name)")
-        .in("student_id", studentIds);
 
       for (const m of medical ?? []) {
         if (m.health_alerts && Array.isArray(m.health_alerts) && m.health_alerts.length) {

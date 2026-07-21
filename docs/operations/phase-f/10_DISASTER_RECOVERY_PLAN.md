@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | **Purpose** | Business continuity and recovery for production AcademyOS |
-| **Scope** | App (Vercel), data (Supabase), email (SendGrid), storage |
+| **Scope** | App (Vercel), data (Supabase), email (Resend), storage |
 | **Audience** | Ops, leadership, engineering |
 | **Prerequisites** | Supabase backup tier; documented contacts |
 | **Version** | 1.0.0 |

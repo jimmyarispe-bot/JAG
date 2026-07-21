@@ -1,12 +1,12 @@
 import type { ConnectorMetadata } from "@/lib/platform/integrations/common/types";
-import { GOOGLE_WORKSPACE_OBJECT_TYPES } from "./entities";
+import { GOOGLE_WORKSPACE_OBJECT_TYPES } from "@/lib/platform/integrations/connectors/google-workspace/entities";
 
 /** Connector catalog id remains `google` for Integration Center / phase-1 continuity. */
 export const googleWorkspaceMetadata: ConnectorMetadata = {
   id: "google",
   name: "Google Workspace",
   description:
-    "Production productivity connector — Gmail metadata, Calendar, Drive, Docs, Sheets, Meet, Tasks, and Directory (metadata-only by default).",
+    "Production Google Workspace connector (Sprint 074) — Gmail, Calendar, Drive, Docs, Sheets, Slides, Contacts, Meet, Directory. Metadata-only by default.",
   vendor: "Google",
   category: "productivity",
   authMethods: ["oauth2", "service_account"],
@@ -15,8 +15,8 @@ export const googleWorkspaceMetadata: ConnectorMetadata = {
   supportsFullSync: true,
   supportsPolling: true,
   objectTypes: [...GOOGLE_WORKSPACE_OBJECT_TYPES],
-  version: "1.0.0",
-  docsUrl: "/docs/product/GOOGLE_WORKSPACE_CONNECTOR.md",
+  version: "1.1.0",
+  docsUrl: "/docs/platform/google-workspace-connector.md",
   placeholder: false,
 };
 

@@ -1,21 +1,45 @@
+import dynamic from "next/dynamic";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { canViewEdi } from "@/lib/edi/access";
+import { ExecutiveAccessEmpty } from "@/components/executive/ExecutiveAccessEmpty";
 import { getTopRecommendations } from "@/lib/edi/recommendation-engine";
 import { getDecisionHistory } from "@/lib/edi/decision-history";
 import { getLatestScorecard } from "@/lib/edi/scorecard";
-import { DecisionCardList, ExecutiveScorecardPanel, RefreshEdiButton } from "@/components/edi/EdiPanels";
+import { ListSkeleton } from "@/components/experience-system";
+
+const DecisionCardList = dynamic(
+  () =>
+    import("@/components/edi/panels/DecisionCardList").then((m) => ({
+      default: m.DecisionCardList,
+    })),
+  { ssr: true, loading: () => <ListSkeleton rows={4} label="Loading decisionsâ€¦" /> }
+);
+const ExecutiveScorecardPanel = dynamic(
+  () =>
+    import("@/components/edi/panels/ExecutiveScorecardPanel").then((m) => ({
+      default: m.ExecutiveScorecardPanel,
+    })),
+  { ssr: true, loading: () => <ListSkeleton rows={3} label="Loading scorecardâ€¦" /> }
+);
+const RefreshEdiButton = dynamic(
+  () =>
+    import("@/components/edi/panels/RefreshEdiButton").then((m) => ({
+      default: m.RefreshEdiButton,
+    })),
+  { ssr: true }
+);
 
 export default async function ExecutiveDecisionsPage() {
   const ctx = await getIdentityContext();
-  if (!ctx || !canViewEdi(ctx)) return null;
+  if (!ctx || !canViewEdi(ctx)) return <ExecutiveAccessEmpty reason="access" />;
 
   const schoolId =
     ctx.orgAssignments.find((a) => a.is_primary)?.school_id ||
     ctx.accessibleSchoolIds[0] ||
     "";
 
-  if (!schoolId) return null;
+  if (!schoolId) return <ExecutiveAccessEmpty reason="school" />;
 
   const supabase = await createAuthClient();
   const [recommendations, history, scorecard] = await Promise.all([
@@ -27,7 +51,7 @@ export default async function ExecutiveDecisionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-slate-600">Decision workspace — approve, reject, and track outcomes</p>
+        <p className="text-sm text-slate-600">Decision workspace â€” approve, reject, and track outcomes</p>
         <RefreshEdiButton />
       </div>
 

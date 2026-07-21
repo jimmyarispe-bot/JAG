@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ModuleCard } from "@/components/experience-system/cards";
 import { FOUNDER_DASHBOARD_NAV } from "@/lib/dashboard/founders-navigation";
 
 export function FounderDashboardNav() {
@@ -12,16 +12,14 @@ export function FounderDashboardNav() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {FOUNDER_DASHBOARD_NAV.map((item) => (
-          <Link
+          <ModuleCard
             key={item.href + item.label}
+            title={item.label}
             href={item.href}
-            className="group rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm transition-all hover:border-brand-200 hover:shadow-md"
-          >
-            <p className="text-sm font-semibold text-slate-900 group-hover:text-brand-700">
-              {item.label}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">Open →</p>
-          </Link>
+            padding="sm"
+            className="group px-5 py-4 hover:border-brand-200"
+            titleClassName="transition-colors group-hover:text-brand-700"
+          />
         ))}
       </div>
     </section>

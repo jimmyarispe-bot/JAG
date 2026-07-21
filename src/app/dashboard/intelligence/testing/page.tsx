@@ -6,6 +6,7 @@ import { getProviderDefinitions } from "@/lib/intelligence-platform/provider-abs
 import { getTestRuns } from "@/lib/intelligence-platform/testing-lab";
 import { AipShell } from "@/components/intelligence-platform/AipNav";
 import { HistoryTable } from "@/components/intelligence-platform/AipPanels";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 import { runTestAction } from "@/lib/intelligence-platform/actions";
 
 export default async function TestingPage() {
@@ -24,7 +25,15 @@ export default async function TestingPage() {
   return (
     <AipShell title="Prompt Testing Lab" subtitle="Test prompts, compare versions and providers, measure latency and token usage">
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={runTestAction} className="space-y-4">
+        <ExperienceForm
+          action={runTestAction}
+          verb="run"
+          labels={{ idle: "Run simulated test", loading: "Running analysis…", success: "✓ Complete" }}
+          progressLabel="Running prompt test analysis…"
+          successToast="✓ Test complete."
+          errorToast="Unable to run test."
+          className="space-y-4"
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm">
               Prompt
@@ -45,10 +54,7 @@ export default async function TestingPage() {
             </label>
           </div>
           <input type="hidden" name="test_input" value='{"sample":"test input"}' />
-          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Run simulated test
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section>

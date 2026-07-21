@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import type { ComplianceObligation } from "@/lib/compliance/types";
 import { completePortalObligationAction } from "@/lib/compliance/deadline-actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
+import { ActionChip, ActionChipGroup } from "@/components/ui/cta";
 
 interface StudentAssignmentsDeadlinesWidgetProps {
   dueToday: ComplianceObligation[];
@@ -25,7 +27,13 @@ export function StudentAssignmentsDeadlinesWidget({
   const [section, setSection] = useState<Section>("dueToday");
   const [priority, setPriority] = useState("");
   const [subject, setSubject] = useState("");
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "submit",
+    labels: { idle: "Turn In", loading: "Submitting…", success: "✓ Done" },
+    successToast: "✓ Turned in.",
+    errorToast: "Unable to update.",
+    progressLabel: "Turning in assignment…",
+  });
 
   const sections: Record<Section, ComplianceObligation[]> = {
     dueToday,
@@ -48,8 +56,10 @@ export function StudentAssignmentsDeadlinesWidget({
   }, [dueToday, dueTomorrow, upcoming, overdue, completed]);
 
   function markComplete(id: string) {
-    startTransition(async () => {
-      await completePortalObligationAction(id);
+    void action.run(async () => {
+      const result = await completePortalObligationAction(id);
+      assertActionResult(result);
+      return result;
     });
   }
 
@@ -115,23 +125,24 @@ export function StudentAssignmentsDeadlinesWidget({
                 {item.subject_domain ? ` · ${item.subject_domain.replace(/_/g, " ")}` : ""}
               </p>
             </div>
-            <div className="flex gap-2">
+            <ActionChipGroup>
               {item.action_href && section !== "completed" && (
-                <Link href={item.action_href} className="text-xs text-brand-600 hover:underline">
+                <ActionChip href={item.action_href} size="xs">
                   Open
-                </Link>
+                </ActionChip>
               )}
               {section !== "completed" && (
-                <button
+                <ActionButton
                   type="button"
-                  disabled={pending}
+                  status={action.status}
+                  verb="submit"
+                  variant="success"
+                  size="xs"
+                  labels={{ idle: "Turn In", loading: "Submitting…", success: "✓ Done" }}
                   onClick={() => markComplete(item.id)}
-                  className="text-xs text-emerald-700 hover:underline disabled:opacity-50"
-                >
-                  Done
-                </button>
+                />
               )}
-            </div>
+            </ActionChipGroup>
           </li>
         ))}
         {!filtered.length && <li className="py-4 text-center text-slate-500">No items match your filters.</li>}

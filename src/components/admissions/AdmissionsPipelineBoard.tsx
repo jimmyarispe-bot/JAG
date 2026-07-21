@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useActionFeedback } from "@/components/experience-system/feedback";
 import {
   getActiveOrderedPipelineStages,
-  pipelineStageColor,
   pipelineStageLabel,
   resolvePipelineStageFromLeadStage,
 } from "@/lib/admissions/registry";
@@ -25,12 +24,19 @@ interface AdmissionsPipelineBoardProps {
 
 /** OS pipeline board — groups leads by canonical pipeline stage. */
 export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps) {
-  const [, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Update stage", loading: "Updating…", success: "✓ Updated" },
+    successToast: "✓ Stage updated.",
+    errorToast: "Unable to update stage.",
+    progressLabel: "Updating case stage…",
+  });
   const stages = getActiveOrderedPipelineStages();
 
   function handleStageChange(leadId: string, stage: LeadStageValue) {
-    startTransition(async () => {
+    void action.run(async () => {
       await updateCaseStage(leadId, stage);
+      return { success: true };
     });
   }
 
@@ -86,8 +92,10 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
                     </p>
                     <select
                       value={lead.lead_stage}
+                      disabled={action.isBusy}
                       onChange={(e) => handleStageChange(lead.id, e.target.value as LeadStageValue)}
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
+                      aria-busy={action.isBusy || undefined}
                     >
                       {LEAD_STAGES.map((s) => (
                         <option key={s.value} value={s.value}>

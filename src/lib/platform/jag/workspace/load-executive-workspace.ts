@@ -8,6 +8,7 @@
 import { getSessionUser } from "@/lib/auth/session";
 import { getPrimaryOrganizationId } from "@/lib/configuration/context";
 import { getExecutiveKPIs, type ExecutiveKPIs } from "@/lib/executive/kpis";
+import { observeWorkspaceExecution } from "@/lib/observability";
 import { createGoalExecutionEngine } from "@/lib/platform/execution";
 import type {
   ExecutionGoal,
@@ -115,9 +116,15 @@ function mapKpisToMetrics(kpis: ExecutiveKPIs, observedAt: string): Organization
  * Load the Executive Workspace from existing platform services.
  */
 export async function loadExecutiveWorkspace(): Promise<ExecutiveWorkspaceData> {
+  return observeWorkspaceExecution("jag.loadExecutiveWorkspace", () =>
+    loadExecutiveWorkspaceInner()
+  );
+}
+
+async function loadExecutiveWorkspaceInner(): Promise<ExecutiveWorkspaceData> {
   const generatedAt = new Date().toISOString();
-  const sessionUser = await getSessionUser();
-  const ctx = await getIdentityContext();
+  // P004: session + identity are independent auth reads.
+  const [sessionUser, ctx] = await Promise.all([getSessionUser(), getIdentityContext()]);
 
   if (!sessionUser || !ctx) {
     return emptyWorkspace("Unauthorized", generatedAt);
@@ -136,18 +143,16 @@ export async function loadExecutiveWorkspace(): Promise<ExecutiveWorkspaceData> 
     };
   }
 
-  const organizationId = await getPrimaryOrganizationId(supabase);
   const schoolId =
     ctx.orgAssignments.find((a) => a.is_primary)?.school_id ||
     ctx.accessibleSchoolIds[0] ||
     null;
 
-  let kpis: ExecutiveKPIs | null = null;
-  try {
-    kpis = await getExecutiveKPIs({ supabase });
-  } catch {
-    kpis = null;
-  }
+  // P004: org id + KPIs are independent after the permission gate.
+  const [organizationId, kpis] = await Promise.all([
+    getPrimaryOrganizationId(supabase),
+    getExecutiveKPIs({ supabase }).catch((): ExecutiveKPIs | null => null),
+  ]);
 
   const sharedBuilder = createSharedIntelligenceContextBuilder();
   const sharedContext = await sharedBuilder.build({
@@ -206,12 +211,18 @@ export async function loadExecutiveWorkspace(): Promise<ExecutiveWorkspaceData> 
   });
 
   const executionGoals = [...imported.goals];
-  const executionProgress: ExecutionProgressSnapshot[] = [];
-  const scorecards: ExecutionScorecard[] = [];
-  for (const goal of executionGoals) {
-    executionProgress.push(await goalEngine.progress.calculateGoal(goal.id));
-    scorecards.push(await goalEngine.scorecards.generate(goal.id));
-  }
+  // P004: per-goal progress + scorecards are independent across goals.
+  const goalArtifacts = await Promise.all(
+    executionGoals.map(async (goal) => {
+      const [progress, scorecard] = await Promise.all([
+        goalEngine.progress.calculateGoal(goal.id),
+        goalEngine.scorecards.generate(goal.id),
+      ]);
+      return { progress, scorecard };
+    })
+  );
+  const executionProgress: ExecutionProgressSnapshot[] = goalArtifacts.map((a) => a.progress);
+  const scorecards: ExecutionScorecard[] = goalArtifacts.map((a) => a.scorecard);
 
   const organization = await observer.observe({
     requestId: `org-${generatedAt}`,

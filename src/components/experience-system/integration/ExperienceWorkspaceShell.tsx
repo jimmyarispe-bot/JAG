@@ -16,6 +16,7 @@ import {
   type XesNotification,
   type XesWorkspaceOption,
 } from "../navigation";
+import { ShellActivityIndicator } from "../feedback/BackgroundJobs";
 import { ActivityPanelRegion } from "../framework/PageLayout";
 import type { XesTimelineEntry } from "../types";
 
@@ -89,7 +90,12 @@ export function ExperienceWorkspaceShell({
       fullName={fullName}
       roleLabel={roleLabel}
       searchPlaceholder={searchPlaceholder}
-      headerActions={headerActions}
+      headerActions={
+        <>
+          <ShellActivityIndicator />
+          {headerActions}
+        </>
+      }
     >
       {contextNav && contextNav.length > 0 && (
         <div className="mb-4">

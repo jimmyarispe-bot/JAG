@@ -37,14 +37,14 @@ export async function runPlatformAudit(supabase: AuthClient, certRunId?: string)
 }> {
   const findings = [...STATIC_FINDINGS];
 
-  if (!process.env.SENDGRID_API_KEY && process.env.NODE_ENV === "production") {
+  if (!process.env.RESEND_API_KEY && process.env.NODE_ENV === "production") {
     findings.push({
-      findingKey: "sendgrid_missing_prod",
+      findingKey: "resend_missing_prod",
       category: "critical",
       domain: "communications",
-      title: "SendGrid not configured in production",
-      description: "SENDGRID_API_KEY is required for admissions email delivery in production.",
-      recommendation: "Set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL in Vercel.",
+      title: "Resend not configured in production",
+      description: "RESEND_API_KEY is required for transactional email delivery in production.",
+      recommendation: "Set RESEND_API_KEY and RESEND_FROM_EMAIL in Vercel.",
     });
   }
 

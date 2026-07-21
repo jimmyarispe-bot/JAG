@@ -4,6 +4,7 @@ import { getDeployments, getReleases } from "@/lib/cloud-platform/releases";
 import { CloudShell } from "@/components/cloud-platform/CloudNav";
 import { CloudTable } from "@/components/cloud-platform/CloudPanels";
 import { createDeploymentAction } from "@/lib/cloud-platform/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export default async function CloudDeploymentsPage() {
   await requireCloudPermission(["cloud.admin", "cloud.operations", "cloud.engineering"]);
@@ -12,16 +13,22 @@ export default async function CloudDeploymentsPage() {
 
   return (
     <CloudShell title="Deployment Center" subtitle="Production, staging, testing, rollback, and release approvals">
-      <form action={createDeploymentAction} className="flex flex-wrap gap-3 rounded-2xl border bg-white p-4">
-        <select name="environment" className="rounded-lg border px-3 py-2 text-sm">
+      <ExperienceForm
+          action={createDeploymentAction}
+          verb="create"
+          labels={{ idle: "Schedule deployment" }}
+          progressLabel="Schedule deployment…"
+          className="flex flex-wrap gap-3 rounded-2xl border bg-white p-4"
+          buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+        >
+          <select name="environment" className="rounded-lg border px-3 py-2 text-sm">
           <option value="production">Production</option><option value="staging">Staging</option><option value="testing">Testing</option>
-        </select>
-        <select name="release_id" className="rounded-lg border px-3 py-2 text-sm">
+          </select>
+          <select name="release_id" className="rounded-lg border px-3 py-2 text-sm">
           <option value="">No release</option>
           {releases.map((r) => <option key={r.id} value={r.id}>{r.release_version}</option>)}
-        </select>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Schedule deployment</button>
-      </form>
+          </select>
+        </ExperienceForm>
       <CloudTable rows={deployments} columns={[
         { key: "environment", label: "Env" }, { key: "status", label: "Status" }, { key: "created_at", label: "Created" },
       ]} />

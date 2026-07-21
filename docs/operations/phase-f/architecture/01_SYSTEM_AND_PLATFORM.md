@@ -30,7 +30,7 @@ flowchart LR
   Vercel --> Storage[Supabase Storage]
   Cron[Vercel Cron daily] --> Queues["/api/platform/process-queues"]
   Queues --> DB
-  Vercel --> SendGrid[SendGrid email]
+  Vercel --> Resend[Resend email]
 ```
 
 | Component | Implementation |

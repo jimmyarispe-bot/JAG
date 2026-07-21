@@ -1,0 +1,15 @@
+{
+  "sprint": "RC-1",
+  "generatedAt": "2026-07-20T13:35:05.161Z",
+  "baselines": {
+    "maxClientModuleKb": 16,
+    "maxBundleViolations": 0,
+    "maxHttpP95Ms": 2000,
+    "maxDbP95Ms": 800,
+    "maxRumLcpP95Ms": 4000
+  },
+  "failures": [
+    "Bundle violations 1 > baseline 0"
+  ],
+  "ok": false
+}

@@ -1,8 +1,5 @@
 import type { IdentityContext } from "@/lib/platform/identity/context";
-import {
-  hasAnyPermission,
-  hasPermission,
-} from "@/lib/platform/identity/authorization-service";
+import { hasPermission } from "@/lib/platform/identity/authorization-service";
 import { canAccessExecutiveIntelligence } from "@/lib/executive/access";
 import { canViewFi } from "@/lib/financial-intelligence/access";
 import type { PermissionKey } from "@/lib/platform/identity/types";
@@ -41,8 +38,6 @@ const CARD_PERMISSIONS: Record<FounderDashboardCardKey, PermissionKey[]> = {
   executiveAlerts: ["executive.intelligence", "executive.dashboard", "global.reporting"],
   financialIntelligence: ["finance.view", "fi.view", "fi.executive"],
 };
-
-const RBAC_LOG_PREFIX = "[founder-dashboard:rbac]";
 
 function matchingPermissions(ctx: IdentityContext, keys: PermissionKey[]): PermissionKey[] {
   if (!canViewFounderDashboard(ctx)) return [];
@@ -114,32 +109,9 @@ export function canViewFounderDashboardCard(
 
 export function getVisibleFounderDashboardCards(ctx: IdentityContext): FounderDashboardCardKey[] {
   if (!canViewFounderDashboard(ctx)) {
-    console.log(RBAC_LOG_PREFIX, {
-      userId: ctx.id,
-      permissions: [...ctx.permissions].sort(),
-      visibleCards: [],
-      reason: "JAG_ACCESS required — widgets hidden",
-    });
     return [];
   }
 
   const cardKeys = Object.keys(CARD_PERMISSIONS) as FounderDashboardCardKey[];
-  const decisions = cardKeys.map((key) => ({
-    card: key,
-    ...explainCardAccess(ctx, key),
-  }));
-  const visibleCards = decisions.filter((d) => d.included).map((d) => d.card);
-
-  console.log(RBAC_LOG_PREFIX, {
-    userId: ctx.id,
-    email: ctx.email,
-    effectiveUserId: ctx.effectiveUserId,
-    permissions: [...ctx.permissions].sort(),
-    permissionCount: ctx.permissions.length,
-    hasAnyCardPerm: hasAnyPermission(ctx, Object.values(CARD_PERMISSIONS).flat()),
-    cardDecisions: decisions,
-    visibleCards,
-  });
-
-  return visibleCards;
+  return cardKeys.filter((key) => explainCardAccess(ctx, key).included);
 }

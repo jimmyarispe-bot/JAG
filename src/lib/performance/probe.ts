@@ -16,6 +16,7 @@ import { buildDetections } from "./detections";
 import { buildBundleReport, buildRouteInventory } from "./inventory";
 import { commitTrace, measureAsync, nowMs } from "./measure";
 import {
+  createIntelligenceForBenchmark,
   createIntegrationsForBenchmark,
   getIntelligenceSingletonStats,
   getIntegrationsSingletonStats,
@@ -92,9 +93,12 @@ async function timeRoute(
 export async function runPerformanceProbe(): Promise<PerfProbeReport> {
   const processStart = nowMs();
 
-  const coldIntelStart = nowMs();
+  // Full-graph cold (eager) vs lazy shell — both for P005 before/after visibility.
+  const { span: coldEagerSpan } = createIntelligenceForBenchmark();
+  const lazyColdStart = nowMs();
   createIntelligenceService();
-  const intelligenceColdMs = Math.round((nowMs() - coldIntelStart) * 100) / 100;
+  const intelligenceLazyColdMs = Math.round((nowMs() - lazyColdStart) * 100) / 100;
+  const intelligenceColdMs = coldEagerSpan.durationMs;
 
   getOrCreateIntelligenceSingleton();
   const warmIntelSecond = getOrCreateIntelligenceSingleton();
@@ -137,6 +141,7 @@ export async function runPerformanceProbe(): Promise<PerfProbeReport> {
     },
     comparisons: {
       intelligenceColdMs,
+      intelligenceLazyColdMs,
       intelligenceWarmMs: warmIntelSecond.durationMs,
       integrationsColdMs: coldIntSpan.durationMs,
       integrationsWarmMs: warmIntSecond.durationMs,

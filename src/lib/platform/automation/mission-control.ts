@@ -1,4 +1,8 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import {
+  MISSION_CONTROL_FEED_COLS,
+  type MissionControlFeedItemDto,
+} from "@/lib/platform/automation/mission-control-projections";
 import type {
   MissionControlItemType,
   PlatformModule,
@@ -62,7 +66,7 @@ export async function getMissionControlFeed(
 ) {
   let query = supabase
     .from("platform_mission_control_items")
-    .select("*")
+    .select(MISSION_CONTROL_FEED_COLS)
     .eq("is_resolved", false)
     .order("severity", { ascending: false })
     .order("created_at", { ascending: false })
@@ -86,7 +90,7 @@ export async function getMissionControlFeed(
   }
 
   const { data } = await query;
-  return data ?? [];
+  return (data ?? []) as MissionControlFeedItemDto[];
 }
 
 export async function syncFailedAutomationsToMissionControl(supabase: AuthClient) {

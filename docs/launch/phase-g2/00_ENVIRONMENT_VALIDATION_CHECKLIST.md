@@ -11,8 +11,8 @@ Use against staging then production. Desktop review of **docs/config** only comp
 | DNS | Customer domain → Vercel | ☐ | ☐ | |
 | SSL | Valid cert | ☐ | ☐ | |
 | Secrets / env | `PRODUCTION_ENV.md` + env schema | ☐ | ☐ | |
-| Email | SendGrid | ☐ | ☐ | |
-| Notifications | Platform + SendGrid/SMS as configured | ☐ | ☐ | |
+| Email | Resend | ☐ | ☐ | |
+| Notifications | Platform + Resend/SMS as configured | ☐ | ☐ | |
 | Background workers / queues | `/api/platform/process-queues` | ☐ | ☐ | Cron daily UTC |
 | Cron | `vercel.json` `0 0 * * *` | ☐ | ☐ | `CRON_SECRET` |
 | Monitoring / alerting / logging | APM + Vercel | ☐ | ☐ | F1-04 open |

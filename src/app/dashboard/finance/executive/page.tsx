@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ActionChip, ActionChipGroup } from "@/components/ui/cta";
 import { formatCurrency } from "@/lib/format";
 import { getFinanceExecutiveDashboard } from "@/lib/finance/dashboards";
 import { exportLedgerForGl } from "@/lib/finance/ledger";
@@ -33,7 +33,9 @@ export default async function FinanceExecutivePage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <Link href="/dashboard/finance" className="text-sm text-slate-500 hover:text-brand-600">← Finance</Link>
+      <ActionChip href="/dashboard/finance" size="sm" variant="ghost">
+        Back to Finance
+      </ActionChip>
       <PageHeader title="Executive Financial Intelligence" subtitle="Revenue, collections, forecasting, and board-ready metrics" />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -90,11 +92,16 @@ export default async function FinanceExecutivePage() {
             </a>
           )}
           <p className="mt-2 text-sm text-slate-600">
-            Integrates with{" "}
-            <Link href="/dashboard/mission-control" className="text-brand-600 hover:underline">Mission Control</Link>
-            {" "}for overdue alerts and{" "}
-            <Link href="/dashboard/ceo" className="text-brand-600 hover:underline">Executive Dashboard</Link>.
+            Integrates with Mission Control for overdue alerts and the Executive Dashboard.
           </p>
+          <ActionChipGroup className="mt-2">
+            <ActionChip href="/dashboard/mission-control" size="xs">
+              Mission Control
+            </ActionChip>
+            <ActionChip href="/dashboard/ceo" size="xs">
+              Executive Dashboard
+            </ActionChip>
+          </ActionChipGroup>
         </article>
       </div>
     </div>

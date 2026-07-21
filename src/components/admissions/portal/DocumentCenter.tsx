@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   deleteApplicationDocument,
   registerApplicationDocument,
   registerScholarshipDocument,
 } from "@/lib/admissions/portal/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 import { portalInputClass, portalLabelClass, portalSectionClass } from "./styles";
 
 const ADMISSIONS_BUCKET = "admissions-documents";
@@ -34,27 +35,30 @@ export function DocumentUploadField({
   scholarshipApplicationId,
   mode = "application",
 }: DocumentUploadFieldProps) {
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState(existingFileName ?? null);
   const [documentId, setDocumentId] = useState(existingDocumentId ?? null);
+  const action = useActionFeedback({
+    verb: "upload",
+    successToast: "✓ Uploaded",
+    errorToast: "Unable to update document.",
+    progressLabel: "Uploading document…",
+    onError: (err) => setError(err.message),
+  });
 
   async function handleUpload(file: File) {
     setError(null);
-    const supabase = createClient();
-    const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${applicationId}/${documentType}-${Date.now()}.${ext}`;
+    void action.run(async () => {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() ?? "bin";
+      const path = `${applicationId}/${documentType}-${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from(ADMISSIONS_BUCKET)
-      .upload(path, file, { upsert: false });
+      const { error: uploadError } = await supabase.storage
+        .from(ADMISSIONS_BUCKET)
+        .upload(path, file, { upsert: false });
 
-    if (uploadError) {
-      setError(uploadError.message);
-      return;
-    }
+      if (uploadError) throw new Error(uploadError.message);
 
-    startTransition(async () => {
       const formData = new FormData();
       formData.set("application_id", applicationId);
       formData.set("document_type", documentType);
@@ -74,25 +78,20 @@ export function DocumentUploadField({
             )
           : await registerApplicationDocument(formData);
 
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-
+      if (result.error) throw new Error(result.error);
       setFileName(file.name);
+      return result;
     });
   }
 
   function handleRemove() {
     if (!documentId) return;
-    startTransition(async () => {
+    void action.run(async () => {
       const result = await deleteApplicationDocument(documentId, applicationId);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
+      if (result.error) throw new Error(result.error);
       setFileName(null);
       setDocumentId(null);
+      return result;
     });
   }
 
@@ -112,22 +111,28 @@ export function DocumentUploadField({
         </div>
         <div className="flex gap-2">
           {fileName && mode === "application" && documentId && (
-            <button
+            <ActionButton
               type="button"
-              disabled={isPending}
+              status={action.status}
+              verb="delete"
+              variant="secondary"
+              labels={{ idle: "Remove", loading: "Removing…", success: "✓ Removed" }}
+              className="!rounded-lg !px-3 !py-1.5 !text-xs"
               onClick={handleRemove}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white"
-            >
-              Remove
-            </button>
+            />
           )}
-          <label className="cursor-pointer rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700">
-            {fileName ? "Replace" : "Upload"}
+          <label
+            className={`cursor-pointer rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 ${
+              action.isBusy ? "pointer-events-none opacity-50" : ""
+            }`}
+            aria-busy={action.isBusy || undefined}
+          >
+            {action.isBusy ? "Uploading…" : fileName ? "Replace" : "Upload"}
             <input
               type="file"
               accept=".pdf,.jpg,.jpeg,.png,.webp"
               className="hidden"
-              disabled={isPending}
+              disabled={action.isBusy}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) void handleUpload(file);
@@ -289,9 +294,16 @@ export function ApplicationDetailsForm({
     learning_needs_summary: string | null;
   };
 }) {
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Save Application", loading: "Saving…", success: "✓ Saved" },
+    successToast: "✓ Saved",
+    errorToast: "Unable to save.",
+    progressLabel: "Saving application…",
+    onError: (err) => setError(err.message),
+  });
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -300,14 +312,12 @@ export function ApplicationDetailsForm({
     const formData = new FormData(e.currentTarget);
     formData.set("application_id", applicationId);
 
-    startTransition(async () => {
+    void action.run(async () => {
       const { saveApplicationDetails } = await import("@/lib/admissions/portal/actions");
       const result = await saveApplicationDetails(formData);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
+      if (result.error) throw new Error(result.error);
       setSaved(true);
+      return result;
     });
   }
 
@@ -375,13 +385,13 @@ export function ApplicationDetailsForm({
       </div>
 
       <div className="flex justify-end">
-        <button
+        <ActionButton
           type="submit"
-          disabled={isPending}
-          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {isPending ? "Saving…" : "Save Application"}
-        </button>
+          status={action.status}
+          verb="save"
+          labels={{ idle: "Save Application", loading: "Saving…", success: "✓ Saved" }}
+          errorMessage={action.errorMessage}
+        />
       </div>
     </form>
   );

@@ -34,18 +34,31 @@ export async function computeBreakEvenAnalysis(supabase: AuthClient, schoolId: s
     .select("id, max_capacity, instructional_minutes, courses(school_id)")
     .eq("status", "open");
 
+  const schoolSections = (sections ?? []).filter((s) => {
+    const c = Array.isArray(s.courses) ? s.courses[0] : s.courses;
+    return (c as { school_id?: string })?.school_id === schoolId;
+  });
+
   let totalCapacity = 0;
   let usedSeats = 0;
-  for (const s of sections ?? []) {
-    const c = Array.isArray(s.courses) ? s.courses[0] : s.courses;
-    if ((c as { school_id?: string })?.school_id !== schoolId) continue;
-    totalCapacity += s.max_capacity ?? 0;
-    const { count } = await supabase
+  const sectionIds = schoolSections.map((s) => s.id);
+  const enrollmentCounts = new Map<string, number>();
+
+  if (sectionIds.length) {
+    const { data: enrollments } = await supabase
       .from("student_enrollments")
-      .select("id", { count: "exact", head: true })
-      .eq("course_section_id", s.id)
+      .select("course_section_id")
+      .in("course_section_id", sectionIds)
       .eq("enrollment_status", "enrolled");
-    usedSeats += count ?? 0;
+    for (const e of enrollments ?? []) {
+      if (!e.course_section_id) continue;
+      enrollmentCounts.set(e.course_section_id, (enrollmentCounts.get(e.course_section_id) ?? 0) + 1);
+    }
+  }
+
+  for (const s of schoolSections) {
+    totalCapacity += s.max_capacity ?? 0;
+    usedSeats += enrollmentCounts.get(s.id) ?? 0;
   }
 
   return {

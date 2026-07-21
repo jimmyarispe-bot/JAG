@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 interface FundingExportFormProps {
   states: string[];
@@ -11,15 +12,24 @@ interface FundingExportFormProps {
 export function FundingExportForm({ states, programs, schools }: FundingExportFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const action = useActionFeedback({
+    verb: "custom",
+    labels: { idle: "Export to Excel (CSV)", loading: "Exporting…", success: "✓ Export started" },
+    successToast: "✓ Export started.",
+    errorToast: "Unable to export.",
+    progressLabel: "Exporting state funding data…",
+  });
 
   function handleExport(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const params = new URLSearchParams();
-    for (const [key, value] of fd.entries()) {
-      if (value) params.set(key, String(value));
-    }
-    router.push(`/api/admissions/funding-export?${params.toString()}`);
+    void action.run(async () => {
+      const params = new URLSearchParams();
+      for (const [key, value] of fd.entries()) {
+        if (value) params.set(key, String(value));
+      }
+      router.push(`/api/admissions/funding-export?${params.toString()}`);
+    });
   }
 
   const inputClass =
@@ -75,12 +85,15 @@ export function FundingExportForm({ states, programs, schools }: FundingExportFo
         </div>
       </div>
 
-      <button
-        type="submit"
-        className="mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-      >
-        Export to Excel (CSV)
-      </button>
+      <div className="mt-4">
+        <ActionButton
+          type="submit"
+          status={action.status}
+          verb="custom"
+          labels={{ idle: "Export to Excel (CSV)", loading: "Exporting…", success: "✓ Export started" }}
+          errorMessage={action.errorMessage}
+        />
+      </div>
     </form>
   );
 }

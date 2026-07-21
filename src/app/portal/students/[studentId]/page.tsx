@@ -1,9 +1,9 @@
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { assertParentStudentAccess } from "@/lib/platform/identity/portal-access";
 import { getStudentPortalDetail } from "@/lib/portal/dashboard";
+import { ActionChip, ActionChipGroup } from "@/components/ui/cta";
 
 export default async function PortalStudentPage({
   params,
@@ -25,7 +25,9 @@ export default async function PortalStudentPage({
   return (
     <div className="space-y-8">
       <div>
-        <Link href="/portal" className="text-sm text-brand-600 hover:underline">← All students</Link>
+        <ActionChip href="/portal" size="sm" variant="ghost">
+          All students
+        </ActionChip>
         <h1 className="mt-2 text-3xl font-bold">{student.first_name} {student.last_name}</h1>
         <p className="text-slate-600 capitalize">{student.program?.replace(/_/g, " ") ?? "Student"}</p>
       </div>
@@ -49,12 +51,20 @@ export default async function PortalStudentPage({
         </article>
       </section>
 
-      <div className="flex flex-wrap gap-3 text-sm">
-        <Link href={`/portal/progress?student=${studentId}`} className="rounded-lg bg-brand-50 px-4 py-2 text-brand-700">Progress</Link>
-        <Link href={`/portal/documents?student=${studentId}`} className="rounded-lg bg-brand-50 px-4 py-2 text-brand-700">Documents</Link>
-        <Link href={`/portal/portfolio?student=${studentId}`} className="rounded-lg bg-brand-50 px-4 py-2 text-brand-700">Portfolio</Link>
-        <Link href="/portal/conferences" className="rounded-lg bg-brand-50 px-4 py-2 text-brand-700">Conferences</Link>
-      </div>
+      <ActionChipGroup>
+        <ActionChip href={`/portal/progress?student=${studentId}`} size="sm" variant="secondary">
+          View progress
+        </ActionChip>
+        <ActionChip href={`/portal/documents?student=${studentId}`} size="sm" variant="secondary">
+          View documents
+        </ActionChip>
+        <ActionChip href={`/portal/portfolio?student=${studentId}`} size="sm" variant="secondary">
+          View portfolio
+        </ActionChip>
+        <ActionChip href="/portal/conferences" size="sm" variant="secondary">
+          View conferences
+        </ActionChip>
+      </ActionChipGroup>
 
       {behavior.length > 0 && (
         <section className="rounded-2xl border border-slate-200 bg-white p-5">

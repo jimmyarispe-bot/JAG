@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
 import { updateChecklistItemStatus } from "@/lib/admissions/sprint15-actions";
 import type { ApplicationChecklistItem } from "@/lib/admissions/checklist";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface AdmissionsChecklistPanelProps {
   applicationId: string;
@@ -26,16 +27,24 @@ export function AdmissionsChecklistPanel({
   percentComplete,
   readOnly = false,
 }: AdmissionsChecklistPanelProps) {
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Complete", loading: "Saving…", success: "✓ Complete" },
+    successToast: "✓ Checklist updated.",
+    errorToast: "Unable to update checklist.",
+    progressLabel: "Updating checklist…",
+  });
 
   function markComplete(itemId: string, status: string) {
-    startTransition(async () => {
+    void action.run(async () => {
       const formData = new FormData();
       formData.set("id", itemId);
       formData.set("status", status);
       formData.set("application_id", applicationId);
       formData.set("lead_id", leadId);
-      await updateChecklistItemStatus(formData);
+      const result = await updateChecklistItemStatus(formData);
+      assertActionResult(result);
+      return result;
     });
   }
 
@@ -81,14 +90,14 @@ export function AdmissionsChecklistPanel({
                 {item.status.replace(/_/g, " ")}
               </span>
               {!readOnly && item.status === "pending" && (
-                <button
+                <ActionButton
                   type="button"
-                  disabled={isPending}
+                  status={action.status}
+                  verb="save"
+                  labels={{ idle: "Complete", loading: "Saving…", success: "✓ Complete" }}
+                  className="!rounded-lg !px-2 !py-1 !text-xs"
                   onClick={() => markComplete(item.id, "completed")}
-                  className="rounded-lg bg-brand-600 px-2 py-1 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-                >
-                  Complete
-                </button>
+                />
               )}
             </div>
           </li>

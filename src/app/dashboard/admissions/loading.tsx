@@ -1,5 +1,12 @@
-import { RouteLoadingSkeleton } from "@/components/experience-system/feedback";
+import { RouteLoadingSkeleton, progressiveShellProps } from "@/components/experience-system";
 
-export default function AdmissionsLoading() {
-  return <RouteLoadingSkeleton label="Loading admissions…" />;
+export default function Loading() {
+  const shell = progressiveShellProps("admissions");
+  return (
+    <RouteLoadingSkeleton
+      title={shell.title}
+      label={shell.label}
+      sidebarItems={shell.sidebarItems}
+    />
+  );
 }

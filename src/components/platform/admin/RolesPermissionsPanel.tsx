@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { toggleRolePermissionAction, createCustomRoleAction } from "@/lib/platform/identity/server-actions";
 
 interface RolesPermissionsPanelProps {
@@ -26,8 +28,21 @@ export function RolesPermissionsPanel({
   permissions,
   rolePermissions,
 }: RolesPermissionsPanelProps) {
-  const [isPending, startTransition] = useTransition();
   const [selectedRoleId, setSelectedRoleId] = useState(roles[0]?.id ?? "");
+  const createAction = useActionFeedback({
+    verb: "create",
+    labels: { idle: "Create role" },
+    successToast: "✓ Role created.",
+    errorToast: "Unable to create role.",
+    progressLabel: "Creating role…",
+  });
+  const toggleAction = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Update permission", loading: "Updating…", success: "✓ Updated" },
+    successToast: "✓ Permission updated.",
+    errorToast: "Unable to update permission.",
+    progressLabel: "Updating permission…",
+  });
 
   const selectedRole = roles.find((r) => r.id === selectedRoleId);
   const rolePermSet = new Set(
@@ -70,8 +85,10 @@ export function RolesPermissionsPanel({
           onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
-            startTransition(() => {
-              void createCustomRoleAction(fd);
+            void createAction.run(async () => {
+              const result = await createCustomRoleAction(fd);
+              assertActionResult(result);
+              return result ?? { success: true };
             });
           }}
         >
@@ -86,13 +103,14 @@ export function RolesPermissionsPanel({
               </option>
             ))}
           </select>
-          <button
+          <ActionButton
             type="submit"
-            disabled={isPending}
-            className="w-full rounded-lg bg-brand-600 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            Create role
-          </button>
+            status={createAction.status}
+            verb="create"
+            labels={{ idle: "Create role" }}
+            className="w-full"
+            errorMessage={createAction.errorMessage}
+          />
         </form>
       </div>
 
@@ -103,6 +121,11 @@ export function RolesPermissionsPanel({
         <p className="mt-1 text-xs text-slate-500">
           Allow/deny with inheritance from parent roles. Deny overrides allow.
         </p>
+        {toggleAction.errorMessage ? (
+          <p className="mt-2 text-xs text-rose-700" role="alert">
+            {toggleAction.errorMessage}
+          </p>
+        ) : null}
         <div className="mt-4 space-y-6">
           {Object.entries(grouped).map(([module, perms]) => (
             <div key={module}>
@@ -118,17 +141,20 @@ export function RolesPermissionsPanel({
                       <input
                         type="checkbox"
                         checked={enabled}
-                        disabled={isPending || selectedRole?.is_system === true}
+                        disabled={toggleAction.isBusy || selectedRole?.is_system === true}
                         onChange={() => {
-                          startTransition(async () => {
+                          void toggleAction.run(async () => {
                             const fd = new FormData();
                             fd.set("role_id", selectedRoleId);
                             fd.set("permission_key", perm.permission_key);
                             fd.set("enabled", String(!enabled));
-                            await toggleRolePermissionAction(fd);
+                            const result = await toggleRolePermissionAction(fd);
+                            assertActionResult(result);
+                            return result ?? { success: true };
                           });
                         }}
                         className="mt-0.5"
+                        aria-busy={toggleAction.isBusy || undefined}
                       />
                       <span>
                         <span className="block text-sm font-medium text-slate-900">{perm.name}</span>

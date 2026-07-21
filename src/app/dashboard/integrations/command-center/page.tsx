@@ -5,6 +5,7 @@ import { getLatestCommandCenterSnapshot, getCommandCenterHistory } from "@/lib/i
 import { getExpiringCredentials } from "@/lib/integration-hub/credential-vault";
 import { IntHubShell } from "@/components/integration-hub/IntHubNav";
 import { IntHubTable } from "@/components/integration-hub/IntHubPanels";
+import { IntHubVoidButton } from "@/components/integration-hub/IntHubMutationControls";
 import { refreshCommandCenterAction } from "@/lib/integration-hub/actions";
 
 export default async function CommandCenterPage() {
@@ -36,9 +37,15 @@ export default async function CommandCenterPage() {
 
   return (
     <IntHubShell title="Integration Command Center" subtitle="Enterprise operations dashboard — connector, API, and webhook health, queues, latency, storage, bandwidth, and uptime">
-      <form action={refreshCommandCenterAction}>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Refresh snapshot · Export analytics</button>
-      </form>
+      <IntHubVoidButton
+        action={refreshCommandCenterAction}
+        verb="sync"
+        labels={{ idle: "Refresh snapshot · Export analytics", loading: "Refreshing…", success: "✓ Refreshed" }}
+        progressLabel="Refreshing command center…"
+        successToast="✓ Snapshot refreshed."
+        errorToast="Unable to refresh."
+        className="!bg-indigo-600 hover:!bg-indigo-700"
+      />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map(([label, val]) => (
           <div key={String(label)} className="rounded-xl border bg-white p-3 text-sm">

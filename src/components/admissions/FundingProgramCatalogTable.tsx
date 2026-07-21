@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
 import { saveFundingProgram } from "@/lib/admissions/sprint15-actions";
 import type { FundingProgram } from "@/lib/admissions/state-funding";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface FundingProgramCatalogTableProps {
   programs: FundingProgram[];
@@ -10,7 +11,13 @@ interface FundingProgramCatalogTableProps {
 }
 
 export function FundingProgramCatalogTable({ programs, schools }: FundingProgramCatalogTableProps) {
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Save program", loading: "Saving…", success: "✓ Saved" },
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to save.",
+    progressLabel: "Saving funding program…",
+  });
 
   return (
     <div className="space-y-6">
@@ -48,9 +55,13 @@ export function FundingProgramCatalogTable({ programs, schools }: FundingProgram
 
       <form
         className="rounded-2xl border border-slate-200/80 bg-white p-6 space-y-4"
-        action={(fd) => {
-          startTransition(async () => {
-            await saveFundingProgram(fd);
+        onSubmit={(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          void action.run(async () => {
+            const result = await saveFundingProgram(fd);
+            assertActionResult(result);
+            return result;
           });
         }}
       >
@@ -95,13 +106,13 @@ export function FundingProgramCatalogTable({ programs, schools }: FundingProgram
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
           />
         </div>
-        <button
+        <ActionButton
           type="submit"
-          disabled={isPending}
-          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          Save program
-        </button>
+          status={action.status}
+          verb="save"
+          labels={{ idle: "Save program", loading: "Saving…", success: "✓ Saved" }}
+          errorMessage={action.errorMessage}
+        />
       </form>
     </div>
   );

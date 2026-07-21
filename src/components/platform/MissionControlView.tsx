@@ -1,22 +1,12 @@
-"use client";
-
 import Link from "next/link";
-import { useTransition } from "react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { GlobalSearchPanel } from "@/components/platform/admin/GlobalSearchPanel";
+import { MissionControlResolveIsland } from "@/components/platform/MissionControlResolveIsland";
+import { ActionChip, ActionChipGroup } from "@/components/experience-system/feedback/ActionChip";
 import { formatCount, formatCurrency } from "@/lib/format";
-import { resolveMissionControlItemAction } from "@/lib/platform/automation/server-actions";
 import type { MissionControlCommandCenter } from "@/lib/platform/automation/mission-control-compose";
 
 type MissionControlViewProps = MissionControlCommandCenter;
-
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: "bg-red-100 text-red-800 border-red-200",
-  high: "bg-orange-100 text-orange-800 border-orange-200",
-  medium: "bg-slate-100 text-slate-700 border-slate-200",
-  normal: "bg-slate-100 text-slate-700 border-slate-200",
-  low: "bg-blue-50 text-blue-700 border-blue-100",
-};
 
 const FINANCIAL_STATUS: Record<string, string> = {
   healthy: "text-emerald-700 bg-emerald-50",
@@ -24,83 +14,27 @@ const FINANCIAL_STATUS: Record<string, string> = {
   critical: "text-red-700 bg-red-50",
 };
 
-function PriorityList({
-  items,
-  onResolve,
-  isPending,
-}: {
-  items: MissionControlCommandCenter["priorities"]["critical"];
-  onResolve?: (id: string) => void;
-  isPending: boolean;
-}) {
-  if (!items.length) {
-    return <p className="text-sm text-slate-500">None</p>;
-  }
-  return (
-    <ul className="space-y-2">
-      {items.slice(0, 8).map((item) => (
-        <li
-          key={item.id}
-          className={`rounded-lg border px-3 py-2 text-sm ${SEVERITY_COLORS[item.severity] ?? SEVERITY_COLORS.medium}`}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="font-medium">{item.title}</p>
-              {item.description && <p className="mt-0.5 text-xs opacity-80">{item.description}</p>}
-              <p className="mt-1 text-xs opacity-60">
-                {item.source.replace(/_/g, " ")}
-                {item.module ? ` · ${item.module}` : ""}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-col gap-1">
-              {item.href && (
-                <Link href={item.href} className="text-xs font-medium underline">
-                  Open
-                </Link>
-              )}
-              {item.source === "mission_control" && onResolve && (
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => onResolve(item.id)}
-                  className="text-xs opacity-70 hover:opacity-100"
-                >
-                  Resolve
-                </button>
-              )}
-            </div>
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
+/**
+ * P007 — Server Component mission control dashboard.
+ * Resolve actions + search remain client islands.
+ */
 export function MissionControlView(props: MissionControlViewProps) {
-  const [isPending, startTransition] = useTransition();
-
   if (props.accessDenied) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
         <h2 className="text-lg font-semibold text-slate-900">Mission Control access required</h2>
         <p className="mt-2 text-sm text-slate-600">
-          Your role does not include the Mission Control permission. Contact an administrator if you need access.
+          Your role does not include the Mission Control permission. Contact an administrator if you need
+          access.
         </p>
       </div>
     );
-  }
-
-  function handleResolve(id: string) {
-    startTransition(async () => {
-      await resolveMissionControlItemAction(id);
-    });
   }
 
   const { health, metrics, priorities, activityStream, loopStages, networkMap, aiBrief } = props;
 
   return (
     <div className="space-y-8">
-      {/* Mission Health */}
       <section className="rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50 via-white to-indigo-50 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -162,7 +96,6 @@ export function MissionControlView(props: MissionControlViewProps) {
         </div>
       </section>
 
-      {/* Mission Metrics */}
       <section>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Mission Metrics</h3>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -177,32 +110,9 @@ export function MissionControlView(props: MissionControlViewProps) {
         </div>
       </section>
 
-      {/* Mission Priorities */}
-      <section>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Mission Priorities</h3>
-        <p className="mt-1 text-sm text-slate-600">
-          Auto-ranked from JAG Work™, Rules Engine™, Operational Loop™, and AI Recommendations™.
-        </p>
-        <div className="mt-4 grid gap-4 lg:grid-cols-4">
-          {(["critical", "high", "medium", "low"] as const).map((tier) => (
-            <article key={tier} className="rounded-2xl border border-slate-200 bg-white p-4">
-              <h4 className="text-sm font-semibold capitalize text-slate-900">
-                {tier} ({priorities[tier].length})
-              </h4>
-              <div className="mt-3">
-                <PriorityList
-                  items={priorities[tier]}
-                  isPending={isPending}
-                  onResolve={handleResolve}
-                />
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <MissionControlResolveIsland priorities={priorities} feed={props.feed} />
 
       <div className="grid gap-6 xl:grid-cols-3">
-        {/* Live Activity Stream */}
         <section className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-6">
           <h3 className="text-sm font-semibold text-slate-900">Real-Time Operations</h3>
           <p className="mt-1 text-xs text-slate-500">
@@ -224,9 +134,9 @@ export function MissionControlView(props: MissionControlViewProps) {
                     {event.summary && <p className="mt-1 text-xs text-slate-600">{event.summary}</p>}
                   </div>
                   {event.href && (
-                    <Link href={event.href} className="shrink-0 text-xs font-medium text-brand-600 hover:underline">
+                    <ActionChip href={event.href} size="xs" className="shrink-0">
                       View
-                    </Link>
+                    </ActionChip>
                   )}
                 </div>
               </li>
@@ -234,7 +144,6 @@ export function MissionControlView(props: MissionControlViewProps) {
           </ul>
         </section>
 
-        {/* Mission AI */}
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h3 className="text-sm font-semibold text-slate-900">Mission AI</h3>
           <p className="mt-1 text-xs text-slate-500">Today&apos;s Executive Brief™</p>
@@ -267,49 +176,6 @@ export function MissionControlView(props: MissionControlViewProps) {
         </section>
       </div>
 
-      {/* Mission Alerts */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h3 className="text-sm font-semibold text-slate-900">Mission Alerts</h3>
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {props.feed.length === 0 && (
-            <p className="text-sm text-slate-500">No open mission control items.</p>
-          )}
-          {props.feed.map((item) => (
-            <div
-              key={item.id}
-              className={`rounded-xl border p-4 ${SEVERITY_COLORS[item.severity] ?? SEVERITY_COLORS.normal}`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium">{item.title}</p>
-                  <p className="mt-1 text-xs opacity-80">
-                    {item.module} · {item.item_type.replace(/_/g, " ")} ·{" "}
-                    {new Date(item.created_at).toLocaleString()}
-                  </p>
-                  {item.body && <p className="mt-2 text-sm opacity-90">{item.body}</p>}
-                </div>
-                <div className="flex shrink-0 flex-col gap-2">
-                  {item.href && (
-                    <Link href={item.href} className="text-xs font-medium underline">
-                      Open record
-                    </Link>
-                  )}
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => handleResolve(item.id)}
-                    className="text-xs opacity-70 hover:opacity-100"
-                  >
-                    Resolve
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Mission Map */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <h3 className="text-sm font-semibold text-slate-900">Mission Map™</h3>
         <p className="mt-1 text-sm text-slate-600">Operational Loop™ status across active students</p>
@@ -321,9 +187,7 @@ export function MissionControlView(props: MissionControlViewProps) {
                 <p className="text-xs text-slate-500">{stage.label}</p>
                 <p className="text-lg font-semibold text-slate-900">{formatCount(stage.count)}</p>
               </div>
-              {idx < loopStages.length - 1 && (
-                <span className="text-slate-300">→</span>
-              )}
+              {idx < loopStages.length - 1 && <span className="text-slate-300">→</span>}
             </div>
           ))}
         </div>
@@ -345,9 +209,9 @@ export function MissionControlView(props: MissionControlViewProps) {
                 <tr key={row.dimensionValue} className="border-b border-slate-100">
                   <td className="py-2 pr-4">
                     {row.drillHref ? (
-                      <Link href={row.drillHref} className="font-medium text-brand-600 hover:underline">
+                      <ActionChip href={row.drillHref} size="xs" variant="ghost">
                         {row.dimensionValue}
-                      </Link>
+                      </ActionChip>
                     ) : (
                       row.dimensionValue
                     )}
@@ -370,17 +234,16 @@ export function MissionControlView(props: MissionControlViewProps) {
           </table>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2 text-sm">
-          <Link href="/dashboard/executive?view=operational-loop" className="text-brand-600 hover:underline">
-            Operational Loop dashboard →
-          </Link>
-          <Link href="/dashboard/executive" className="text-brand-600 hover:underline">
-            Executive Intelligence →
-          </Link>
-        </div>
+        <ActionChipGroup className="mt-4">
+          <ActionChip href="/dashboard/executive?view=operational-loop" size="sm">
+            Operational Loop dashboard
+          </ActionChip>
+          <ActionChip href="/dashboard/executive" size="sm">
+            Executive Intelligence
+          </ActionChip>
+        </ActionChipGroup>
       </section>
 
-      {/* Mission Search */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <h3 className="text-sm font-semibold text-slate-900">Mission Search™</h3>
         <p className="mt-1 text-sm text-slate-600">
@@ -391,7 +254,6 @@ export function MissionControlView(props: MissionControlViewProps) {
         </div>
       </section>
 
-      {/* Queue status sidebar content */}
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <h3 className="text-sm font-semibold text-slate-900">Platform Queue Status</h3>
@@ -399,21 +261,33 @@ export function MissionControlView(props: MissionControlViewProps) {
             {Object.entries(props.queueMetrics).map(([status, count]) => (
               <div key={status} className="flex justify-between">
                 <dt className="capitalize text-slate-500">{status}</dt>
-                <dd className="font-medium text-slate-900">{count}</dd>
+                <dd className="font-medium text-slate-900">{formatCount(count)}</dd>
               </div>
             ))}
           </dl>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <h3 className="text-sm font-semibold text-slate-900">Quick Navigation</h3>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li><Link href="/dashboard/admissions" className="text-brand-600 hover:underline">Admissions</Link></li>
-            <li><Link href="/dashboard/scheduling" className="text-brand-600 hover:underline">Scheduling</Link></li>
-            <li><Link href="/dashboard/teacher" className="text-brand-600 hover:underline">Instruction</Link></li>
-            <li><Link href="/dashboard/finance" className="text-brand-600 hover:underline">Billing & Finance</Link></li>
-            <li><Link href="/dashboard/executive/briefings" className="text-brand-600 hover:underline">Executive Briefings</Link></li>
-            <li><Link href="/dashboard/mission-control" className="text-brand-600 hover:underline">Refresh Mission Control</Link></li>
-          </ul>
+          <ActionChipGroup className="mt-3">
+            <ActionChip href="/dashboard/admissions" size="sm">
+              Admissions
+            </ActionChip>
+            <ActionChip href="/dashboard/scheduling" size="sm">
+              Scheduling
+            </ActionChip>
+            <ActionChip href="/dashboard/teacher" size="sm">
+              Instruction
+            </ActionChip>
+            <ActionChip href="/dashboard/finance" size="sm">
+              Billing & Finance
+            </ActionChip>
+            <ActionChip href="/dashboard/executive/briefings" size="sm">
+              Executive Briefings
+            </ActionChip>
+            <ActionChip href="/dashboard/mission-control" size="sm">
+              Refresh Mission Control
+            </ActionChip>
+          </ActionChipGroup>
         </div>
       </section>
     </div>
@@ -449,9 +323,9 @@ function BriefSection({
             <p className="font-medium text-slate-800">{item.title}</p>
             <p className="mt-0.5 text-slate-600 line-clamp-2">{item.body}</p>
             {item.href && (
-              <Link href={item.href} className="mt-1 inline-block text-brand-600 hover:underline">
+              <ActionChip href={item.href} size="xs" className="mt-1">
                 View
-              </Link>
+              </ActionChip>
             )}
           </li>
         ))}

@@ -1,8 +1,25 @@
+import dynamic from "next/dynamic";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { canViewEdi } from "@/lib/edi/access";
+import { ExecutiveAccessEmpty } from "@/components/executive/ExecutiveAccessEmpty";
 import { getRecommendationsByDomain, getTopRecommendations } from "@/lib/edi/recommendation-engine";
-import { DecisionCardList, RefreshEdiButton } from "@/components/edi/EdiPanels";
+import { ListSkeleton } from "@/components/experience-system";
+
+const DecisionCardList = dynamic(
+  () =>
+    import("@/components/edi/panels/DecisionCardList").then((m) => ({
+      default: m.DecisionCardList,
+    })),
+  { ssr: true, loading: () => <ListSkeleton rows={4} label="Loading recommendationsâ€¦" /> }
+);
+const RefreshEdiButton = dynamic(
+  () =>
+    import("@/components/edi/panels/RefreshEdiButton").then((m) => ({
+      default: m.RefreshEdiButton,
+    })),
+  { ssr: true }
+);
 
 const DOMAINS = [
   { key: "all", label: "All" },
@@ -21,14 +38,14 @@ interface PageProps {
 
 export default async function ExecutiveRecommendationsPage({ searchParams }: PageProps) {
   const ctx = await getIdentityContext();
-  if (!ctx || !canViewEdi(ctx)) return null;
+  if (!ctx || !canViewEdi(ctx)) return <ExecutiveAccessEmpty reason="access" />;
 
   const schoolId =
     ctx.orgAssignments.find((a) => a.is_primary)?.school_id ||
     ctx.accessibleSchoolIds[0] ||
     "";
 
-  if (!schoolId) return null;
+  if (!schoolId) return <ExecutiveAccessEmpty reason="school" />;
 
   const { domain: rawDomain } = await searchParams;
   const domain = DOMAINS.find((d) => d.key === rawDomain)?.key ?? "all";

@@ -3,6 +3,46 @@ import { cn } from "@/components/workspace-design-system/utils";
 /** D.1 — Single EmptyState primitive (re-export). */
 export { EmptyState } from "@/components/ui/EmptyState";
 export { LiveAnnouncerProvider, useAnnounce } from "./LiveAnnouncer";
+export { ActionButton, PendingActionButton } from "./ActionButton";
+export type { ActionButtonProps, ActionVariant } from "./ActionButton";
+export { ActionChip, CTAButton, ActionChipGroup } from "./ActionChip";
+export type {
+  ActionChipProps,
+  ActionChipButtonProps,
+  ActionChipLinkProps,
+} from "./ActionChip";
+export {
+  inferActionChipVariant,
+  ACTION_CHIP_BASE,
+  ACTION_CHIP_SIZE,
+  ACTION_CHIP_VARIANT,
+} from "./action-chip-styles";
+export type { ActionChipVariant, ActionChipSize } from "./action-chip-styles";
+export { OperationProgress } from "./OperationProgress";
+export type { OperationProgressProps } from "./OperationProgress";
+export { InlineRefresh } from "./InlineRefresh";
+export { AiActivity, WorkspaceActivity } from "./AiActivity";
+export type { AiActivityProps } from "./AiActivity";
+export { useActionFeedback } from "./useActionFeedback";
+export type { UseActionFeedbackOptions, UseActionFeedbackResult } from "./useActionFeedback";
+export {
+  resolveActionLabels,
+  DEFAULT_SUCCESS_DURATION_MS,
+  DEFAULT_PROCESSING_THRESHOLD_MS,
+  DEFAULT_ERROR_HINT,
+} from "./action-labels";
+export type { ActionVerb, ActionStatus, ActionLabelSet } from "./action-labels";
+export { ToastProvider, useToast } from "./Toast";
+export type { ToastTone, ToastInput } from "./Toast";
+export {
+  BackgroundJobsProvider,
+  useBackgroundJobs,
+  useBackgroundJobsState,
+  ShellActivityIndicator,
+} from "./BackgroundJobs";
+export { GlobalProgressProvider, useGlobalProgress } from "./GlobalProgress";
+export { InteractionProviders } from "./InteractionProviders";
+export { assertActionResult } from "./runMutation";
 
 export function SuccessBanner({ message, className }: { message: string; className?: string }) {
   return (
@@ -43,21 +83,8 @@ export function LoadingState({ label = "Loading…", className }: { label?: stri
   );
 }
 
-/** D.1 — Route-level skeleton with accessible busy state */
-export function RouteLoadingSkeleton({ label = "Loading page…" }: { label?: string }) {
-  return (
-    <div className="mx-auto max-w-6xl space-y-4 p-6" role="status" aria-live="polite" aria-busy="true" aria-label={label}>
-      <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" />
-      <div className="h-4 w-full max-w-xl animate-pulse rounded bg-slate-100" />
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />
-        <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />
-        <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />
-      </div>
-      <span className="sr-only">{label}</span>
-    </div>
-  );
-}
+/** D.1 / UX-002 — Route-level progressive shell (header, toolbar, skeleton body). */
+export { RouteLoadingSkeleton } from "@/components/experience-system/skeletons";
 
 export function ProgressIndicator({ value, max = 100, label, className }: { value: number; max?: number; label?: string; className?: string }) {
   const pct = Math.min(100, Math.round((value / max) * 100));

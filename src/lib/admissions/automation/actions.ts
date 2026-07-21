@@ -19,7 +19,7 @@ import {
   scheduleInterviewReminders,
 } from "@/lib/admissions/communications/triggers";
 import { generateEnrollmentPacket } from "@/lib/admissions/enrollment-packets";
-import { sendTransactionalEmail } from "@/lib/platform/email/sendgrid";
+import { sendTransactionalEmail } from "@/lib/platform/email";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 

@@ -1,7 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
 import { markNotificationReadAction } from "@/lib/portal/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface PortalNotificationsListProps {
   notifications: {
@@ -16,7 +18,13 @@ interface PortalNotificationsListProps {
 }
 
 export function PortalNotificationsList({ notifications }: PortalNotificationsListProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Mark read", loading: "Updating…", success: "✓ Read" },
+    successToast: "✓ Marked as read.",
+    errorToast: "Unable to update.",
+    progressLabel: "Updating notification…",
+  });
 
   return (
     <ul className="space-y-2">
@@ -29,21 +37,29 @@ export function PortalNotificationsList({ notifications }: PortalNotificationsLi
               <p className="mt-1 text-xs capitalize text-slate-400">{n.category.replace(/_/g, " ")} · {new Date(n.created_at).toLocaleString()}</p>
             </div>
             {!n.is_read && (
-              <button
+              <ActionButton
                 type="button"
-                disabled={pending}
-                className="text-xs text-brand-600"
-                onClick={() => startTransition(async () => {
-                  const fd = new FormData();
-                  fd.set("notification_id", n.id);
-                  await markNotificationReadAction(fd);
-                })}
-              >
-                Mark read
-              </button>
+                status={action.status}
+                verb="save"
+                variant="secondary"
+                labels={{ idle: "Mark read", loading: "Updating…", success: "✓ Read" }}
+                onClick={() => {
+                  void action.run(async () => {
+                    const fd = new FormData();
+                    fd.set("notification_id", n.id);
+                    const result = await markNotificationReadAction(fd);
+                    assertActionResult(result);
+                    return result;
+                  });
+                }}
+              />
             )}
           </div>
-          {n.href && <a href={n.href} className="mt-2 inline-block text-xs text-brand-600 hover:underline">View →</a>}
+          {n.href && (
+            <ActionChip href={n.href} size="sm" className="mt-2">
+              View
+            </ActionChip>
+          )}
         </li>
       ))}
       {!notifications.length && <li className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-500">No notifications yet.</li>}

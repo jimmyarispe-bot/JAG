@@ -106,6 +106,11 @@ export {
   type AuthProvisionState,
 } from "@/lib/platform/identity/provision-auth-user";
 
+export {
+  getRequestWorkspaceContext,
+  type RequestWorkspaceContext,
+} from "@/lib/platform/identity/request-context";
+
 /** Platform IAM foundation (delegation, break glass, generic authz engine). */
 export {
   createIamPlatform,

@@ -45,9 +45,11 @@ Storage buckets (documents) are separate — confirm Storage backup/replication 
 
 - `../10_DISASTER_RECOVERY_PLAN.md`
 - `../04_DATABASE_DOCUMENTATION.md`
+- `../../rc3/04_BACKUP_RESTORE_VALIDATION.md` — RC-3 dry-run checklist (close G-RC1-08)
 
 ## Version history
 
 | Version | Date | Notes |
 |---------|------|-------|
 | 1.0.0 | 2026-07-17 | Initial — plan-dependent |
+| 1.1.0 | 2026-07-19 | Link RC-3 restore validation checklist |

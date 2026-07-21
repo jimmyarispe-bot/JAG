@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { generateSessionsAction } from "@/lib/scheduling/actions";
 
 interface GenerateSessionsButtonProps {
@@ -9,22 +11,18 @@ interface GenerateSessionsButtonProps {
 }
 
 export function GenerateSessionsButton({ sectionId, sectionCode }: GenerateSessionsButtonProps) {
-  const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setPending(true);
-    setMessage(null);
-    const formData = new FormData(e.currentTarget);
-    const result = await generateSessionsAction(formData);
-    setPending(false);
-    if ("error" in result && result.error) {
-      setMessage(result.error);
-    } else if ("created" in result) {
-      setMessage(`Created ${result.created ?? 0} sessions (${result.skipped ?? 0} skipped)`);
-    }
-  }
+  const action = useActionFeedback({
+    verb: "generate",
+    labels: {
+      idle: `Generate — ${sectionCode}`,
+      loading: "Generating…",
+      success: "✓ Generated",
+    },
+    successToast: "✓ Sessions generated.",
+    errorToast: "Unable to generate sessions.",
+    progressLabel: "Generating sessions…",
+  });
 
   const [dateDefaults] = useState(() => {
     const todayDate = new Date();
@@ -37,7 +35,22 @@ export function GenerateSessionsButton({ sectionId, sectionCode }: GenerateSessi
   });
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        void action.run(async () => {
+          setMessage(null);
+          const result = await generateSessionsAction(formData);
+          assertActionResult(result);
+          if ("created" in result) {
+            setMessage(`Created ${result.created ?? 0} sessions (${result.skipped ?? 0} skipped)`);
+          }
+          return result;
+        });
+      }}
+      className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
+    >
       <input type="hidden" name="section_id" value={sectionId} />
       <div>
         <label className="block text-xs font-medium text-slate-500">From</label>
@@ -59,13 +72,17 @@ export function GenerateSessionsButton({ sectionId, sectionCode }: GenerateSessi
           required
         />
       </div>
-      <button
+      <ActionButton
         type="submit"
-        disabled={pending}
-        className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-      >
-        {pending ? "Generating…" : `Generate — ${sectionCode}`}
-      </button>
+        status={action.status}
+        verb="generate"
+        labels={{
+          idle: `Generate — ${sectionCode}`,
+          loading: "Generating…",
+          success: "✓ Generated",
+        }}
+        errorMessage={action.errorMessage}
+      />
       {message && <p className="w-full text-xs text-slate-600">{message}</p>}
     </form>
   );

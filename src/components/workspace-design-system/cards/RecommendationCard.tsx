@@ -1,4 +1,9 @@
 import type { ReactNode } from "react";
+import {
+  ActionChip,
+  ActionChipGroup,
+  inferActionChipVariant,
+} from "@/components/ui/cta";
 import { CardShell } from "./CardShell";
 import { RecommendationIndicator } from "../status/RecommendationIndicator";
 
@@ -21,6 +26,9 @@ export function RecommendationCard({
   onAction,
   footer,
 }: RecommendationCardProps) {
+  const label = actionLabel?.replace(/\s*→\s*$/, "").trim() || actionLabel;
+  const variant = label ? inferActionChipVariant(label) : "primary";
+
   return (
     <CardShell accentBar="bg-violet-500">
       <div className="flex items-start justify-between gap-2">
@@ -28,20 +36,20 @@ export function RecommendationCard({
         <RecommendationIndicator priority={priority} />
       </div>
       <p className="mt-2 text-sm text-slate-600">{rationale}</p>
-      {(actionLabel && (actionHref || onAction)) && (
-        <div className="mt-4">
+      {label && (actionHref || onAction) ? (
+        <ActionChipGroup className="mt-4">
           {actionHref ? (
-            <a href={actionHref} className="text-sm font-medium text-brand-600 hover:underline">
-              {actionLabel} →
-            </a>
+            <ActionChip href={actionHref} variant={variant} size="sm">
+              {label}
+            </ActionChip>
           ) : (
-            <button type="button" onClick={onAction} className="text-sm font-medium text-brand-600 hover:underline">
-              {actionLabel} →
-            </button>
+            <ActionChip type="button" onClick={onAction} variant={variant} size="sm">
+              {label}
+            </ActionChip>
           )}
-        </div>
-      )}
-      {footer && <div className="mt-4 border-t border-slate-100 pt-3">{footer}</div>}
+        </ActionChipGroup>
+      ) : null}
+      {footer ? <div className="mt-4 border-t border-slate-100 pt-3">{footer}</div> : null}
     </CardShell>
   );
 }

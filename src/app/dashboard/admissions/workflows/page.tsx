@@ -1,7 +1,20 @@
+import dynamic from "next/dynamic";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { WorkflowBuilder } from "@/components/admissions/WorkflowBuilder";
 import { getWorkflowWithSteps, getWorkflows } from "@/lib/admissions/automation/queries";
 import { getSchools } from "@/lib/admissions/queries";
+import { ListSkeleton } from "@/components/experience-system";
+
+// P006: defer WorkflowBuilder client bundle until this route.
+const WorkflowBuilder = dynamic(
+  () =>
+    import("@/components/admissions/WorkflowBuilder").then((m) => ({
+      default: m.WorkflowBuilder,
+    })),
+  {
+    ssr: true,
+    loading: () => <ListSkeleton rows={8} label="Loading workflow builder…" />,
+  }
+);
 
 interface WorkflowsPageProps {
   searchParams: Promise<{ id?: string }>;

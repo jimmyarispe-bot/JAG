@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/intelligence-platform/context";
 import { getJobs } from "@/lib/intelligence-platform/queue-engine";
 import { AipShell } from "@/components/intelligence-platform/AipNav";
 import { HistoryTable } from "@/components/intelligence-platform/AipPanels";
+import { CancelJobButton, ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 import { queueJobAction, cancelJobAction } from "@/lib/intelligence-platform/actions";
 
 export default async function JobsPage() {
@@ -16,15 +17,20 @@ export default async function JobsPage() {
   return (
     <AipShell title="AI Queue Engine" subtitle="Retry, priority, cancellation, scheduling, and dependency support">
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={queueJobAction} className="flex flex-wrap items-end gap-4">
+        <ExperienceForm
+          action={queueJobAction}
+          verb="run"
+          labels={{ idle: "Queue test job", loading: "Queuing…", success: "✓ Queued" }}
+          progressLabel="Queuing intelligence job…"
+          successToast="✓ Job queued."
+          errorToast="Unable to queue job."
+          className="flex flex-wrap items-end gap-4"
+        >
           <label className="block text-sm">
             Module
             <input name="module" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2" defaultValue="general" />
           </label>
-          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Queue test job
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section>
@@ -39,12 +45,11 @@ export default async function JobsPage() {
             { key: "retry_count", label: "Retries" },
           ]}
         />
-        {jobs.filter((j) => j.status === "queued" || j.status === "running").map((j) => (
-          <form key={j.id} action={cancelJobAction} className="mt-2 inline-block mr-2">
-            <input type="hidden" name="job_id" value={j.id} />
-            <button type="submit" className="text-sm text-red-600 hover:underline">Cancel</button>
-          </form>
-        ))}
+        <div className="mt-2 flex flex-wrap gap-3">
+          {jobs.filter((j) => j.status === "queued" || j.status === "running").map((j) => (
+            <CancelJobButton key={j.id} jobId={j.id} cancelAction={cancelJobAction} />
+          ))}
+        </div>
       </section>
     </AipShell>
   );

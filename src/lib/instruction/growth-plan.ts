@@ -119,23 +119,30 @@ export async function syncInstructionalTeamFromRoster(
     });
   }
 
-  for (const candidate of staffCandidates) {
-    const { data: existing } = await supabase
+  if (staffCandidates.length) {
+    const { data: existingMembers } = await supabase
       .from("student_instructional_team_members")
-      .select("id")
-      .eq("team_id", teamId)
-      .eq("employee_id", candidate.employeeId)
-      .eq("team_role", candidate.teamRole)
-      .maybeSingle();
+      .select("employee_id, team_role")
+      .eq("team_id", teamId);
 
-    if (existing) continue;
+    const existingKeys = new Set(
+      (existingMembers ?? []).map((m) => `${m.employee_id}|${m.team_role}`)
+    );
 
-    await supabase.from("student_instructional_team_members").insert({
-      team_id: teamId,
-      employee_id: candidate.employeeId,
-      team_role: candidate.teamRole,
-      is_primary: candidate.isPrimary,
-    });
+    const toInsert = staffCandidates.filter(
+      (c) => !existingKeys.has(`${c.employeeId}|${c.teamRole}`)
+    );
+
+    if (toInsert.length) {
+      await supabase.from("student_instructional_team_members").insert(
+        toInsert.map((c) => ({
+          team_id: teamId,
+          employee_id: c.employeeId,
+          team_role: c.teamRole,
+          is_primary: c.isPrimary,
+        }))
+      );
+    }
   }
 
   return teamId;
@@ -166,7 +173,7 @@ export async function getStudentInstructionalTeam(supabase: AuthClient, studentI
 }
 
 export async function syncGrowthGoalsFromSsiss(supabase: AuthClient, studentId: string) {
-  const [academicGoals, spedGoals, interventions] = await Promise.all([
+  const [academicGoals, spedGoals, interventions, existingGoals] = await Promise.all([
     supabase.from("student_academic_goals").select("*").eq("student_id", studentId).eq("status", "active"),
     supabase
       .from("student_special_education_goals")
@@ -178,10 +185,31 @@ export async function syncGrowthGoalsFromSsiss(supabase: AuthClient, studentId: 
       .select("*")
       .eq("student_id", studentId)
       .eq("status", "active"),
+    supabase
+      .from("student_growth_goals")
+      .select("source_entity_type, source_entity_id")
+      .eq("student_id", studentId)
+      .not("source_entity_id", "is", null),
   ]);
 
+  const existingKeys = new Set(
+    (existingGoals.data ?? []).map((g) => `${g.source_entity_type}|${g.source_entity_id}`)
+  );
+
+  const candidates: Array<{
+    studentId: string;
+    goalSource: string;
+    title: string;
+    description?: string | null;
+    target?: string | null;
+    progressNotes?: string | null;
+    assignedEmployeeId?: string | null;
+    sourceEntityType: string;
+    sourceEntityId: string;
+  }> = [];
+
   for (const g of academicGoals.data ?? []) {
-    await upsertLinkedGoal(supabase, {
+    candidates.push({
       studentId,
       goalSource: "academic",
       title: g.domain,
@@ -198,7 +226,7 @@ export async function syncGrowthGoalsFromSsiss(supabase: AuthClient, studentId: 
       ? g.student_special_education_plans[0]
       : g.student_special_education_plans;
     const planType = (plan as { plan_type?: string })?.plan_type ?? "iep";
-    await upsertLinkedGoal(supabase, {
+    candidates.push({
       studentId,
       goalSource: planType === "504" ? "504" : "iep",
       title: g.goal_area,
@@ -211,7 +239,7 @@ export async function syncGrowthGoalsFromSsiss(supabase: AuthClient, studentId: 
   }
 
   for (const iv of interventions.data ?? []) {
-    await upsertLinkedGoal(supabase, {
+    candidates.push({
       studentId,
       goalSource: "intervention",
       title: iv.intervention_type,
@@ -222,6 +250,27 @@ export async function syncGrowthGoalsFromSsiss(supabase: AuthClient, studentId: 
       sourceEntityType: "student_academic_interventions",
       sourceEntityId: iv.id,
     });
+  }
+
+  const toInsert = candidates.filter(
+    (c) => !existingKeys.has(`${c.sourceEntityType}|${c.sourceEntityId}`)
+  );
+
+  if (toInsert.length) {
+    await supabase.from("student_growth_goals").insert(
+      toInsert.map((input) => ({
+        student_id: input.studentId,
+        goal_source: input.goalSource,
+        title: input.title,
+        description: input.description,
+        target: input.target ? String(input.target) : null,
+        progress_notes: input.progressNotes,
+        assigned_employee_id: input.assignedEmployeeId ?? null,
+        source_entity_type: input.sourceEntityType,
+        source_entity_id: input.sourceEntityId,
+        status: "active",
+      }))
+    );
   }
 }
 
@@ -237,16 +286,23 @@ async function upsertLinkedGoal(
     assignedEmployeeId?: string | null;
     sourceEntityType: string;
     sourceEntityId: string;
-  }
+  },
+  existingKeys?: Set<string>
 ) {
-  const { data: existing } = await supabase
-    .from("student_growth_goals")
-    .select("id")
-    .eq("source_entity_type", input.sourceEntityType)
-    .eq("source_entity_id", input.sourceEntityId)
-    .maybeSingle();
+  const key = `${input.sourceEntityType}|${input.sourceEntityId}`;
+  if (existingKeys?.has(key)) return;
 
-  if (existing) return;
+  if (!existingKeys) {
+    const { data: existing } = await supabase
+      .from("student_growth_goals")
+      .select("id")
+      .eq("source_entity_type", input.sourceEntityType)
+      .eq("source_entity_id", input.sourceEntityId)
+      .maybeSingle();
+    if (existing) return;
+  }
+
+  existingKeys?.add(key);
 
   await supabase.from("student_growth_goals").insert({
     student_id: input.studentId,

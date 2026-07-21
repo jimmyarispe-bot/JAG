@@ -1,5 +1,5 @@
-import { createIntegrationPlatform, registerAllConnectors } from "@/lib/platform/integrations";
 import type { IntegrationPlatform } from "@/lib/platform/integrations";
+import { getOrCreateRegisteredIntegrationPlatform } from "@/lib/platform/integrations/shared-platform";
 import { resolveExecutiveTenantContext } from "./context/executive-context";
 import { OrgIntegrationBridge } from "./integrations/org-connector-bridge";
 import { resolveActor } from "./rbac";
@@ -43,8 +43,8 @@ export function createOrganizationPlatform(
   options: CreateOrganizationPlatformOptions = {}
 ): OrganizationPlatform {
   const store = new OrganizationPlatformStore();
-  const integrations =
-    options.integrations ?? registerAllConnectors(createIntegrationPlatform());
+  // P005: reuse process-registered connector catalog (avoid second IntegrationPlatform).
+  const integrations = options.integrations ?? getOrCreateRegisteredIntegrationPlatform();
   const integrationBridge = new OrgIntegrationBridge(integrations);
 
   const platform: OrganizationPlatform = {
@@ -93,4 +93,6 @@ export function getOrganizationPlatform(): OrganizationPlatform {
 
 export function resetOrganizationPlatformForTests(): void {
   singleton = null;
+  // Shared integration platform is reset via resetPerformanceSingletonsForTests /
+  // resetRegisteredIntegrationPlatformForTests when tests need a clean registry.
 }

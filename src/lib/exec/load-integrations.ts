@@ -1,4 +1,5 @@
 import { getIntegrationManagement } from "@/lib/exec/integration-platform";
+import { observeIntegration } from "@/lib/observability";
 import type { ConnectorMonitorRow } from "@/lib/platform/integrations/common/monitoring";
 import type {
   AuditLogEntry,
@@ -47,32 +48,35 @@ export type ExecIntegrationDetailViewModel = {
 };
 
 export async function loadExecIntegrations(): Promise<ExecIntegrationsViewModel> {
-  const management = await getIntegrationManagement();
-  const rows = management.platform.monitorRows();
-  const catalog = management.registry.list();
-  const recentSyncs = management.history.list(undefined, 20);
-  const recentAudit = management.audit.lifecycleEvents(undefined, 20);
-  const recentEvents = management.platform.events.list(20).map((e) => ({
-    id: e.id,
-    type: e.type,
-    connectorId: e.connectorId,
-    occurredAt: e.occurredAt,
-  }));
+  return observeIntegration("exec.loadIntegrations", async () => {
+    const management = await getIntegrationManagement();
+    const rows = management.platform.monitorRows();
+    const catalog = management.registry.list();
+    const recentSyncs = management.history.list(undefined, 20);
+    const recentAudit = management.audit.lifecycleEvents(undefined, 20);
+    const recentEvents = management.platform.events.list(20).map((e) => ({
+      id: e.id,
+      type: e.type,
+      connectorId: e.connectorId,
+      occurredAt: e.occurredAt,
+    }));
 
-  return {
-    generatedAt: new Date().toISOString(),
-    rows,
-    catalog,
-    recentSyncs,
-    recentAudit,
-    recentEvents,
-    dataMode: "synthetic",
-  };
+    return {
+      generatedAt: new Date().toISOString(),
+      rows,
+      catalog,
+      recentSyncs,
+      recentAudit,
+      recentEvents,
+      dataMode: "synthetic" as const,
+    };
+  });
 }
 
 export async function loadExecIntegrationDetail(
   instanceId: string
 ): Promise<ExecIntegrationDetailViewModel | null> {
+  return observeIntegration("exec.loadIntegrationDetail", async () => {
   const management = await getIntegrationManagement();
   const config = management.platform.persistence.getConfiguration(instanceId);
   if (!config) return null;
@@ -96,8 +100,9 @@ export async function loadExecIntegrationDetail(
     errorHistory: management.platform.persistence.listErrorHistory(instanceId, 20),
     retryHistory: management.retries.history(instanceId, 20),
     audit: management.audit.list(instanceId, 30),
-    dataMode: "synthetic",
+    dataMode: "synthetic" as const,
   };
+  });
 }
 
 export async function execSyncNow(instanceId: string) {

@@ -69,6 +69,7 @@ export class OrganizationOperatingSystem
         "strategy",
         "domains",
         "digital-twin",
+        "ecosystem-intelligence",
       ],
     };
   }

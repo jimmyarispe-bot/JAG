@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { DataModeBadge } from "@/components/exec/DataModeBadge";
 import { WidgetFrame } from "@/components/exec/WidgetFrame";
 import type { ExecIntegrationDetailViewModel } from "@/lib/exec/load-integrations";
@@ -12,19 +12,24 @@ import {
   retryIntegrationAction,
   syncIntegrationAction,
 } from "@/app/exec/integrations/actions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 export function IntegrationDetailPage({ data }: { data: ExecIntegrationDetailViewModel }) {
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "sync",
+    successToast: "✓ Integration updated.",
+    errorToast: "Unable to update integration.",
+    progressLabel: "Syncing integration…",
+    onError: (err) => setMessage(err.message),
+  });
 
   function run(label: string, fn: () => Promise<unknown>) {
-    startTransition(async () => {
-      try {
-        await fn();
-        setMessage(label);
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Action failed");
-      }
+    setMessage(null);
+    void action.run(async () => {
+      await fn();
+      setMessage(label);
+      return { success: true };
     });
   }
 
@@ -48,32 +53,43 @@ export function IntegrationDetailPage({ data }: { data: ExecIntegrationDetailVie
       {message && (
         <p className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700">
           {message}
-          {pending ? " …" : ""}
+          {action.isBusy ? " …" : ""}
         </p>
       )}
 
       <div className="flex flex-wrap gap-2">
-        <button
+        <ActionButton
           type="button"
-          disabled={pending || row.paused}
+          status={action.status}
+          verb="sync"
+          labels={{ idle: "Sync Now", loading: "Syncing…", success: "✓ Synced" }}
+          disabled={row.paused}
+          className="!rounded-lg !px-3 !py-1.5 !text-sm"
           onClick={() => run("Sync completed", async () => syncIntegrationAction(row.instanceId))}
-          className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-        >
-          Sync Now
-        </button>
-        <button
+        />
+        <ActionButton
           type="button"
-          disabled={pending}
+          status={action.status}
+          verb="custom"
+          variant="secondary"
+          labels={{ idle: "Reconnect", loading: "Connecting…", success: "✓ Connected", error: "Unable to connect" }}
+          className="!rounded-lg !px-3 !py-1.5 !text-sm"
           onClick={() =>
             run("Reconnected", async () => reconnectIntegrationAction(row.instanceId))
           }
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700"
-        >
-          Reconnect
-        </button>
-        <button
+        />
+        <ActionButton
           type="button"
-          disabled={pending}
+          status={action.status}
+          verb="custom"
+          variant="secondary"
+          labels={{
+            idle: row.paused ? "Resume" : "Pause",
+            loading: row.paused ? "Resuming…" : "Pausing…",
+            success: row.paused ? "✓ Resumed" : "✓ Paused",
+            error: "Unable to update",
+          }}
+          className="!rounded-lg !px-3 !py-1.5 !text-sm"
           onClick={() =>
             run(
               row.paused ? "Resumed" : "Paused",
@@ -83,18 +99,17 @@ export function IntegrationDetailPage({ data }: { data: ExecIntegrationDetailVie
                   : pauseIntegrationAction(row.instanceId)
             )
           }
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700"
-        >
-          {row.paused ? "Resume" : "Pause"}
-        </button>
-        <button
+        />
+        <ActionButton
           type="button"
-          disabled={pending}
+          status={action.status}
+          verb="run"
+          variant="secondary"
+          labels={{ idle: "Retry Recovery", loading: "Retrying…", success: "✓ Retried" }}
+          className="!rounded-lg !px-3 !py-1.5 !text-sm"
+          errorMessage={action.errorMessage}
           onClick={() => run("Retry recovery", async () => retryIntegrationAction(row.instanceId))}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700"
-        >
-          Retry Recovery
-        </button>
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

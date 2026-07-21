@@ -1,5 +1,12 @@
-import { RouteLoadingSkeleton } from "@/components/experience-system/feedback";
+import { RouteLoadingSkeleton, progressiveShellProps } from "@/components/experience-system";
 
-export default function TeacherLoading() {
-  return <RouteLoadingSkeleton label="Loading teacher workspace…" />;
+export default function Loading() {
+  const shell = progressiveShellProps("teacher");
+  return (
+    <RouteLoadingSkeleton
+      title={shell.title}
+      label={shell.label}
+      sidebarItems={shell.sidebarItems}
+    />
+  );
 }

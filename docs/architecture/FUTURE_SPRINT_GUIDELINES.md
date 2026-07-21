@@ -6,7 +6,7 @@ Rules every future intelligence sprint must follow so JAG OIOS remains coherent.
 
 ## Non-negotiables
 
-1. **Do not regenerate** existing packages (`organization-dna`, health, founder, graph, decision, predictive, board-governance, infrastructure, oios, human-capital, revenue, funding, opportunity, organizational-improvement, business-model, operations, customer, knowledge, document, legal-compliance-risk, market, innovation, impact, economic, competitive, political, environmental, stakeholder, reputation, behavioral, cultural, ethical, systems, resilience, ecosystem, institutional-memory, collective, wisdom).
+1. **Do not regenerate** existing packages (`organization-dna`, health, founder, graph, decision, predictive, board-governance, infrastructure, oios, human-capital, revenue, funding, opportunity, organizational-improvement, business-model, operations, customer, knowledge, document, legal-compliance-risk, market, innovation, impact, economic, competitive, political, environmental, stakeholder, reputation, behavioral, cultural, ethical, systems, resilience, ecosystem, institutional-memory, collective, wisdom, synthesis, briefing, executive-memory, decision-intelligence, executive-predictive, executive-autonomous, executive-copilot, executive-command-center, initiative-intelligence, portfolio-intelligence, digital-twin, ecosystem-intelligence). Notes: Sprint 009 `intelligence/memory` stays frozen (063 = `executive-memory`); early cognitive `intelligence/decision` stays frozen (064 = `decision-intelligence`); Sprint 028 `predictive-intelligence` / module `predictive` stays frozen (065 = `executive-predictive`); early `orchestrator` / operations automation stay frozen (066 = `executive-autonomous`); legacy `lib/executive/command-center` + Mission Control stay frozen (068 = `executive-command-center`); `domains/strategic`, `execution/initiatives`, board-governance initiative tracker, and executive-memory initiative entities stay frozen (069 = `initiative-intelligence`); `innovation/innovation-portfolio-intelligence` stays frozen (070 = `portfolio-intelligence`); OIOS foundation `OrganizationalDigitalTwin` stays frozen (071 = `digital-twin`); Sprint 057 mid-pipeline `ecosystem` stays frozen (072 terminal = `ecosystem-intelligence`).
 2. **Extend** via new domain packages + DI + platform module registration.
 3. **Register** domains in the OIOS catalog before claiming them active.
 4. **Keep leaf modules leaf** (`types` / `contracts` import-free of implementations).
@@ -14,10 +14,15 @@ Rules every future intelligence sprint must follow so JAG OIOS remains coherent.
 6. **Place domains** using the three-layer model in
    [INTELLIGENCE_LAYER_MODEL.md](./INTELLIGENCE_LAYER_MODEL.md) (Internal /
    External / Future).
-7. **Respect the v1.0 terminal** — `wisdom` is the JAG v1.0 capstone after `collective`.
-   Prefer soft reads of wisdom rather than reordering the pipeline unless a new hard
-   predecessor after wisdom is explicitly justified. See
-   [JAG_V1_INTELLIGENCE_GRAPH.md](./JAG_V1_INTELLIGENCE_GRAPH.md).
+7. **Respect the executive stack** — `wisdom` remains the JAG v1.0 judgment capstone;
+   `synthesis` (061) → `briefing` (062) → `executive-memory` (063) →
+   `decision-intelligence` (064) → `executive-predictive` (065) →
+   `executive-autonomous` (066) → `executive-copilot` (067) →
+   `executive-command-center` (068) → `initiative-intelligence` (069) →
+   `portfolio-intelligence` (070) → `digital-twin` (071) → `ecosystem-intelligence` (072). Prefer soft reads of these
+   layers unless a new hard predecessor is justified. See
+   [JAG_V1_INTELLIGENCE_GRAPH.md](./JAG_V1_INTELLIGENCE_GRAPH.md) and
+   [docs/intelligence/digital-twin.md](../intelligence/digital-twin.md).
 
 ## Sprint checklist
 
@@ -50,13 +55,28 @@ Rules every future intelligence sprint must follow so JAG OIOS remains coherent.
 - **Sprint 057:** Ecosystem Intelligence (External/network layer after Resilience, hard dep: resilience)
 - **Sprint 058:** Institutional Memory Intelligence (Knowledge evolution terminal layer after Ecosystem; Sprint 040 knowledge remains mid-pipeline frozen; hard dep: ecosystem)
 - **Sprint 059:** Collective Intelligence (collaborative synthesis layer after Institutional Memory; hard dep: institutional-memory)
-- **Sprint 060:** Wisdom Intelligence (JAG v1.0 capstone terminal after Collective; hard dep: collective)
+- **Sprint 060:** Wisdom Intelligence (JAG v1.0 judgment capstone after Collective; hard dep: collective)
+- **Sprint 061:** Executive Synthesis Intelligence (cross-domain reasoning layer after Wisdom; hard dep: wisdom)
+- **Sprint 062:** Executive Briefing Intelligence (actionable morning briefs after Synthesis; hard dep: synthesis)
+- **Sprint 063:** Executive Memory Intelligence (structured reasoning memory after Briefing; hard dep: briefing; package path `executive-memory`)
+- **Sprint 064:** Decision Intelligence (multi-option decision support after Executive Memory; hard dep: executive-memory; package path `decision-intelligence`)
+- **Sprint 065:** Predictive Intelligence (organizational forecasting after Decision Intelligence; hard dep: decision-intelligence; package path `executive-predictive`)
+- **Sprint 066:** Autonomous Intelligence (execution preparation after Predictive; hard dep: executive-predictive; package path `executive-autonomous`; never auto-executes)
+- **Sprint 067:** Executive Copilot (conversational orchestration after Autonomous; hard dep: executive-autonomous; package path `executive-copilot`)
+- **Sprint 068:** Executive Command Center (role-prioritized workspace after Copilot; hard dep: executive-copilot; package path `executive-command-center`)
+- **Sprint 069:** Initiative Intelligence (strategic execution layer after Command Center; hard dep: executive-command-center; package path `initiative-intelligence`)
+- **Sprint 070:** Portfolio Intelligence (enterprise portfolio layer after Initiatives; hard dep: initiative-intelligence; package path `portfolio-intelligence`)
+- **Sprint 071:** Organizational Digital Twin (strategic sandbox after Portfolio; hard dep: portfolio-intelligence; package path `digital-twin`)
+- **Sprint 072:** Ecosystem Intelligence Federation (terminal federation layer after Digital Twin; hard dep: digital-twin; package path `ecosystem-intelligence`)
 
 ## Future domains (reserved — next sprint candidates)
 
-JAG v1.0 completes at `wisdom`. Future sprints should soft-read the terminal graph
-unless a new hard DAG edge after wisdom is required. See
-[JAG_V1_INTELLIGENCE_GRAPH.md](./JAG_V1_INTELLIGENCE_GRAPH.md).
+JAG v1.0 judgment completes at `wisdom`. Sprints 061–072 add synthesis → briefing →
+executive-memory → decision-intelligence → executive-predictive → executive-autonomous →
+executive-copilot → executive-command-center → initiative-intelligence →
+portfolio-intelligence → digital-twin → ecosystem-intelligence. Future sprints (073+) should soft-read
+ecosystem-intelligence unless a new hard DAG edge is required. See
+[docs/intelligence/ecosystem-intelligence.md](../intelligence/ecosystem-intelligence.md).
 
 `legal-compliance-risk` shipped in Sprint 042 as a single consolidated governance
 domain. The `legal`, `compliance`, and `risk` keys remain registered (not active)

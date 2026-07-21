@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ModuleCard } from "@/components/experience-system/cards";
 import { EXECUTIVE_DIRECTOR_DASHBOARD_NAV } from "@/lib/dashboard/executive-director-dashboard";
 
 interface ExecutiveDirectorDashboardProps {
@@ -44,17 +44,15 @@ export function ExecutiveDirectorDashboard({
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {EXECUTIVE_DIRECTOR_DASHBOARD_NAV.map((item) => (
-            <Link
+            <ModuleCard
               key={item.id}
+              title={item.label}
+              description={item.description}
               href={item.href}
-              className="group rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
-            >
-              <p className="text-sm font-semibold text-slate-900 group-hover:text-brand-700">
-                {item.label}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">{item.description}</p>
-              <p className="mt-3 text-xs font-medium text-brand-600">Open →</p>
-            </Link>
+              padding="sm"
+              className="group px-5 py-4 hover:border-slate-300"
+              titleClassName="transition-colors group-hover:text-brand-700"
+            />
           ))}
         </div>
       </section>

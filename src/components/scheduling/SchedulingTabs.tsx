@@ -1,6 +1,7 @@
 import { formatAcademyTime } from "@/lib/scheduling/academy-way";
 import { GenerateSessionsButton } from "@/components/scheduling/GenerateSessionsButton";
 import { ResolveConflictButton } from "@/components/scheduling/SchedulingActions";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
 
 type SectionRow = {
   id: string;
@@ -168,9 +169,9 @@ export function SchedulingTabs({
                   <td className="px-4 py-3 capitalize text-slate-600">{s.session_type?.replace(/_/g, " ")}</td>
                   <td className="px-4 py-3">
                     {s.meet_link ? (
-                      <a href={s.meet_link} className="text-brand-600 hover:underline" target="_blank" rel="noreferrer">
-                        Join
-                      </a>
+                      <ActionChip href={s.meet_link} size="xs" variant="primary">
+                        Join meeting
+                      </ActionChip>
                     ) : (
                       <span className="text-slate-400">—</span>
                     )}
@@ -197,11 +198,13 @@ export function SchedulingTabs({
               {room.room_type.replace(/_/g, " ")} · {room.capacity} seats
               {room.is_virtual ? " · Virtual" : ""}
             </p>
-            {room.meet_link && (
-              <a href={room.meet_link} className="mt-2 inline-block text-sm text-brand-600 hover:underline" target="_blank" rel="noreferrer">
-                Room Meet link
-              </a>
-            )}
+            {room.meet_link ? (
+              <div className="mt-2">
+                <ActionChip href={room.meet_link} size="sm" variant="secondary">
+                  Open room link
+                </ActionChip>
+              </div>
+            ) : null}
           </article>
         ))}
         {!rooms.length && (

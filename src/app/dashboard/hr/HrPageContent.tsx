@@ -6,8 +6,12 @@ import {
   JagOrganizationContextBar,
   JagOrganizationContextPanel,
   JagWorkPanel,
+  KpiTilesSkeleton,
+  ListSkeleton,
   MetricCard,
+  ProgressivePageShell,
   QuickActions,
+  progressiveShellProps,
   type XesNavItem,
 } from "@/components/experience-system";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -123,23 +127,29 @@ export async function HrPageContent({ searchParams }: HrPageContentProps) {
   }
 
   const workPerspective = resolveJagWorkPerspective("hr", sp.work);
-  const execution = await executeWorkspace({
-    workspaceKey: "hr",
-    identity: ctx,
-    activeView: workPerspective,
-    recommendationFacts: { has_permission: ctx.permissions.length > 0 },
-  });
-  const workspaceState = execution.state;
   const schoolId = resolvePrimarySchoolId(ctx) ?? undefined;
-  const supabase = await createAuthClient();
-
-  const [recruiting, compliance, employees, certifications, payroll] = await Promise.all([
-    getRecruitingPipeline(supabase, schoolId),
-    getComplianceCenter(supabase, schoolId),
-    getEmployees(),
-    getCertifications(),
-    getPayrollRecords(),
+  // P004: overlap engine with independent HR domain loads.
+  const [execution, domain] = await Promise.all([
+    executeWorkspace({
+      workspaceKey: "hr",
+      identity: ctx,
+      activeView: workPerspective,
+      recommendationFacts: { has_permission: ctx.permissions.length > 0 },
+    }),
+    (async () => {
+      const supabase = await createAuthClient();
+      const [recruiting, compliance, employees, certifications, payroll] = await Promise.all([
+        getRecruitingPipeline(supabase, schoolId),
+        getComplianceCenter(supabase, schoolId),
+        getEmployees(),
+        getCertifications(),
+        getPayrollRecords(),
+      ]);
+      return { supabase, recruiting, compliance, employees, certifications, payroll };
+    })(),
   ]);
+  const workspaceState = execution.state;
+  const { supabase, recruiting, compliance, employees, certifications, payroll } = domain;
   const stats = computeHrStats(employees, certifications, payroll);
 
   const workQueue = await resolveJagWorkQueue({
@@ -204,9 +214,9 @@ export async function HrPageContent({ searchParams }: HrPageContentProps) {
 
 export function HrPageSkeleton() {
   return (
-    <div className="mx-auto max-w-7xl space-y-6 animate-pulse">
-      <div className="h-8 w-48 rounded-lg bg-slate-200" />
-      <div className="h-96 rounded-2xl bg-slate-100" />
-    </div>
+    <ProgressivePageShell {...progressiveShellProps("hr")} showDefaultBody={false}>
+      <KpiTilesSkeleton count={4} />
+      <ListSkeleton rows={8} />
+    </ProgressivePageShell>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 import { refreshIntegrationHubAction } from "@/lib/integration-hub/actions";
 import type { IntegrationHubSummary } from "@/lib/integration-hub/types";
 
@@ -80,12 +80,28 @@ export function IntHubTable({ rows, columns }: { rows: Record<string, unknown>[]
 }
 
 export function RefreshHubButton() {
-  const [pending, start] = useTransition();
+  const action = useActionFeedback({
+    verb: "sync",
+    labels: { idle: "Refresh monitoring", loading: "Refreshing…", success: "✓ Refreshed" },
+    successToast: "✓ Monitoring refreshed.",
+    errorToast: "Unable to refresh.",
+    progressLabel: "Refreshing integration monitoring…",
+  });
   return (
-    <button type="button" disabled={pending} onClick={() => start(() => refreshIntegrationHubAction())}
-      className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50 disabled:opacity-50">
-      {pending ? "Refreshing…" : "Refresh monitoring"}
-    </button>
+    <ActionButton
+      type="button"
+      status={action.status}
+      verb="sync"
+      variant="secondary"
+      labels={{ idle: "Refresh monitoring", loading: "Refreshing…", success: "✓ Refreshed" }}
+      errorMessage={action.errorMessage}
+      onClick={() => {
+        void action.run(async () => {
+          await refreshIntegrationHubAction();
+          return { success: true };
+        });
+      }}
+    />
   );
 }
 

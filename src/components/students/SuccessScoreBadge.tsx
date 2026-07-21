@@ -13,7 +13,8 @@ interface SuccessScoreBadgeProps {
 }
 
 export function SuccessScoreBadge({ score, indicator, size = "sm" }: SuccessScoreBadgeProps) {
-  const s = STYLES[indicator];
+  const s = STYLES[indicator] ?? STYLES.yellow;
+  const tone = STYLES[indicator] ? indicator : "yellow";
   return (
     <div
       className={`inline-flex items-center gap-2 rounded-full ring-1 ${s.ring} ${s.bg} ${s.text} ${
@@ -22,10 +23,10 @@ export function SuccessScoreBadge({ score, indicator, size = "sm" }: SuccessScor
     >
       <span
         className={`h-2.5 w-2.5 rounded-full ${
-          indicator === "green" ? "bg-emerald-500" : indicator === "yellow" ? "bg-amber-500" : "bg-rose-500"
+          tone === "green" ? "bg-emerald-500" : tone === "yellow" ? "bg-amber-500" : "bg-rose-500"
         }`}
       />
-      <span className="font-semibold">{Math.round(score)}</span>
+      <span className="font-semibold">{Number.isFinite(score) ? Math.round(score) : "—"}</span>
       <span className="opacity-80">{s.label}</span>
     </div>
   );

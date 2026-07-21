@@ -3,6 +3,7 @@
  * One fan-out per request; surfaces consume slices (no duplicate queries).
  */
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { observeExecutiveIntelligence } from "@/lib/observability";
 import type { IdentityContext } from "@/lib/platform/identity/context";
 import {
   getExecutiveAggregateMetrics,
@@ -92,6 +93,16 @@ export interface LoadExecutiveIntelligenceWorkspaceOptions {
  * Canonical load path for Founder / Executive / Mission Control consumers.
  */
 export async function loadExecutiveIntelligenceWorkspace(
+  supabase: AuthClient,
+  identity: IdentityContext,
+  options: LoadExecutiveIntelligenceWorkspaceOptions = {}
+): Promise<ExecutiveIntelligenceWorkspace> {
+  return observeExecutiveIntelligence("executive.loadIntelligenceWorkspace", () =>
+    loadExecutiveIntelligenceWorkspaceInner(supabase, identity, options)
+  );
+}
+
+async function loadExecutiveIntelligenceWorkspaceInner(
   supabase: AuthClient,
   identity: IdentityContext,
   options: LoadExecutiveIntelligenceWorkspaceOptions = {}

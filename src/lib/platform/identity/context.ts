@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { getAuthUser, getSessionUser, type SessionUser } from "@/lib/auth/session";
+import { getAuthUser } from "@/lib/auth/auth-user";
+import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import {
   hasPermission,
@@ -105,10 +106,8 @@ export const getIdentityContext = cache(async (): Promise<IdentityContext | null
   };
 });
 
-async function loadOrgAssignments(
-  supabase: AuthClient,
-  userId: string
-): Promise<OrgAssignment[]> {
+const loadOrgAssignmentsCached = cache(async (userId: string): Promise<OrgAssignment[]> => {
+  const supabase = await createAuthClient();
   const { data: orgRows } = await supabase
     .from("user_org_assignments")
     .select("*, schools(name)")
@@ -136,14 +135,30 @@ async function loadOrgAssignments(
       schools: (Array.isArray(row.schools) ? row.schools[0] : row.schools) as { name: string } | null,
     })) ?? []
   );
+});
+
+async function loadOrgAssignments(
+  _supabase: AuthClient,
+  userId: string
+): Promise<OrgAssignment[]> {
+  return loadOrgAssignmentsCached(userId);
 }
 
+const loadPreferencesCached = cache(async (userId: string): Promise<UserPreferences | null> => {
+  const supabase = await createAuthClient();
+  const { data } = await supabase
+    .from("user_preferences")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data as UserPreferences | null;
+});
+
 async function loadPreferences(
-  supabase: AuthClient,
+  _supabase: AuthClient,
   userId: string
 ): Promise<UserPreferences | null> {
-  const { data } = await supabase.from("user_preferences").select("*").eq("user_id", userId).maybeSingle();
-  return data as UserPreferences | null;
+  return loadPreferencesCached(userId);
 }
 
 /** Permission check for identity context — delegates to the permission engine. */

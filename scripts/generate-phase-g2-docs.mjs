@@ -529,7 +529,7 @@ See \`12_PRODUCTION_ACCEPTANCE_REPORT.md\` and \`docs/launch/phase-h/00_EXECUTIV
 | Migrations 171 & 172 in repo | Present |
 | Cron schedule documented | \`0 0 * * *\` matches \`vercel.json\` |
 | Health/ready routes | Present (\`/api/health\`, \`/api/ready\`) |
-| Env schema production secrets | CRON_SECRET, SENDGRID_*, VAULT_ENCRYPTION_KEY required |
+| Env schema production secrets | CRON_SECRET, RESEND_*, VAULT_ENCRYPTION_KEY required |
 
 ---
 
@@ -553,8 +553,8 @@ Use against staging then production. Desktop review of **docs/config** only comp
 | DNS | Customer domain → Vercel | ☐ | ☐ | |
 | SSL | Valid cert | ☐ | ☐ | |
 | Secrets / env | \`PRODUCTION_ENV.md\` + env schema | ☐ | ☐ | |
-| Email | SendGrid | ☐ | ☐ | |
-| Notifications | Platform + SendGrid/SMS as configured | ☐ | ☐ | |
+| Email | Resend | ☐ | ☐ | |
+| Notifications | Platform + Resend/SMS as configured | ☐ | ☐ | |
 | Background workers / queues | \`/api/platform/process-queues\` | ☐ | ☐ | Cron daily UTC |
 | Cron | \`vercel.json\` \`0 0 * * *\` | ☐ | ☐ | \`CRON_SECRET\` |
 | Monitoring / alerting / logging | APM + Vercel | ☐ | ☐ | F1-04 open |

@@ -147,6 +147,35 @@ export interface ProfileNavigationModel {
   activeSectionDef: ResolvedProfileSection | null;
 }
 
+/**
+ * Serializable section descriptor for Client Components.
+ * Never includes loadData / other functions (RSC props must be JSON-serializable).
+ */
+export interface ClientProfileNavSection {
+  key: string;
+  label: string;
+  href: string;
+  visible: boolean;
+  status: ProfileSectionStatus;
+  pinned?: boolean;
+  group: ProfileSectionGroup | null;
+  hiddenReason?: ResolvedProfileSection["hiddenReason"];
+}
+
+export interface ClientProfileNavigationGroup {
+  group: ProfileSectionGroup;
+  label: string;
+  sections: ClientProfileNavSection[];
+}
+
+export interface ClientProfileNavigation {
+  pinned: ClientProfileNavSection[];
+  groups: ClientProfileNavigationGroup[];
+  overflow: ClientProfileNavSection[];
+  overflowGroups: ClientProfileNavigationGroup[];
+  activeSection: string;
+}
+
 export interface ProfileResolveOptions {
   section?: string;
   permissions?: string[];

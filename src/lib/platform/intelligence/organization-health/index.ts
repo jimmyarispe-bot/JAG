@@ -23,6 +23,8 @@ export {
 
 export {
   evaluateFinancialHealth,
+  scoreFinancialHealth,
+  type FinancialHealthMetrics,
   type FinancialHealthResult,
 } from "@/lib/platform/intelligence/organization-health/financial";
 

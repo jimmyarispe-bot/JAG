@@ -1,6 +1,7 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { createMissionControlItem } from "@/lib/platform/automation/mission-control";
 import { writePlatformAudit } from "@/lib/platform/automation/audit";
+import { parseProgramValue } from "@/lib/constants/programs";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -139,6 +140,15 @@ export async function convertAcceptedApplicantToStudent(
     return { success: false, error: familyError?.message ?? "Failed to create family" };
   }
 
+  // Canonicalize legacy lead.program codes before students_program_check.
+  const program = parseProgramValue(lead.program);
+  if (lead.program && !program) {
+    return {
+      success: false,
+      error: `Invalid lead program "${lead.program}". Update the lead to a canonical program before conversion.`,
+    };
+  }
+
   const { data: student, error: studentError } = await supabase
     .from("students")
     .insert({
@@ -149,7 +159,7 @@ export async function convertAcceptedApplicantToStudent(
       preferred_name: lead.preferred_name,
       date_of_birth: lead.date_of_birth,
       grade_level: gradeLevel,
-      program: lead.program,
+      program,
       school_year_id: application.school_year_id,
       enrollment_status: "enrolled",
       enrollment_start_date: today,
@@ -170,7 +180,7 @@ export async function convertAcceptedApplicantToStudent(
     {
       student_id: student.id,
       school_year_id: application.school_year_id,
-      program: lead.program ?? "academy_virtual",
+      program: program ?? "academy_virtual",
       enrollment_status: "enrolled",
       enrolled_at: today,
       lead_id: leadId,
@@ -199,18 +209,24 @@ export async function convertAcceptedApplicantToStudent(
     .select("*")
     .eq("lead_id", leadId);
 
-  for (const lg of leadGuardians ?? []) {
-    if (lg.email) {
-      const { data: existingGuardian } = await supabase
-        .from("guardians")
-        .select("id")
-        .eq("family_id", family.id)
-        .eq("email", lg.email)
-        .maybeSingle();
-      if (existingGuardian) continue;
+  const guardianEmails = [
+    ...new Set((leadGuardians ?? []).map((lg) => lg.email).filter(Boolean)),
+  ] as string[];
+  const existingEmails = new Set<string>();
+  if (guardianEmails.length) {
+    const { data: existingGuardians } = await supabase
+      .from("guardians")
+      .select("email")
+      .eq("family_id", family.id)
+      .in("email", guardianEmails);
+    for (const g of existingGuardians ?? []) {
+      if (g.email) existingEmails.add(g.email);
     }
+  }
 
-    await supabase.from("guardians").insert({
+  const guardiansToInsert = (leadGuardians ?? [])
+    .filter((lg) => !lg.email || !existingEmails.has(lg.email))
+    .map((lg) => ({
       family_id: family.id,
       first_name: lg.first_name,
       last_name: lg.last_name,
@@ -221,7 +237,10 @@ export async function convertAcceptedApplicantToStudent(
       receives_billing: lg.receives_billing ?? false,
       receives_communications: lg.receives_school_communications ?? true,
       contact_type: "guardian",
-    });
+    }));
+
+  if (guardiansToInsert.length) {
+    await supabase.from("guardians").insert(guardiansToInsert);
   }
 
   if (application.emergency_contact_name) {
@@ -260,11 +279,14 @@ export async function convertAcceptedApplicantToStudent(
     .eq("application_id", applicationId);
 
   const stateIds: { state: string; id: string }[] = [];
-  for (const sf of stateFunding ?? []) {
+  const fundingIds = (stateFunding ?? []).map((sf) => sf.id);
+  if (fundingIds.length) {
     await supabase
       .from("state_funding_verifications")
       .update({ student_id: student.id, lead_id: leadId })
-      .eq("id", sf.id);
+      .in("id", fundingIds);
+  }
+  for (const sf of stateFunding ?? []) {
     if (sf.state_student_id) {
       stateIds.push({ state: "FL", id: sf.state_student_id });
     }

@@ -1,5 +1,5 @@
 /**
- * Process-level singletons for ECC — proven Phase 1 optimization.
+ * Process-level singletons for ECC — Phase 1 + P005 cold-start elimination.
  * Same instances across requests; React cache() still dedupes within a request.
  * No behavior change: identical services, created once per process.
  */
@@ -7,10 +7,12 @@
 import { createIntelligenceService } from "@/lib/platform/intelligence/create-service";
 import {
   createIntegrationManagement,
-  createIntegrationPlatform,
-  registerAllConnectors,
   type IntegrationManagement,
 } from "@/lib/platform/integrations";
+import {
+  getOrCreateRegisteredIntegrationPlatform,
+  resetRegisteredIntegrationPlatformForTests,
+} from "@/lib/platform/integrations/shared-platform";
 import type { IntegrationScope } from "@/lib/platform/integrations/common/types";
 import { measureAsync, measureSync, nowMs } from "./measure";
 
@@ -24,6 +26,7 @@ let integrationsSingleton: IntegrationManagement | null = null;
 let integrationsInitMs: number | null = null;
 let integrationsInitCount = 0;
 
+/** ECC-critical connectors bootstrapped on first management init (parallel). */
 const PHASE1_CONNECTORS = [
   "google",
   "microsoft",
@@ -53,7 +56,10 @@ export function getIntegrationsSingletonStats() {
   };
 }
 
-/** Process-wide intelligence DI container (ECC). */
+/**
+ * Process-wide intelligence DI container (ECC).
+ * P005: lazy stack shell + prewarm of ECC hot stacks (oios / opportunity / wisdom).
+ */
 export function getOrCreateIntelligenceSingleton(): {
   service: IntelligenceService;
   coldStart: boolean;
@@ -62,19 +68,27 @@ export function getOrCreateIntelligenceSingleton(): {
   if (intelligenceSingleton) {
     return { service: intelligenceSingleton, coldStart: false, durationMs: 0 };
   }
-  const { value, span } = measureSync("intelligence.createIntelligenceService", () =>
-    createIntelligenceService()
-  );
+  const { value, span } = measureSync("intelligence.createIntelligenceService", () => {
+    const service = createIntelligenceService();
+    // Materialise only ECC dashboard hot path — defer remaining ~30 modules.
+    void service.oios;
+    void service.opportunity;
+    void service.wisdom;
+    return service;
+  });
   intelligenceSingleton = value;
   intelligenceInitMs = span.durationMs;
   intelligenceInitCount += 1;
   return { service: value, coldStart: true, durationMs: span.durationMs };
 }
 
-/** Fresh instance for cold-path measurement only — does not replace singleton. */
+/**
+ * Fresh instance for cold-path measurement only — does not replace singleton.
+ * Uses eagerStacks so the probe still measures full-graph construction cost.
+ */
 export function createIntelligenceForBenchmark() {
   return measureSync("intelligence.createIntelligenceService.cold", () =>
-    createIntelligenceService()
+    createIntelligenceService({ eagerStacks: true })
   );
 }
 
@@ -91,13 +105,14 @@ export async function getOrCreateIntegrationsSingleton(): Promise<{
   const { value: management, span: createSpan } = await measureAsync(
     "integrations.create+register",
     async () => {
-      const platform = registerAllConnectors(createIntegrationPlatform());
+      // P005: share registered platform with Organization Platform (no second catalog).
+      const platform = getOrCreateRegisteredIntegrationPlatform();
       return createIntegrationManagement(platform);
     }
   );
 
   const scope: IntegrationScope = { organizationId: "exec-demo-org", schoolId: null };
-  // Phase C.1 — connectors are independent; bootstrap in parallel (was sequential ~10× wall time).
+  // Connectors are independent; bootstrap in parallel.
   const bootstrapResults = await Promise.all(
     PHASE1_CONNECTORS.map((connectorId) =>
       measureAsync(`integrations.bootstrap.${connectorId}`, () =>
@@ -123,6 +138,10 @@ export async function getOrCreateIntegrationsSingleton(): Promise<{
 /** Fresh platform for cold-path measurement only. */
 export async function createIntegrationsForBenchmark() {
   return measureAsync("integrations.create+bootstrap.cold", async () => {
+    // Intentional fresh platform (not the process shared instance) for cold delta.
+    const { createIntegrationPlatform, registerAllConnectors } = await import(
+      "@/lib/platform/integrations"
+    );
     const platform = registerAllConnectors(createIntegrationPlatform());
     const management = createIntegrationManagement(platform);
     const scope: IntegrationScope = { organizationId: "exec-demo-org", schoolId: null };
@@ -143,4 +162,5 @@ export function resetPerformanceSingletonsForTests(): void {
   integrationsSingleton = null;
   integrationsInitMs = null;
   integrationsInitCount = 0;
+  resetRegisteredIntegrationPlatformForTests();
 }

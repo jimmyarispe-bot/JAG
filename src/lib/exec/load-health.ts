@@ -90,9 +90,6 @@ export async function loadExecHealth(): Promise<ExecHealthViewModel> {
         : square
           ? Math.round((oios.health.score * 0.55 + square.financialScore * 0.45) * 10) / 10
           : Math.round(oios.health.score * 10) / 10;
-  const prior30 = Math.round((overall - 2.4) * 10) / 10;
-  const prior90 = Math.round((overall - 4.1) * 10) / 10;
-
   const dataMode = google
     ? gwMode
     : plaid
@@ -136,21 +133,21 @@ export async function loadExecHealth(): Promise<ExecHealthViewModel> {
         key: "finance",
         label: "Finance",
         score: Math.round(financeScore),
-        href: "/exec/finance",
+        href: "/dashboard/finance",
         domain: "financial",
       },
       {
         key: "people",
         label: "People",
         score: Math.round(feed?.workforceScore ?? oios.health.dimensions.organizational),
-        href: "/exec/workforce",
+        href: "/dashboard/hr",
         domain: "human-capital",
       },
       {
         key: "customer",
         label: "Customer",
         score: Math.round(customerScore),
-        href: "/exec/customers",
+        href: "/dashboard/admissions",
         domain: "customer",
       },
       {
@@ -175,25 +172,8 @@ export async function loadExecHealth(): Promise<ExecHealthViewModel> {
         domain: "legal-compliance-risk",
       },
     ],
-    trends: [
-      {
-        label: "30-day",
-        delta: Math.round((overall - prior30) * 10) / 10,
-        direction: overall >= prior30 ? "up" : "down",
-      },
-      {
-        label: "90-day",
-        delta: Math.round((overall - prior90) * 10) / 10,
-        direction: overall >= prior90 ? "up" : "down",
-      },
-      { label: "vs prior period", delta: 1.8, direction: "up" },
-    ],
-    history: [
-      { period: "Current", score: overall },
-      { period: "30 days ago", score: prior30 },
-      { period: "90 days ago", score: prior90 },
-      { period: "Prior year (sample)", score: Math.round((overall - 6) * 10) / 10 },
-    ],
+    trends: [],
+    history: [],
     dataMode,
   };
 }

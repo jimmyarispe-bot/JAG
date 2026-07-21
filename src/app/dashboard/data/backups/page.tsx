@@ -5,6 +5,8 @@ import { listBackups } from "@/lib/enterprise-data/backup-engine";
 import { EdpShell } from "@/components/enterprise-data/EdpNav";
 import { HistoryTable } from "@/components/enterprise-data/EdpPanels";
 import { createBackupAction, restoreBackupAction } from "@/lib/enterprise-data/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
+import { IntHubIdButton } from "@/components/integration-hub/IntHubMutationControls";
 
 export default async function DataBackupsPage() {
   await requirePagePermission(["data.export", "data.admin"]);
@@ -16,20 +18,23 @@ export default async function DataBackupsPage() {
   return (
     <EdpShell title="Backup & Restore" subtitle="Full organization backups, school backups, configuration snapshots, and point-in-time restore">
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <form action={createBackupAction} className="flex flex-wrap items-end gap-4">
+        <ExperienceForm
+          action={createBackupAction}
+          verb="create"
+          labels={{ idle: "Create backup" }}
+          progressLabel="Create backup…"
+          className="flex flex-wrap items-end gap-4"
+        >
           <label className="block text-sm">
-            Backup type
-            <select name="backup_type" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2">
-              <option value="full">Full organization</option>
-              <option value="school">School</option>
-              <option value="configuration">Configuration</option>
-              <option value="database_snapshot">Database snapshot</option>
-            </select>
+          Backup type
+          <select name="backup_type" className="mt-1 block rounded-lg border border-slate-200 px-3 py-2">
+          <option value="full">Full organization</option>
+          <option value="school">School</option>
+          <option value="configuration">Configuration</option>
+          <option value="database_snapshot">Database snapshot</option>
+          </select>
           </label>
-          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Create backup
-          </button>
-        </form>
+        </ExperienceForm>
       </section>
 
       <section>
@@ -44,12 +49,24 @@ export default async function DataBackupsPage() {
           ]}
         />
         {backups.filter((b) => b.status === "completed").map((b) => (
-          <form key={b.id} action={restoreBackupAction} className="mt-2 inline-block mr-2">
-            <input type="hidden" name="backup_id" value={b.id} />
-            <button type="submit" className="text-sm text-brand-600 hover:underline">
-              Restore {String(b.backup_type)}
-            </button>
-          </form>
+          <span key={b.id} className="mt-2 mr-2 inline-block">
+            <IntHubIdButton
+              action={restoreBackupAction}
+              idField="backup_id"
+              idValue={b.id}
+              verb="run"
+              labels={{
+                idle: `Restore ${String(b.backup_type)}`,
+                loading: "Restoring…",
+                success: "✓ Restored",
+              }}
+              progressLabel="Restoring backup…"
+              successToast="✓ Backup restored."
+              errorToast="Unable to restore backup."
+              variant="secondary"
+              size="sm"
+            />
+          </span>
         ))}
       </section>
     </EdpShell>

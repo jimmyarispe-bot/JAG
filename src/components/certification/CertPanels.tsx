@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 import { runCertificationAction, refreshHealthAction } from "@/lib/certification/actions";
 import { LAUNCH_DOMAINS, READINESS_THRESHOLD, scoreToTrafficLight } from "@/lib/certification/types";
 
@@ -65,22 +65,54 @@ export function CertTable({ rows, columns }: { rows: Record<string, unknown>[]; 
 }
 
 export function RunCertButton() {
-  const [pending, start] = useTransition();
+  const action = useActionFeedback({
+    verb: "run",
+    labels: { idle: "Run full certification", loading: "Running…", success: "✓ Complete" },
+    successToast: "✓ Certification run complete.",
+    errorToast: "Unable to run certification.",
+    progressLabel: "Running full certification…",
+  });
   return (
-    <button type="button" disabled={pending} onClick={() => start(() => runCertificationAction())}
-      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
-      {pending ? "Running…" : "Run full certification"}
-    </button>
+    <ActionButton
+      type="button"
+      status={action.status}
+      verb="run"
+      labels={{ idle: "Run full certification", loading: "Running…", success: "✓ Complete" }}
+      className="!bg-emerald-600 hover:!bg-emerald-700"
+      errorMessage={action.errorMessage}
+      onClick={() => {
+        void action.run(async () => {
+          await runCertificationAction();
+          return { success: true };
+        });
+      }}
+    />
   );
 }
 
 export function RefreshHealthButton() {
-  const [pending, start] = useTransition();
+  const action = useActionFeedback({
+    verb: "run",
+    labels: { idle: "Nightly health scan", loading: "Scanning…", success: "✓ Scanned" },
+    successToast: "✓ Health scan complete.",
+    errorToast: "Unable to run health scan.",
+    progressLabel: "Running health scan…",
+  });
   return (
-    <button type="button" disabled={pending} onClick={() => start(() => refreshHealthAction())}
-      className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50 disabled:opacity-50">
-      {pending ? "Scanning…" : "Nightly health scan"}
-    </button>
+    <ActionButton
+      type="button"
+      status={action.status}
+      verb="run"
+      variant="secondary"
+      labels={{ idle: "Nightly health scan", loading: "Scanning…", success: "✓ Scanned" }}
+      errorMessage={action.errorMessage}
+      onClick={() => {
+        void action.run(async () => {
+          await refreshHealthAction();
+          return { success: true };
+        });
+      }}
+    />
   );
 }
 

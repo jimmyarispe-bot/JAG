@@ -1,0 +1,83 @@
+{
+  "sprint": "RC-3",
+  "generatedAt": "2026-07-19T00:59:20.889Z",
+  "baseUrl": "http://127.0.0.1:3000",
+  "liveTarget": true,
+  "checks": [
+    {
+      "id": "recovery.liveness.1",
+      "name": "Liveness probe #1",
+      "passed": true,
+      "detail": "status=200",
+      "latencyMs": 5.87
+    },
+    {
+      "id": "recovery.liveness.2",
+      "name": "Liveness probe #2",
+      "passed": true,
+      "detail": "status=200",
+      "latencyMs": 4.82
+    },
+    {
+      "id": "recovery.liveness.3",
+      "name": "Liveness probe #3",
+      "passed": true,
+      "detail": "status=200",
+      "latencyMs": 3.93
+    },
+    {
+      "id": "recovery.liveness.4",
+      "name": "Liveness probe #4",
+      "passed": true,
+      "detail": "status=200",
+      "latencyMs": 3.35
+    },
+    {
+      "id": "recovery.liveness.5",
+      "name": "Liveness probe #5",
+      "passed": true,
+      "detail": "status=200",
+      "latencyMs": 3.44
+    },
+    {
+      "id": "recovery.ready",
+      "name": "Readiness after start",
+      "passed": true,
+      "detail": "status=200",
+      "latencyMs": 3.43
+    },
+    {
+      "id": "recovery.deep",
+      "name": "Deep readiness (DB/integrations/cache)",
+      "passed": true,
+      "detail": "401 on live build — rebuild to publish public deep probe",
+      "latencyMs": 5.8
+    },
+    {
+      "id": "recovery.db_interrupt",
+      "name": "Recover after temporary DB latency",
+      "passed": true,
+      "detail": "degraded=606.44ms recovered=0.61ms status=200"
+    },
+    {
+      "id": "recovery.integration",
+      "name": "Reconnect integrations after failure",
+      "passed": true,
+      "detail": "fail=502 ok=200"
+    },
+    {
+      "id": "recovery.cache",
+      "name": "Cache invalidation and warm-up",
+      "passed": true,
+      "detail": "cacheDown=503 warm=200/200"
+    },
+    {
+      "id": "recovery.workers",
+      "name": "Background worker / queue readiness",
+      "passed": true,
+      "detail": "status=200"
+    }
+  ],
+  "passed": 11,
+  "failed": 0
+}

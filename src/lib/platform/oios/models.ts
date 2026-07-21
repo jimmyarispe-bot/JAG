@@ -52,6 +52,18 @@ export function defaultRegisteredDomains(): DomainDescriptor[] {
     "institutional-memory",
     "collective",
     "wisdom",
+    "synthesis",
+    "briefing",
+    "executive-memory",
+    "decision-intelligence",
+    "executive-predictive",
+    "executive-autonomous",
+    "executive-copilot",
+    "executive-command-center",
+    "initiative-intelligence",
+    "portfolio-intelligence",
+    "digital-twin",
+    "ecosystem-intelligence",
   ]);
   return OIOS_INTELLIGENCE_DOMAINS.map((domain, index) => ({
     domain,
@@ -119,6 +131,30 @@ export function defaultRegisteredDomains(): DomainDescriptor[] {
                                                                   ? ["organization-dna", "institutional-memory"]
                                                                   : domain === "wisdom"
                                                                     ? ["organization-dna", "collective"]
+                                                                    : domain === "synthesis"
+                                                                      ? ["organization-dna", "wisdom"]
+                                                                      : domain === "briefing"
+                                                                        ? ["organization-dna", "synthesis"]
+                                                                        : domain === "executive-memory"
+                                                                          ? ["organization-dna", "briefing"]
+                                                                          : domain === "decision-intelligence"
+                                                                            ? ["organization-dna", "executive-memory"]
+                                                                            : domain === "executive-predictive"
+                                                                              ? ["organization-dna", "decision-intelligence"]
+                                                                              : domain === "executive-autonomous"
+                                                                                ? ["organization-dna", "executive-predictive"]
+                                                                                : domain === "executive-copilot"
+                                                                                  ? ["organization-dna", "executive-autonomous"]
+                                                                                  : domain === "executive-command-center"
+                                                                                    ? ["organization-dna", "executive-copilot"]
+                                                                                    : domain === "initiative-intelligence"
+                                                                                      ? ["organization-dna", "executive-command-center"]
+                                                                                      : domain === "portfolio-intelligence"
+                                                                                        ? ["organization-dna", "initiative-intelligence"]
+                                                                                        : domain === "digital-twin"
+                                                                                          ? ["organization-dna", "portfolio-intelligence"]
+                                                                                          : domain === "ecosystem-intelligence"
+                                                                                            ? ["organization-dna", "digital-twin"]
                                     : [],
     priority: index,
     description: `${domain} intelligence domain`,

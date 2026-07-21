@@ -1,7 +1,7 @@
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { getKpiCenter } from "@/lib/executive/kpi-center";
-import { KpiCenterPanel } from "@/components/executive/ExecutivePanels";
+import { KpiCenterPanel } from "@/components/executive/ExecutiveDisplayPanels";
 
 export default async function ExecutiveKpisPage() {
   const ctx = await getIdentityContext();

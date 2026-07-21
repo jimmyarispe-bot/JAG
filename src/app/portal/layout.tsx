@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { redirectIfPasswordResetRequired } from "@/lib/auth/must-reset-password";
-import { getAuthUser, getSessionUser } from "@/lib/auth/session";
+import { getAuthUser } from "@/lib/auth/auth-user";
+import { getSessionUser } from "@/lib/auth/session";
 import {
   canAccessParentPortal,
   canAccessStudentPortal,
@@ -12,7 +13,9 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { loadOrganizationBranding } from "@/lib/branding";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const [{ supabase, user }, sessionUser] = await Promise.all([getAuthUser(), getSessionUser()]);
+  // Sprint P002 — getAuthUser/getSessionUser/branding are request-cached (shared with pages).
+  const { supabase, user } = await getAuthUser();
+  const sessionUser = await getSessionUser();
 
   if (!user || !sessionUser) redirect("/login?next=/portal");
 

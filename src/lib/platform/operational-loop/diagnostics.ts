@@ -136,26 +136,41 @@ export async function generateStudentLoopGapReport(
 
   if (!student) return null;
 
-  const instance = await getActiveWorkflowInstance(supabase, {
-    domain: "sis",
-    entityType: "student",
-    entityId: studentId,
-  });
-
-  const completed = await getCompletedTransitionKeys(supabase, studentId);
-  const trail = await getStudentLoopAuditTrail(supabase, studentId, 20);
+  // P004: instance / completed / trail are independent after student load.
+  const [instance, completed, trail] = await Promise.all([
+    getActiveWorkflowInstance(supabase, {
+      domain: "sis",
+      entityType: "student",
+      entityId: studentId,
+    }),
+    getCompletedTransitionKeys(supabase, studentId),
+    getStudentLoopAuditTrail(supabase, studentId, 20),
+  ]);
   const failedByKey = new Map(
     trail.filter((t) => t.status === "failed").map((t) => [t.transitionKey, t])
+  );
+
+  const transitionKeys = Object.keys(
+    LOOP_TRANSITION_REGISTRY
+  ) as OperationalLoopTransitionKey[];
+
+  // P004: stage evidence checks are independent per transition.
+  const stageChecks = await Promise.all(
+    transitionKeys.map((key) => {
+      const def = getLoopTransition(key);
+      return checkStageEvidence(supabase, studentId, def.toStage);
+    })
   );
 
   const diagnostics: LoopTransitionDiagnostic[] = [];
   const gaps: LoopGapReport["gaps"] = [];
 
-  for (const key of Object.keys(LOOP_TRANSITION_REGISTRY) as OperationalLoopTransitionKey[]) {
+  for (let i = 0; i < transitionKeys.length; i++) {
+    const key = transitionKeys[i];
     const def = getLoopTransition(key);
     const failed = failedByKey.get(key);
     const completedOk = completed.has(key);
-    const stageCheck = await checkStageEvidence(supabase, studentId, def.toStage);
+    const stageCheck = stageChecks[i];
 
     let status: LoopTransitionDiagnostic["status"] = "unknown";
     if (failed) status = "failed";
@@ -223,11 +238,12 @@ export async function generateSchoolLoopGapReport(
     .eq("lifecycle_stage", "active")
     .limit(limit);
 
-  const reports: LoopGapReport[] = [];
-  for (const s of students ?? []) {
-    const report = await generateStudentLoopGapReport(supabase, s.id);
-    if (report && report.gaps.length > 0) reports.push(report);
-  }
+  // P004: per-student gap reports are independent.
+  const reports = (
+    await Promise.all(
+      (students ?? []).map((s) => generateStudentLoopGapReport(supabase, s.id))
+    )
+  ).filter((report): report is LoopGapReport => Boolean(report && report.gaps.length > 0));
 
   return reports.sort((a, b) => a.completenessPct - b.completenessPct);
 }
@@ -248,8 +264,12 @@ export async function diagnoseLoopTransition(
   let missing = 0;
   let complete = 0;
 
-  for (const s of students ?? []) {
-    const report = await generateStudentLoopGapReport(supabase, s.id);
+  // P004: per-student diagnostics are independent.
+  const reports = await Promise.all(
+    (students ?? []).map((s) => generateStudentLoopGapReport(supabase, s.id))
+  );
+
+  for (const report of reports) {
     if (!report) continue;
     const diag = report.diagnostics.find((d) => d.transitionKey === transitionKey);
     if (!diag) continue;

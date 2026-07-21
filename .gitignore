@@ -14,6 +14,8 @@
 /coverage
 /test-results/
 /playwright-report/
+/playwright/.auth/*.json
+!/playwright/.auth/README.md
 
 # next.js
 /.next/
@@ -21,6 +23,11 @@
 
 # production
 /build
+
+# RC harness artifacts
+/perf-rc10-go-no-go.json
+/perf-rc5-*.json
+/docs/operations/rc10/artifacts/*.json
 
 # misc
 .DS_Store
@@ -34,6 +41,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

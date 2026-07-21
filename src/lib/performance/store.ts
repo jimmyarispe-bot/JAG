@@ -1,6 +1,6 @@
 /**
  * In-memory performance trace store — process-local ring buffer.
- * Swap for durable telemetry in Sprint D1.5 (OpenTelemetry / Sentry).
+ * RC-1 mirrors aggregates into `@/lib/observability` (OTLP optional).
  */
 
 import type { PerfTrace } from "./types";

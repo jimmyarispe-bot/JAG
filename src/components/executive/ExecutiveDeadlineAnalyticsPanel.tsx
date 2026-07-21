@@ -1,5 +1,5 @@
 import type { ExecutiveDeadlineAnalytics } from "@/lib/compliance/types";
-import Link from "next/link";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
 
 interface ExecutiveDeadlineAnalyticsPanelProps {
   analytics: ExecutiveDeadlineAnalytics;
@@ -10,9 +10,9 @@ export function ExecutiveDeadlineAnalyticsPanel({ analytics }: ExecutiveDeadline
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-slate-900">Enterprise Deadline Analytics</h2>
-        <Link href="/dashboard/compliance" className="text-sm text-brand-600 hover:underline">
-          Compliance Center →
-        </Link>
+        <ActionChip href="/dashboard/compliance" size="sm">
+          Compliance Center
+        </ActionChip>
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

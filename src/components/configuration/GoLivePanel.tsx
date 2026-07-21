@@ -1,6 +1,7 @@
 import type { GoLiveCheck } from "@/lib/configuration/types";
 import { launchOrganizationAction } from "@/lib/configuration/actions";
-import Link from "next/link";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
+import { ActionChip } from "@/components/ui/cta";
 
 function StatusDot({ status }: { status: string }) {
   const cls =
@@ -29,12 +30,18 @@ export function GoLivePanel({
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
           <p className="text-sm font-medium uppercase tracking-wide text-emerald-700">Ready to launch</p>
           <p className="mt-2 text-3xl font-bold text-emerald-900">READY TO LAUNCH</p>
-          <form action={launchOrganizationAction} className="mt-4">
+          <ExperienceForm
+            action={launchOrganizationAction}
+            verb="publish"
+            labels={{ idle: "Launch organization", loading: "Launching…", success: "✓ Launched" }}
+            progressLabel="Launching organization…"
+            successToast="✓ Organization launched."
+            errorToast="Unable to launch organization."
+            className="mt-4"
+            buttonClassName="!bg-emerald-600 hover:!bg-emerald-700"
+          >
             <input type="hidden" name="organization_id" value={organizationId} />
-            <button type="submit" className="rounded-lg bg-emerald-600 px-6 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-              Launch organization
-            </button>
-          </form>
+          </ExperienceForm>
         </div>
       ) : (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
@@ -54,9 +61,9 @@ export function GoLivePanel({
               </div>
             </div>
             {check.resolveHref && check.status !== "green" && (
-              <Link href={check.resolveHref} className="shrink-0 text-sm text-brand-600 hover:underline">
-                Fix →
-              </Link>
+              <ActionChip href={check.resolveHref} size="sm" className="shrink-0">
+                Fix
+              </ActionChip>
             )}
           </li>
         ))}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { ExecutiveWorkspaceLinks } from "@/lib/platform/jag/workspace";
 import type { JagModeratedRecommendation } from "@/lib/platform/jag/collaboration/types";
 import type { OrganizationExecutiveBrief } from "@/lib/platform/intelligence/organization/types";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 interface ConversationWorkspaceProps {
   brief: OrganizationExecutiveBrief | null;
@@ -54,7 +55,14 @@ export function ConversationWorkspace({
   links,
   consensusSummary,
 }: ConversationWorkspaceProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "send",
+    labels: { idle: "Send", loading: "Sending…", success: "✓ Sent" },
+    successToast: "✓ Sent",
+    errorToast: "Unable to send.",
+    progressLabel: "Sending to JAG…",
+    enableBackgroundHandoff: false,
+  });
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<ConversationTurn[]>(() => {
     const opener: ConversationTurn = {
@@ -77,7 +85,7 @@ export function ConversationWorkspace({
   function submit() {
     const text = draft.trim();
     if (!text) return;
-    startTransition(() => {
+    void action.run(async () => {
       setTurns((prev) => [
         ...prev,
         { id: `user-${Date.now()}`, role: "executive", body: text },
@@ -89,6 +97,7 @@ export function ConversationWorkspace({
         },
       ]);
       setDraft("");
+      return { success: true };
     });
   }
 
@@ -138,16 +147,16 @@ export function ConversationWorkspace({
           }}
           placeholder="Ask JAG about alerts, goals, decisions…"
           className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-brand-500 focus:ring-2"
-          disabled={pending}
+          disabled={action.isBusy}
         />
-        <button
+        <ActionButton
           type="button"
+          status={action.status}
+          verb="send"
+          labels={{ idle: "Send", loading: "Sending…", success: "✓ Sent" }}
+          className="!rounded-xl !px-4 !py-2.5 !text-sm !font-semibold"
           onClick={submit}
-          disabled={pending}
-          className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
-        >
-          Send
-        </button>
+        />
       </div>
     </section>
   );

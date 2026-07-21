@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId } from "@/lib/integration-hub/context";
 import { getCustomConnectors } from "@/lib/integration-hub/connector-builder";
 import { IntHubShell } from "@/components/integration-hub/IntHubNav";
 import { IntHubTable } from "@/components/integration-hub/IntHubPanels";
+import { ExperienceForm } from "@/components/integration-hub/IntHubMutationControls";
 import { createCustomConnectorAction } from "@/lib/integration-hub/actions";
 import { CUSTOM_CONNECTOR_PROTOCOLS, CONNECTOR_AUTH_TYPES } from "@/lib/integration-hub/types";
 
@@ -25,13 +26,21 @@ export default async function ConnectorBuilderPage() {
           <li>Monitoring — health and execution metrics</li>
         </ol>
       </div>
-      <form action={createCustomConnectorAction} className="flex flex-wrap gap-3 rounded-xl border bg-white p-4">
+      <ExperienceForm
+        action={createCustomConnectorAction}
+        verb="build"
+        labels={{ idle: "Start wizard", loading: "Building…", success: "✓ Started" }}
+        progressLabel="Starting connector builder…"
+        successToast="✓ Connector draft started."
+        errorToast="Unable to start builder."
+        className="flex flex-wrap gap-3 rounded-xl border bg-white p-4"
+        buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+      >
         <input name="connector_name" placeholder="Connector name" className="rounded-lg border px-3 py-2 text-sm" required />
         <select name="protocol" className="rounded-lg border px-3 py-2 text-sm">
           {CUSTOM_CONNECTOR_PROTOCOLS.map((p) => <option key={p} value={p}>{p.toUpperCase()}</option>)}
         </select>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Start wizard</button>
-      </form>
+      </ExperienceForm>
       <IntHubTable rows={custom} columns={[
         { key: "connector_name", label: "Connector" }, { key: "protocol", label: "Protocol" },
         { key: "status", label: "Status" }, { key: "created_at", label: "Created" },

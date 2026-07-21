@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ActionChip } from "@/components/experience-system/feedback/ActionChip";
 import type { FounderMorningBriefExecutive } from "@/lib/dashboard/morning-brief";
 import type { JagWorkItem } from "@/lib/platform/jag-work";
 import type { MissionControlPriorityItem } from "@/lib/platform/automation/mission-control-compose";
@@ -65,12 +65,9 @@ function PrioritiesSection({
           <h2 className="text-lg font-semibold text-slate-900">Priorities</h2>
           <p className="mt-1 text-sm text-slate-500">Items that need attention today</p>
         </div>
-        <Link
-          href="/dashboard/mission-control"
-          className="text-sm font-medium text-brand-600 hover:text-brand-700"
-        >
-          Open {missionControlLabel} →
-        </Link>
+        <ActionChip href="/dashboard/mission-control" size="sm">
+          Open {missionControlLabel}
+        </ActionChip>
       </div>
       {priorities.length ? (
         <ul className="mt-4 space-y-2">
@@ -87,9 +84,9 @@ function PrioritiesSection({
                   )}
                 </div>
                 {item.href && (
-                  <Link href={item.href} className="shrink-0 text-xs font-medium underline">
+                  <ActionChip href={item.href} size="xs" className="shrink-0">
                     Open
-                  </Link>
+                  </ActionChip>
                 )}
               </div>
             </li>
@@ -127,12 +124,9 @@ function AiBriefSection({
           <h2 className="text-lg font-semibold text-slate-900">Today&apos;s Brief</h2>
           <p className="mt-1 text-sm text-slate-500">Executive summary from your intelligence engines</p>
         </div>
-        <Link
-          href="/dashboard/executive/briefings"
-          className="text-sm font-medium text-brand-600 hover:text-brand-700"
-        >
-          All briefings →
-        </Link>
+        <ActionChip href="/dashboard/executive/briefings" size="sm">
+          All briefings
+        </ActionChip>
       </div>
       {summary ? (
         <p className="mt-4 text-sm leading-relaxed text-slate-700">{summary}</p>
@@ -148,12 +142,9 @@ function AiBriefSection({
               <p className="font-medium text-slate-900">{action.title}</p>
               <p className="mt-0.5 text-slate-600">→ {action.action}</p>
               {action.href && (
-                <Link
-                  href={action.href}
-                  className="mt-1 inline-block text-xs font-medium text-brand-600 hover:underline"
-                >
+                <ActionChip href={action.href} size="xs" className="mt-1">
                   Review in {intelligenceEngineLabel}
-                </Link>
+                </ActionChip>
               )}
             </li>
           ))}
@@ -183,12 +174,9 @@ function DecisionsWaitingSection({
               : "Nothing requiring your decision right now"}
           </p>
         </div>
-        <Link
-          href="/dashboard/executive?work=needs_human_decision"
-          className="text-sm font-medium text-brand-600 hover:text-brand-700"
-        >
-          Open {intelligenceEngineLabel} →
-        </Link>
+        <ActionChip href="/dashboard/executive?work=needs_human_decision" size="sm">
+          Open {intelligenceEngineLabel}
+        </ActionChip>
       </div>
       {items.length > 0 && (
         <ul className="mt-4 space-y-2">
@@ -205,9 +193,9 @@ function DecisionsWaitingSection({
                   )}
                 </div>
                 {item.href && (
-                  <Link href={item.href} className="shrink-0 text-xs font-medium text-brand-600 hover:underline">
+                  <ActionChip href={item.href} size="xs" className="shrink-0">
                     Review
-                  </Link>
+                  </ActionChip>
                 )}
               </div>
             </li>

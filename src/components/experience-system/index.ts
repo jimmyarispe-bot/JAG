@@ -40,6 +40,7 @@ export {
   AlertCard,
   RecommendationCard,
   PriorityCard,
+  ModuleCard,
 } from "./cards";
 export type {
   StudentCardProps,
@@ -50,6 +51,7 @@ export type {
   CompetencyCardProps,
   RecommendationCardProps,
   AlertCardProps,
+  ModuleCardProps,
 } from "./cards";
 
 // Lists
@@ -74,6 +76,8 @@ export {
   useAutosave,
   InlineHelp,
   DraftBanner,
+  useUnsavedChangesGuard,
+  useDirtyForm,
 } from "./forms";
 
 // Feedback
@@ -85,7 +89,67 @@ export {
   EmptyState,
   ProgressIndicator,
   BackgroundProcess,
+  ActionButton,
+  PendingActionButton,
+  ActionChip,
+  CTAButton,
+  ActionChipGroup,
+  inferActionChipVariant,
+  OperationProgress,
+  InlineRefresh,
+  AiActivity,
+  WorkspaceActivity,
+  useActionFeedback,
+  resolveActionLabels,
+  ToastProvider,
+  useToast,
+  BackgroundJobsProvider,
+  useBackgroundJobs,
+  ShellActivityIndicator,
+  GlobalProgressProvider,
+  useGlobalProgress,
+  InteractionProviders,
 } from "./feedback";
+export type {
+  ActionButtonProps,
+  ActionVariant,
+  ActionChipProps,
+  ActionChipVariant,
+  ActionChipSize,
+  ActionVerb,
+  ActionStatus,
+  ActionLabelSet,
+  UseActionFeedbackOptions,
+  UseActionFeedbackResult,
+  OperationProgressProps,
+  AiActivityProps,
+  ToastTone,
+  ToastInput,
+} from "./feedback";
+
+// Progressive navigation skeletons (UX-002)
+export {
+  SkeletonBone,
+  SkeletonBlock,
+  CardSkeleton,
+  TableSkeleton,
+  ChartSkeleton,
+  FormSkeleton,
+  ListSkeleton,
+  KpiTileSkeleton,
+  KpiTilesSkeleton,
+  DashboardSkeleton,
+  ExecutiveWidgetSkeleton,
+  FadeIn,
+  WidgetBoundary,
+  WidgetErrorBoundary,
+  ProgressivePageShell,
+  RouteProgressiveSkeleton,
+  RouteLoadingSkeleton,
+  staticWorkspaceSidebar,
+  progressiveShellProps,
+} from "./skeletons";
+export type { WidgetBoundaryProps, ProgressivePageShellProps } from "./skeletons";
 
 // Interaction
 export { useKeyboardShortcuts, useFocusTrap, ConfirmDialog, xesMotion } from "./interaction";

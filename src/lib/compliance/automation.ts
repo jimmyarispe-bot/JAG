@@ -1,6 +1,7 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { createMissionControlItem } from "@/lib/platform/automation/mission-control";
-import { registerComplianceObligation } from "@/lib/compliance/registry";
+import { registerComplianceObligationsBatch } from "@/lib/compliance/registry";
+import type { RegisterObligationInput } from "@/lib/compliance/types";
 import { logComplianceAudit } from "@/lib/compliance/audit";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -10,10 +11,12 @@ const today = () => new Date().toISOString().split("T")[0];
 /** Sync deadlines from existing modules into the compliance engine (no duplicate reminders elsewhere) */
 export async function syncModuleDeadlinesToCompliance(supabase: AuthClient) {
   const { syncUniversalDeadlines } = await import("@/lib/compliance/sync-deadlines");
-  await syncUniversalDeadlines(supabase);
-  await syncHrCertificationDeadlines(supabase);
-  await syncExecutiveComplianceRequirements(supabase);
-  await syncSpedReviewDeadlines(supabase);
+  await Promise.all([
+    syncUniversalDeadlines(supabase),
+    syncHrCertificationDeadlines(supabase),
+    syncExecutiveComplianceRequirements(supabase),
+    syncSpedReviewDeadlines(supabase),
+  ]);
 }
 
 async function syncHrCertificationDeadlines(supabase: AuthClient) {
@@ -25,12 +28,11 @@ async function syncHrCertificationDeadlines(supabase: AuthClient) {
     .not("expiration_date", "is", null)
     .lte("expiration_date", in90);
 
-  for (const cert of certs ?? []) {
+  const inputs: RegisterObligationInput[] = (certs ?? []).map((cert) => {
     const emp = Array.isArray(cert.employees) ? cert.employees[0] : cert.employees;
-    const typeKey = mapCertTypeToCategory(String(cert.certification_type ?? "other"));
-    await registerComplianceObligation(supabase, {
+    return {
       schoolId: (emp as { school_id?: string })?.school_id,
-      categoryKey: typeKey,
+      categoryKey: mapCertTypeToCategory(String(cert.certification_type ?? "other")),
       title: `Renew: ${cert.certification_name}`,
       description: `Employee certification expires ${cert.expiration_date}`,
       dueDate: cert.expiration_date!,
@@ -41,8 +43,10 @@ async function syncHrCertificationDeadlines(supabase: AuthClient) {
       sourceModule: "hr",
       sourceEntityType: "employee_certifications",
       sourceEntityId: cert.id,
-    });
-  }
+    };
+  });
+
+  await registerComplianceObligationsBatch(supabase, inputs);
 }
 
 async function syncExecutiveComplianceRequirements(supabase: AuthClient) {
@@ -51,21 +55,20 @@ async function syncExecutiveComplianceRequirements(supabase: AuthClient) {
     .select("*")
     .in("status", ["pending", "in_progress", "overdue"]);
 
-  for (const req of reqs ?? []) {
-    const catKey = mapRequirementTypeToCategory(req.requirement_type);
-    await registerComplianceObligation(supabase, {
-      schoolId: req.school_id,
-      categoryKey: catKey,
-      title: req.title,
-      description: req.description,
-      dueDate: req.due_date ?? req.renewal_date ?? today(),
-      ownerUserId: req.owner_user_id,
-      sourceModule: "executive",
-      sourceEntityType: "executive_compliance_requirements",
-      sourceEntityId: req.id,
-      riskLevel: req.status === "overdue" ? "critical" : "medium",
-    });
-  }
+  const inputs: RegisterObligationInput[] = (reqs ?? []).map((req) => ({
+    schoolId: req.school_id,
+    categoryKey: mapRequirementTypeToCategory(req.requirement_type),
+    title: req.title,
+    description: req.description,
+    dueDate: req.due_date ?? req.renewal_date ?? today(),
+    ownerUserId: req.owner_user_id,
+    sourceModule: "executive",
+    sourceEntityType: "executive_compliance_requirements",
+    sourceEntityId: req.id,
+    riskLevel: req.status === "overdue" ? "critical" : "medium",
+  }));
+
+  await registerComplianceObligationsBatch(supabase, inputs);
 }
 
 async function syncSpedReviewDeadlines(supabase: AuthClient) {
@@ -75,15 +78,15 @@ async function syncSpedReviewDeadlines(supabase: AuthClient) {
     .select("id, student_id, plan_type, annual_review_date, reevaluation_date, students(school_id, first_name, last_name)")
     .eq("status", "active");
 
+  const inputs: RegisterObligationInput[] = [];
   for (const plan of plans ?? []) {
     const st = Array.isArray(plan.students) ? plan.students[0] : plan.students;
     const reviewDate = plan.annual_review_date ?? plan.reevaluation_date;
     if (!reviewDate || reviewDate > horizon) continue;
 
-    const categoryKey = plan.plan_type === "504" ? "student_504" : "student_iep";
-    await registerComplianceObligation(supabase, {
+    inputs.push({
       schoolId: (st as { school_id?: string })?.school_id,
-      categoryKey,
+      categoryKey: plan.plan_type === "504" ? "student_504" : "student_iep",
       title: `${plan.plan_type === "504" ? "504" : "IEP"} Review: ${(st as { first_name?: string })?.first_name ?? "Student"}`,
       dueDate: reviewDate,
       frequency: "annual",
@@ -93,6 +96,8 @@ async function syncSpedReviewDeadlines(supabase: AuthClient) {
       riskLevel: "high",
     });
   }
+
+  await registerComplianceObligationsBatch(supabase, inputs);
 }
 
 function mapCertTypeToCategory(type: string): string {
@@ -136,10 +141,40 @@ export async function processComplianceRemindersAndEscalations(supabase: AuthCli
   const defaultSchedule = schedules?.find((s) => s.is_default) ?? schedules?.[0];
   const daysBefore: number[] = defaultSchedule?.days_before ?? [30, 14, 7, 3, 1, 0];
 
-  const { data: pending } = await supabase
-    .from("compliance_obligations")
-    .select("*")
-    .in("status", ["pending", "overdue", "in_review"]);
+  const [{ data: pending }, { data: escalationRules }] = await Promise.all([
+    supabase.from("compliance_obligations").select("*").in("status", ["pending", "overdue", "in_review"]),
+    supabase.from("compliance_escalation_rules").select("*").eq("is_active", true),
+  ]);
+
+  const obligationIds = (pending ?? []).map((o) => o.id);
+  const reminderDate = t;
+
+  const [{ data: existingReminders }, { data: existingEscalations }] = await Promise.all([
+    obligationIds.length
+      ? supabase
+          .from("compliance_obligation_reminders")
+          .select("obligation_id, days_before")
+          .eq("reminder_date", reminderDate)
+          .in("obligation_id", obligationIds)
+      : Promise.resolve({ data: [] as Array<{ obligation_id: string; days_before: number }> }),
+    obligationIds.length
+      ? supabase
+          .from("compliance_obligation_escalations")
+          .select("obligation_id, days_overdue")
+          .in("obligation_id", obligationIds)
+      : Promise.resolve({ data: [] as Array<{ obligation_id: string; days_overdue: number }> }),
+  ]);
+
+  const reminderKeys = new Set(
+    (existingReminders ?? []).map((r) => `${r.obligation_id}|${r.days_before}`)
+  );
+  const escalationKeys = new Set(
+    (existingEscalations ?? []).map((e) => `${e.obligation_id}|${e.days_overdue}`)
+  );
+
+  const sortedRules = [...(escalationRules ?? [])].sort(
+    (a, b) => Number(b.days_overdue) - Number(a.days_overdue)
+  );
 
   for (const ob of pending ?? []) {
     const due = new Date(ob.due_date);
@@ -149,15 +184,15 @@ export async function processComplianceRemindersAndEscalations(supabase: AuthCli
 
     for (const days of daysBefore) {
       if (daysUntil === days || (days === 0 && daysUntil === 0)) {
-        await sendComplianceReminder(supabase, ob, days);
+        await sendComplianceReminder(supabase, ob, days, false, reminderKeys);
       }
     }
 
     if (daysOverdue > 0 && defaultSchedule?.notify_daily_when_overdue) {
-      await sendComplianceReminder(supabase, ob, -daysOverdue, true);
+      await sendComplianceReminder(supabase, ob, -daysOverdue, true, reminderKeys);
     }
 
-    await processEscalations(supabase, ob, daysOverdue);
+    await processEscalations(supabase, ob, daysOverdue, sortedRules, escalationKeys);
     await syncMissionControlForObligation(supabase, ob, daysUntil, daysOverdue);
   }
 
@@ -168,18 +203,25 @@ async function sendComplianceReminder(
   supabase: AuthClient,
   ob: Record<string, unknown>,
   daysBefore: number,
-  isOverdueDaily = false
+  isOverdueDaily = false,
+  reminderKeys?: Set<string>
 ) {
   const reminderDate = today();
-  const { data: existing } = await supabase
-    .from("compliance_obligation_reminders")
-    .select("id")
-    .eq("obligation_id", ob.id as string)
-    .eq("reminder_date", reminderDate)
-    .eq("days_before", daysBefore)
-    .maybeSingle();
+  const key = `${ob.id as string}|${daysBefore}`;
+  if (reminderKeys?.has(key)) return;
 
-  if (existing) return;
+  if (!reminderKeys) {
+    const { data: existing } = await supabase
+      .from("compliance_obligation_reminders")
+      .select("id")
+      .eq("obligation_id", ob.id as string)
+      .eq("reminder_date", reminderDate)
+      .eq("days_before", daysBefore)
+      .maybeSingle();
+    if (existing) return;
+  }
+
+  reminderKeys?.add(key);
 
   await supabase.from("compliance_obligation_reminders").insert({
     obligation_id: ob.id as string,
@@ -222,29 +264,42 @@ async function sendComplianceReminder(
 async function processEscalations(
   supabase: AuthClient,
   ob: Record<string, unknown>,
-  daysOverdue: number
+  daysOverdue: number,
+  preloadedRules?: Array<Record<string, unknown>>,
+  escalationKeys?: Set<string>
 ) {
   if (daysOverdue <= 0) return;
 
-  const { data: rules } = await supabase
-    .from("compliance_escalation_rules")
-    .select("*")
-    .eq("is_active", true)
-    .lte("days_overdue", daysOverdue)
-    .order("days_overdue", { ascending: false })
-    .limit(1);
+  let rule: Record<string, unknown> | undefined;
+  if (preloadedRules) {
+    rule = preloadedRules.find((r) => Number(r.days_overdue) <= daysOverdue);
+  } else {
+    const { data: rules } = await supabase
+      .from("compliance_escalation_rules")
+      .select("*")
+      .eq("is_active", true)
+      .lte("days_overdue", daysOverdue)
+      .order("days_overdue", { ascending: false })
+      .limit(1);
+    rule = rules?.[0];
+  }
 
-  const rule = rules?.[0];
   if (!rule) return;
 
-  const { data: existing } = await supabase
-    .from("compliance_obligation_escalations")
-    .select("id")
-    .eq("obligation_id", ob.id as string)
-    .eq("days_overdue", rule.days_overdue)
-    .maybeSingle();
+  const escKey = `${ob.id as string}|${rule.days_overdue}`;
+  if (escalationKeys?.has(escKey)) return;
 
-  if (existing) return;
+  if (!escalationKeys) {
+    const { data: existing } = await supabase
+      .from("compliance_obligation_escalations")
+      .select("id")
+      .eq("obligation_id", ob.id as string)
+      .eq("days_overdue", rule.days_overdue as number)
+      .maybeSingle();
+    if (existing) return;
+  }
+
+  escalationKeys?.add(escKey);
 
   await supabase.from("compliance_obligation_escalations").insert({
     obligation_id: ob.id as string,
@@ -261,7 +316,7 @@ async function processEscalations(
     href: `/dashboard/compliance?view=overdue`,
     entityType: "compliance_obligations",
     entityId: ob.id as string,
-    assignedRole: rule.escalate_to_role,
+    assignedRole: rule.escalate_to_role as string,
     severity: rule.severity === "critical" ? "critical" : "high",
   });
 

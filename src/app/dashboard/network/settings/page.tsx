@@ -3,7 +3,7 @@ import { requirePagePermission } from "@/lib/platform/identity/page-guard";
 import { getPrimaryOrganizationId } from "@/lib/intelligence-network/context";
 import { getParticipationSettings } from "@/lib/intelligence-network/participation";
 import { AinShell } from "@/components/intelligence-network/AinNav";
-import { PrivacyNotice } from "@/components/intelligence-network/AinPanels";
+import { NetworkExperienceForm, PrivacyNotice } from "@/components/intelligence-network/AinPanels";
 import { updateParticipationAction } from "@/lib/intelligence-network/actions";
 import { DATA_CATEGORIES, PEER_SEGMENTS } from "@/lib/intelligence-network/types";
 
@@ -17,7 +17,16 @@ export default async function NetworkSettingsPage() {
   return (
     <AinShell title="Network Participation Settings" subtitle="Opt in, opt out, selective participation, anonymization, regional/national/international sharing">
       <PrivacyNotice />
-      <form action={updateParticipationAction} className="space-y-4 rounded-xl border bg-white p-6">
+      <NetworkExperienceForm
+        action={updateParticipationAction}
+        verb="save"
+        labels={{ idle: "Save consent & settings", loading: "Saving…", success: "✓ Saved" }}
+        progressLabel="Saving share settings…"
+        successToast="✓ Sharing settings saved."
+        errorToast="Unable to save settings."
+        className="space-y-4 rounded-xl border bg-white p-6"
+        buttonClassName="!bg-indigo-600 hover:!bg-indigo-700"
+      >
         <div>
           <label className="text-sm font-medium">Participation</label>
           <select name="participation_status" defaultValue={settings?.participation_status ?? "opt_out"} className="mt-1 block w-full rounded-lg border px-3 py-2 text-sm">
@@ -51,8 +60,7 @@ export default async function NetworkSettingsPage() {
           </div>
         </div>
         <p className="text-xs text-slate-500">Peer segments: {PEER_SEGMENTS.map((s) => s.label).join(", ")}</p>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">Save consent & settings</button>
-      </form>
+      </NetworkExperienceForm>
       {settings?.consent_at && <p className="text-xs text-slate-500">Consent recorded: {settings.consent_at}</p>}
     </AinShell>
   );

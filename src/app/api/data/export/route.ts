@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import {
+  requireOrganizationAccess,
+  requireSchoolAccess,
+} from "@/lib/platform/identity/tenant-access";
 import { canExportData } from "@/lib/enterprise-data/access";
 import { getPrimaryOrganizationId } from "@/lib/enterprise-data/context";
 import { runExport } from "@/lib/enterprise-data/export-engine";
@@ -15,15 +19,29 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const exportType = searchParams.get("type") ?? "students";
   const exportFormat = (searchParams.get("format") ?? "csv") as EdpExportFormat;
+  const schoolId = searchParams.get("schoolId");
 
   const supabase = await createAuthClient();
   const orgId = await getPrimaryOrganizationId(supabase);
   if (!orgId) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
 
+  // RC-3 — confirm primary org membership; optional school filter must be in scope.
+  const orgScope = await requireOrganizationAccess(supabase, ctx.effectiveUserId, orgId);
+  if (orgScope !== true) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (schoolId) {
+    const schoolScope = requireSchoolAccess(ctx, schoolId);
+    if (schoolScope !== true) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const result = await runExport(supabase, {
     organizationId: orgId,
     exportType,
     exportFormat,
+    schoolId: schoolId ?? undefined,
     exportedBy: ctx.effectiveUserId,
   });
 

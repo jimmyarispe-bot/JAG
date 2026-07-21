@@ -1,5 +1,6 @@
 import type { ConfigModuleRow } from "@/lib/configuration/types";
 import { toggleModuleAction } from "@/lib/configuration/actions";
+import { ExperienceForm } from "@/components/intelligence-platform/AipMutationControls";
 
 export function ModuleMarketplacePanel({
   organizationId,
@@ -29,21 +30,24 @@ export function ModuleMarketplacePanel({
           {mod.dependencies.length > 0 && (
             <p className="mt-2 text-xs text-slate-400">Requires: {mod.dependencies.join(", ")}</p>
           )}
-          <form action={toggleModuleAction} className="mt-4">
+          <ExperienceForm
+            action={toggleModuleAction}
+            verb="custom"
+            labels={{
+              idle: mod.status === "enabled" ? "Disable" : "Enable",
+              loading: mod.status === "enabled" ? "Disabling…" : "Enabling…",
+              success: mod.status === "enabled" ? "✓ Disabled" : "✓ Enabled",
+            }}
+            progressLabel={mod.status === "enabled" ? "Disabling module…" : "Enabling module…"}
+            successToast={mod.status === "enabled" ? "✓ Module disabled." : "✓ Module enabled."}
+            errorToast="Unable to update module."
+            className="mt-4"
+            buttonVariant={mod.status === "enabled" ? "secondary" : "primary"}
+          >
             <input type="hidden" name="organization_id" value={organizationId} />
             <input type="hidden" name="module_key" value={mod.moduleKey} />
             <input type="hidden" name="action" value={mod.status === "enabled" ? "disable" : "enable"} />
-            <button
-              type="submit"
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-                mod.status === "enabled"
-                  ? "border border-slate-200 text-slate-600 hover:bg-slate-50"
-                  : "bg-brand-600 text-white hover:bg-brand-700"
-              }`}
-            >
-              {mod.status === "enabled" ? "Disable" : "Enable"}
-            </button>
-          </form>
+          </ExperienceForm>
         </article>
       ))}
     </div>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { verifyStateFundingStaff, runStaffAcceptanceCheck } from "@/lib/admissions/portal/actions";
 import { VERIFICATION_STATUS_LABELS } from "@/lib/constants/admissions-portal";
 import { fundingSourceLabel } from "@/lib/constants/programs";
 import type { PortalStateFundingVerification } from "@/lib/admissions/portal/queries";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface StaffFundingVerificationPanelProps {
   applicationId: string;
@@ -17,13 +19,18 @@ export function StaffFundingVerificationPanel({
   leadId,
   verifications,
 }: StaffFundingVerificationPanelProps) {
-  const [isPending, startTransition] = useTransition();
   const [acceptanceMessage, setAcceptanceMessage] = useState<string | null>(null);
+  const action = useActionFeedback({
+    verb: "approve",
+    successToast: "✓ Updated",
+    errorToast: "Unable to update verification.",
+    progressLabel: "Updating funding verification…",
+  });
 
   if (verifications.length === 0) return null;
 
   function handleVerify(verificationId: string, status: string, rejectionReason?: string) {
-    startTransition(async () => {
+    void action.run(async () => {
       const formData = new FormData();
       formData.set("verification_id", verificationId);
       formData.set("application_id", applicationId);
@@ -31,22 +38,22 @@ export function StaffFundingVerificationPanel({
       formData.set("verification_status", status);
       if (rejectionReason) formData.set("rejection_reason", rejectionReason);
 
-      await verifyStateFundingStaff(formData);
+      const result = await verifyStateFundingStaff(formData);
+      assertActionResult(result);
+      return result;
     });
   }
 
   function handleAcceptanceCheck() {
-    startTransition(async () => {
+    void action.run(async () => {
       const result = await runStaffAcceptanceCheck(applicationId, leadId);
-      if (result.error) {
-        setAcceptanceMessage(result.error);
-        return;
-      }
+      if (result.error) throw new Error(result.error);
       if (result.accepted) {
         setAcceptanceMessage("Automated acceptance workflow completed.");
       } else {
         setAcceptanceMessage(result.reason ?? "Requirements not yet met for acceptance.");
       }
+      return result;
     });
   }
 
@@ -59,14 +66,14 @@ export function StaffFundingVerificationPanel({
             Review state program IDs and documents before running acceptance.
           </p>
         </div>
-        <button
+        <ActionButton
           type="button"
-          disabled={isPending}
+          status={action.status}
+          verb="run"
+          labels={{ idle: "Run Acceptance Check", loading: "Checking…", success: "✓ Complete" }}
+          className="!rounded-lg !bg-emerald-600 !px-3 !py-1.5 !text-xs hover:!bg-emerald-700"
           onClick={handleAcceptanceCheck}
-          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          Run Acceptance Check
-        </button>
+        />
       </div>
 
       {acceptanceMessage && (
@@ -90,22 +97,23 @@ export function StaffFundingVerificationPanel({
               <p className="mt-1 text-xs text-slate-600">Program ID: {v.state_program_id}</p>
             )}
             <div className="mt-2 flex flex-wrap gap-2">
-              <button
+              <ActionButton
                 type="button"
-                disabled={isPending}
+                status={action.status}
+                verb="approve"
+                labels={{ idle: "Verify", loading: "Verifying…", success: "✓ Verified" }}
+                className="!rounded-lg !bg-emerald-600 !px-2.5 !py-1 !text-xs hover:!bg-emerald-700"
                 onClick={() => handleVerify(v.id, "verified")}
-                className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white"
-              >
-                Verify
-              </button>
-              <button
+              />
+              <ActionButton
                 type="button"
-                disabled={isPending}
+                status={action.status}
+                verb="save"
+                variant="danger"
+                labels={{ idle: "Reject", loading: "Rejecting…", success: "✓ Rejected" }}
+                className="!rounded-lg !px-2.5 !py-1 !text-xs"
                 onClick={() => handleVerify(v.id, "rejected", "Documentation incomplete")}
-                className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-medium text-white"
-              >
-                Reject
-              </button>
+              />
             </div>
           </li>
         ))}

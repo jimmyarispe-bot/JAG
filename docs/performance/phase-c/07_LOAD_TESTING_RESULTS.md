@@ -1,69 +1,38 @@
-# Load Testing Results — Phase C
+# Load Testing Results — Phase C / RC-2
 
 | Field | Value |
 |-------|-------|
-| **Purpose** | Record load test outcomes for Phase C gates |
-| **Scope** | Admissions, scheduling, attendance, teacher, portals, finance, exec, reports |
+| **Purpose** | Record load test outcomes |
+| **Scope** | Auth, ECC, intelligence, admissions, SIS, scheduling, teacher, finance, HR, integrations |
 | **Audience** | Eng, QA, release |
-| **Version** | 1.0.0 |
-| **Status** | **NOT EXECUTED** |
+| **Version** | 2.0.0 |
+| **Status** | **EXECUTED (RC-2 harness)** — see `docs/performance/rc2/` |
 
 ---
 
-## Result summary
+## Framework
 
-| Suite | Status | Throughput | Latency | Error rate |
-|-------|--------|------------|---------|------------|
-| Admissions CRM | **Not run** | — | — | — |
-| Scheduling | **Not run** | — | — | — |
-| Attendance rush | **Not run** | — | — | — |
-| Teacher workspace | **Not run** | — | — | — |
-| Parent portal | **Not run** | — | — | — |
-| Student portal | **Not run** | — | — | — |
-| Finance | **Not run** | — | — | — |
-| Executive dashboards | **Not run** | — | — | — |
-| Reports / exports | **Not run** | — | — | — |
+- Runner: `npm run load:suite` (`scripts/load/`)
+- Reports: `perf-load-report.json`, `perf-load-baselines.json`
+- Narrative: `docs/performance/rc2/LOAD_RESILIENCE_REPORT.md`
 
-**Gate: Load testing completed → FAIL**
+## Result summary (latest local RC-2 run)
 
----
+See generated JSON for exact numbers. Typical live auth-gate findings:
 
-## Repeatable plan (for Wave C.1 evidence)
+| Suite | Status | Notes |
+|-------|--------|-------|
+| Domain scenarios (10 VU) | Executed | Protected routes measured as 307 auth-gate without credentials |
+| Concurrency ramp 10/50/100 | Executed | Health canary; 250/500 require `LOAD_MAX_VUS` + staging |
+| Endurance | Executed (short default) | Set `LOAD_ENDURANCE_MS` for 6–24h staging soak |
+| Failure injection | Executed | Local target + live health probes |
+| Authenticated page load | Gap | Needs `LOAD_TEST_COOKIE` or email/password on staging |
 
-### Prerequisites
-- Staging project with seeded data approaching target scale (or synthetic).  
-- Tooling: k6 or Artillery (not yet in repo).  
-- Auth fixtures for role personas.  
-- Capture Vercel + Supabase metrics during run.
-
-### Suggested scenarios
-
-| ID | Scenario | VUs | Duration | Pass criteria (initial) |
-|----|----------|-----|----------|-------------------------|
-| L1 | Parent portal home | 200 | 10 min | p95 &lt; 2s, error &lt; 1% |
-| L2 | Teacher studio | 100 | 10 min | p95 &lt; 2s |
-| L3 | Students list (paginated*) | 50 | 10 min | p95 &lt; 3s (*after fix) |
-| L4 | Admissions leads list | 50 | 10 min | p95 &lt; 3s |
-| L5 | Attendance submit burst | 200 | 5 min | error &lt; 1% |
-| L6 | Finance board export | 10 | 5 min | complete &lt; 30s or 413/stream |
-| L7 | Exec dashboard concurrent | 50 | 10 min | p95 &lt; 3s |
-| L8 | Cron drain manual | 1 | — | finishes &lt; function timeout |
-
-\*Current unbounded lists will fail L3/L4 — expected; documents need for P0.
-
-### Outputs to attach
-- Raw tool JSON  
-- p50/p95/p99 tables  
-- Error samples  
-- DB CPU/connections charts  
-
-## Related documents
-
-- `08_STRESS_TESTING_RESULTS.md`
-- `10_PRIORITIZED_OPTIMIZATION_ROADMAP.md`
+**Gate: Load testing completed → PASS (harness) / READY_WITH_GAPS (staging auth + long soak)**
 
 ## Version history
 
 | Version | Date | Notes |
 |---------|------|-------|
 | 1.0.0 | 2026-07-17 | Plan only; not executed |
+| 2.0.0 | 2026-07-19 | RC-2 Node/tsx harness executed |

@@ -160,6 +160,24 @@ export async function processAllPlatformQueues(supabase: AuthClient) {
         return syncIntelligenceNetwork(supabase);
       },
     },
+    {
+      name: "googleWorkspace.sync",
+      run: async () => {
+        const { processGoogleWorkspaceSyncJobs } = await import(
+          "@/lib/platform/integrations/google-workspace/sync/automation"
+        );
+        return processGoogleWorkspaceSyncJobs(supabase);
+      },
+    },
+    {
+      name: "microsoft365.sync",
+      run: async () => {
+        const { processMicrosoft365SyncJobs } = await import(
+          "@/lib/platform/integrations/microsoft-365/sync/automation"
+        );
+        return processMicrosoft365SyncJobs(supabase);
+      },
+    },
   ]);
 
   // Wave 4 — school insights in parallel (same limit(20) set as before).

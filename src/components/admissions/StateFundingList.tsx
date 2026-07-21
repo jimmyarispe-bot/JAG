@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
 import { saveStateFundingAward } from "@/lib/admissions/sprint15-actions";
 import { VERIFICATION_STATUS_LABELS } from "@/lib/constants/admissions-portal";
 import type { FundingProgram, StateFundingAward } from "@/lib/admissions/state-funding";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface StateFundingListProps {
   awards: StateFundingAward[];
@@ -11,7 +12,13 @@ interface StateFundingListProps {
 }
 
 export function StateFundingList({ awards, programs }: StateFundingListProps) {
-  const [isPending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "save",
+    labels: { idle: "Save Award", loading: "Saving…", success: "✓ Saved" },
+    successToast: "✓ Changes saved.",
+    errorToast: "Unable to save.",
+    progressLabel: "Saving state funding award…",
+  });
 
   if (awards.length === 0) {
     return (
@@ -47,8 +54,10 @@ export function StateFundingList({ awards, programs }: StateFundingListProps) {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
                 fd.set("id", award.id);
-                startTransition(async () => {
-                  await saveStateFundingAward(fd);
+                void action.run(async () => {
+                  const result = await saveStateFundingAward(fd);
+                  assertActionResult(result);
+                  return result;
                 });
               }}
             >
@@ -82,13 +91,13 @@ export function StateFundingList({ awards, programs }: StateFundingListProps) {
                 <input name="notes" defaultValue={award.notes ?? ""} className={inputClass} />
               </Field>
               <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
-                <button
+                <ActionButton
                   type="submit"
-                  disabled={isPending}
-                  className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-                >
-                  {isPending ? "Saving…" : "Save Award"}
-                </button>
+                  status={action.status}
+                  verb="save"
+                  labels={{ idle: "Save Award", loading: "Saving…", success: "✓ Saved" }}
+                  errorMessage={action.errorMessage}
+                />
               </div>
             </form>
           </article>

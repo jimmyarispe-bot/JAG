@@ -1,2 +1,5 @@
-export { bambooHrMetadata } from "./metadata";
-export { createVendorConnector as createBambooHrConnector } from "../create-vendor-connector";
+/** Compatibility shim — prefer `@/lib/platform/integrations/connectors/hr`. */
+export {
+  bambooHrMetadata,
+  createBambooHrPlatformConnector,
+} from "@/lib/platform/integrations/connectors/hr";

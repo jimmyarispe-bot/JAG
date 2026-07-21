@@ -100,7 +100,8 @@ const PIPELINE_ORDER = [
   "impact",
   "economic",
   "competitive",
-  "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom",
+  "political", "environmental", "stakeholder", "reputation", "behavioral", "cultural", "ethical", "systems", "resilience", "ecosystem", "institutional-memory", "collective", "wisdom", "synthesis", "briefing", "executive-memory", "decision-intelligence", "executive-predictive", "executive-autonomous", "executive-copilot", "executive-command-center", "initiative-intelligence", "portfolio-intelligence", "digital-twin",
+"ecosystem-intelligence",
 ];
 
 describe("Document Intelligence (Sprint 041)", () => {
@@ -360,9 +361,19 @@ describe("Document Intelligence (Sprint 041)", () => {
     });
     expect(result.status).toBe("completed");
     expect(result.moduleOrder).toEqual(PIPELINE_ORDER);
-    expect(result.moduleOrder.at(-3)).toBe("institutional-memory");
-    expect(result.moduleOrder.at(-2)).toBe("collective");
-    expect(result.moduleOrder.at(-1)).toBe("wisdom");
+    expect(result.moduleOrder.at(-13)).toBe("wisdom");
+    expect(result.moduleOrder.at(-12)).toBe("synthesis");
+    expect(result.moduleOrder.at(-11)).toBe("briefing");
+    expect(result.moduleOrder.at(-10)).toBe("executive-memory");
+    expect(result.moduleOrder.at(-9)).toBe("decision-intelligence");
+    expect(result.moduleOrder.at(-8)).toBe("executive-predictive");
+    expect(result.moduleOrder.at(-7)).toBe("executive-autonomous");
+    expect(result.moduleOrder.at(-6)).toBe("executive-copilot");
+    expect(result.moduleOrder.at(-5)).toBe("executive-command-center");
+    expect(result.moduleOrder.at(-4)).toBe("initiative-intelligence");
+    expect(result.moduleOrder.at(-3)).toBe("portfolio-intelligence");
+    expect(result.moduleOrder.at(-2)).toBe("digital-twin");
+    expect(result.moduleOrder.at(-1)).toBe("ecosystem-intelligence");
     expect(result.results.every((item) => item.ok)).toBe(true);
   });
 });

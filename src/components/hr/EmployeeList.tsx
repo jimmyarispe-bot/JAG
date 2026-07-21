@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { EmployeeRecord } from "@/lib/hr/types";
+import { ActionChip } from "@/components/ui/cta";
 
 interface EmployeeListProps {
   employees: EmployeeRecord[];
@@ -31,7 +31,9 @@ export function EmployeeList({ employees }: EmployeeListProps) {
             return (
               <tr key={e.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium">
-                  <Link href={`/dashboard/hr/employees/${e.id}`} className="text-brand-700 hover:underline">{name}</Link>
+                  <ActionChip href={`/dashboard/hr/employees/${e.id}`} size="xs" variant="ghost">
+                    {name}
+                  </ActionChip>
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-600">{profile?.job_title ?? "—"}</td>
                 <td className="px-4 py-3 text-sm capitalize text-slate-600">{e.employee_type}</td>

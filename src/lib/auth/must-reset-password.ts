@@ -36,10 +36,15 @@ const PUBLIC_API_PATHS = new Set([
   "/api/certification/reports",
   "/api/health",
   "/api/ready",
+  // Deep ready stays public at the edge so CRON_SECRET bearer works without a
+  // browser session; the route itself requires cron or ops authorization.
+  "/api/ready/deep",
+  "/api/observability/rum",
 ]);
 
 export function isPublicApiPath(pathname: string): boolean {
-  return PUBLIC_API_PATHS.has(pathname);
+  if (PUBLIC_API_PATHS.has(pathname)) return true;
+  return false;
 }
 
 export function isPasswordResetExemptPath(pathname: string): boolean {

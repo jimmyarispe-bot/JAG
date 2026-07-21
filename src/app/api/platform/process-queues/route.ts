@@ -3,11 +3,13 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 import { processAllPlatformQueues } from "@/lib/platform/automation/process-queues";
 import { guardApiRoute } from "@/lib/platform/identity/api-guard";
 
+import { authorizeBearerSecret } from "@/lib/security/timing-safe";
+
 async function authorizeCron(req: Request): Promise<boolean> {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const auth = req.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
+  return authorizeBearerSecret(
+    req.headers.get("authorization"),
+    process.env.CRON_SECRET
+  );
 }
 
 export async function POST(req: Request) {

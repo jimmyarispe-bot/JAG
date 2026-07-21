@@ -1,14 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
 import { createLead } from "@/lib/admissions/actions";
 import { GRADES } from "@/lib/constants/grades";
 import { PROGRAMS } from "@/lib/constants/programs";
 import { FundingSourceCheckboxes } from "@/components/ui/FundingSourceCheckboxes";
 import { FormField } from "@/components/experience-system/forms";
-import { ErrorBanner } from "@/components/experience-system/feedback";
-import { useAnnounce } from "@/components/experience-system/feedback/LiveAnnouncer";
+import { ActionButton, ErrorBanner, useActionFeedback } from "@/components/experience-system/feedback";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 
 interface LeadFormProps {
   schools: { id: string; name: string }[];
@@ -19,24 +18,25 @@ const inputClass =
 
 export function LeadForm({ schools }: LeadFormProps) {
   const router = useRouter();
-  const announce = useAnnounce();
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const action = useActionFeedback({
+    verb: "create",
+    labels: { idle: "Create Lead" },
+    successToast: "✓ Created",
+    errorToast: "Unable to create.",
+    progressLabel: "Creating lead…",
+  });
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
     const formData = new FormData(e.currentTarget);
 
-    startTransition(async () => {
+    void action.run(async () => {
       const result = await createLead(formData);
-      if (result.error) {
-        setError(result.error);
-        announce(result.error, "assertive");
-        return;
+      assertActionResult(result);
+      if (result.id) {
+        router.push(`/dashboard/admissions/leads/${result.id}`);
       }
-      announce("Lead created successfully.", "polite");
-      router.push(`/dashboard/admissions/leads/${result.id}`);
+      return result;
     });
   }
 
@@ -47,7 +47,9 @@ export function LeadForm({ schools }: LeadFormProps) {
       aria-label="Create admissions lead"
       noValidate
     >
-      {error && <ErrorBanner message={error} title="Could not create lead" />}
+      {action.errorMessage && (
+        <ErrorBanner message={action.errorMessage} title="Could not create lead" />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="First Name" htmlFor="first_name" required>
@@ -143,14 +145,13 @@ export function LeadForm({ schools }: LeadFormProps) {
         >
           Cancel
         </button>
-        <button
+        <ActionButton
           type="submit"
-          disabled={isPending}
-          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-          aria-busy={isPending}
-        >
-          {isPending ? "Creating…" : "Create Lead"}
-        </button>
+          status={action.status}
+          verb="create"
+          labels={{ idle: "Create Lead" }}
+          errorMessage={action.errorMessage}
+        />
       </div>
     </form>
   );

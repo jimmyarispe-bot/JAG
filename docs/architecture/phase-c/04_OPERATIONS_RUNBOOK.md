@@ -25,7 +25,7 @@
 | Probe | Path | Expect |
 |-------|------|--------|
 | Liveness | `GET /api/health` | `{"status":"ok"}` |
-| Readiness | `GET /api/ready` | `{"status":"ready"}`; production also requires `CRON_SECRET`, `VAULT_ENCRYPTION_KEY`, `SENDGRID_API_KEY`, `NEXT_PUBLIC_APP_URL` |
+| Readiness | `GET /api/ready` | `{"status":"ready"}`; production also requires `CRON_SECRET`, `VAULT_ENCRYPTION_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_APP_URL` |
 
 ---
 

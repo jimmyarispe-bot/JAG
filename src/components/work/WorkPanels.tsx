@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useTransition } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { ActionChip, ActionChipGroup } from "@/components/experience-system/feedback/ActionChip";
+import { assertActionResult } from "@/components/experience-system/feedback/runMutation";
 import { completeTaskAction } from "@/lib/work/actions";
 import type { WorkTask, WorkloadBucket, MyWorkSummary } from "@/lib/work/types";
 
@@ -11,11 +12,19 @@ interface MyWorkPanelProps {
 }
 
 export function MyWorkPanel({ summary, workload }: MyWorkPanelProps) {
-  const [pending, startTransition] = useTransition();
+  const action = useActionFeedback({
+    verb: "custom",
+    labels: { idle: "Done", loading: "Completing…", success: "✓ Done", error: "Unable to complete" },
+    successToast: "✓ Task completed.",
+    errorToast: "Unable to complete task.",
+    progressLabel: "Completing task…",
+  });
 
   function complete(id: string) {
-    startTransition(async () => {
-      await completeTaskAction(id);
+    void action.run(async () => {
+      const result = await completeTaskAction(id);
+      assertActionResult(result);
+      return result ?? { success: true };
     });
   }
 
@@ -30,9 +39,9 @@ export function MyWorkPanel({ summary, workload }: MyWorkPanelProps) {
         <Stat label="Mission Control" value={summary.missionControlAlerts} />
       </section>
 
-      <TaskSection title="Today" tasks={workload.today} pending={pending} onComplete={complete} />
-      <TaskSection title="Overdue" tasks={workload.overdue} pending={pending} onComplete={complete} tone="rose" />
-      <TaskSection title="This week" tasks={workload.thisWeek} pending={pending} onComplete={complete} />
+      <TaskSection title="Today" tasks={workload.today} busy={action.isBusy} status={action.status} errorMessage={action.errorMessage} onComplete={complete} />
+      <TaskSection title="Overdue" tasks={workload.overdue} busy={action.isBusy} status={action.status} errorMessage={action.errorMessage} onComplete={complete} tone="rose" />
+      <TaskSection title="This week" tasks={workload.thisWeek} busy={action.isBusy} status={action.status} errorMessage={action.errorMessage} onComplete={complete} />
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <h3 className="font-semibold">Active projects</h3>
@@ -65,13 +74,17 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: "ro
 function TaskSection({
   title,
   tasks,
-  pending,
+  busy,
+  status,
+  errorMessage,
   onComplete,
   tone,
 }: {
   title: string;
   tasks: WorkTask[];
-  pending: boolean;
+  busy: boolean;
+  status: "idle" | "loading" | "processing" | "success" | "error";
+  errorMessage: string | null;
   onComplete: (id: string) => void;
   tone?: "rose";
 }) {
@@ -86,17 +99,22 @@ function TaskSection({
               <p className="font-medium">{t.title}</p>
               <p className="text-xs text-slate-500">{t.due_date ?? "No due date"} · {t.status.replace(/_/g, " ")}</p>
             </div>
-            <div className="flex gap-2">
-              <Link href={`/dashboard/tasks?id=${t.id}`} className="text-xs text-brand-600 hover:underline">Open</Link>
-              <button
+            <ActionChipGroup>
+              <ActionChip href={`/dashboard/tasks?id=${t.id}`} size="xs">
+                Open
+              </ActionChip>
+              <ActionButton
                 type="button"
-                disabled={pending}
+                status={busy || status !== "idle" ? status : "idle"}
+                verb="custom"
+                variant="success"
+                size="xs"
+                labels={{ idle: "Done", loading: "…", success: "✓", error: "Failed" }}
+                errorMessage={errorMessage}
+                disabled={busy}
                 onClick={() => onComplete(t.id)}
-                className="text-xs text-emerald-700 hover:underline disabled:opacity-50"
-              >
-                Done
-              </button>
-            </div>
+              />
+            </ActionChipGroup>
           </li>
         ))}
       </ul>
