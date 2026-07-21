@@ -139,7 +139,7 @@ export function InvoiceLifecycleActions({
         onClose={() => setDeleteOpen(false)}
         archiveLabel="Archive Invoice"
         deleteLabel="Delete Invoice"
-        onArchiveInstead={async () => {
+        onArchiveInstead={async (_ctx) => {
           const result = await archiveInvoiceAction(invoiceId);
           if ("error" in result && result.error) return { ok: false, error: result.error };
           toast.success("Invoice archived.");

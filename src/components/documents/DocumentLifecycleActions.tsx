@@ -113,7 +113,7 @@ export function DocumentLifecycleActions({
       onClose={() => setDeleteOpen(false)}
       archiveLabel="Archive Document"
       deleteLabel="Delete Document"
-      onArchiveInstead={async () => {
+      onArchiveInstead={async (_ctx) => {
         const result = await archiveDocumentAction(documentId);
         if ("error" in result && result.error) return { ok: false, error: result.error };
         toast.success("Document archived.");

@@ -79,7 +79,7 @@ export function WorkflowLifecycleActions({
       onClose={() => setDeleteOpen(false)}
       archiveLabel="Archive Workflow"
       deleteLabel="Delete Workflow"
-      onArchiveInstead={async () => {
+      onArchiveInstead={async (_ctx) => {
         const result = await archiveWorkflowAction(workflowId);
         if ("error" in result && result.error) return { ok: false, error: result.error };
         toast.success("Workflow archived.");

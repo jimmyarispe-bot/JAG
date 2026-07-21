@@ -23,8 +23,10 @@ export interface DestructiveConfirmDialogProps {
     confirmationText: string;
     acknowledged: boolean;
   }) => Promise<{ ok: boolean; error?: string; code?: string }>;
-  /** When deps block delete */
-  onArchiveInstead?: () => Promise<{ ok: boolean; error?: string }>;
+  /** When deps block delete — receives the loaded context (verified entity id). */
+  onArchiveInstead?: (
+    context: DeleteContext
+  ) => Promise<{ ok: boolean; error?: string }>;
   archiveLabel?: string;
   deleteLabel?: string;
   entityLabel?: string;
@@ -205,7 +207,7 @@ export function DestructiveConfirmDialog({
           <button type="button" className={crudBtn.secondary} onClick={onClose} disabled={pending}>
             Cancel
           </button>
-          {blocked && onArchiveInstead ? (
+          {blocked && onArchiveInstead && context ? (
             <button
               type="button"
               disabled={pending}
@@ -213,7 +215,7 @@ export function DestructiveConfirmDialog({
               onClick={() =>
                 startTransition(async () => {
                   setError(null);
-                  const result = await onArchiveInstead();
+                  const result = await onArchiveInstead(context);
                   if (!result.ok) {
                     setError(result.error ?? "Unable to archive");
                     return;

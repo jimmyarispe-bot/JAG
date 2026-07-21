@@ -89,11 +89,15 @@ describe("archiveStudent / restoreStudent", () => {
     const updates: Record<string, unknown>[] = [];
     const supabase = createMockSupabase(({ table, operation, payload }) => {
       if (table === "students" && operation === "maybeSingle") {
+        // loadStudent: no patch; applyStudentUpdate: patch present
+        if (payload && typeof payload === "object" && "status" in (payload as object)) {
+          updates.push(payload as Record<string, unknown>);
+          return {
+            data: { id: TEST_UUIDS.student },
+            error: null,
+          };
+        }
         return { data: studentRow(), error: null };
-      }
-      if (table === "students" && operation === "update") {
-        updates.push(payload as Record<string, unknown>);
-        return { data: null, error: null };
       }
       return { data: null, error: null };
     });
@@ -117,18 +121,71 @@ describe("archiveStudent / restoreStudent", () => {
     );
   });
 
+  it("surfaces DB errors instead of Student not found", async () => {
+    const supabase = createMockSupabase(({ table, operation }) => {
+      if (table === "students" && operation === "maybeSingle") {
+        return {
+          data: null,
+          error: { message: "column students.previous_status does not exist" },
+        };
+      }
+      return { data: null, error: null };
+    });
+
+    const result = await archiveStudent(supabase, {
+      studentId: TEST_UUIDS.student,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe("failed");
+      expect(result.error).toMatch(/Unable to load student|previous_status/i);
+      expect(result.error).not.toBe("Student not found");
+    }
+  });
+
+  it("accepts non-RFC UUID-shaped ids (no version/variant gate)", async () => {
+    // UUID v7-style version nibble — previously rejected by RFC [1-5]/[89ab] regex
+    const v7 = "018f3c2a-7b6e-7c3d-9e1a-2b4c6d8e0f12";
+    const updates: Record<string, unknown>[] = [];
+    const supabase = createMockSupabase(({ table, operation, payload }) => {
+      if (table === "students" && operation === "maybeSingle") {
+        if (payload && typeof payload === "object" && "status" in (payload as object)) {
+          updates.push(payload as Record<string, unknown>);
+          return { data: { id: v7 }, error: null };
+        }
+        return { data: studentRow({ id: v7 }), error: null };
+      }
+      return { data: null, error: null };
+    });
+
+    const result = await archiveStudent(supabase, { studentId: v7 });
+    expect(result.ok).toBe(true);
+    expect(updates[0]).toMatchObject({ status: "archived" });
+  });
+
+  it("reports empty studentId clearly without querying", async () => {
+    const supabase = createMockSupabase(() => {
+      throw new Error("should not query");
+    });
+    const result = await archiveStudent(supabase, { studentId: "   " });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/missing student id/i);
+    }
+  });
+
   it("restore succeeds for archived student", async () => {
     const updates: Record<string, unknown>[] = [];
     const supabase = createMockSupabase(({ table, operation, payload }) => {
       if (table === "students" && operation === "maybeSingle") {
+        if (payload && typeof payload === "object" && "status" in (payload as object)) {
+          updates.push(payload as Record<string, unknown>);
+          return { data: { id: TEST_UUIDS.student }, error: null };
+        }
         return {
           data: studentRow({ status: "archived", previous_status: "active" }),
           error: null,
         };
-      }
-      if (table === "students" && operation === "update") {
-        updates.push(payload as Record<string, unknown>);
-        return { data: null, error: null };
       }
       return { data: null, error: null };
     });

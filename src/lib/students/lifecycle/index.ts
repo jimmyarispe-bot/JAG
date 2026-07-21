@@ -5,6 +5,8 @@ export {
   getStudentDependencyReport,
   getStudentImportOrigin,
   isArchivedStatus,
+  coerceStudentId,
+  loadStudent,
 } from "./service";
 export {
   canManageStudentLifecycle,

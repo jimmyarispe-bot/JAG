@@ -127,8 +127,10 @@ export function StudentLifecycleActions({
       onClose={() => setDeleteOpen(false)}
       archiveLabel="Archive Student"
       deleteLabel="Delete Student"
-      onArchiveInstead={async () => {
-        const result = await archiveStudentAction({ studentId });
+      onArchiveInstead={async (ctx) => {
+        // Use the verified UUID from delete-context load (never a display/student_number).
+        const archiveId = ctx.entityId || studentId;
+        const result = await archiveStudentAction({ studentId: archiveId });
         if (!result.ok) return { ok: false, error: result.error };
         toast.success("Student archived.");
         router.refresh();

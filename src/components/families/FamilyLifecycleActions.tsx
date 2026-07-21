@@ -110,7 +110,7 @@ export function FamilyLifecycleActions({
       onClose={() => setDeleteOpen(false)}
       archiveLabel="Archive Family"
       deleteLabel="Delete Family"
-      onArchiveInstead={async () => {
+      onArchiveInstead={async (_ctx) => {
         const result = await archiveFamilyAction({ familyId });
         if (!result.ok) return { ok: false, error: result.error };
         toast.success("Family archived.");

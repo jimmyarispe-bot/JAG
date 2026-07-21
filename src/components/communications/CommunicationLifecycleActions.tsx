@@ -127,7 +127,7 @@ export function CommunicationLifecycleActions({
       onClose={() => setDeleteOpen(false)}
       archiveLabel="Archive Communication"
       deleteLabel="Delete Communication"
-      onArchiveInstead={async () => {
+      onArchiveInstead={async (_ctx) => {
         const result = await archiveCommunicationAction(communicationId);
         if ("error" in result && result.error) return { ok: false, error: result.error };
         toast.success("Communication archived.");
