@@ -299,7 +299,7 @@ describe("deleteStudent dependency gates", () => {
     }
   });
 
-  it("delete succeeds with no dependencies", async () => {
+  it("delete succeeds with no dependencies only when exactly one row is removed", async () => {
     let deleted = false;
     const supabase = createMockSupabase(({ table, operation }) => {
       if (table === "students" && operation === "maybeSingle") {
@@ -307,7 +307,7 @@ describe("deleteStudent dependency gates", () => {
       }
       if (table === "students" && operation === "delete") {
         deleted = true;
-        return { data: null, error: null };
+        return { data: [{ id: TEST_UUIDS.student }], error: null };
       }
       return { data: null, error: null, count: 0 };
     });
@@ -327,6 +327,33 @@ describe("deleteStudent dependency gates", () => {
         payload: expect.objectContaining({ confirmed: true, dependenciesChecked: true }),
       })
     );
+  });
+
+  it("treats a zero-row delete (RLS / no match) as failure", async () => {
+    const supabase = createMockSupabase(({ table, operation }) => {
+      if (table === "students" && operation === "maybeSingle") {
+        return { data: studentRow({ family_id: null }), error: null };
+      }
+      if (table === "students" && operation === "delete") {
+        // PostgREST/RLS shape: error null, empty returning set
+        return { data: [], error: null };
+      }
+      return { data: null, error: null, count: 0 };
+    });
+
+    const result = await deleteStudent(supabase, {
+      studentId: TEST_UUIDS.student,
+      confirmationText: "DELETE",
+      acknowledged: true,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe("delete_failed");
+      expect(result.error).toBe(
+        "Student could not be deleted because no row was deleted."
+      );
+    }
   });
 
   it("requires confirmation checkbox and DELETE text", async () => {

@@ -47,7 +47,8 @@ export type LifecycleResult =
         | "confirmation_required"
         | "already_archived"
         | "not_archived"
-        | "failed";
+        | "failed"
+        | "delete_failed";
       dependencies?: StudentDependencyReport;
       suggestArchive?: boolean;
     };

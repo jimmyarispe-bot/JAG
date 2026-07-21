@@ -7,7 +7,7 @@
 create table if not exists public.jag_insights (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete set null,
   category text not null
     check (category in (
@@ -49,7 +49,7 @@ create index if not exists idx_jag_insights_category
 
 create table if not exists public.jag_decision_feedback (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   insight_id uuid references public.jag_insights(id) on delete set null,
   founder_decision_id uuid,
   outcome text not null
@@ -68,7 +68,7 @@ create index if not exists idx_jag_decision_feedback_insight
 
 create table if not exists public.jag_knowledge_edges (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete set null,
   source_type text not null,
   source_id text not null,
@@ -90,7 +90,7 @@ create index if not exists idx_jag_knowledge_edges_target
 
 create table if not exists public.jag_context_snapshots (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete set null,
   context jsonb not null default '{}'::jsonb,
   captured_at timestamptz not null default now()
@@ -117,7 +117,7 @@ create table if not exists public.jag_prompt_registry (
 
 create table if not exists public.jag_pipeline_metrics (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   pipeline_run_id uuid not null,
   stage text not null,
   duration_ms integer not null default 0,
@@ -132,7 +132,7 @@ create index if not exists idx_jag_pipeline_metrics_run
 
 create table if not exists public.jag_learning_records (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   insight_id uuid references public.jag_insights(id) on delete set null,
   recommendation_id text,
   accepted boolean,

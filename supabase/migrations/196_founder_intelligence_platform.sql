@@ -8,7 +8,7 @@
 create table if not exists public.founder_insights (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete set null,
   insight_type text not null
     check (insight_type in (
@@ -53,7 +53,7 @@ create index if not exists idx_founder_insights_severity
 create table if not exists public.founder_decisions (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete set null,
   insight_id uuid references public.founder_insights(id) on delete set null,
   title text not null,
@@ -84,7 +84,7 @@ create index if not exists idx_founder_decisions_org
 create table if not exists public.founder_memory_items (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete set null,
   memory_type text not null
     check (memory_type in (
@@ -109,7 +109,7 @@ create index if not exists idx_founder_memory_org
 
 create table if not exists public.founder_health_snapshots (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete set null,
   domain text not null,
   score numeric(5, 2) not null,

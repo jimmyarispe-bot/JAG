@@ -7,7 +7,7 @@
 create table if not exists public.platform_workflows (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete cascade,
   name text not null,
   description text not null default '',
@@ -48,7 +48,7 @@ create index if not exists idx_platform_workflows_category
 create table if not exists public.platform_workflow_executions (
   id uuid primary key default gen_random_uuid(),
   workflow_id uuid not null references public.platform_workflows(id) on delete cascade,
-  organization_id uuid references public.organizations(id) on delete set null,
+  organization_id uuid references public.org_organizations(id) on delete set null,
   school_id uuid references public.schools(id) on delete set null,
   trigger_key text not null,
   trigger_event_id text,

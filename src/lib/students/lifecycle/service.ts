@@ -402,8 +402,23 @@ export async function deleteStudent(
     // best-effort
   }
 
-  const { error } = await supabase.from("students").delete().eq("id", student.id);
+  // Require a returning row — RLS zero-row deletes return error=null and must not count as success.
+  const { data: deletedRows, error } = await supabase
+    .from("students")
+    .delete()
+    .eq("id", student.id)
+    .select("id");
+
   if (error) return { ok: false, error: error.message, code: "failed" };
+
+  const removed = Array.isArray(deletedRows) ? deletedRows.length : deletedRows ? 1 : 0;
+  if (removed !== 1) {
+    return {
+      ok: false,
+      code: "delete_failed",
+      error: "Student could not be deleted because no row was deleted.",
+    };
+  }
 
   return { ok: true, studentId: student.id, message: "Student deleted successfully." };
 }

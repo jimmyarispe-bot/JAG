@@ -57,7 +57,7 @@ alter table public.invoices
 create table if not exists public.billing_discount_rules (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete set null,
+  organization_id uuid references public.org_organizations(id) on delete set null,
   school_id uuid references public.schools(id) on delete set null,
   name text not null,
   description text not null default '',
@@ -122,7 +122,7 @@ create index if not exists idx_payment_plan_installments_due
 create table if not exists public.billing_refunds (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete set null,
+  organization_id uuid references public.org_organizations(id) on delete set null,
   school_id uuid references public.schools(id) on delete set null,
   billing_account_id uuid not null references public.family_billing_accounts(id) on delete cascade,
   invoice_id uuid references public.invoices(id) on delete set null,
@@ -158,7 +158,7 @@ create index if not exists idx_billing_refunds_status
 create table if not exists public.billing_aging_snapshots (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
-  organization_id uuid references public.organizations(id) on delete set null,
+  organization_id uuid references public.org_organizations(id) on delete set null,
   as_of_date date not null default current_date,
   current_amount numeric(14, 2) not null default 0,
   days_30 numeric(14, 2) not null default 0,

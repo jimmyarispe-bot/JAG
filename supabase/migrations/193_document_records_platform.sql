@@ -7,7 +7,7 @@
 create table if not exists public.platform_documents (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete set null,
+  organization_id uuid references public.org_organizations(id) on delete set null,
   school_id uuid references public.schools(id) on delete set null,
   title text not null,
   description text not null default '',
@@ -96,7 +96,7 @@ create index if not exists idx_platform_document_relations_doc
 create table if not exists public.platform_document_templates (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete set null,
+  organization_id uuid references public.org_organizations(id) on delete set null,
   school_id uuid references public.schools(id) on delete set null,
   name text not null,
   description text not null default '',
@@ -134,7 +134,7 @@ select
   t.category,
   t.template_key,
   t.body_text
-from public.organizations o
+from public.org_organizations o
 cross join (
   values
     ('Enrollment Agreement', 'Standard enrollment agreement', 'enrollment', 'enrollment_agreement', 'Enrollment Agreement for {{StudentName}}'),

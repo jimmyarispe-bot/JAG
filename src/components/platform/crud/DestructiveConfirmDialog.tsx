@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useFocusTrap } from "@/components/experience-system/interaction";
 import {
   DELETE_CONFIRMATION_TOKEN,
@@ -54,12 +55,17 @@ export function DestructiveConfirmDialog({
   useFocusTrap(open, dialogRef);
   const titleId = useId();
   const [pending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [context, setContext] = useState<DeleteContext | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -95,21 +101,21 @@ export function DestructiveConfirmDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   const deps: DependencyReport | null = context?.dependencies ?? null;
   const blocked = Boolean(deps && (!deps.canDelete || deps.blocking.length > 0));
   const canSubmit =
     acknowledged && confirmationText === DELETE_CONFIRMATION_TOKEN && !pending && !blocked;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+        className="max-h-[min(90vh,calc(100vh-2rem))] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
       >
         <h2 id={titleId} className="text-lg font-semibold text-slate-900">
           {title}
@@ -251,6 +257,7 @@ export function DestructiveConfirmDialog({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

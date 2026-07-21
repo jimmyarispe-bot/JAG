@@ -8,7 +8,7 @@
 create table if not exists public.platform_communications (
   id uuid primary key default gen_random_uuid(),
   audit_id uuid not null unique default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete set null,
+  organization_id uuid references public.org_organizations(id) on delete set null,
   school_id uuid references public.schools(id) on delete set null,
   type text not null
     check (type in ('email', 'sms', 'portal', 'call', 'meeting', 'announcement', 'notification', 'reminder')),
@@ -104,7 +104,7 @@ create index if not exists idx_platform_comm_attachments_comm
 -- Templates
 create table if not exists public.platform_communication_templates (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete cascade,
   template_key text not null,
   name text not null,
@@ -133,7 +133,7 @@ alter table public.platform_communications
 -- Announcements
 create table if not exists public.platform_announcements (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete cascade,
+  organization_id uuid references public.org_organizations(id) on delete cascade,
   school_id uuid references public.schools(id) on delete cascade,
   title text not null,
   body_text text not null default '',
