@@ -48,14 +48,23 @@ export const ENV_VAR_DEFINITIONS: readonly EnvVarDefinition[] = [
     optionalIn: ["development"],
   },
   {
+    name: "EMAIL_FROM",
+    description:
+      "Default From address for outbound email (verified domain; default noreply@theacademyway.org)",
+    requiredIn: [],
+    optionalIn: ["development", "preview", "production"],
+  },
+  {
     name: "RESEND_FROM_EMAIL",
-    description: "Default From address for Resend messages (verified domain)",
+    description:
+      "Legacy alias for EMAIL_FROM (prefer EMAIL_FROM; verified Resend domain)",
     requiredIn: [],
     optionalIn: ["development", "preview", "production"],
   },
   {
     name: "RESEND_FROM_NAME",
-    description: "Default From display name for Resend messages",
+    description:
+      "Default From display name for outbound email (default: The Academy Way)",
     requiredIn: [],
     optionalIn: ["development", "preview", "production"],
   },

@@ -29,7 +29,7 @@ export async function sendPasswordResetEmail(input: {
   return sendTransactionalEmail({
     kind: "password_reset",
     to: input.to,
-    subject: "Reset your AcademyOS password",
+    subject: "Reset your password",
     body: `${greeting}\n\nA password reset was requested for your account.\n\n<a href="${input.resetLink}">Reset password</a>\n\nIf you did not expect this, contact your administrator.`,
   });
 }
@@ -40,7 +40,7 @@ export async function sendInvitationEmail(input: {
   recipientName?: string;
   organizationName?: string;
 }): Promise<EmailDeliveryResult> {
-  const org = input.organizationName?.trim() || "AcademyOS";
+  const org = input.organizationName?.trim() || "The Academy Way";
   const greeting = input.recipientName ? `Hi ${input.recipientName},` : "Hello,";
   return sendTransactionalEmail({
     kind: "invitation",
@@ -56,7 +56,7 @@ export async function sendWelcomeEmail(input: {
   recipientName?: string;
   organizationName?: string;
 }): Promise<EmailDeliveryResult> {
-  const org = input.organizationName?.trim() || "AcademyOS";
+  const org = input.organizationName?.trim() || "The Academy Way";
   const greeting = input.recipientName ? `Hi ${input.recipientName},` : "Hello,";
   return sendTransactionalEmail({
     kind: "welcome",

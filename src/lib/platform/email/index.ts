@@ -16,3 +16,10 @@ export {
   sendVerificationEmail,
   sendSystemNotificationEmail,
 } from "@/lib/platform/email/send";
+
+export {
+  DEFAULT_EMAIL_FROM,
+  DEFAULT_EMAIL_FROM_NAME,
+  resolveEmailFrom,
+  resolveEmailFromName,
+} from "@/lib/platform/email/from";

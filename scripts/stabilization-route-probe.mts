@@ -4,7 +4,7 @@
  *   npx tsx scripts/stabilization-route-probe.mts
  *
  * Reads from process env or .env.local (values are never logged):
- *   STABILIZATION_EMAIL (defaults to jimmy@academyos.org)
+ *   STABILIZATION_EMAIL (defaults to jimmy@theacademyway.org)
  *   STABILIZATION_PASSWORD (optional if SUPABASE_SERVICE_ROLE_KEY is set — uses magic link)
  *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (applies FOUNDER role before probe)
  */
@@ -37,7 +37,7 @@ function loadLocalEnvVar(name: string): string {
 }
 
 const BASE = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
-const EMAIL = loadLocalEnvVar("STABILIZATION_EMAIL") || "jimmy@academyos.org";
+const EMAIL = loadLocalEnvVar("STABILIZATION_EMAIL") || "jimmy@theacademyway.org";
 const PASSWORD = loadLocalEnvVar("STABILIZATION_PASSWORD");
 const SUPABASE_URL = loadLocalEnvVar("NEXT_PUBLIC_SUPABASE_URL");
 const SERVICE_ROLE_KEY = loadLocalEnvVar("SUPABASE_SERVICE_ROLE_KEY");

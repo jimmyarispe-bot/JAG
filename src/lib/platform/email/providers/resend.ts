@@ -1,4 +1,8 @@
 import { Resend } from "resend";
+import {
+  resolveEmailFrom,
+  resolveEmailFromName,
+} from "@/lib/platform/email/from";
 import type {
   EmailDeliveryResult,
   EmailProvider,
@@ -30,14 +34,8 @@ export function createResendEmailProvider(apiKey: string): EmailProvider {
         return { success: false, provider: "resend", error: "Invalid recipient email" };
       }
 
-      const fromEmail =
-        params.from?.trim() ||
-        process.env.RESEND_FROM_EMAIL?.trim() ||
-        "noreply@academyos.org";
-      const fromName =
-        params.fromName?.trim() ||
-        process.env.RESEND_FROM_NAME?.trim() ||
-        "AcademyOS";
+      const fromEmail = resolveEmailFrom(params.from);
+      const fromName = resolveEmailFromName(params.fromName);
 
       try {
         const { data, error } = await client.emails.send({

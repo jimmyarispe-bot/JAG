@@ -347,7 +347,7 @@ set owner_user_id = coalesce(
   (
     select u.id
     from public.users u
-    where lower(u.email) = 'jimmy@academyos.org'
+    where lower(u.email) = 'jimmy@theacademyway.org'
     limit 1
   )
 )

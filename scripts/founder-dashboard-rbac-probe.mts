@@ -1,5 +1,5 @@
 /**
- * Diagnose Founder Dashboard RBAC for a seeded user (default: jimmy@academyos.org).
+ * Diagnose Founder Dashboard RBAC for a seeded user (default: jimmy@theacademyway.org).
  *
  * Usage:
  *   npx tsx scripts/founder-dashboard-rbac-probe.mts
@@ -43,7 +43,7 @@ function loadLocalEnvVar(name: string): string {
   return "";
 }
 
-const EMAIL = (loadLocalEnvVar("STABILIZATION_EMAIL") || "jimmy@academyos.org").toLowerCase();
+const EMAIL = (loadLocalEnvVar("STABILIZATION_EMAIL") || "jimmy@theacademyway.org").toLowerCase();
 const SUPABASE_URL = loadLocalEnvVar("NEXT_PUBLIC_SUPABASE_URL");
 const SERVICE_ROLE_KEY = loadLocalEnvVar("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -108,8 +108,8 @@ async function main() {
   );
 
   console.log("\n--- Seed comparison ---");
-  console.log("Expected (migration 155): FOUNDER role on jimmy@academyos.org");
-  console.log("Original seed (056): SCHOOL_LEADER on jimmy@academyos.org");
+  console.log("Expected (migration 155): FOUNDER role on jimmy@theacademyway.org");
+  console.log("Original seed (056): SCHOOL_LEADER on jimmy@theacademyway.org");
   console.log("Has FOUNDER role in DB:", hasFounderRole);
   console.log("Has CEO role in DB:", hasCeoRole);
   console.log("Has EXECUTIVE_DIRECTOR role in DB:", hasExecutiveDirectorRole);

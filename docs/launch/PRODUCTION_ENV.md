@@ -20,7 +20,7 @@ Copy into Vercel (or local `.env.local`). Tracked template: `.env.example`.
 
 | Variable | Purpose |
 |----------|---------|
-| `RESEND_FROM_EMAIL` / `RESEND_FROM_NAME` | Sender identity (verified domain in Resend) |
+| `EMAIL_FROM` / `RESEND_FROM_NAME` | Sender identity — default `noreply@theacademyway.org` (verify `theacademyway.org` in Resend). `RESEND_FROM_EMAIL` remains a legacy alias for `EMAIL_FROM`. |
 | `ENFORCE_MFA` | Force MFA for privileged users (default on in production) |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Durable rate limiting |
 | `TURNSTILE_SECRET_KEY` | Public admissions inquiry |

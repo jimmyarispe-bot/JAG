@@ -29,7 +29,7 @@ function loadLocalEnvVar(name: string): string {
   return "";
 }
 
-const EMAIL = (loadLocalEnvVar("STABILIZATION_EMAIL") || "jimmy@academyos.org").toLowerCase();
+const EMAIL = (loadLocalEnvVar("STABILIZATION_EMAIL") || "jimmy@theacademyway.org").toLowerCase();
 const SUPABASE_URL = loadLocalEnvVar("NEXT_PUBLIC_SUPABASE_URL");
 const SERVICE_ROLE_KEY = loadLocalEnvVar("SUPABASE_SERVICE_ROLE_KEY");
 

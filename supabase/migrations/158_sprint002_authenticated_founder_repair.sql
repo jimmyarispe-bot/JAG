@@ -18,7 +18,7 @@
 -- ------------
 -- - Do NOT modify or re-run migration 156 (history preserved).
 -- - Do NOT touch UI / RBAC / middleware / application code.
--- - Do NOT delete or demote seed Founder jimmy@academyos.org.
+-- - Do NOT delete or demote seed Founder jimmy@theacademyway.org.
 -- - Fully idempotent (canonical provisioning migration; 157 archived as superseded).
 --
 -- Live (authenticated):
@@ -27,14 +27,14 @@
 --
 -- Seed Founder (source; left intact):
 --   public.users id = 30ce5241-4f02-4bdf-88be-075f67723f09
---   email           = jimmy@academyos.org
+--   email           = jimmy@theacademyway.org
 
 do $$
 declare
   v_live_id uuid := 'd346c418-26d0-47b0-8655-ce64173dffb1';
   v_seed_id uuid := '30ce5241-4f02-4bdf-88be-075f67723f09';
   v_live_email text := 'jimmy.arispe@theacademyway.org';
-  v_seed_email text := 'jimmy@academyos.org';
+  v_seed_email text := 'jimmy@theacademyway.org';
   v_live_auth_exists boolean;
   v_seed_profile_exists boolean;
 begin

@@ -9,10 +9,10 @@
 --
 -- Seed Founder (source of roles / schools / org / prefs; left intact):
 --   public.users id = 30ce5241-4f02-4bdf-88be-075f67723f09
---   email           = jimmy@academyos.org
+--   email           = jimmy@theacademyway.org
 --
 -- Constraint: public.users.id MUST equal auth.users.id (users_auth_fk).
--- Idempotent. Does not delete, rename, or modify jimmy@academyos.org.
+-- Idempotent. Does not delete, rename, or modify jimmy@theacademyway.org.
 -- Does not change application / RBAC / auth / middleware / UI code.
 
 do $$
@@ -20,7 +20,7 @@ declare
   v_live_id uuid := 'd346c418-26d0-47b0-8655-ce64173dffb1';
   v_seed_id uuid := '30ce5241-4f02-4bdf-88be-075f67723f09';
   v_live_email text := 'jimmy.arispe@theacademyway.org';
-  v_seed_email text := 'jimmy@academyos.org';
+  v_seed_email text := 'jimmy@theacademyway.org';
   v_live_auth_exists boolean;
   v_seed_profile_exists boolean;
 begin

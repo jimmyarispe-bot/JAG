@@ -44,7 +44,8 @@ export async function runPlatformAudit(supabase: AuthClient, certRunId?: string)
       domain: "communications",
       title: "Resend not configured in production",
       description: "RESEND_API_KEY is required for transactional email delivery in production.",
-      recommendation: "Set RESEND_API_KEY and RESEND_FROM_EMAIL in Vercel.",
+      recommendation:
+        "Set RESEND_API_KEY and EMAIL_FROM=noreply@theacademyway.org in Vercel (verify theacademyway.org in Resend).",
     });
   }
 

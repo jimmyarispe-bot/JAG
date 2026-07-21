@@ -3,5 +3,5 @@ insert into public.user_roles (user_id, role_id)
 select u.id, r.id
 from public.users u
 join public.roles r on r.name = 'FOUNDER'
-where lower(u.email) = 'jimmy@academyos.org'
+where lower(u.email) = 'jimmy@theacademyway.org'
 on conflict do nothing;

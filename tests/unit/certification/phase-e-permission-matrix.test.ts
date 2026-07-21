@@ -11,7 +11,7 @@ function ctx(permissions: string[], schools: string[] = ["school-1"]): IdentityC
   return {
     id: "user-1",
     effectiveUserId: "user-1",
-    email: "cert@academyos.org",
+    email: "cert@theacademyway.org",
     fullName: "Cert User",
     roleLabel: "Staff",
     roles: [],

@@ -7,7 +7,7 @@
 --
 -- Seeded Founder (reference):
 --   auth.users id = 30ce5241-4f02-4bdf-88be-075f67723f09
---   email         = jimmy@academyos.org
+--   email         = jimmy@theacademyway.org
 --   roles         = SCHOOL_LEADER, FOUNDER
 --   schools       = Academy FL/GA/HS/Virtual
 --
@@ -15,7 +15,7 @@
 -- Therefore we cannot merge UUIDs; we provision the live auth user with the
 -- same profile / roles / school / org assignments as the seed Founder.
 --
--- Idempotent. Does not delete or demote the seed jimmy@academyos.org account.
+-- Idempotent. Does not delete or demote the seed jimmy@theacademyway.org account.
 -- Does not modify application code. Does not touch auth.users passwords.
 
 do $$
@@ -23,7 +23,7 @@ declare
   v_live_id uuid := 'd346c418-26d0-47b0-8655-ce64173dffb1';
   v_seed_id uuid := '30ce5241-4f02-4bdf-88be-075f67723f09';
   v_live_email text := 'jimmy.arispe@theacademyway.org';
-  v_seed_email text := 'jimmy@academyos.org';
+  v_seed_email text := 'jimmy@theacademyway.org';
   v_live_exists boolean;
   v_seed_exists boolean;
 begin

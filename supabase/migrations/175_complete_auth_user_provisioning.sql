@@ -29,7 +29,7 @@ values (
   'the-academy-way',
   'TEAM_MEMBER',
   array[
-    'jimmy@academyos.org',
+    'jimmy@theacademyway.org',
     'jimmy.arispe@theacademyway.org'
   ]::text[]
 )

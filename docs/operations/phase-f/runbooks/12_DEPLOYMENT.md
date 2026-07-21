@@ -16,7 +16,7 @@
 
 1. CI green on `main` (`.github/workflows/ci.yml`).  
 2. Go/No-Go checklist in `../14_RELEASE_OPERATIONS_MANUAL.md`.  
-3. Confirm production env vars (`PRODUCTION_ENV.md`), including `RESEND_API_KEY` and a verified `RESEND_FROM_EMAIL`.  
+3. Confirm production env vars (`PRODUCTION_ENV.md`), including `RESEND_API_KEY` and verified `EMAIL_FROM=noreply@theacademyway.org`.  
 4. If schema changes: migrations reviewed and staged (prefer migrate **before** app if backward-compatible; otherwise expand/contract).  
 5. Note current Vercel deployment ID for rollback.
 

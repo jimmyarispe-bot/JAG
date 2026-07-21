@@ -16,7 +16,7 @@ function mockIdentity(overrides: Partial<IdentityContext> = {}): IdentityContext
   return {
     id: "user-1",
     effectiveUserId: "user-1",
-    email: "teacher@academyos.org",
+    email: "teacher@theacademyway.org",
     fullName: "Test Teacher",
     roleLabel: "Teacher",
     roles: ["TEACHER"],

@@ -45,8 +45,8 @@ begin
     select *
     from (
       values
-        ('jimmy@academyos.org', 'Jimmy Arispe', 'Founder & CEO'),
-        ('danni@academyos.org', 'Danni Treu', 'Executive Director of Schools')
+        ('jimmy@theacademyway.org', 'Jimmy Arispe', 'Founder & CEO'),
+        ('danni@theacademyway.org', 'Danni Treu', 'Executive Director of Schools')
     ) as leadership(email, full_name, title)
   loop
     select au.id
@@ -161,7 +161,7 @@ begin
         'title', 'Founder & CEO'
       ),
     updated_at = now()
-  where lower(email) = 'jimmy@academyos.org';
+  where lower(email) = 'jimmy@theacademyway.org';
 
   -- Danni Treu only: keep name/title in sync (CEO role unchanged; not FOUNDER).
   update auth.users
@@ -173,7 +173,7 @@ begin
         'title', 'Executive Director of Schools'
       ),
     updated_at = now()
-  where lower(email) = 'danni@academyos.org';
+  where lower(email) = 'danni@theacademyway.org';
 end $$;
 
 -- Leadership profiles: public.users.id must match auth.users.id (users_auth_fk).
@@ -185,8 +185,8 @@ select
   seed.full_name
 from (
   values
-    ('jimmy@academyos.org', 'Jimmy Arispe'),
-    ('danni@academyos.org', 'Danni Treu')
+    ('jimmy@theacademyway.org', 'Jimmy Arispe'),
+    ('danni@theacademyway.org', 'Danni Treu')
 ) as seed(email, full_name)
 inner join auth.users au
   on lower(au.email) = lower(seed.email)
@@ -203,14 +203,14 @@ delete from public.user_roles ur
 using public.users u, public.roles r
 where ur.user_id = u.id
   and ur.role_id = r.id
-  and lower(u.email) = 'jimmy@academyos.org'
+  and lower(u.email) = 'jimmy@theacademyway.org'
   and r.name = 'SCHOOL_LEADER';
 
 insert into public.user_roles (user_id, role_id)
 select u.id, r.id
 from public.users u
 cross join public.roles r
-where lower(u.email) = 'jimmy@academyos.org'
+where lower(u.email) = 'jimmy@theacademyway.org'
   and r.name = 'FOUNDER'
 on conflict do nothing;
 
@@ -219,7 +219,7 @@ insert into public.user_roles (user_id, role_id)
 select u.id, r.id
 from public.users u
 cross join public.roles r
-where lower(u.email) = 'danni@academyos.org'
+where lower(u.email) = 'danni@theacademyway.org'
   and r.name = 'CEO'
 on conflict do nothing;
 
@@ -228,7 +228,7 @@ insert into public.user_schools (user_id, school_id)
 select u.id, s.id
 from public.users u
 cross join public.schools s
-where lower(u.email) in ('jimmy@academyos.org', 'danni@academyos.org')
+where lower(u.email) in ('jimmy@theacademyway.org', 'danni@theacademyway.org')
 on conflict do nothing;
 
 -- Default tuition plans

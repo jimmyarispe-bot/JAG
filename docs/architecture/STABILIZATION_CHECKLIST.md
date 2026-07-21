@@ -32,7 +32,7 @@ This checklist covers the **nine core founder dashboard routes** used for daily 
 | Server | `next dev` (Turbopack) — `http://localhost:3000` |
 | Next.js | 16.2.9 |
 | Auth probe | Playwright (`scripts/stabilization-route-probe.mts`) — requires `STABILIZATION_EMAIL` + `STABILIZATION_PASSWORD` |
-| Seed founder role | `jimmy@academyos.org` → `SCHOOL_LEADER` (see `056_phase1_org_seed.sql`) |
+| Seed founder role | `jimmy@theacademyway.org` → `SCHOOL_LEADER` (see `056_phase1_org_seed.sql`) |
 | Permission bundle | `074_enterprise_identity_foundation.sql` — SCHOOL_LEADER grants |
 
 ---

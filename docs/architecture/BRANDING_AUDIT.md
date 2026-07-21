@@ -107,7 +107,7 @@ These strings appear in rendered UI, metadata titles, aria-labels, or exported c
 
 | File | Line(s) | String |
 |------|---------|--------|
-| `src/lib/platform/email/providers/resend.ts` | — | `RESEND_FROM_NAME ?? "AcademyOS"` |
+| `src/lib/platform/email/from.ts` | — | `EMAIL_FROM` / default `noreply@theacademyway.org`; display name default `The Academy Way` |
 
 ---
 
