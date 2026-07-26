@@ -161,28 +161,34 @@ async function attachMembershipAndScope(
 export async function createManagedUser(
   input: ManagedUserInput
 ): Promise<ManagedUserResult> {
+  // TEMP instrumentation — remove after invite failure capture
+  const fail = (error: string): ManagedUserResult => {
+    const result = { success: false as const, error };
+    console.error("[INVITE FAILURE]", { location: "createManagedUser", result });
+    return result;
+  };
+
   const supabase = await createAuthClient();
   const gate = await requirePermission(supabase, "users.manage");
-  if (!gate.ok) return { success: false, error: gate.error };
+  if (!gate.ok) return fail(gate.error);
 
   const email = input.email.trim().toLowerCase();
-  if (!email.includes("@")) return { success: false, error: "Valid email is required" };
+  if (!email.includes("@")) return fail("Valid email is required");
   if (!input.firstName.trim() || !input.lastName.trim()) {
-    return { success: false, error: "First and last name are required" };
+    return fail("First and last name are required");
   }
   if (!input.organizationId) {
-    return { success: false, error: "Organization is required" };
+    return fail("Organization is required");
   }
-  if (!input.role) return { success: false, error: "Role is required" };
+  if (!input.role) return fail("Role is required");
 
   let admin: ReturnType<typeof createServiceRoleClient>;
   try {
     admin = createServiceRoleClient();
   } catch {
-    return {
-      success: false,
-      error: "Server is missing SUPABASE_SERVICE_ROLE_KEY for user provisioning",
-    };
+    return fail(
+      "Server is missing SUPABASE_SERVICE_ROLE_KEY for user provisioning"
+    );
   }
 
   const name = fullName(input);
@@ -210,7 +216,7 @@ export async function createManagedUser(
         user_metadata: metadata,
       });
       if (error || !data.user) {
-        return { success: false, error: error?.message ?? "Invite failed" };
+        return fail(error?.message ?? "Invite failed");
       }
       userId = data.user.id;
       invited = true;
@@ -221,7 +227,7 @@ export async function createManagedUser(
         options: { redirectTo: `${appUrl()}/login` },
       });
       if (linkError) {
-        return { success: false, error: linkError.message };
+        return fail(linkError.message);
       }
       const inviteLink =
         linkData.properties?.action_link ?? `${appUrl()}/login`;
@@ -231,10 +237,7 @@ export async function createManagedUser(
         recipientName: name,
       });
       if (!inviteMail.success && process.env.NODE_ENV === "production") {
-        return {
-          success: false,
-          error: inviteMail.error ?? "Failed to send invitation email",
-        };
+        return fail(inviteMail.error ?? "Failed to send invitation email");
       }
     } else {
       const tempPassword = `Tmp-${crypto.randomUUID()}!aA1`;
@@ -246,7 +249,7 @@ export async function createManagedUser(
         ...(input.status === "inactive" ? { ban_duration: "876000h" } : {}),
       });
       if (error || !data.user) {
-        return { success: false, error: error?.message ?? "Create user failed" };
+        return fail(error?.message ?? "Create user failed");
       }
       userId = data.user.id;
 
@@ -270,10 +273,9 @@ export async function createManagedUser(
       isFounder: input.role === "FOUNDER",
     });
   } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "User provisioning failed",
-    };
+    return fail(
+      err instanceof Error ? err.message : "User provisioning failed"
+    );
   }
 
   const actorUserId = await resolveActorUserId(supabase);

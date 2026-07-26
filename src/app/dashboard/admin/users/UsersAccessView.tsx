@@ -23,6 +23,10 @@ import {
   resetPasswordAction,
 } from "@/lib/platform/identity/user-management-actions";
 import { startImpersonationAction } from "@/lib/platform/identity/server-actions";
+import {
+  EntityActionMenu,
+  type EntityMenuAction,
+} from "@/components/platform/crud/EntityActionMenu";
 
 type OrgOption = { id: string; name: string };
 type SchoolOption = { id: string; name: string };
@@ -107,7 +111,6 @@ export function UsersAccessView({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [csvText, setCsvText] = useState("");
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -135,7 +138,6 @@ export function UsersAccessView({
     setError(null);
     setModal(null);
     setActionUserId(null);
-    setOpenMenuId(null);
     router.refresh();
   }
 
@@ -156,6 +158,80 @@ export function UsersAccessView({
         refresh(`${successMsg}${extra}`);
       })();
     });
+  }
+
+  function actionsForUser(user: AdminDirectoryUser): EntityMenuAction[] {
+    const actions: EntityMenuAction[] = [];
+    if (canManage) {
+      actions.push(
+        {
+          id: "assign-role",
+          label: "Assign Role",
+          onSelect: () => {
+            setActionUserId(user.id);
+            setModal("assign-role");
+          },
+        },
+        {
+          id: "assign-school",
+          label: "Assign School",
+          onSelect: () => {
+            setActionUserId(user.id);
+            setModal("assign-school");
+          },
+        },
+        {
+          id: "toggle-active",
+          label: user.status === "inactive" ? "Enable" : "Disable",
+          onSelect: () => {
+            const fd = new FormData();
+            fd.set("user_id", user.id);
+            runAction(
+              () =>
+                user.status === "inactive"
+                  ? activateUserAction(fd)
+                  : deactivateUserAction(fd),
+              user.status === "inactive" ? "User activated" : "User disabled"
+            );
+          },
+        },
+        {
+          id: "reset-password",
+          label: "Reset Password",
+          onSelect: () => {
+            const fd = new FormData();
+            fd.set("user_id", user.id);
+            runAction(() => resetPasswordAction(fd), "Password reset sent");
+          },
+        }
+      );
+    }
+    if (canImpersonate) {
+      actions.push({
+        id: "impersonate",
+        label: "View Activity / Impersonate",
+        onSelect: () => {
+          const fd = new FormData();
+          fd.set("target_user_id", user.id);
+          fd.set("reason", "Admin support session");
+          runAction(() => startImpersonationAction(fd), "Impersonation started");
+        },
+      });
+    }
+    if (isFounder && canManage) {
+      actions.push({
+        id: "delete",
+        label: "Delete",
+        tone: "danger",
+        onSelect: () => {
+          if (!confirm(`Delete ${user.full_name ?? user.email}?`)) return;
+          const fd = new FormData();
+          fd.set("user_id", user.id);
+          runAction(() => deleteUserAction(fd), "User deleted");
+        },
+      });
+    }
+    return actions;
   }
 
   function exportSelectedOrAll() {
@@ -383,107 +459,13 @@ export function UsersAccessView({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-500">{user.lastLogin ?? "—"}</td>
-                  <td className="relative px-4 py-3">
-                    <button
-                      type="button"
-                      className="rounded border border-slate-200 px-2 py-1 text-xs"
-                      onClick={() =>
-                        setOpenMenuId((id) => (id === user.id ? null : user.id))
-                      }
-                    >
-                      Actions
-                    </button>
-                    {openMenuId === user.id && (
-                      <div className="absolute right-4 z-20 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                        {canManage && (
-                          <>
-                            <button
-                              type="button"
-                              className="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50"
-                              onClick={() => {
-                                setActionUserId(user.id);
-                                setModal("assign-role");
-                                setOpenMenuId(null);
-                              }}
-                            >
-                              Assign Role
-                            </button>
-                            <button
-                              type="button"
-                              className="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50"
-                              onClick={() => {
-                                setActionUserId(user.id);
-                                setModal("assign-school");
-                                setOpenMenuId(null);
-                              }}
-                            >
-                              Assign School
-                            </button>
-                            <button
-                              type="button"
-                              className="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50"
-                              onClick={() => {
-                                const fd = new FormData();
-                                fd.set("user_id", user.id);
-                                runAction(
-                                  () =>
-                                    user.status === "inactive"
-                                      ? activateUserAction(fd)
-                                      : deactivateUserAction(fd),
-                                  user.status === "inactive"
-                                    ? "User activated"
-                                    : "User disabled"
-                                );
-                              }}
-                            >
-                              {user.status === "inactive" ? "Enable" : "Disable"}
-                            </button>
-                            <button
-                              type="button"
-                              className="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50"
-                              onClick={() => {
-                                const fd = new FormData();
-                                fd.set("user_id", user.id);
-                                runAction(() => resetPasswordAction(fd), "Password reset sent");
-                              }}
-                            >
-                              Reset Password
-                            </button>
-                          </>
-                        )}
-                        {canImpersonate && (
-                          <button
-                            type="button"
-                            className="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50"
-                            onClick={() => {
-                              const fd = new FormData();
-                              fd.set("target_user_id", user.id);
-                              fd.set("reason", "Admin support session");
-                              runAction(
-                                () => startImpersonationAction(fd),
-                                "Impersonation started"
-                              );
-                            }}
-                          >
-                            View Activity / Impersonate
-                          </button>
-                        )}
-                        {isFounder && canManage && (
-                          <button
-                            type="button"
-                            className="block w-full px-3 py-1.5 text-left text-xs text-rose-700 hover:bg-rose-50"
-                            onClick={() => {
-                              if (!confirm(`Delete ${user.full_name ?? user.email}?`)) return;
-                              const fd = new FormData();
-                              fd.set("user_id", user.id);
-                              runAction(() => deleteUserAction(fd), "User deleted");
-                            }}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    )}
+                  <td className="px-4 py-3">
+                    <EntityActionMenu
+                      label="Actions"
+                      ariaLabel={`Actions for ${user.full_name ?? user.email}`}
+                      align="right"
+                      actions={actionsForUser(user)}
+                    />
                   </td>
                 </tr>
               ))}

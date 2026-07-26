@@ -133,11 +133,13 @@ export function EntityActionMenu({
             ref={menuRef}
             id={menuId}
             role="menu"
-            className="fixed z-50 min-w-48 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            className="fixed z-50 min-w-48 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
             style={{
               top: coords?.top ?? -9999,
               left: coords?.left ?? -9999,
               visibility: coords ? "visible" : "hidden",
+              // Keep tall menus inside the viewport (pairs with flip/clamp).
+              maxHeight: `calc(100vh - ${ANCHORED_MENU_VIEWPORT_MARGIN * 2}px)`,
             }}
           >
             {visible.map((action) => (

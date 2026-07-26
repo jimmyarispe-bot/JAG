@@ -69,7 +69,15 @@ export async function inviteUsersAction(formData: FormData) {
     schoolIds,
   });
 
-  if (!result.success) return { error: result.error };
+  if (!result.success) {
+    // TEMP instrumentation — remove after invite failure capture
+    const actionResult = { error: result.error };
+    console.error("[INVITE FAILURE]", {
+      location: "inviteUsersAction",
+      result: actionResult,
+    });
+    return actionResult;
+  }
   revalidateUsers();
   return {
     success: true,
