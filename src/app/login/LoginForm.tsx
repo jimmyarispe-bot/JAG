@@ -15,11 +15,16 @@ export default function LoginForm({ branding }: LoginFormProps) {
   const supabase = createClient();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/dashboard";
+  const authError = searchParams.get("error");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(
+    authError === "auth_callback_failed"
+      ? "Invitation or reset link is invalid or expired. Request a new invite or password reset."
+      : ""
+  );
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

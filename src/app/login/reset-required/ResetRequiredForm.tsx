@@ -44,9 +44,9 @@ export default function ResetRequiredForm() {
 
   return (
     <main className="mx-auto mt-24 max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h1 className="text-2xl font-bold text-slate-900">Change your password</h1>
+      <h1 className="text-2xl font-bold text-slate-900">Create your password</h1>
       <p className="mt-1 text-sm text-slate-500">
-        Your account requires a new password before continuing.
+        Set a password for your account before accessing AcademyOS.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4" aria-label="Password reset form">

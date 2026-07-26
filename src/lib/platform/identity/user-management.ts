@@ -20,6 +20,10 @@ import {
   type UserManagementRoleValue,
   type UserManagementStatus,
 } from "@/lib/platform/identity/user-management-catalog";
+import {
+  authCallbackRedirectTo,
+  buildEmailAuthCallbackLink,
+} from "@/lib/auth/auth-callback";
 
 export type ManagedUserInput = {
   firstName: string;
@@ -210,10 +214,14 @@ export async function createManagedUser(
   try {
     if (input.status === "pending_invite") {
       // Create Auth user without relying on Supabase SMTP; deliver invite via Resend.
+      // must_reset_password gates AcademyOS until the invitee sets a password.
       const { data, error } = await admin.auth.admin.createUser({
         email,
         email_confirm: false,
-        user_metadata: metadata,
+        user_metadata: {
+          ...metadata,
+          must_reset_password: true,
+        },
       });
       if (error || !data.user) {
         return fail(error?.message ?? "Invite failed");
@@ -224,13 +232,21 @@ export async function createManagedUser(
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
         type: "invite",
         email,
-        options: { redirectTo: `${appUrl()}/login` },
+        options: { redirectTo: authCallbackRedirectTo(appUrl()) },
       });
       if (linkError) {
         return fail(linkError.message);
       }
-      const inviteLink =
-        linkData.properties?.action_link ?? `${appUrl()}/login`;
+      const tokenHash = linkData.properties?.hashed_token;
+      if (!tokenHash) {
+        return fail("Invite link generation did not return a token hash");
+      }
+      // SSR: email points at /auth/callback?token_hash&type=invite (verifyOtp + cookies).
+      const inviteLink = buildEmailAuthCallbackLink({
+        appUrl: appUrl(),
+        tokenHash,
+        type: "invite",
+      });
       const inviteMail = await sendInvitationEmail({
         to: email,
         inviteLink,
@@ -542,16 +558,31 @@ export async function resetUserPassword(userId: string): Promise<
     return { success: false, error: userError?.message ?? "User not found" };
   }
 
+  const { error: flagError } = await admin.auth.admin.updateUserById(userId, {
+    user_metadata: {
+      ...(userData.user.user_metadata ?? {}),
+      must_reset_password: true,
+    },
+  });
+  if (flagError) return { success: false, error: flagError.message };
+
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: "recovery",
     email: userData.user.email,
-    options: { redirectTo: `${appUrl()}/login` },
+    options: { redirectTo: authCallbackRedirectTo(appUrl()) },
   });
   if (linkError) return { success: false, error: linkError.message };
 
-  const link =
-    linkData.properties?.action_link ??
-    `${appUrl()}/login`;
+  const tokenHash = linkData.properties?.hashed_token;
+  if (!tokenHash) {
+    return { success: false, error: "Recovery link generation did not return a token hash" };
+  }
+
+  const link = buildEmailAuthCallbackLink({
+    appUrl: appUrl(),
+    tokenHash,
+    type: "recovery",
+  });
 
   const emailResult = await sendPasswordResetEmail({
     to: userData.user.email,

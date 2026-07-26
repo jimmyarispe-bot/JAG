@@ -1,6 +1,10 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendInvitationEmail } from "@/lib/platform/email";
 import type { FamilyGuardianInput } from "@/lib/constants/guardians";
+import {
+  authCallbackRedirectTo,
+  buildEmailAuthCallbackLink,
+} from "@/lib/auth/auth-callback";
 
 /**
  * Best-effort Parent Portal invitations for guardians with email.
@@ -39,23 +43,29 @@ export async function inviteParentPortalGuardians(input: {
         type: "invite",
         email,
         options: {
-          redirectTo: appUrl ? `${appUrl}/login` : undefined,
+          redirectTo: appUrl ? authCallbackRedirectTo(appUrl) : undefined,
           data: {
             first_name: guardian.first_name,
             last_name: guardian.last_name,
             role: "PARENT",
+            must_reset_password: true,
           },
         },
       });
 
-      if (linkError || !linkData?.properties?.action_link) {
+      const tokenHash = linkData?.properties?.hashed_token;
+      if (linkError || !tokenHash || !appUrl) {
         errors.push(linkError?.message ?? `Invite link failed for ${email}`);
         continue;
       }
 
       const mail = await sendInvitationEmail({
         to: email,
-        inviteLink: linkData.properties.action_link,
+        inviteLink: buildEmailAuthCallbackLink({
+          appUrl,
+          tokenHash,
+          type: "invite",
+        }),
         recipientName: `${guardian.first_name} ${guardian.last_name}`.trim(),
         organizationName: input.organizationName,
       });
