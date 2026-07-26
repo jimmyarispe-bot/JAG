@@ -5,9 +5,13 @@ import {
   buildEmailAuthCallbackLink,
   exchangeAuthCallbackParams,
   isPasswordSetupAuthType,
+  isInviteAuthType,
+  isRecoveryAuthType,
   resolveAuthCallbackRedirect,
   safeInternalPath,
 } from "@/lib/auth/auth-callback";
+
+import { ACCOUNT_ACTIVATE_PATH } from "@/lib/auth/account-activation";
 import { PASSWORD_RESET_PATH } from "@/lib/auth/must-reset-password";
 
 function userWith(meta: Record<string, unknown>): User {
@@ -39,30 +43,33 @@ describe("auth-callback helpers", () => {
     expect(safeInternalPath("/dashboard/admin")).toBe("/dashboard/admin");
   });
 
-  it("detects invite and recovery as password-setup auth types", () => {
-    expect(isPasswordSetupAuthType("invite")).toBe(true);
-    expect(isPasswordSetupAuthType("recovery")).toBe(true);
-    expect(isPasswordSetupAuthType("magiclink")).toBe(false);
+  it("detects invite vs recovery auth types", () => {
+    expect(isInviteAuthType("invite")).toBe(true);
+    expect(isRecoveryAuthType("recovery")).toBe(true);
+    expect(isInviteAuthType("recovery")).toBe(false);
   });
 
-  it("routes invite acceptance to password creation", () => {
+  it("routes invite acceptance to account activation (not login or reset)", () => {
     expect(
       resolveAuthCallbackRedirect({
         type: "invite",
         next: "/dashboard",
-        user: userWith({}),
+user: userWith({
+  invite_activation: true,
+  must_reset_password: true,
+}),
       })
     ).toBe(`${PASSWORD_RESET_PATH}?next=${encodeURIComponent("/dashboard")}`);
   });
-
   it("routes must_reset_password users to password creation even without type", () => {
+  it("routes invite_activation metadata to activation even without type", () => {
     expect(
       resolveAuthCallbackRedirect({
         type: null,
         next: "/exec",
-        user: userWith({ must_reset_password: true }),
+        user: userWith({ invite_activation: true, must_reset_password: true }),
       })
-    ).toBe(`${PASSWORD_RESET_PATH}?next=${encodeURIComponent("/exec")}`);
+    ).toBe(`${ACCOUNT_ACTIVATE_PATH}?next=${encodeURIComponent("/exec")}`);
   });
 
   it("honors next for users who do not need password setup", () => {
@@ -77,7 +84,7 @@ describe("auth-callback helpers", () => {
 
   it("exchanges token_hash via verifyOtp", async () => {
     const verifyOtp = vi.fn(async () => ({
-      data: { user: userWith({ must_reset_password: true }) },
+      data: { user: userWith({ must_reset_password: true, invite_activation: true }) },
       error: null,
     }));
     const result = await exchangeAuthCallbackParams(

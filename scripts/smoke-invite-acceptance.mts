@@ -10,8 +10,10 @@ import {
   buildEmailAuthCallbackLink,
   exchangeAuthCallbackParams,
   resolveAuthCallbackRedirect,
-} from "../src/lib/auth/auth-callback.ts";
-import { PASSWORD_RESET_PATH } from "../src/lib/auth/must-reset-password.ts";
+} from "../src/lib/auth/auth-callback";
+
+
+import { ACCOUNT_ACTIVATE_PATH } from "../src/lib/auth/account-activation";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -43,7 +45,12 @@ try {
   const created = await admin.auth.admin.createUser({
     email,
     email_confirm: false,
-    user_metadata: { must_reset_password: true, full_name: "Invite Smoke" },
+    user_metadata: {
+      must_reset_password: true,
+      invite_activation: true,
+      role: "EXECUTIVE_DIRECTOR",
+      full_name: "Invite Smoke",
+    },
   });
   if (created.error || !created.data.user) {
     throw new Error(created.error?.message ?? "createUser failed");
@@ -83,23 +90,30 @@ try {
     next: "/dashboard",
     user: exchanged.user,
   });
-  if (!redirect.startsWith(PASSWORD_RESET_PATH)) {
-    throw new Error(`Expected password setup redirect, got ${redirect}`);
+  if (!redirect.startsWith(ACCOUNT_ACTIVATE_PATH)) {
+    throw new Error(`Expected account activation redirect, got ${redirect}`);
   }
   if (exchanged.user.user_metadata?.must_reset_password !== true) {
     throw new Error("must_reset_password flag missing after invite accept");
   }
 
-  console.log("4) set password and clear must_reset_password");
+  console.log("4) create password / activate account (session preserved)");
   const updated = await browserish.auth.updateUser({
     password,
-    data: { must_reset_password: false },
+    data: {
+      must_reset_password: false,
+      invite_activation: false,
+      status: "active",
+    },
   });
   if (updated.error) throw new Error(updated.error.message);
 
   const { data: after } = await browserish.auth.getUser();
   if (after.user?.user_metadata?.must_reset_password === true) {
     throw new Error("must_reset_password still true after password setup");
+  }
+  if (after.user?.user_metadata?.invite_activation === true) {
+    throw new Error("invite_activation still true after account activation");
   }
 
   console.log("5) password sign-in works");

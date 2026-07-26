@@ -49,6 +49,7 @@ export async function inviteParentPortalGuardians(input: {
             last_name: guardian.last_name,
             role: "PARENT",
             must_reset_password: true,
+            invite_activation: true,
           },
         },
       });

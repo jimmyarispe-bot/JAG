@@ -1,18 +1,28 @@
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
+import {
+  ACCOUNT_ACTIVATE_PATH,
+  isPasswordSetupExemptPath,
+  passwordSetupPathForUser,
+  userNeedsInviteActivation,
+} from "@/lib/auth/account-activation";
 
 export const PASSWORD_RESET_PATH = "/login/reset-required";
 
 type AuthUser = { user_metadata?: Record<string, unknown> } | null | undefined;
 
 export function userMustResetPassword(user: AuthUser): boolean {
-  return user?.user_metadata?.must_reset_password === true;
+  return (
+    user?.user_metadata?.must_reset_password === true ||
+    userNeedsInviteActivation(user)
+  );
 }
 
 /** Page routes: redirect before protected layouts render. */
 export function redirectIfPasswordResetRequired(user: AuthUser, nextPath: string): void {
   if (userMustResetPassword(user)) {
-    redirect(`${PASSWORD_RESET_PATH}?next=${encodeURIComponent(nextPath)}`);
+    const path = passwordSetupPathForUser(user);
+    redirect(`${path}?next=${encodeURIComponent(nextPath)}`);
   }
 }
 
@@ -48,5 +58,7 @@ export function isPublicApiPath(pathname: string): boolean {
 }
 
 export function isPasswordResetExemptPath(pathname: string): boolean {
-  return pathname === PASSWORD_RESET_PATH || pathname.startsWith(`${PASSWORD_RESET_PATH}/`);
+  return isPasswordSetupExemptPath(pathname);
 }
+
+export { ACCOUNT_ACTIVATE_PATH, passwordSetupPathForUser, userNeedsInviteActivation };

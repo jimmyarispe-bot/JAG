@@ -59,9 +59,8 @@ export default function LoginForm({ branding }: LoginFormProps) {
     setLoading(false);
   };
 
-  const signInTitle = branding.editionLabel
-    ? `${branding.productName} — ${branding.editionLabel}`
-    : branding.productName;
+  // Shared login must not claim Founder's Edition — that edition is Founder-only.
+  const signInTitle = branding.productName;
 
   return (
     <main id="login-main" className="relative mx-auto mt-24 max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -129,6 +128,12 @@ export default function LoginForm({ branding }: LoginFormProps) {
           Sign in
         </ActionButton>
       </form>
+
+      <p className="mt-4 text-center text-sm text-slate-500">
+        <a href="/login/forgot" className="font-medium text-brand-700 hover:underline">
+          Forgot Password
+        </a>
+      </p>
 
       {message && (
         <p className="mt-4 text-sm text-red-600" role="alert" aria-live="polite">

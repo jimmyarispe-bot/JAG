@@ -24,6 +24,10 @@ import {
   authCallbackRedirectTo,
   buildEmailAuthCallbackLink,
 } from "@/lib/auth/auth-callback";
+import {
+  authCallbackRedirectTo,
+  buildEmailAuthCallbackLink,
+} from "@/lib/auth/auth-callback";
 
 export type ManagedUserInput = {
   firstName: string;
@@ -109,10 +113,15 @@ async function attachMembershipAndScope(
   );
   await assertNoError("public.users profile", profile.error);
 
-  const roleRow = await admin.from("user_roles").upsert(
-    { user_id: input.userId, role_id: roleId },
-    { onConflict: "user_id,role_id" }
-  );
+  // Auth trigger may have inserted TEAM_MEMBER (or founder-bootstrap FOUNDER).
+  // Invited/created users must receive exactly the role selected in User Management.
+  const clearRoles = await admin.from("user_roles").delete().eq("user_id", input.userId);
+  await assertNoError("user_roles clear", clearRoles.error);
+
+  const roleRow = await admin.from("user_roles").insert({
+    user_id: input.userId,
+    role_id: roleId,
+  });
   await assertNoError("user_roles assignment", roleRow.error);
 
   const membershipStatus =
@@ -215,11 +224,17 @@ export async function createManagedUser(
     if (input.status === "pending_invite") {
       // Create Auth user without relying on Supabase SMTP; deliver invite via Resend.
       // must_reset_password gates AcademyOS until the invitee sets a password.
+      // invite_activation + must_reset_password gate until the invitee activates.
       const { data, error } = await admin.auth.admin.createUser({
         email,
         email_confirm: false,
         user_metadata: {
+          ...{
           ...metadata,
+          role: input.role,
+          must_reset_password: true,
+          invite_activation: true,
+        },
           must_reset_password: true,
         },
       });
@@ -232,6 +247,7 @@ export async function createManagedUser(
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
         type: "invite",
         email,
+        options: { redirectTo: authCallbackRedirectTo(appUrl()) },
         options: { redirectTo: authCallbackRedirectTo(appUrl()) },
       });
       if (linkError) {

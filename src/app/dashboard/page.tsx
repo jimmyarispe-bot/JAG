@@ -42,7 +42,7 @@ export default async function DashboardHomePage() {
           </p>
           <p className="mt-3 max-w-2xl text-sm text-indigo-100/90 sm:text-base">
             Your founder operating home for {branding.productName}
-            {branding.editionLabel ? ` · ${branding.editionLabel}` : ""}.
+            {branding.editionLabel ? ` · ${branding.editionLabel}` : " · Founder's Edition"}.
           </p>
           <p className="mt-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-indigo-100 ring-1 ring-white/20">
             Founder &amp; CEO

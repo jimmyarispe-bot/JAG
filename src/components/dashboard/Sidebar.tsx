@@ -10,6 +10,7 @@ import {
 import { FOUNDER_DASHBOARD_NAV, FOUNDERS_UTILITY_NAV } from "@/lib/dashboard/founders-navigation";
 import { EXECUTIVE_DIRECTOR_DASHBOARD_NAV } from "@/lib/dashboard/executive-director-dashboard";
 import { useBranding } from "@/components/branding/BrandingContext";
+import { formatWorkspaceProductLine } from "@/lib/branding/workspace-edition";
 import { cn } from "@/components/workspace-design-system/utils";
 import { ModuleIcon } from "./ModuleIcons";
 
@@ -20,6 +21,7 @@ interface SidebarProps {
   isFounder?: boolean;
   /** Executive Director operating nav — never shows Founder widgets. */
   isExecutiveDirector?: boolean;
+  roleLabel?: string;
 }
 
 function isPlatformActive(pathname: string, href: string, exact?: boolean): boolean {
@@ -43,6 +45,7 @@ export function Sidebar({
   onClose,
   isFounder = false,
   isExecutiveDirector = false,
+  roleLabel,
 }: SidebarProps) {
   const pathname = usePathname();
   const branding = useBranding();
@@ -58,9 +61,12 @@ export function Sidebar({
         }
       : module
   );
-  const footerTagline = branding.editionLabel
-    ? `${branding.productName} — ${branding.editionLabel}`
-    : branding.productName;
+  const footerTagline = formatWorkspaceProductLine({
+    branding,
+    isFounder,
+    isExecutiveDirector,
+    roleLabel,
+  });
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {

@@ -1,0 +1,5 @@
+[33m905e709[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mrelease/v1.0.0-rc1[m[33m, [m[1;31morigin/release/v1.0.0-rc1[m[33m)[m Implement Supabase SSR invitation acceptance flow
+[33me79a0f6[m Fix remaining contextual menu positioning
+[33m4472413[m Use theacademyway.org for outbound email and seed identities.
+[33mcf95324[m Complete RC1 Student Lifecycle stabilization
+[33md90115c[m fix(lifecycle): resolve archive lookup and improve lifecycle error handling

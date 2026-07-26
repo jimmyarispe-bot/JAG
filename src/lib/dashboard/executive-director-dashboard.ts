@@ -8,8 +8,10 @@ import type { IdentityContext } from "@/lib/platform/identity/context";
 import { hasPermission } from "@/lib/platform/identity/authorization-service";
 
 export function canViewExecutiveDirectorDashboard(ctx: IdentityContext): boolean {
-  // Founder / JAG home takes precedence.
+  // Founder / JAG home takes precedence — Founder Edition is never the ED workspace.
   if (hasPermission(ctx, "JAG_ACCESS")) return false;
+  // ED operating home requires the Executive Director role (not every ACADEMYOS_ACCESS user).
+  if (!ctx.roles.includes("EXECUTIVE_DIRECTOR")) return false;
   return (
     hasPermission(ctx, "ACADEMYOS_ACCESS") &&
     hasPermission(ctx, "executive.dashboard")

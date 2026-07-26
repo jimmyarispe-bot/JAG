@@ -112,12 +112,14 @@ export function resolveRoleLabel(
   return FALLBACK_ROLE_LABELS[role] ?? role.replace(/_/g, " ");
 }
 
+/**
+ * Document / shared titles. Edition labels are identity-scoped at runtime
+ * (see resolveWorkspaceEditionLabel) — do not append Founder's Edition here.
+ */
 export function formatProductTitle(
   branding: OrganizationBranding,
   suffix?: string
 ): string {
-  const base = branding.editionLabel
-    ? `${branding.productName} — ${branding.editionLabel}`
-    : branding.productName;
+  const base = branding.productName;
   return suffix ? `${suffix} | ${base}` : base;
 }

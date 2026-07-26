@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { completeInviteActivationAction } from "@/lib/platform/identity/invite-activation-actions";
 
-export default function ResetRequiredForm() {
+export default function ActivateAccountForm() {
   const supabase = createClient();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/dashboard";
@@ -28,13 +30,26 @@ export default function ResetRequiredForm() {
     }
 
     setLoading(true);
+
     const { error } = await supabase.auth.updateUser({
       password,
-      data: { must_reset_password: false },
+      data: {
+        must_reset_password: false,
+        invite_activation: false,
+        status: "active",
+      },
     });
 
     if (error) {
       setMessage(error.message);
+      setLoading(false);
+      return;
+    }
+
+    // Session remains authenticated after updateUser; finalize org membership.
+    const activation = await completeInviteActivationAction();
+    if ("error" in activation) {
+      setMessage(activation.error);
       setLoading(false);
       return;
     }
@@ -44,18 +59,23 @@ export default function ResetRequiredForm() {
 
   return (
     <main className="mx-auto mt-24 max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h1 className="text-2xl font-bold text-slate-900">Reset your password</h1>
+      <h1 className="text-2xl font-bold text-slate-900">Activate your account</h1>
       <p className="mt-1 text-sm text-slate-500">
-        Choose a new password to continue. This is for password recovery, not new account setup.
+        You&apos;ve been invited to AcademyOS. Create a password to finish setting up your
+        account.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4" aria-label="Password reset form">
+      <form
+        onSubmit={handleSubmit}
+        className="mt-6 space-y-4"
+        aria-label="Account activation form"
+      >
         <div>
-          <label htmlFor="new-password" className="block text-sm font-medium text-slate-700">
-            New password
+          <label htmlFor="create-password" className="block text-sm font-medium text-slate-700">
+            Create your password
           </label>
           <input
-            id="new-password"
+            id="create-password"
             type="password"
             autoComplete="new-password"
             required
@@ -83,12 +103,18 @@ export default function ResetRequiredForm() {
         <button
           type="submit"
           disabled={loading}
-          aria-label="Save new password"
+          aria-label="Create account"
           className="w-full rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
         >
-          {loading ? "Saving..." : "Save and continue"}
+          {loading ? "Creating account…" : "Create Account"}
         </button>
       </form>
+
+      <p className="mt-4 text-center text-sm text-slate-500">
+        <Link href="/login/forgot" className="font-medium text-brand-700 hover:underline">
+          Forgot Password
+        </Link>
+      </p>
 
       {message && (
         <p className="mt-4 text-sm text-red-600" role="alert" aria-live="polite">

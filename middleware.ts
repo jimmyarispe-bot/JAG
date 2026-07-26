@@ -4,8 +4,8 @@ import { createServerClient } from "@supabase/ssr";
 import {
   isPasswordResetExemptPath,
   isPublicApiPath,
-  PASSWORD_RESET_PATH,
   passwordResetRequiredResponse,
+  passwordSetupPathForUser,
   userMustResetPassword,
 } from "@/lib/auth/must-reset-password";
 import {
@@ -115,9 +115,9 @@ export async function middleware(req: NextRequest) {
       if (protectedApi) {
         return finish(passwordResetRequiredResponse());
       }
-      const resetUrl = new URL(PASSWORD_RESET_PATH, req.url);
-      resetUrl.searchParams.set("next", pathname);
-      return finish(NextResponse.redirect(resetUrl));
+      const setupUrl = new URL(passwordSetupPathForUser(user), req.url);
+      setupUrl.searchParams.set("next", pathname);
+      return finish(NextResponse.redirect(setupUrl));
     }
   }
 

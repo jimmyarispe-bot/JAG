@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "@supabase/supabase-js";
 import { PASSWORD_RESET_PATH } from "@/lib/auth/must-reset-password";
-
+import { ACCOUNT_ACTIVATE_PATH } from "@/lib/auth/account-activation";
 const exchangeCodeForSession = vi.fn();
 const verifyOtp = vi.fn();
 const cookieSets: Array<{ name: string; value: string }> = [];
@@ -20,7 +20,7 @@ import { GET } from "@/app/auth/callback/route";
 function inviteUser(): User {
   return {
     id: "invitee",
-    user_metadata: { must_reset_password: true },
+    user_metadata: { must_reset_password: true, invite_activation: true },
   } as User;
 }
 
@@ -32,8 +32,7 @@ describe("GET /auth/callback", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
   });
-
-  it("exchanges invite token_hash and redirects to password creation", async () => {
+  it("exchanges invite token_hash and redirects to account activation", async () => {
     verifyOtp.mockResolvedValue({
       data: { user: inviteUser() },
       error: null,
@@ -54,7 +53,8 @@ describe("GET /auth/callback", () => {
     const response = await GET(request);
     expect(response.status).toBe(307);
     const location = response.headers.get("location") ?? "";
-    expect(location).toContain(PASSWORD_RESET_PATH);
+    expect(location).toContain(ACCOUNT_ACTIVATE_PATH);
+    expect(location).not.toContain("/login/reset-required");
     expect(location).toContain("next=%2Fdashboard");
     expect(verifyOtp).toHaveBeenCalledWith({
       type: "invite",

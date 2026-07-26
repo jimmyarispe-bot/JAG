@@ -56,6 +56,7 @@ export function DashboardChrome({
         onClose={closeSidebar}
         isFounder={isFounder}
         isExecutiveDirector={isExecutiveDirector}
+        roleLabel={roleLabel}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">

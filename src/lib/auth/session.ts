@@ -8,6 +8,7 @@ import {
   hasPermission,
 } from "@/lib/platform/identity/authorization-service";
 import { loadUserRoleRows } from "@/lib/platform/identity/permissions";
+import { pickPrimaryRole } from "@/lib/platform/identity/role-priority";
 import {
   ensureCurrentAuthUserProvisioned,
   loadAuthProvisionState,
@@ -51,16 +52,18 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     .map((row) => row.name)
     .filter((name): name is EduRoleName => Boolean(name));
 
-  const primaryRoleDisplayName = roleRows[0]?.display_name ?? null;
-
-  // Prefer executive label when the permission engine grants executive entry — never role-string gates.
+  // Prefer founder when JAG_ACCESS is present; otherwise highest-priority operating role
+  // (avoids TEAM_MEMBER from the auth trigger winning over EXECUTIVE_DIRECTOR).
   const authz = buildAuthzSnapshot(user.id, roles);
   const hasExecutiveAccess = hasPermission(authz, "JAG_ACCESS");
-  const primaryRole: EduRoleName | null =
-    (hasExecutiveAccess
-      ? (roles.find((r) => hasPermission(buildAuthzSnapshot(user.id, [r]), "JAG_ACCESS")) ??
-        roles[0])
-      : roles[0]) ?? null;
+  const primaryRole: EduRoleName | null = hasExecutiveAccess
+    ? (roles.find((r) => hasPermission(buildAuthzSnapshot(user.id, [r]), "JAG_ACCESS")) ??
+      pickPrimaryRole(roles))
+    : pickPrimaryRole(roles);
+  const primaryRoleDisplayName =
+    roleRows.find((row) => row.name === primaryRole)?.display_name ??
+    roleRows[0]?.display_name ??
+    null;
   const email = profile?.email ?? user.email ?? "";
   const fullName =
     profile?.full_name?.trim() ||

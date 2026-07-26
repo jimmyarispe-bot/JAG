@@ -5,6 +5,10 @@ export {
   resolveRoleLabel,
   formatProductTitle,
 } from "@/lib/branding/resolve";
+export {
+  formatWorkspaceProductLine,
+  resolveWorkspaceEditionLabel,
+} from "@/lib/branding/workspace-edition";
 export { loadOrganizationBranding } from "@/lib/branding/load";
 export { FALLBACK_ROLE_LABELS, GENERIC_BRANDING_DEFAULTS } from "@/lib/branding/defaults";
 export {
