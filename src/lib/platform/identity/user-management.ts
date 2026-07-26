@@ -24,10 +24,6 @@ import {
   authCallbackRedirectTo,
   buildEmailAuthCallbackLink,
 } from "@/lib/auth/auth-callback";
-import {
-  authCallbackRedirectTo,
-  buildEmailAuthCallbackLink,
-} from "@/lib/auth/auth-callback";
 
 export type ManagedUserInput = {
   firstName: string;
@@ -223,19 +219,15 @@ export async function createManagedUser(
   try {
     if (input.status === "pending_invite") {
       // Create Auth user without relying on Supabase SMTP; deliver invite via Resend.
-      // must_reset_password gates AcademyOS until the invitee sets a password.
       // invite_activation + must_reset_password gate until the invitee activates.
       const { data, error } = await admin.auth.admin.createUser({
         email,
         email_confirm: false,
         user_metadata: {
-          ...{
           ...metadata,
           role: input.role,
           must_reset_password: true,
           invite_activation: true,
-        },
-          must_reset_password: true,
         },
       });
       if (error || !data.user) {
@@ -247,7 +239,6 @@ export async function createManagedUser(
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
         type: "invite",
         email,
-        options: { redirectTo: authCallbackRedirectTo(appUrl()) },
         options: { redirectTo: authCallbackRedirectTo(appUrl()) },
       });
       if (linkError) {

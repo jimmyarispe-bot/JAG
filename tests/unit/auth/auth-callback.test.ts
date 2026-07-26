@@ -4,13 +4,11 @@ import {
   authCallbackRedirectTo,
   buildEmailAuthCallbackLink,
   exchangeAuthCallbackParams,
-  isPasswordSetupAuthType,
   isInviteAuthType,
   isRecoveryAuthType,
   resolveAuthCallbackRedirect,
   safeInternalPath,
 } from "@/lib/auth/auth-callback";
-
 import { ACCOUNT_ACTIVATE_PATH } from "@/lib/auth/account-activation";
 import { PASSWORD_RESET_PATH } from "@/lib/auth/must-reset-password";
 
@@ -54,14 +52,24 @@ describe("auth-callback helpers", () => {
       resolveAuthCallbackRedirect({
         type: "invite",
         next: "/dashboard",
-user: userWith({
-  invite_activation: true,
-  must_reset_password: true,
-}),
+        user: userWith({
+          invite_activation: true,
+          must_reset_password: true,
+        }),
+      })
+    ).toBe(`${ACCOUNT_ACTIVATE_PATH}?next=${encodeURIComponent("/dashboard")}`);
+  });
+
+  it("routes recovery to password reset", () => {
+    expect(
+      resolveAuthCallbackRedirect({
+        type: "recovery",
+        next: "/dashboard",
+        user: userWith({ must_reset_password: true }),
       })
     ).toBe(`${PASSWORD_RESET_PATH}?next=${encodeURIComponent("/dashboard")}`);
   });
-  it("routes must_reset_password users to password creation even without type", () => {
+
   it("routes invite_activation metadata to activation even without type", () => {
     expect(
       resolveAuthCallbackRedirect({

@@ -1,5 +1,3 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { ACTIVITY_EVENT_CATALOG } from "@/lib/platform/activity/catalog";
 import {
   evaluateCrudCompliance,
@@ -7,39 +5,23 @@ import {
 } from "@/lib/platform/crud/completion-gate";
 import { ENTITY_CAPABILITIES } from "@/lib/platform/crud/registry";
 import { WORKFLOW_TRIGGER_LIBRARY } from "@/lib/workflows/triggers";
+import {
+  moduleDocsExist,
+  moduleLibDirExists,
+  moduleLibFileExists,
+  moduleUiSurfaceExists,
+  readMigrationSqlFiles,
+  readModuleDocs,
+  readPlaywrightConfig,
+  repoFileExists,
+  testPathHasFiles,
+} from "./fs-readers";
 import type {
   GateId,
   GateResult,
   GateVerdict,
   ModuleReleaseDefinition,
 } from "./types";
-
-const ROOT = process.cwd();
-
-function pathExists(rel: string): boolean {
-  return existsSync(join(ROOT, rel));
-}
-
-function dirHasFiles(rel: string): boolean {
-  const abs = join(ROOT, rel);
-  if (!existsSync(abs)) return false;
-  try {
-    const walk = (dir: string): boolean => {
-      for (const name of readdirSync(dir)) {
-        const p = join(dir, name);
-        if (statSync(p).isDirectory()) {
-          if (walk(p)) return true;
-        } else if (/\.(test|spec)\.(ts|tsx|js|mjs)$/.test(name) || name.endsWith(".ts")) {
-          return true;
-        }
-      }
-      return false;
-    };
-    return walk(abs);
-  } catch {
-    return false;
-  }
-}
 
 function gate(
   id: GateId,
@@ -72,7 +54,6 @@ export function evaluateCrudGate(mod: ModuleReleaseDefinition): GateResult {
 
     const status = getEntityReleaseStatus(key as never);
     if (status === "deferred") {
-      // deferred entities don't block
       passCount += 1;
     }
   }
@@ -93,47 +74,32 @@ export function evaluateCrudGate(mod: ModuleReleaseDefinition): GateResult {
 /** 2. Security Gate — structural signals (RLS migrations, access modules, server actions). */
 export function evaluateSecurityGate(mod: ModuleReleaseDefinition): GateResult {
   const issues: string[] = [];
-  let score = 40; // baseline: AcademyOS requires auth on dashboard
+  let score = 40;
 
-  const accessHints = [
-    `src/lib/${mod.id}/access.ts`,
-    `src/lib/${mod.id}/lifecycle/access.ts`,
-  ];
-  const hasAccess = accessHints.some(pathExists);
+  const hasAccess =
+    moduleLibFileExists(mod.id, "access.ts") ||
+    moduleLibFileExists(mod.id, "lifecycle", "access.ts");
   if (hasAccess) score += 25;
   else issues.push(`Missing access helper (expected under src/lib/${mod.id}/)`);
 
-  // RLS / migrations mention
-  const migrationDir = join(ROOT, "supabase/migrations");
-  let rlsSignal = false;
-  if (existsSync(migrationDir)) {
-    try {
-      const files = readdirSync(migrationDir);
-      const needle = mod.id.replace(/_/g, "");
-      rlsSignal = files.some((f) => {
-        if (!f.endsWith(".sql")) return false;
-        const text = readFileSync(join(migrationDir, f), "utf8").toLowerCase();
-        return (
-          (text.includes("row level security") || text.includes("enable row level security")) &&
-          (text.includes(needle) ||
-            text.includes(mod.id) ||
-            mod.entityKeys.some((k) => text.includes(k)))
-        );
-      });
-    } catch {
-      rlsSignal = false;
-    }
-  }
+  const needle = mod.id.replace(/_/g, "");
+  const rlsSignal = readMigrationSqlFiles().some((text) => {
+    const lower = text.toLowerCase();
+    return (
+      (lower.includes("row level security") || lower.includes("enable row level security")) &&
+      (lower.includes(needle) ||
+        lower.includes(mod.id) ||
+        mod.entityKeys.some((k) => lower.includes(k)))
+    );
+  });
   if (rlsSignal) score += 25;
   else issues.push("No clear RLS migration signal for this module");
 
-  // Server actions / "use server"
-  const actionPaths = [
-    `src/lib/${mod.id}/actions.ts`,
-    `src/lib/${mod.id}/server-actions.ts`,
-    `src/lib/${mod.id}/lifecycle/actions.ts`,
-  ];
-  if (actionPaths.some(pathExists)) score += 10;
+  const hasActions =
+    moduleLibFileExists(mod.id, "actions.ts") ||
+    moduleLibFileExists(mod.id, "server-actions.ts") ||
+    moduleLibFileExists(mod.id, "lifecycle", "actions.ts");
+  if (hasActions) score += 10;
   else issues.push("No server-actions module found");
 
   score = Math.min(100, score);
@@ -200,7 +166,6 @@ export function evaluateEiGate(mod: ModuleReleaseDefinition): GateResult {
 
 /** 5. Audit Gate — destructive/important actions emit activity (catalog coverage proxy) */
 export function evaluateAuditGate(mod: ModuleReleaseDefinition): GateResult {
-  // Reuse EI coverage as audit signal; lifecycle verbs should be present
   const ei = evaluateEiGate(mod);
   if (ei.verdict === "na") {
     return gate("audit", "na", 100, "No audit events required");
@@ -227,15 +192,13 @@ export function evaluateCommunicationsGate(mod: ModuleReleaseDefinition): GateRe
     return gate("communications", "na", 100, "Not communications-relevant");
   }
   const hasComms =
-    pathExists("src/lib/communications") ||
-    (pathExists(`src/lib/${mod.id}`) &&
-      pathExists("src/lib/communications/service.ts"));
+    repoFileExists("src/lib/communications") ||
+    (moduleLibDirExists(mod.id) && repoFileExists("src/lib/communications/service.ts"));
   if (!hasComms) {
     return gate("communications", "fail", 20, "Communications platform missing", [
       "Expected src/lib/communications",
     ]);
   }
-  // Module can generate via workflows → communications actions
   const workflow = evaluateWorkflowGate(mod);
   const score = workflow.score >= 60 ? 90 : 60;
   return gate(
@@ -251,12 +214,12 @@ export function evaluateCommunicationsGate(mod: ModuleReleaseDefinition): GateRe
 
 /** 7. Documentation Gate */
 export function evaluateDocsGate(mod: ModuleReleaseDefinition): GateResult {
-  if (!pathExists(mod.docsPath)) {
+  if (!moduleDocsExist(mod.docsPath)) {
     return gate("docs", "fail", 0, `Missing ${mod.docsPath}`, [
       `Create ${mod.docsPath} (architecture, permissions, data model, workflows, API, events)`,
     ]);
   }
-  const text = readFileSync(join(ROOT, mod.docsPath), "utf8").toLowerCase();
+  const text = (readModuleDocs(mod.docsPath) ?? "").toLowerCase();
   const sections = ["architecture", "permission", "data", "workflow", "event"];
   const missing = sections.filter((s) => !text.includes(s));
   const score = Math.round(((sections.length - missing.length) / sections.length) * 100);
@@ -274,7 +237,7 @@ export function evaluateTestsGate(mod: ModuleReleaseDefinition): GateResult {
   if (!mod.testPaths.length) {
     return gate("tests", "pending", 30, "No test paths declared");
   }
-  const present = mod.testPaths.filter((p) => dirHasFiles(p) || pathExists(p));
+  const present = mod.testPaths.filter((p) => testPathHasFiles(p));
   const score = Math.round((present.length / mod.testPaths.length) * 100);
   const issues = mod.testPaths
     .filter((p) => !present.includes(p))
@@ -292,17 +255,17 @@ export function evaluateTestsGate(mod: ModuleReleaseDefinition): GateResult {
 export function evaluateAccessibilityGate(mod: ModuleReleaseDefinition): GateResult {
   void mod;
   const signals = [
-    pathExists("tests/a11y"),
-    pathExists("src/components/platform/crud"),
-    pathExists("scripts/validate-a11y.mts"),
-    pathExists("docs/operations/rc11/01_ACCESSIBILITY.md") ||
-      pathExists("docs/operations/rc10/README.md"),
+    repoFileExists("tests/a11y"),
+    repoFileExists("src/components/platform/crud"),
+    repoFileExists("scripts/validate-a11y.mts"),
+    repoFileExists("docs/operations/rc11/01_ACCESSIBILITY.md") ||
+      repoFileExists("docs/operations/rc10/README.md"),
   ];
   const hit = signals.filter(Boolean).length;
   const score = Math.round((hit / signals.length) * 100);
   const issues: string[] = [];
-  if (!pathExists("tests/a11y")) issues.push("Missing tests/a11y Playwright suite");
-  if (!pathExists("src/components/platform/crud")) {
+  if (!repoFileExists("tests/a11y")) issues.push("Missing tests/a11y Playwright suite");
+  if (!repoFileExists("src/components/platform/crud")) {
     issues.push("Shared CRUD kit missing (focus trap / ARIA)");
   }
   const verdict: GateVerdict =
@@ -319,25 +282,23 @@ export function evaluateAccessibilityGate(mod: ModuleReleaseDefinition): GateRes
 /** 10. Mobile — responsive kit + Playwright mobile project + ops checklist */
 export function evaluateMobileGate(mod: ModuleReleaseDefinition): GateResult {
   void mod;
-  const playwright = pathExists("playwright.config.ts")
-    ? readFileSync(join(ROOT, "playwright.config.ts"), "utf8")
-    : "";
+  const playwright = repoFileExists("playwright.config.ts") ? readPlaywrightConfig() : "";
   const hasMobileProject =
     playwright.includes("mobile") ||
     playwright.includes("Pixel") ||
     playwright.includes("iPhone");
   const signals = [
-    pathExists("src/components/platform/crud"),
-    pathExists("scripts/validate-mobile.mts"),
+    repoFileExists("src/components/platform/crud"),
+    repoFileExists("scripts/validate-mobile.mts"),
     hasMobileProject,
-    pathExists("docs/operations/rc11/02_MOBILE.md") ||
-      pathExists("src/app/dashboard/certification/mobile"),
+    repoFileExists("docs/operations/rc11/02_MOBILE.md") ||
+      repoFileExists("src/app/dashboard/certification/mobile"),
   ];
   const hit = signals.filter(Boolean).length;
   const score = Math.round((hit / signals.length) * 100);
   const issues: string[] = [];
   if (!hasMobileProject) issues.push("Add Playwright mobile project (Pixel/iPhone)");
-  if (!pathExists("scripts/validate-mobile.mts")) {
+  if (!repoFileExists("scripts/validate-mobile.mts")) {
     issues.push("Missing scripts/validate-mobile.mts");
   }
   const verdict: GateVerdict =
@@ -355,20 +316,20 @@ export function evaluateMobileGate(mod: ModuleReleaseDefinition): GateResult {
 export function evaluatePerformanceGate(mod: ModuleReleaseDefinition): GateResult {
   void mod;
   const signals = [
-    pathExists("scripts/perf-regression.mts"),
-    pathExists("scripts/bundle-budget.mts"),
-    pathExists("scripts/validate-performance.mts"),
-    pathExists("tests/unit/performance") || pathExists("src/lib/observability"),
-    pathExists("docs/operations/rc11/03_PERFORMANCE.md") ||
-      pathExists("docs/operations/rc10/README.md"),
+    repoFileExists("scripts/perf-regression.mts"),
+    repoFileExists("scripts/bundle-budget.mts"),
+    repoFileExists("scripts/validate-performance.mts"),
+    repoFileExists("tests/unit/performance") || repoFileExists("src/lib/observability"),
+    repoFileExists("docs/operations/rc11/03_PERFORMANCE.md") ||
+      repoFileExists("docs/operations/rc10/README.md"),
   ];
   const hit = signals.filter(Boolean).length;
   const score = Math.round((hit / signals.length) * 100);
   const issues: string[] = [];
-  if (!pathExists("scripts/perf-regression.mts")) {
+  if (!repoFileExists("scripts/perf-regression.mts")) {
     issues.push("Missing perf regression script");
   }
-  if (!pathExists("scripts/bundle-budget.mts")) {
+  if (!repoFileExists("scripts/bundle-budget.mts")) {
     issues.push("Missing bundle budget script");
   }
   const verdict: GateVerdict =
@@ -388,8 +349,8 @@ export function evaluateExtensionGate(mod: ModuleReleaseDefinition): GateResult 
     return gate("extension", "na", 100, "No third-party extension required");
   }
   const hasExt =
-    pathExists("src/lib/workflows/extension.ts") ||
-    pathExists("src/lib/communications/providers");
+    repoFileExists("src/lib/workflows/extension.ts") ||
+    repoFileExists("src/lib/communications/providers");
   return gate(
     "extension",
     hasExt ? "pass" : "fail",
@@ -403,16 +364,11 @@ export function evaluateExtensionGate(mod: ModuleReleaseDefinition): GateResult 
 
 /** 13. UX Consistency Gate */
 export function evaluateUxGate(mod: ModuleReleaseDefinition): GateResult {
-  const crudUi = pathExists("src/components/platform/crud");
+  const crudUi = repoFileExists("src/components/platform/crud");
   const issues: string[] = [];
   if (!crudUi) issues.push("Shared CRUD UI kit missing");
 
-  // Heuristic: module components exist
-  const componentHints = [
-    `src/components/${mod.id}`,
-    `src/app/dashboard/${mod.id}`,
-  ];
-  const hasUi = componentHints.some(pathExists);
+  const hasUi = moduleUiSurfaceExists(mod.id);
   if (!hasUi) issues.push(`No dashboard/components surface for ${mod.id}`);
 
   const score = (crudUi ? 50 : 0) + (hasUi ? 50 : 0);
@@ -441,20 +397,15 @@ export function evaluateProductionGate(
 
   const issues: string[] = [];
   if (blocking.length) {
-    issues.push(
-      ...blocking.map((g) => `${g.gate}: ${g.summary}`)
-    );
+    issues.push(...blocking.map((g) => `${g.gate}: ${g.summary}`));
   }
   if (docs?.verdict === "fail") issues.push("Documentation incomplete");
   if (tests && tests.verdict === "fail") issues.push("Tests incomplete");
   if (crud && crud.verdict === "fail") issues.push("CRUD gate failed");
 
-  // Status claim vs reality
   const advanced = ["production-ready", "released"].includes(mod.status);
   if (advanced && issues.length) {
-    issues.push(
-      `Module claims status="${mod.status}" but blocking gates remain`
-    );
+    issues.push(`Module claims status="${mod.status}" but blocking gates remain`);
   }
 
   const score = issues.length === 0 ? 100 : Math.max(0, 100 - issues.length * 15);
