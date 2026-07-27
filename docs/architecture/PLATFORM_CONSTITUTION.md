@@ -5,21 +5,23 @@
 | **Document** | Platform Constitution |
 | **Type** | Governing enterprise architecture |
 | **Status** | Canonical |
-| **Companions** | [PLATFORM_ARCHITECTURE.md](./PLATFORM_ARCHITECTURE.md) · [PLATFORM_ROADMAP.md](./PLATFORM_ROADMAP.md) · [ENGINEERING_STANDARDS.md](./ENGINEERING_STANDARDS.md) · [SECURITY_MODEL.md](./SECURITY_MODEL.md) · [README.md](./README.md) (current truth index) · [phase-a/](./phase-a/) |
+| **Companions** | [PLATFORM_ARCHITECTURE.md](./PLATFORM_ARCHITECTURE.md) · [PLATFORM_ROADMAP.md](./PLATFORM_ROADMAP.md) · [ENGINEERING_STANDARDS.md](./ENGINEERING_STANDARDS.md) · [SECURITY_MODEL.md](./SECURITY_MODEL.md) · [README.md](./README.md) (current truth index) · [phase-a/](./phase-a/) · [platform-alignment/](./platform-alignment/) (Sprint 057) |
 | **Authority** | This constitution governs every future sprint. Where implementation diverges, implementation must be corrected to match this document. |
+| **Amendment** | Sprint 057 / [ADR-PA-001](./adr/ADR-PA-001-platform-application-tenant.md) — Platform / Application / Tenant layering |
 
 ---
 
 ## 1. Vision
 
-The JAG Platform is an enterprise operating system for education organizations.
+**JAG** is the enterprise **platform**: a multi-tenant operating system with shared identity, tenancy, engines, Cloud Console, and platform stewardship.
 
-It enables institutions to run admissions, academics, workforce, finance, compliance, and executive intelligence on a secure multi-tenant foundation — with clear product boundaries, permission discipline, and complete auditability.
+**Applications** run on JAG. **Application #1** is **AcademyOS** (school and education operations). Future applications (HealthcareOS, NonprofitOS, and others) share the same platform without forking authorization, tenancy, or security.
 
-Two product faces share one constitutional core:
+**Organizations** are **tenants**. They enable one or more applications. **Tenant #1** is **The Academy Way**, running AcademyOS.
 
-- **JAG** — Founder-level executive intelligence and platform stewardship.
-- **AcademyOS** — Organization-scoped school operations.
+Platform stewardship surfaces (Founder intelligence, `/exec`, privileged platform admin) remain gated by Founder Protection (`JAG_ACCESS`). They are privileged **platform** capability — not a peer consumer product brand competing with AcademyOS.
+
+Clear boundaries, permission discipline, and complete auditability remain non-negotiable.
 
 ---
 
@@ -28,10 +30,10 @@ Two product faces share one constitutional core:
 Deliver a platform where:
 
 1. **Leaders** gain decision-quality intelligence without compromising tenant isolation.  
-2. **Operators** run daily school workflows under least-privilege access.  
+2. **Operators** run daily application workflows (starting with AcademyOS school ops) under least-privilege access.  
 3. **Administrators** govern identity, organizations, and configuration through a single permission model.  
 4. **Support and emergency access** are temporary, approved, and fully audited.  
-5. **Future products** extend the platform without fracturing authorization, tenancy, or security.
+5. **Future applications** extend the platform without fracturing authorization, tenancy, or security.
 
 The mission is operational excellence under constitutional constraints — speed inside clear boundaries.
 
@@ -42,40 +44,54 @@ The mission is operational excellence under constitutional constraints — speed
 | # | Principle | Statement |
 |---|-----------|-----------|
 | P1 | **Permission-only authorization** | All access decisions use the centralized permission engine (`authorize` / `hasPermission`). Roles grant permissions; roles are never checked at call sites. |
-| P2 | **Founder Protection** | Only `JAG_ACCESS` may enter JAG. Officially, that grant belongs to Founder. All others land in AcademyOS. Normal support must not require Founder. |
-| P3 | **Organization isolation** | Organizations are first-class tenants. Cross-org access requires platform authority or audited temporary authority. |
+| P2 | **Founder Protection** | Only `JAG_ACCESS` may enter platform-steward surfaces (e.g. `/exec`, founder intelligence). Officially, that grant belongs to Founder. All others land in their tenant’s enabled application home (AcademyOS `/dashboard` for Tenant #1). Normal support must not require Founder. |
+| P3 | **Organization isolation** | Organizations are first-class **tenants**. Cross-org access requires platform authority or audited temporary authority. |
 | P4 | **Least privilege** | Steady-state access matches job function. Elevated access is time-bounded, reason-coded, approved, and auto-expired. |
 | P5 | **Audit by default** | Administrative, support, emergency, delegation, and permission-changing actions produce durable audit records. |
 | P6 | **Additive evolution** | Official roles and permission catalogs expand additively. Deprecation is explicit and compatibility-preserving. |
 | P7 | **Constitution over convenience** | Shortcuts that bypass the engine, tenancy, or audit are defects — even when they appear to work. |
+| P8 | **Platform / Application / Tenant** | **JAG** is the platform. **Applications** (AcademyOS, …) are packs on JAG. **Tenants** are organizations that enable applications. Do not conflate platform brand, application brand, and tenant display name. |
 
 ---
 
-## 4. Product Boundaries
+## 4. Layer Boundaries (Platform / Application / Tenant)
 
-### 4.1 JAG
+Canonical definitions: [platform-alignment/01_LAYER_MODEL.md](./platform-alignment/01_LAYER_MODEL.md).
 
-| Attribute | Rule |
-|-----------|------|
-| Purpose | Executive intelligence, Founder stewardship, platform-level command |
-| Gate | `JAG_ACCESS` |
-| Audience | Founder (and only identities explicitly granted `JAG_ACCESS` via policy) |
-| Non-goals | Day-to-day school ops for staff, teachers, parents, or students |
-
-Denied JAG entry redirects into AcademyOS.
-
-### 4.2 AcademyOS
+### 4.1 Platform — JAG
 
 | Attribute | Rule |
 |-----------|------|
-| Purpose | School and organization operations |
+| Purpose | Shared runtime: identity, tenancy, configuration, events, workflows, automation, integrations, Cloud Console, intelligence infrastructure, platform stewardship |
+| Steward gate | `JAG_ACCESS` (Founder Protection) for steward surfaces |
+| Audience (steward) | Founder and identities explicitly granted `JAG_ACCESS` via policy |
+| Non-goals | Owning a single vertical’s day-to-day SoR (e.g. students, clinical charts) as “the platform itself” |
+
+Denied steward entry redirects into the tenant’s enabled application home (AcademyOS `/dashboard` today).
+
+### 4.2 Application #1 — AcademyOS
+
+| Attribute | Rule |
+|-----------|------|
+| Purpose | School and education operations pack on JAG |
 | Gate | `ACADEMYOS_ACCESS` plus module gates (`FINANCE_ACCESS`, `HR_ACCESS`, `SIS_ACCESS`, etc.) |
 | Audience | Executive Director, School Leader, Teachers, Parents, Students, Finance/HR/Admissions staff, Board |
 | Tenancy | Organization-scoped |
+| Tenant #1 | **The Academy Way** runs AcademyOS |
 
-### 4.3 Boundary rule
+Future applications declare their own gates, modules, and tenancy the same way (§11).
 
-Each route or feature has one primary product surface for authorization. Cross-links are allowed. Shared entitlement without a catalog permission is not.
+### 4.3 Tenant — Organization
+
+| Attribute | Rule |
+|-----------|------|
+| Purpose | Customer isolation unit: memberships, schools, config, branding, enabled application(s), RLS-scoped data |
+| Source of truth | Organization membership (+ school assignments for operational scope) |
+| Must not | Be used as a synonym for “AcademyOS” or “JAG” |
+
+### 4.4 Boundary rule
+
+Each route or feature has one primary **layer surface** for authorization (platform steward vs application module). Cross-links are allowed. Shared entitlement without a catalog permission is not. Platform name, application name, and tenant display name are distinct (§1 naming triple in the layer model).
 
 ---
 
@@ -224,41 +240,44 @@ Break Glass is the **emergency access framework** for exceptional circumstances.
 
 ## 11. Extensibility Rules
 
-### Adding a product or module
+### Adding an application or module
 
 Declare:
 
-1. Product identity and purpose  
-2. Catalog access gate(s)  
-3. Tenancy model (platform-global vs organization-scoped)  
-4. Role → permission grants  
-5. Audit surface  
-6. Platform Administration presence (if any)  
+1. **Layer**: platform capability vs application pack vs tenant config  
+2. Application identity (if application) and purpose  
+3. Catalog access gate(s)  
+4. Tenancy model (platform-global vs organization-scoped)  
+5. Role → permission grants  
+6. Audit surface  
+7. Platform Administration / Cloud Console presence (if any)  
 
 ### Must not
 
 - Introduce role-name authorization at call sites  
-- Pierce organization isolation without temporary authority + audit  
+- Pierce organization (tenant) isolation without temporary authority + audit  
 - Grant `JAG_ACCESS` outside Founder Protection policy  
 - Silently broaden high-risk gates (e.g. `FINANCE_ACCESS`)  
+- Treat AcademyOS branding or education defaults as the platform identity  
 
 ### Documentation hierarchy
 
 1. **PLATFORM_CONSTITUTION.md** (this document)  
-2. Domain architecture (`PLATFORM_ARCHITECTURE.md`, `SECURITY_MODEL.md`, …)  
-3. Product specs (`docs/product/`)  
-4. Sprint / verification evidence  
+2. [platform-alignment/](./platform-alignment/) (Sprint 057 layer model + migration)  
+3. Domain architecture (`PLATFORM_ARCHITECTURE.md`, `SECURITY_MODEL.md`, …)  
+4. Product specs (`docs/product/`)  
+5. Sprint / verification evidence  
 
 Conflicts resolve in favor of this constitution until it is deliberately amended.
 
 ### Amendment
 
-Amendments require an explicit architecture decision that states the change, impact, document update, and follow-up implementation work. Silent drift is not an amendment.
+Amendments require an explicit architecture decision that states the change, impact, document update, and follow-up implementation work. Silent drift is not an amendment. Sprint 057 alignment is recorded in [ADR-PA-001](./adr/ADR-PA-001-platform-application-tenant.md).
 
 ---
 
 ## Closing
 
-The platform succeeds when operators move quickly **inside** constitutional boundaries: Founder-only JAG, organization-scoped AcademyOS, permission-only authorization, temporary elevated access, and complete audit.
+The platform succeeds when operators move quickly **inside** constitutional boundaries: **JAG as platform**, **applications** (AcademyOS first) on that platform, **tenants** as organizations, Founder Protection for steward surfaces, permission-only authorization, temporary elevated access, and complete audit.
 
 Every future sprint is accountable to this design.

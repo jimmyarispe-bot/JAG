@@ -1,7 +1,8 @@
 # Production Environment Variables (v1.0)
 
-Copy into Vercel (or local `.env.local`). Tracked template: `.env.example`.  
-**Canonical validation:** `src/lib/platform/env/schema.ts` (enforced at boot via `instrumentation.ts`).
+Copy into Vercel project **`academy-os`** (or local `.env.local`). Tracked template: `.env.example`.  
+**Canonical validation:** `src/lib/platform/env/schema.ts` (enforced at boot via `instrumentation.ts`).  
+**Canonical deploy:** [Sprint 058](../architecture/platform-alignment/sprint-058/01_CANONICAL_DEPLOYMENT.md) — do not configure Tenant #1 secrets on legacy `the-jag-platform-*` projects.
 
 ## Required (production)
 

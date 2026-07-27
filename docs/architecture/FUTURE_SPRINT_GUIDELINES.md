@@ -52,9 +52,12 @@ Rules every future intelligence sprint must follow so JAG OIOS remains coherent.
 - **Sprint 054:** Ethical Intelligence (Internal/governance-adjacent ethical after Cultural, hard dep: cultural)
 - **Sprint 055:** Systems Intelligence (Internal/cross-cutting systems dynamics after Ethical, hard dep: ethical)
 - **Sprint 056:** Resilience Intelligence (Internal/adaptive capacity after Systems, hard dep: systems)
-- **Sprint 057:** Ecosystem Intelligence (External/network layer after Resilience, hard dep: resilience)
-- **Sprint 058:** Institutional Memory Intelligence (Knowledge evolution terminal layer after Ecosystem; Sprint 040 knowledge remains mid-pipeline frozen; hard dep: ecosystem)
-- **Sprint 059:** Collective Intelligence (collaborative synthesis layer after Institutional Memory; hard dep: institutional-memory)
+- **Sprint 057 (Intelligence track):** Ecosystem Intelligence (External/network layer after Resilience, hard dep: resilience)  
+  - **Note:** **Sprint 057 (Platform architecture track)** is [JAG Platform Alignment](./platform-alignment/) — Platform / Application / Tenant. Always name the track when citing Sprint 057.
+- **Sprint 058 (Intelligence track):** Institutional Memory Intelligence (Knowledge evolution terminal layer after Ecosystem; Sprint 040 knowledge remains mid-pipeline frozen; hard dep: ecosystem)  
+  - **Note:** **Sprint 058 (Platform ops track)** is [Canonical Deployment Alignment](./platform-alignment/sprint-058/) — one Vercel project (`academy-os`). Always name the track when citing Sprint 058.
+- **Sprint 059 (Intelligence track):** Collective Intelligence (collaborative synthesis layer after Institutional Memory; hard dep: institutional-memory)
+  - **Note:** **Sprint 059 (Platform architecture track)** is [Application Registry & Enablement](./platform-alignment/sprint-059/) — `platform_applications` + tenant enablement. Always name the track when citing Sprint 059.
 - **Sprint 060:** Wisdom Intelligence (JAG v1.0 judgment capstone after Collective; hard dep: collective)
 - **Sprint 061:** Executive Synthesis Intelligence (cross-domain reasoning layer after Wisdom; hard dep: wisdom)
 - **Sprint 062:** Executive Briefing Intelligence (actionable morning briefs after Synthesis; hard dep: synthesis)

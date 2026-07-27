@@ -14760,6 +14760,67 @@ export type Database = {
           },
         ]
       }
+      organization_applications: {
+        Row: {
+          application_id: string
+          created_at: string
+          disabled_at: string | null
+          enabled_at: string | null
+          enabled_by: string | null
+          id: string
+          metadata: Json
+          organization_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          disabled_at?: string | null
+          enabled_at?: string | null
+          enabled_by?: string | null
+          id?: string
+          metadata?: Json
+          organization_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          disabled_at?: string | null
+          enabled_at?: string | null
+          enabled_by?: string | null
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_applications_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "platform_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_applications_enabled_by_fkey"
+            columns: ["enabled_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_applications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_plans: {
         Row: {
           billing_account_id: string
@@ -15328,6 +15389,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_applications: {
+        Row: {
+          created_at: string
+          description: string
+          home_route: string | null
+          id: string
+          key: string
+          metadata: Json
+          name: string
+          permission_pack_key: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          home_route?: string | null
+          id?: string
+          key: string
+          metadata?: Json
+          name: string
+          permission_pack_key?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          home_route?: string | null
+          id?: string
+          key?: string
+          metadata?: Json
+          name?: string
+          permission_pack_key?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       platform_approval_requests: {
         Row: {

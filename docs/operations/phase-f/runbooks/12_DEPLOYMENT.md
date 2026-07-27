@@ -2,11 +2,15 @@
 
 | Field | Value |
 |-------|-------|
-| **Purpose** | Deploy AcademyOS to Vercel production and roll back safely |
+| **Purpose** | Deploy the JAG platform (AcademyOS Application #1) to Vercel production and roll back safely |
 | **Scope** | App deploy; DB migrations coordinated separately |
 | **Audience** | Engineers, release managers |
-| **Prerequisites** | Vercel project linked to repo; Supabase access; env vars set |
-| **Version** | 1.0.0 |
+| **Prerequisites** | Canonical Vercel project **`academy-os`** linked to `jimmyarispe-bot/JAG`; Supabase access; env vars set |
+| **Version** | 1.1.0 |
+| **Canonical topology** | [Sprint 058 — Canonical Deployment](../../../architecture/platform-alignment/sprint-058/01_CANONICAL_DEPLOYMENT.md) |
+| **CI/CD flow** | [Sprint 058 — CI/CD](../../../architecture/platform-alignment/sprint-058/02_CI_CD_FLOW.md) |
+
+**Do not deploy Tenant #1 from `the-jag-platform-jimmy`, `the-jag-platform-2026`, or `the-jag-platform`.**
 
 ---
 
@@ -14,19 +18,18 @@
 
 ### Pre-deploy
 
-1. CI green on `main` (`.github/workflows/ci.yml`).  
+1. CI green on the candidate branch (`.github/workflows/ci.yml` — `staging` / `release/v1.0.0-rc1` / PR).  
 2. Go/No-Go checklist in `../14_RELEASE_OPERATIONS_MANUAL.md`.  
-3. Confirm production env vars (`PRODUCTION_ENV.md`), including `RESEND_API_KEY` and verified `EMAIL_FROM=noreply@theacademyway.org`.  
+3. Confirm production env vars on project **`academy-os`** (`PRODUCTION_ENV.md`), including `RESEND_API_KEY` and verified `EMAIL_FROM=noreply@theacademyway.org`.  
 4. If schema changes: migrations reviewed and staged (prefer migrate **before** app if backward-compatible; otherwise expand/contract).  
-5. Note current Vercel deployment ID for rollback.
+5. Note current Vercel deployment ID on **`academy-os`** for rollback.
 
 ### Deploy application
 
-1. Merge to `main` (or promote release branch per org policy).  
-2. Vercel builds (`npm run build` includes registry validators).  
+1. Promote Staging → Production on **`academy-os`**, or merge into Production branch `release/v1.0.0-rc1` per [CI/CD flow](../../../architecture/platform-alignment/sprint-058/02_CI_CD_FLOW.md).  
+2. Vercel builds on **`academy-os`** only (`npm run build` includes registry validators).  
 3. Wait for deployment Ready.  
-4. Post-deploy validation (§ below).
-
+4. Post-deploy validation (§ below) against `https://academy-os-lac.vercel.app`.
 ### Apply database migrations
 
 1. Take/confirm backup snapshot (Supabase).  

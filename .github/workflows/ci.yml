@@ -1,10 +1,12 @@
 name: CI
 
+# Canonical deploy target: Vercel project academy-os only.
+# See docs/architecture/platform-alignment/sprint-058/02_CI_CD_FLOW.md
 on:
   push:
-    branches: [main]
+    branches: [main, release/v1.0.0-rc1, staging]
   pull_request:
-    branches: [main]
+    branches: [main, release/v1.0.0-rc1, staging]
 
 jobs:
   build-and-test:

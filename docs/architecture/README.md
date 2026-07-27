@@ -15,11 +15,12 @@
 
 ## Start here (read in order)
 
-1. [PLATFORM_CONSTITUTION.md](./PLATFORM_CONSTITUTION.md) — product boundaries + IAM rules  
-2. [phase-a/00_EXECUTIVE_ARCHITECTURE_REPORT.md](./phase-a/00_EXECUTIVE_ARCHITECTURE_REPORT.md) — CONDITIONAL GO + risks  
-3. [phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md](./phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md) — what may be claimed as production intelligence  
-4. [phase-a/ARCHITECTURE_SCORECARD.md](./phase-a/ARCHITECTURE_SCORECARD.md) — current scores  
-5. [phase-a/07_PRIORITIZED_REMEDIATION_PLAN.md](./phase-a/07_PRIORITIZED_REMEDIATION_PLAN.md) — remediation waves  
+1. [PLATFORM_CONSTITUTION.md](./PLATFORM_CONSTITUTION.md) — Platform / Application / Tenant + IAM rules  
+2. [platform-alignment/](./platform-alignment/) — **Sprint 057** JAG Platform Alignment (definitions + migration; docs before behavior)  
+3. [phase-a/00_EXECUTIVE_ARCHITECTURE_REPORT.md](./phase-a/00_EXECUTIVE_ARCHITECTURE_REPORT.md) — CONDITIONAL GO + risks  
+4. [phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md](./phase-a/PRODUCTION_INTELLIGENCE_CONTRACT.md) — what may be claimed as production intelligence  
+5. [phase-a/ARCHITECTURE_SCORECARD.md](./phase-a/ARCHITECTURE_SCORECARD.md) — current scores  
+6. [phase-a/07_PRIORITIZED_REMEDIATION_PLAN.md](./phase-a/07_PRIORITIZED_REMEDIATION_PLAN.md) — remediation waves  
 
 ---
 
@@ -49,6 +50,10 @@
 
 | Doc | Role |
 |-----|------|
+| [platform-alignment/](./platform-alignment/) | Sprint 057 — JAG = platform · AcademyOS = App #1 · The Academy Way = Tenant #1 |
+| [platform-alignment/sprint-058/](./platform-alignment/sprint-058/) | Sprint 058 — canonical Vercel project `academy-os` · Prod/Staging/Preview · CI/CD |
+| [platform-alignment/sprint-059/](./platform-alignment/sprint-059/) | Sprint 059 — `platform_applications` + org enablement (metadata only) |
+| [adr/ADR-PA-001-platform-application-tenant.md](./adr/ADR-PA-001-platform-application-tenant.md) | ADR accepting the layer model |
 | [INTELLIGENCE_SURFACES_MAP.md](./INTELLIGENCE_SURFACES_MAP.md) | Which intelligence package to use (H-A1) |
 | [PLATFORM_ARCHITECTURE.md](./PLATFORM_ARCHITECTURE.md) | Platform shape |
 | [PLATFORM_CONTRACT.md](./PLATFORM_CONTRACT.md) | Sprint 000 maturity contract |

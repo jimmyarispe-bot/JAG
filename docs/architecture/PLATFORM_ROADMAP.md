@@ -5,7 +5,23 @@
 | **Document** | Platform Roadmap |
 | **Type** | Strategic delivery milestones |
 | **Status** | Living plan aligned to Constitution & Architecture |
-| **Related** | [PLATFORM_CONSTITUTION.md](./PLATFORM_CONSTITUTION.md) · [PLATFORM_ARCHITECTURE.md](./PLATFORM_ARCHITECTURE.md) |
+| **Related** | [PLATFORM_CONSTITUTION.md](./PLATFORM_CONSTITUTION.md) · [PLATFORM_ARCHITECTURE.md](./PLATFORM_ARCHITECTURE.md) · [platform-alignment/](./platform-alignment/) (Sprint 057) |
+
+---
+
+## Layering (Sprint 057)
+
+| Layer | Name |
+|-------|------|
+| Platform | **JAG** |
+| Application #1 | **AcademyOS** |
+| Tenant #1 | **The Academy Way** (runs AcademyOS) |
+
+Behavior migration follows [platform-alignment/02_MIGRATION_PLAN.md](./platform-alignment/02_MIGRATION_PLAN.md). Do not start nav/branding/deploy refactors without that plan.
+
+**Deployment topology (Sprint 058):** one Git repo · Vercel project **`academy-os`** only · see [platform-alignment/sprint-058/](./platform-alignment/sprint-058/).
+
+**Application registry (Sprint 059):** `platform_applications` + `organization_applications` · AcademyOS enabled for Tenant #1 · see [platform-alignment/sprint-059/](./platform-alignment/sprint-059/).
 
 ---
 
