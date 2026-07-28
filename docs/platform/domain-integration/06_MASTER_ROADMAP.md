@@ -26,7 +26,7 @@ Older roadmaps remain historical references and should defer here:
 | ✅ **P-011** | **Revenue & Payables™** | Purchasing, AP, AR, funding sources, recognition, OIOS events | **Complete** |
 | ✅ **P-012** | **FP&A & Financial Reporting** | Statements, budgets, forecasts, variance, dashboards | **Complete** |
 | ✅ **P-013** | **JAG CFO™** | Runway, EBITDA, QoE, valuation, scenarios, board, conversational finance | **Complete** |
-| P-014 | JAG Knowledge™ & Document Intelligence | Knowledge graph, docs AI, student/knowledge profiles | Planned |
+| ✅ **P-014** | **JAG Knowledge™ & Document Intelligence** | Knowledge graph, docs AI, evidence, search, OCR | **Complete** |
 | P-015 | Learning Intelligence™ | Integrate AcademyOS mastery/assessment IP into shared engine | Planned |
 | Later | Notification consolidation | Single Notification Engine | Planned |
 | Later | Reporting Engine execution | Executable reports across domains | Planned |
@@ -91,7 +91,6 @@ Sequenced **after** shared engines exist for overlapping concerns. Pedagogy IP i
 
 ## F. Resume feature development order
 
-After P-013:
+After P-014:
 
-1. **P-014** — JAG Knowledge™ & Document Intelligence  
-2. **P-015** — Learning Intelligence™ (integrate existing AcademyOS mastery & assessment work)
+1. **P-015** — Learning Intelligence™ (integrate existing AcademyOS mastery & assessment work)

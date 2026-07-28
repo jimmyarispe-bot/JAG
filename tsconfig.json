@@ -35,7 +35,9 @@
       "@finance": ["./packages/platform/finance/index.ts"],
       "@finance/*": ["./packages/platform/finance/*"],
       "@cfo": ["./packages/platform/cfo/index.ts"],
-      "@cfo/*": ["./packages/platform/cfo/*"]
+      "@cfo/*": ["./packages/platform/cfo/*"],
+      "@knowledge": ["./packages/platform/knowledge/index.ts"],
+      "@knowledge/*": ["./packages/platform/knowledge/*"]
     }
   },
   "include": [
