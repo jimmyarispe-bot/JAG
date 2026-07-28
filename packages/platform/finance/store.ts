@@ -7,6 +7,8 @@ import { resetReconciliationStoreForTests } from "./reconciliation/store";
 import { resetPayablesStoreForTests } from "./payables/store";
 import { resetRevenueStoreForTests } from "./revenue/store";
 import { resetFinanceOpsStoreForTests } from "./operations/events";
+import { resetReportingStoreForTests } from "./reporting/store";
+import { resetPlanningStoreForTests } from "./planning/store";
 import type {
   AccountingPeriod,
   BankAccount,
@@ -85,6 +87,8 @@ export function resetFinanceStoreForTests(): void {
   resetPayablesStoreForTests();
   resetRevenueStoreForTests();
   resetFinanceOpsStoreForTests();
+  resetReportingStoreForTests();
+  resetPlanningStoreForTests();
 }
 
 function byOrg<T extends { organizationId: string }>(

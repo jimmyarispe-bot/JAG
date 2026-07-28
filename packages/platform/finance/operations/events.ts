@@ -25,7 +25,16 @@ export type OperationalFinanceEventType =
   | "finance.subscription_billed"
   | "finance.revenue_recognized"
   | "finance.funding_applied"
-  | "finance.adjustment";
+  | "finance.adjustment"
+  | "finance.report_generated"
+  | "finance.budget_created"
+  | "finance.budget_versioned"
+  | "finance.forecast_created"
+  | "finance.scenario_created"
+  | "finance.variance_computed"
+  | "finance.dashboard_built"
+  | "finance.assumption_set"
+  | "finance.allocation_posted";
 
 export type OperationalFinanceEvent = {
   readonly id: string;

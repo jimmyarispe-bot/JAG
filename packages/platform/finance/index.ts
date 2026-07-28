@@ -1,9 +1,9 @@
 /**
- * JAG Finance™ — public platform entry (P-008–P-011).
+ * JAG Finance™ — public platform entry (P-008–P-012).
  */
 
 export const FINANCE_ID = "jag-finance" as const;
-export const FINANCE_VERSION = "1.3.0" as const;
+export const FINANCE_VERSION = "1.4.0" as const;
 
 export const FINANCE_DESCRIPTOR = Object.freeze({
   id: FINANCE_ID,
@@ -11,7 +11,7 @@ export const FINANCE_DESCRIPTOR = Object.freeze({
   version: FINANCE_VERSION,
   type: "platform-capability" as const,
   description:
-    "Canonical financial operating model for multi-entity ledger, treasury, reconciliation, revenue & payables, budgets, and audit — foundation for CFO™ intelligence in later sprints.",
+    "Canonical financial operating model for multi-entity ledger, treasury, reconciliation, revenue & payables, planning & reporting, budgets, and audit — foundation for CFO™ intelligence in P-013.",
 });
 
 export type {
@@ -101,6 +101,45 @@ export {
   resetPayablesStoreForTests,
 } from "./payables";
 export type { PaymentMethod, PurchaseOrder, PurchaseRequest } from "./payables";
+export {
+  FinancialReportingEngine,
+  createFinancialReportingEngine,
+  REPORTING_GUARDS,
+  resetReportingStoreForTests,
+  buildFinanceDashboard,
+  trialBalanceHint,
+  generateStatement,
+  trialBalance,
+  computeVariance,
+  buildExecutiveKpis,
+  buildReportingDashboard,
+} from "./reporting";
+export type {
+  ExecutiveKpis,
+  FinancialStatement,
+  ReportScope,
+  ReportingDashboard,
+  StatementKind,
+  VarianceReport,
+} from "./reporting";
+export {
+  FinancialPlanningEngine,
+  createFinancialPlanningEngine,
+  PLANNING_GUARDS,
+  resetPlanningStoreForTests,
+  createPlanningBudget,
+  createForecast,
+  createScenario,
+} from "./planning";
+export type {
+  BudgetHorizon,
+  BudgetKind,
+  Forecast,
+  ForecastMethod,
+  PlanningBudget,
+  Scenario,
+  ScenarioKind,
+} from "./planning";
 export {
   publishOperationalFinanceEvent,
   listOperationalEvents,

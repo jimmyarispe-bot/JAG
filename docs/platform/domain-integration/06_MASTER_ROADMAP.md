@@ -24,7 +24,7 @@ Older roadmaps remain historical references and should defer here:
 | ✅ P-010 | Reconciliation™ | Auto/manual match, approvals, month-end close | Complete |
 | ✅ **P-010A** | **Domain Integration™** | Inventory, crosswalk, engines, map, gaps, IP catalog | **Complete** |
 | ✅ **P-011** | **Revenue & Payables™** | Purchasing, AP, AR, funding sources, recognition, OIOS events | **Complete** |
-| P-012 | FP&A & Financial Reporting | Statements, budgets, forecasts, variance, dashboards | Planned |
+| ✅ **P-012** | **FP&A & Financial Reporting** | Statements, budgets, forecasts, variance, dashboards | **Complete** |
 | P-013 | JAG CFO™ | Runway, EBITDA, QoE, valuation, scenarios, board, conversational finance | Planned |
 | P-014 | JAG Knowledge™ & Document Intelligence | Knowledge graph, docs AI, student/knowledge profiles | Planned |
 | P-015 | Learning Intelligence™ | Integrate AcademyOS mastery/assessment IP into shared engine | Planned |
@@ -91,9 +91,8 @@ Sequenced **after** shared engines exist for overlapping concerns. Pedagogy IP i
 
 ## F. Resume feature development order
 
-After P-011:
+After P-012:
 
-1. **P-012** — Financial Planning & Reporting  
-2. **P-013** — JAG CFO™  
-3. **P-014** — JAG Knowledge™ & Document Intelligence  
-4. **P-015** — Learning Intelligence™ (integrate existing AcademyOS mastery & assessment work)
+1. **P-013** — JAG CFO™  
+2. **P-014** — JAG Knowledge™ & Document Intelligence  
+3. **P-015** — Learning Intelligence™ (integrate existing AcademyOS mastery & assessment work)

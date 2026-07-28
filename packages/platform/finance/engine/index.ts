@@ -56,7 +56,13 @@ import {
   receivePayment,
   sendInvoice,
 } from "../receivables";
-import { buildFinanceDashboard, trialBalanceHint } from "../reporting";
+import {
+  buildFinanceDashboard,
+  createFinancialReportingEngine,
+  REPORTING_GUARDS,
+  trialBalanceHint,
+  type FinancialReportingEngine,
+} from "../reporting";
 import { list1099Vendors, TAX_FOUNDATION_NOTE } from "../tax";
 import { cashBalances, listTransfers, transferCash } from "../treasury";
 import { createVendor, listVendors } from "../vendors";
@@ -81,6 +87,11 @@ import {
   REVENUE_GUARDS,
   type RevenueEngine,
 } from "../revenue";
+import {
+  createFinancialPlanningEngine,
+  PLANNING_GUARDS,
+  type FinancialPlanningEngine,
+} from "../planning";
 
 export class FinanceEngine {
   readonly guards = FINANCE_FOUNDATION_GUARDS;
@@ -88,10 +99,15 @@ export class FinanceEngine {
   readonly reconciliationGuards = RECONCILIATION_GUARDS;
   readonly payablesGuards = PAYABLES_GUARDS;
   readonly revenueGuards = REVENUE_GUARDS;
+  readonly reportingGuards = REPORTING_GUARDS;
+  readonly planningGuards = PLANNING_GUARDS;
   readonly treasury: TreasuryEngine = createTreasuryEngine();
   readonly reconciliation: ReconciliationEngine = createReconciliationEngine();
   readonly payablesOps: PayablesEngine = createPayablesEngine();
   readonly revenue: RevenueEngine = createRevenueEngine();
+  readonly reportingOps: FinancialReportingEngine =
+    createFinancialReportingEngine();
+  readonly planning: FinancialPlanningEngine = createFinancialPlanningEngine();
 
   // Permissions
   grantRoles = grantFinanceRoles;
@@ -161,7 +177,7 @@ export class FinanceEngine {
   taxNote = TAX_FOUNDATION_NOTE;
   listCurrencies = listCurrencies;
 
-  // Reporting (foundation only)
+  // Reporting (P-008 foundation + P-012 reportingOps)
   dashboard = buildFinanceDashboard;
   trialBalanceHint = trialBalanceHint;
 
