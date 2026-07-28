@@ -196,3 +196,29 @@ export {
   type ReasoningAnswer,
   type ReleaseReadinessReport,
 } from "./knowledge";
+export {
+  buildActivityFeed,
+  buildDecisionCenter,
+  buildDecisionOverview,
+  buildDecisionRecommendations,
+  buildEngineeringTimeline,
+  buildPerCenter,
+  buildProductDecisionCards,
+  buildReleaseDecisionViews,
+  buildRiskCenter,
+  createDecisionCenterService,
+  type ActivityItem,
+  type DecisionCenterDashboard,
+  type DecisionOverview,
+  type DecisionRecommendation,
+  type PerCenterView,
+  type ProductDecisionCard,
+  type RecommendationSort,
+  type ReleaseDecisionView,
+  type RiskCenterView,
+  type TimelineEvent,
+} from "./decision-center";
+export {
+  evaluateAcademyOsRc3WithStudio,
+  type AcademyOsRc3StudioEvaluation,
+} from "./integrations/academyos-rc3";

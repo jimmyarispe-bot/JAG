@@ -90,7 +90,7 @@ describe("JAG Studio Foundation", () => {
       ])
     );
     const academy = products.find((p) => p.id === "academyos");
-    expect(academy?.releaseStatus).toBe("RC-2");
+    expect(academy?.releaseStatus).toBe("RC-3");
 
     const release = createReleaseManager().create({
       productId: "healthcareos",

@@ -1,0 +1,11 @@
+{
+  "name": "@jag/academyos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AcademyOS™ Industry Pack for The JAG™ Platform Foundation",
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  }
+}

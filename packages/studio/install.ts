@@ -51,10 +51,10 @@ export function installJagStudio(input: {
   if (releases.list("academyos").length === 0) {
     releases.create({
       productId: "academyos",
-      version: "1.0.0-rc.2",
-      status: "RC-2",
+      version: "1.0.0-rc.3",
+      status: "RC-3",
       releaseNotes:
-        "AcademyOS production-readiness track — RC-2 hardening complete; Studio governs release evidence.",
+        "AcademyOS production-readiness track — RC-3 deployment/operations complete; Studio governs RC-4 advancement.",
       migrationHistory: [
         "2.1 Industry Pack",
         "2.3 SIS",
@@ -65,8 +65,9 @@ export function installJagStudio(input: {
         "3.1 Communications",
         "RC-1 Validation",
         "RC-2 Hardening",
+        "RC-3 Operations",
       ],
-      upgradePath: ["RC-2", "RC-3", "RC-4", "Certified", "Released"],
+      upgradePath: ["RC-3", "RC-4", "Certified", "Released"],
       compatibilityMatrix: {
         platform: "1.x",
         sdk: "1.x",

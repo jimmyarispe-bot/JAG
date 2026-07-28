@@ -12,13 +12,13 @@ const SEED: Omit<StudioProduct, "updatedAt">[] = [
     id: "academyos",
     name: "AcademyOS",
     version: "1.0.0",
-    completionPercent: 92,
-    releaseStatus: "RC-2",
+    completionPercent: 96,
+    releaseStatus: "RC-3",
     dependencies: ["platform-sdk", "digital-twin", "connectors"],
     certification: "Pending",
     openPerIds: [],
     description:
-      "Education industry pack — first customer of JAG Studio. Admissions through Communications.",
+      "Education industry pack — RC-3 operations readiness complete; Studio governs RC-4 advancement.",
   },
   {
     id: "healthcareos",

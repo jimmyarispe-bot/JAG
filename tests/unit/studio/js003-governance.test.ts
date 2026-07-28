@@ -85,7 +85,7 @@ describe("JS-003 Release Intelligence & Governance", () => {
         actor: "test",
         note: "JS-003 refresh",
       });
-      expect(academy.releaseStage).toBe("RC-2");
+      expect(academy.releaseStage).toBe("RC-3");
       expect(academy.certificationHistory.length).toBeGreaterThan(0);
       expect(academy.requiredGates.length).toBeGreaterThan(0);
 

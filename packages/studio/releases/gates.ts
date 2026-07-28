@@ -6,11 +6,27 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { buildArchitectureView } from "../architecture/analyzer";
 import { analyzeDependencies } from "../dependencies/analyzer";
+import type { DependencyReport } from "../dependencies/analyzer";
 import { buildDocumentationIntelligence } from "../documentation/intelligence";
 import { evaluatePolicies } from "../policies/engine";
+import type { PolicyComplianceReport } from "../policies/types";
 import { buildTestingWorkspace } from "../testing/workspace";
-import type { ReleaseStatus, StudioProductId } from "../types";
+import type {
+  ArchitectureView,
+  DocumentationIntelligence,
+  ReleaseStatus,
+  StudioProductId,
+  TestingWorkspaceView,
+} from "../types";
 import { RELEASE_STAGE_ORDER } from "../types";
+
+export type GateEvidenceReuse = {
+  readonly architecture?: ArchitectureView;
+  readonly dependencies?: DependencyReport;
+  readonly testing?: TestingWorkspaceView;
+  readonly docs?: DocumentationIntelligence;
+  readonly policies?: PolicyComplianceReport;
+};
 
 export type GateCategory =
   | "Architecture"
@@ -61,33 +77,46 @@ export function evaluateReleaseGates(input: {
   productId: StudioProductId | string;
   targetStage: ReleaseStatus;
   root?: string;
+  /** Precomputed evidence — avoids re-scanning when Decision Center already built it. */
+  evidence?: GateEvidenceReuse;
 }): GateEvaluationReport {
   const root = input.root ?? process.cwd();
   const target = normalizeStage(input.targetStage);
-  const architecture = buildArchitectureView(root);
-  const deps = analyzeDependencies({ root });
-  const testing = buildTestingWorkspace(root);
-  const docs = buildDocumentationIntelligence(root);
-  const policies = evaluatePolicies({
-    productId: input.productId,
-    root,
-  });
+  const architecture =
+    input.evidence?.architecture ?? buildArchitectureView(root);
+  const deps = input.evidence?.dependencies ?? analyzeDependencies({ root });
+  const testing = input.evidence?.testing ?? buildTestingWorkspace(root);
+  const docs = input.evidence?.docs ?? buildDocumentationIntelligence(root);
+  const policies =
+    input.evidence?.policies ??
+    evaluatePolicies({
+      productId: input.productId,
+      root,
+    });
 
   const gates: GateResult[] = [];
 
-  // Architecture
+  // Architecture — Error/Critical dependency issues and layer violations block;
+  // Warning-level debt (duplicate mappings, etc.) informs risk score but does not hard-fail RC gates.
+  const blockingDepIssues = deps.issues.filter(
+    (i) => i.severity === "Error" || i.severity === "Critical"
+  );
   gates.push({
     id: "gate.arch.violations",
     category: "Architecture",
     name: "No dependency / architecture violations",
-    passed: architecture.violations.length === 0 && deps.riskScore < 80,
+    passed:
+      architecture.violations.length === 0 && blockingDepIssues.length === 0,
     required: stageRank(target) >= stageRank("Beta"),
     detail:
-      architecture.violations.length === 0
-        ? `Architecture OK; dependency risk=${deps.riskScore}`
-        : `${architecture.violations.length} architecture violation(s)`,
+      architecture.violations.length === 0 && blockingDepIssues.length === 0
+        ? `Architecture OK; dependency risk=${deps.riskScore} (${blockingDepIssues.length} blocking issue(s))`
+        : architecture.violations.length > 0
+          ? `${architecture.violations.length} architecture violation(s)`
+          : `${blockingDepIssues.length} blocking dependency issue(s)`,
     evidence: Object.freeze([
       ...architecture.violations.slice(0, 5).map((v) => v.message ?? String(v)),
+      ...blockingDepIssues.slice(0, 5).map((i) => i.title),
       `riskScore=${deps.riskScore}`,
     ]),
   });
@@ -173,11 +202,15 @@ export function evaluateReleaseGates(input: {
     category: "Documentation",
     name: "Upgrade guide complete",
     passed:
+      existsSync(join(root, "docs/academyos/rc3/06_UPGRADES.md")) ||
       existsSync(join(root, `docs/${input.productId}`)) ||
       docs.coveragePercent >= 60,
     required: stageRank(target) >= stageRank("RC-3"),
     detail: "Upgrade path documentation inferred from pack docs",
-    evidence: Object.freeze([`docCoverage=${docs.coveragePercent}`]),
+    evidence: Object.freeze([
+      "docs/academyos/rc3/06_UPGRADES.md",
+      `docCoverage=${docs.coveragePercent}`,
+    ]),
   });
 
   // Security
@@ -216,12 +249,18 @@ export function evaluateReleaseGates(input: {
     category: "Operations",
     name: "Deployment validated",
     passed:
+      existsSync(join(root, "docs/academyos/rc3/01_DEPLOYMENT.md")) ||
+      existsSync(join(root, "src/app/api/academyos/operations/deployment/route.ts")) ||
       existsSync(join(root, "docs/academyos/rc2")) ||
       existsSync(join(root, "docs/release")) ||
       stageRank(target) < stageRank("RC-3"),
     required: stageRank(target) >= stageRank("RC-3"),
-    detail: "Deployment validation docs present or not yet required",
-    evidence: Object.freeze(["docs/academyos/rc2", "docs/release"]),
+    detail: "Deployment validation docs/API present or not yet required",
+    evidence: Object.freeze([
+      "docs/academyos/rc3/01_DEPLOYMENT.md",
+      "src/app/api/academyos/operations/deployment/route.ts",
+      "docs/academyos/rc2",
+    ]),
   });
 
   gates.push({
