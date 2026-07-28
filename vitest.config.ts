@@ -25,6 +25,7 @@ export default defineConfig({
         "./packages/platform/organization"
       ),
       "@finance": path.resolve(__dirname, "./packages/platform/finance"),
+      "@cfo": path.resolve(__dirname, "./packages/platform/cfo"),
     },
   },
 });

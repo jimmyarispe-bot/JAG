@@ -33,7 +33,9 @@
       "@organization": ["./packages/platform/organization/index.ts"],
       "@organization/*": ["./packages/platform/organization/*"],
       "@finance": ["./packages/platform/finance/index.ts"],
-      "@finance/*": ["./packages/platform/finance/*"]
+      "@finance/*": ["./packages/platform/finance/*"],
+      "@cfo": ["./packages/platform/cfo/index.ts"],
+      "@cfo/*": ["./packages/platform/cfo/*"]
     }
   },
   "include": [
