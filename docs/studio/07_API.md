@@ -29,6 +29,10 @@ All routes require a Platform session and `organizationId`.
 | `/api/studio/knowledge/path` | GET |
 | `/api/studio/knowledge/impact` | GET |
 | `/api/studio/knowledge/reason` | GET |
+| `/api/studio/knowledge/health` | GET |
+| `/api/studio/knowledge/recommendations` | GET |
+| `/api/studio/knowledge/coverage` | GET |
+| `/api/studio/knowledge/release-readiness` | GET |
 
 Insights GET supports `?dashboard=1` and `?evaluate=1`.
 
@@ -53,3 +57,7 @@ Insights GET supports `?dashboard=1` and `?evaluate=1`.
 | `/api/studio/knowledge/path` | required `from`, `to` |
 | `/api/studio/knowledge/impact` | required `targetId` |
 | `/api/studio/knowledge/reason` | required `q` |
+| `/api/studio/knowledge/health` | optional `productId`, `dashboard=1` |
+| `/api/studio/knowledge/recommendations` | `productId`, `severity`, pagination |
+| `/api/studio/knowledge/coverage` | product/package/module/service coverage |
+| `/api/studio/knowledge/release-readiness` | `productId`, `targetStage` (default RC-3) |

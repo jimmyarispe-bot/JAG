@@ -11,6 +11,7 @@ export const KNOWLEDGE_EDGE_KINDS = [
   "REFERENCES",
   "CERTIFIES",
   "VALIDATES",
+  "VALIDATED_BY",
   "DESCRIBES",
   "DEPENDS_ON",
   "OWNED_BY",
@@ -19,6 +20,9 @@ export const KNOWLEDGE_EDGE_KINDS = [
   "IMPLEMENTS",
   "CONSUMES",
   "PART_OF",
+  "PROVIDES",
+  "AFFECTS",
+  "MODIFIES",
 ] as const;
 
 export type KnowledgeEdgeKind = (typeof KNOWLEDGE_EDGE_KINDS)[number];

@@ -8,12 +8,14 @@ import { createCatalogService } from "../../catalog/indexer";
 import type { CatalogEntry } from "../../catalog/types";
 import { createPerEngine } from "../../per/engine";
 import { createProductRegistryService } from "../../products/registry";
+import { buildRepositoryIntelligence } from "../../repository/intelligence";
 import { listReleases } from "../../store";
 import { buildTestingWorkspace } from "../../testing/workspace";
 import type { KnowledgeEdge } from "../edges/types";
 import type { KnowledgeEdgeKind } from "../edges/types";
 import type { KnowledgeNode } from "../nodes/types";
 import type { KnowledgeNodeKind } from "../nodes/types";
+import { densifyKnowledgeEdges } from "./densify";
 
 const ACADEMY_MODULES = [
   "Admissions",
@@ -147,6 +149,7 @@ export function ingestKnowledgeSources(input?: {
     root,
     force: input?.force,
   });
+  const intel = buildRepositoryIntelligence(root);
   const products = createProductRegistryService().list();
   const pers = createPerEngine().sync(root);
   const testing = buildTestingWorkspace(root);
@@ -634,6 +637,18 @@ export function ingestKnowledgeSources(input?: {
       );
     }
   }
+
+  // JS-005 — densify from catalog + dependency graph evidence
+  densifyKnowledgeEdges({
+    nodes,
+    edges,
+    catalog,
+    dependencyGraph: intel.dependencyGraph,
+    productDependencies: products.map((p) => ({
+      productId: p.id,
+      dependencies: p.dependencies,
+    })),
+  });
 
   return {
     nodes: [...nodes.values()],

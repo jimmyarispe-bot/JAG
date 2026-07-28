@@ -156,17 +156,18 @@ export function findTests(
   const g = graphOf(root);
   const ids = new Set(
     g.edges
-      .filter((e) => e.to === targetId && e.kind === "VALIDATES")
-      .map((e) => e.from)
+      .filter(
+        (e) =>
+          (e.to === targetId && e.kind === "VALIDATES") ||
+          (e.from === targetId && e.kind === "VALIDATED_BY")
+      )
+      .map((e) => (e.to === targetId ? e.from : e.to))
   );
   return Object.freeze(
     g.nodes
       .filter(
         (n) =>
-          (n.kind === "test" || n.kind === "test_suite") &&
-          (ids.has(n.id) ||
-            n.ownerPackage ===
-              g.nodes.find((x) => x.id === targetId)?.ownerPackage)
+          (n.kind === "test" || n.kind === "test_suite") && ids.has(n.id)
       )
       .sort((a, b) => a.id.localeCompare(b.id))
   );

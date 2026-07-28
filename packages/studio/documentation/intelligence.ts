@@ -87,6 +87,9 @@ const EXPECTED_STUDIO_DOCS = [
   "docs/studio/20_REASONING.md",
   "docs/studio/21_QUERY_ENGINE.md",
   "docs/studio/22_IMPACT_ANALYSIS.md",
+  "docs/studio/23_GRAPH_HEALTH.md",
+  "docs/studio/24_RELEASE_REASONING.md",
+  "docs/studio/25_ENGINEERING_RECOMMENDATIONS.md",
 ];
 
 export function buildDocumentationIntelligence(

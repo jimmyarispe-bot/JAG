@@ -1,16 +1,41 @@
 /**
- * Knowledge Graph Health dashboard for Studio.
+ * Knowledge Graph dashboard — JS-004 health + JS-005 completion metrics.
  */
 
+import { buildGraphHealthReport } from "../health/metrics";
+import { generateKnowledgeRecommendations } from "../recommendations/engine";
+import { evaluateReleaseReadiness } from "../release/readiness";
+import { createKnowledgeReasoningService } from "../reasoning/engine";
 import { buildKnowledgeGraph } from "./builder";
 import type { KnowledgeGraphHealth } from "./types";
-import { findDocumentation, findTests } from "../queries/engine";
-import { createKnowledgeReasoningService } from "../reasoning/engine";
 
-export function buildKnowledgeDashboard(root?: string): KnowledgeGraphHealth & {
+export type KnowledgeStudioDashboard = KnowledgeGraphHealth & {
   readonly reasoningQueries: readonly string[];
-} {
+  readonly relationshipCoverage: number;
+  readonly repositoryCoverage: number;
+  readonly reasoningConfidence: number;
+  readonly untestedServices: readonly string[];
+  readonly undocumentedApis: readonly string[];
+  readonly rc3Readiness: number;
+  readonly rc3Ready: boolean;
+  readonly rc3Summary: string;
+  readonly recommendedWork: readonly string[];
+  readonly trend: ReturnType<typeof buildGraphHealthReport>["trend"];
+};
+
+export function buildKnowledgeDashboard(root?: string): KnowledgeStudioDashboard {
   const g = buildKnowledgeGraph({ root });
+  const health = buildGraphHealthReport({ root, productId: "academyos" });
+  const readiness = evaluateReleaseReadiness({
+    productId: "academyos",
+    targetStage: "RC-3",
+    root,
+  });
+  const recs = generateKnowledgeRecommendations({
+    root,
+    productId: "academyos",
+  });
+
   const referenced = new Set(g.edges.flatMap((e) => [e.from, e.to]));
   const orphanNodes = g.nodes
     .filter((n) => !referenced.has(n.id) && n.kind !== "role")
@@ -19,60 +44,23 @@ export function buildKnowledgeDashboard(root?: string): KnowledgeGraphHealth & {
 
   const packages = g.nodes.filter((n) => n.kind === "package");
   const disconnectedPackages = packages
-    .filter((p) => {
-      const hasEdge = g.edges.some((e) => e.from === p.id || e.to === p.id);
-      return !hasEdge;
-    })
+    .filter((p) => !g.edges.some((e) => e.from === p.id || e.to === p.id))
     .map((p) => p.id)
     .sort();
 
-  const withDocs = packages.filter((p) => findDocumentation(p.id, root).length > 0)
-    .length;
-  const documentationCoverage =
-    packages.length === 0
-      ? 100
-      : Math.round((withDocs / packages.length) * 1000) / 10;
-
-  const services = g.nodes.filter((n) => n.kind === "service");
-  const withTests = services.filter((s) => findTests(s.id, root).length > 0)
-    .length;
-  const testCoverage =
-    services.length === 0
-      ? 100
-      : Math.round((withTests / Math.max(services.length, 1)) * 1000) / 10;
-
-  const ageMs = Date.now() - new Date(g.builtAt).getTime();
-  const knowledgeFreshness =
-    ageMs < 60_000
-      ? "fresh"
-      : ageMs < 15 * 60_000
-        ? "warm"
-        : "stale";
-
-  const healthScore = Math.max(
-    0,
-    Math.min(
-      100,
-      Math.round(
-        100 -
-          orphanNodes.length * 0.5 -
-          disconnectedPackages.length * 5 +
-          documentationCoverage * 0.15 +
-          testCoverage * 0.1
-      )
-    )
-  );
-
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt: health.generatedAt,
     nodeCount: g.nodes.length,
     relationshipCount: g.edges.length,
     orphanNodes: Object.freeze(orphanNodes.slice(0, 50)),
     disconnectedPackages: Object.freeze(disconnectedPackages),
-    documentationCoverage,
-    testCoverage,
-    knowledgeFreshness,
-    healthScore,
+    documentationCoverage: Math.max(
+      0,
+      100 - health.undocumentedApis * 0.5
+    ),
+    testCoverage: Math.max(0, 100 - health.untestedServices),
+    knowledgeFreshness: health.graphFreshness,
+    healthScore: health.healthScore,
     countsByKind: Object.freeze({ ...g.countsByKind }),
     edgeCountsByKind: Object.freeze(
       Object.fromEntries(
@@ -80,6 +68,18 @@ export function buildKnowledgeDashboard(root?: string): KnowledgeGraphHealth & {
       )
     ),
     reasoningQueries: createKnowledgeReasoningService().intents,
+    relationshipCoverage: health.relationshipCoverage,
+    repositoryCoverage: health.repositoryCoverage,
+    reasoningConfidence: health.reasoningConfidence,
+    untestedServices: health.untestedServiceIds,
+    undocumentedApis: health.undocumentedApiIds,
+    rc3Readiness: readiness.readinessScore,
+    rc3Ready: readiness.ready,
+    rc3Summary: readiness.summary,
+    recommendedWork: Object.freeze(
+      recs.recommendations.slice(0, 12).map((r) => r.title)
+    ),
+    trend: health.trend,
   };
 }
 

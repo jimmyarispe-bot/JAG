@@ -15,5 +15,7 @@ Studio-local gaps. Foundation remains frozen.
 | PER-STUDIO-KG-PERSIST | Desire durable Knowledge Graph across instances / restarts | In-process graph snapshot; rebuild via `force=1` |
 | PER-STUDIO-KG-LIVE-EVENTS | Desire Foundation event stream to incrementally patch KG | Full rebuild from catalog + Studio registries |
 | PER-EI-KG-PROVIDER | Desire EI core to natively consume Knowledge Graph signals | Studio reasoning + `studio.platform-insights` pack-local |
+| PER-STUDIO-KG-AST | Desire AST-level call-graph for exact Service→API edges | Path/token densification from catalog + package.json |
+| PER-STUDIO-HEALTH-STORE | Desire durable graph health trend across deploys | In-process trend ring (30 snapshots) |
 
 Any future Platform Core change must be approved against the Platform Constitution before implementation.

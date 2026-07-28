@@ -15,12 +15,14 @@ function clearGovernanceGlobalsForTests(): void {
     __jagStudioPolicies?: Map<string, unknown>;
     __jagStudioQualityWeights?: unknown;
     __jagStudioKnowledgeGraph?: unknown;
+    __jagStudioKnowledgeHealthTrend?: unknown[];
   };
   g.__jagStudioCertifications = new Map();
   g.__jagStudioApprovals = [];
   g.__jagStudioPolicies = undefined;
   g.__jagStudioQualityWeights = undefined;
   g.__jagStudioKnowledgeGraph = null;
+  g.__jagStudioKnowledgeHealthTrend = [];
 }
 
 type StudioStore = {
