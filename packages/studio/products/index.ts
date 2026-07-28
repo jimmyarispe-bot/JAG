@@ -1,0 +1,1 @@
+export { createProductRegistryService } from "./registry";

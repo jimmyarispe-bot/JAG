@@ -1,0 +1,11 @@
+{
+  "name": "@jag/studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "JAG Studio™ — internal operating environment for building and releasing JAG industry packs",
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  }
+}
