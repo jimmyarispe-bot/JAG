@@ -19,7 +19,21 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@academyos": ["./packages/academyos/index.ts"],
+      "@academyos/*": ["./packages/academyos/*"],
+      "@studio": ["./packages/studio/index.ts"],
+      "@studio/*": ["./packages/studio/*"],
+      "@mr-jag": ["./packages/platform/mr-jag/index.ts"],
+      "@mr-jag/*": ["./packages/platform/mr-jag/*"],
+      "@evolution": ["./packages/platform/evolution/index.ts"],
+      "@evolution/*": ["./packages/platform/evolution/*"],
+      "@innovation": ["./packages/platform/innovation/index.ts"],
+      "@innovation/*": ["./packages/platform/innovation/*"],
+      "@organization": ["./packages/platform/organization/index.ts"],
+      "@organization/*": ["./packages/platform/organization/*"],
+      "@finance": ["./packages/platform/finance/index.ts"],
+      "@finance/*": ["./packages/platform/finance/*"]
     }
   },
   "include": [

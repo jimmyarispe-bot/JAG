@@ -10,6 +10,23 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@academyos": path.resolve(__dirname, "./packages/academyos"),
+      "@academyos/api": path.resolve(__dirname, "./packages/academyos/api"),
+      "@studio": path.resolve(__dirname, "./packages/studio"),
+      "@studio/architecture": path.resolve(
+        __dirname,
+        "./packages/studio/architecture"
+      ),
+      "@mr-jag": path.resolve(__dirname, "./packages/platform/mr-jag"),
+      "@evolution": path.resolve(__dirname, "./packages/platform/evolution"),
+      "@innovation": path.resolve(__dirname, "./packages/platform/innovation"),
+      "@organization": path.resolve(
+        __dirname,
+        "./packages/platform/organization"
+      ),
+      "@finance": path.resolve(__dirname, "./packages/platform/finance"),
     },
   },
 });
+
+
