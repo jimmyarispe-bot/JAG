@@ -1,7 +1,7 @@
 /**
  * Education Domain — first industry package for JAG.
  *
- * Contracts + placeholder contributors only.
+ * Contracts, placeholders, and Enrollment Intelligence (D2.1).
  * Not AcademyOS. No UI. No Core changes.
  */
 

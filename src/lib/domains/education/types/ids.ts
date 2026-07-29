@@ -10,6 +10,8 @@ export const EDUCATION_CONTRIBUTOR_IDS = {
   context: "education.context",
   intent: "education.intent",
   cognition: "education.cognition",
+  /** First real cognitive intelligence contributor (D2.1). */
+  enrollmentCognition: "education.cognition.enrollment",
   experience: "education.experience",
   action: "education.action",
   evidence: "education.evidence",

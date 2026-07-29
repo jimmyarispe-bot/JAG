@@ -186,6 +186,11 @@ describe("Education Domain Foundation (D1)", () => {
       ).toBe(true);
       expect(
         runtime.registry
+          .listCognitiveContributors()
+          .some((c) => c.id === EDUCATION_CONTRIBUTOR_IDS.enrollmentCognition)
+      ).toBe(true);
+      expect(
+        runtime.registry
           .listExperienceContributors()
           .some((c) => c.id === EDUCATION_CONTRIBUTOR_IDS.experience)
       ).toBe(true);
