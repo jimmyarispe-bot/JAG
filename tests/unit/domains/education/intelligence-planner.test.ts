@@ -95,23 +95,35 @@ describe("Education Intelligence Planner (D2.5)", () => {
       expect(result.plan.stages.length).toBeGreaterThanOrEqual(1);
     });
 
-    it("plans scholarship review as Enrollment then Scholarship when available", () => {
-      const catalog = createDefaultEducationContributorCatalog().map((d) =>
-        d.contributorId === "education.cognition.scholarship"
-          ? { ...d, available: true }
-          : d
-      );
-      const planner = createEducationPlanner({ catalog });
+    it("plans scholarship/funding review with Enrollment, Scholarship, Compliance, Funding Readiness", () => {
+      const planner = createEducationPlanner();
       const result = planner.plan({
         intent: intent("education.scholarship.review", "Scholarship Review"),
       });
       expect(result.ok).toBe(true);
-      expect(result.plan.orderedContributorIds).toEqual([
-        ENROLLMENT_CONTRIBUTOR_ID,
-        "education.cognition.scholarship",
-      ]);
-      expect(result.plan.stages[0]?.contributorIds).toContain(
-        ENROLLMENT_CONTRIBUTOR_ID
+      expect(result.plan.orderedContributorIds).toEqual(
+        expect.arrayContaining([
+          ENROLLMENT_CONTRIBUTOR_ID,
+          "education.cognition.scholarship",
+          "education.cognition.compliance",
+          "education.cognition.funding_readiness",
+        ])
+      );
+      expect(
+        result.plan.orderedContributorIds.indexOf(ENROLLMENT_CONTRIBUTOR_ID)
+      ).toBeLessThan(
+        result.plan.orderedContributorIds.indexOf(
+          "education.cognition.scholarship"
+        )
+      );
+      expect(
+        result.plan.orderedContributorIds.indexOf(
+          "education.cognition.scholarship"
+        )
+      ).toBeLessThan(
+        result.plan.orderedContributorIds.indexOf(
+          "education.cognition.funding_readiness"
+        )
       );
     });
   });

@@ -8,10 +8,13 @@ import { createEducationCognitiveContributor } from "../cognition";
 import { createEnrollmentContributor } from "../cognition/enrollment";
 import { createAcademicProgressContributor } from "../cognition/progress";
 import { createCapacityContributor } from "../cognition/capacity";
+import { createComplianceContributor } from "../cognition/compliance";
 import { createFamilyEngagementContributor } from "../cognition/family-engagement";
+import { createFundingReadinessContributor } from "../cognition/funding-readiness";
 import { createInterventionContributor } from "../cognition/intervention";
 import { createOperationalReadinessContributor } from "../cognition/operational-readiness";
 import { createSchedulingContributor } from "../cognition/scheduling";
+import { createScholarshipContributor } from "../cognition/scholarship";
 import { createStaffingContributor } from "../cognition/staffing";
 import { createStudentSuccessContributor } from "../cognition/student-success";
 import { createSupportPlanningContributor } from "../cognition/support-planning";
@@ -40,6 +43,9 @@ export interface EducationContributorSet {
   operationalReadinessCognition: ReturnType<
     typeof createOperationalReadinessContributor
   >;
+  scholarshipCognition: ReturnType<typeof createScholarshipContributor>;
+  complianceCognition: ReturnType<typeof createComplianceContributor>;
+  fundingReadinessCognition: ReturnType<typeof createFundingReadinessContributor>;
   experience: ReturnType<typeof createEducationExperienceContributor>;
   action: ReturnType<typeof createEducationActionContributor>;
   evidence: ReturnType<typeof createEducationEvidenceContributor>;
@@ -63,6 +69,9 @@ export function createEducationContributors(): EducationContributorSet {
     staffingCognition: createStaffingContributor(),
     capacityCognition: createCapacityContributor(),
     operationalReadinessCognition: createOperationalReadinessContributor(),
+    scholarshipCognition: createScholarshipContributor(),
+    complianceCognition: createComplianceContributor(),
+    fundingReadinessCognition: createFundingReadinessContributor(),
     experience: createEducationExperienceContributor(),
     action: createEducationActionContributor(),
     evidence: createEducationEvidenceContributor(),
@@ -88,6 +97,9 @@ export {
   createStaffingContributor,
   createCapacityContributor,
   createOperationalReadinessContributor,
+  createScholarshipContributor,
+  createComplianceContributor,
+  createFundingReadinessContributor,
   createEducationCognitiveContributor,
   createEnrollmentContributor,
   createEducationContextContributor,

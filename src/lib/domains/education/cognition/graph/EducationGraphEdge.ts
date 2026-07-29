@@ -37,6 +37,27 @@ export const EDUCATION_DEFAULT_GRAPH_EDGES: readonly EducationGraphEdge[] = [
     rationale: "Enrollment blockers may surface compliance holds",
   },
   {
+    id: "edge.scholarship.funding_readiness",
+    from: "scholarship",
+    to: "funding_readiness",
+    kind: "influences",
+    rationale: "Scholarship posture feeds funding readiness",
+  },
+  {
+    id: "edge.compliance.funding_readiness",
+    from: "compliance",
+    to: "funding_readiness",
+    kind: "may_block",
+    rationale: "Compliance obligations may block funding readiness",
+  },
+  {
+    id: "edge.enrollment.funding_readiness",
+    from: "enrollment",
+    to: "funding_readiness",
+    kind: "influences",
+    rationale: "Enrollment status feeds funding readiness synthesis",
+  },
+  {
     id: "edge.attendance.intervention",
     from: "attendance",
     to: "intervention",

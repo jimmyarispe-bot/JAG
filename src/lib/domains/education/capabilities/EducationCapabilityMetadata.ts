@@ -43,6 +43,7 @@ export const EDUCATION_CAPABILITY_PACK_IDS = {
   studentLifecycle: "education.capability_pack.student_lifecycle",
   studentSupport: "education.capability_pack.student_support",
   academicOperations: "education.capability_pack.academic_operations",
+  fundingCompliance: "education.capability_pack.funding_compliance",
 } as const;
 
 export type EducationCapabilityPackId =

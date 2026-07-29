@@ -9,6 +9,8 @@ export type EducationPolicyKind =
   | "scholarship_requirement"
   | "graduation_requirement"
   | "operations_constraint"
+  | "funding_requirement"
+  | "compliance_requirement"
   | "general";
 
 export interface EducationPolicyParameter {
@@ -52,6 +54,15 @@ export const EDUCATION_POLICY_IDS = {
     "education.policy.operations.program_staffing_requirements",
   instructionalCoverage: "education.policy.operations.instructional_coverage",
   sessionOverlap: "education.policy.operations.session_overlap",
+  /** Funding & Compliance (D5.2) — metadata only */
+  fundingRenewalRequirements:
+    "education.policy.funding.renewal_requirements",
+  fundingRequiredDocumentation:
+    "education.policy.funding.required_documentation",
+  fundingDeadlines: "education.policy.funding.deadlines",
+  complianceRequiredDocumentation:
+    "education.policy.compliance.required_documentation",
+  complianceThresholds: "education.policy.compliance.thresholds",
 } as const;
 
 export const EDUCATION_POLICY_CATALOG: readonly EducationPolicyDefinition[] = [
@@ -290,6 +301,116 @@ export const EDUCATION_POLICY_CATALOG: readonly EducationPolicyDefinition[] = [
         label: "Allow overlap",
         valueType: "boolean",
         example: false,
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.fundingRenewalRequirements,
+    name: "Renewal requirements",
+    kind: "funding_requirement",
+    description:
+      "Declares scholarship/funding renewal requirements (metadata only).",
+    relatedEntityIds: [
+      "education.entity.scholarship_award",
+      "education.entity.renewal_cycle",
+      "education.entity.eligibility_rule",
+    ],
+    parameters: [
+      {
+        key: "minimumGpa",
+        label: "Minimum GPA for renewal",
+        valueType: "number",
+        example: 2.5,
+      },
+      {
+        key: "requireContinuingEnrollment",
+        label: "Require continuing enrollment",
+        valueType: "boolean",
+        example: true,
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.fundingRequiredDocumentation,
+    name: "Required documentation (funding)",
+    kind: "funding_requirement",
+    description:
+      "Declares documentation required for funding awards (metadata only).",
+    relatedEntityIds: [
+      "education.entity.supporting_documentation",
+      "education.entity.scholarship_award",
+      "education.entity.funding_source",
+    ],
+    parameters: [
+      {
+        key: "requiredDocumentKinds",
+        label: "Required document kinds",
+        valueType: "string_list",
+        example: ["transcript", "award_letter"],
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.fundingDeadlines,
+    name: "Funding deadlines",
+    kind: "funding_requirement",
+    description: "Declares funding application/renewal deadlines (metadata only).",
+    relatedEntityIds: [
+      "education.entity.funding_period",
+      "education.entity.scholarship_award",
+    ],
+    parameters: [
+      {
+        key: "renewalDeadlineDays",
+        label: "Renewal deadline (days before period end)",
+        valueType: "number",
+        example: 30,
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.complianceRequiredDocumentation,
+    name: "Required documentation (compliance)",
+    kind: "compliance_requirement",
+    description:
+      "Declares documentation required for compliance posture (metadata only).",
+    relatedEntityIds: [
+      "education.entity.compliance_requirement",
+      "education.entity.supporting_documentation",
+      "education.entity.student",
+    ],
+    parameters: [
+      {
+        key: "requiredDocumentKinds",
+        label: "Required document kinds",
+        valueType: "string_list",
+        example: ["immunization", "emergency_contact"],
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.complianceThresholds,
+    name: "Compliance thresholds",
+    kind: "compliance_requirement",
+    description:
+      "Declares thresholds for attendance/assessment/participation compliance (metadata only).",
+    relatedEntityIds: [
+      "education.entity.compliance_requirement",
+      "education.entity.student",
+      "education.entity.program",
+    ],
+    parameters: [
+      {
+        key: "minimumAttendanceRate",
+        label: "Minimum attendance rate",
+        valueType: "ratio",
+        example: 0.9,
+      },
+      {
+        key: "requiredAssessmentsComplete",
+        label: "Required assessments complete",
+        valueType: "boolean",
+        example: true,
       },
     ],
   },

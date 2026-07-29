@@ -16,6 +16,7 @@ export const EDUCATION_GRAPH_NODE_KINDS = [
   "staffing",
   "capacity",
   "operational_readiness",
+  "funding_readiness",
 ] as const;
 
 export type EducationGraphNodeKind =
@@ -48,6 +49,7 @@ export const EDUCATION_GRAPH_NODE_LABELS: Record<
   staffing: "Staffing",
   capacity: "Capacity",
   operational_readiness: "Operational Readiness",
+  funding_readiness: "Funding Readiness",
 };
 
 /** Map known contributor ids to graph node kinds. */
@@ -56,6 +58,12 @@ export function nodeKindFromContributorId(
 ): EducationGraphNodeKind | null {
   if (contributorId.includes("enrollment")) return "enrollment";
   if (contributorId.includes("attendance")) return "attendance";
+  if (
+    contributorId.includes("funding_readiness") ||
+    contributorId.includes("funding-readiness")
+  ) {
+    return "funding_readiness";
+  }
   if (
     contributorId.includes("operational_readiness") ||
     contributorId.includes("operational-readiness")

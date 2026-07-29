@@ -32,6 +32,12 @@ export const EDUCATION_CONTRIBUTOR_IDS = {
   capacityCognition: "education.cognition.capacity",
   /** Academic Operations — Operational Readiness synthesis (D5.1). */
   operationalReadinessCognition: "education.cognition.operational_readiness",
+  /** Funding & Compliance — Scholarship Intelligence (D5.2). */
+  scholarshipCognition: "education.cognition.scholarship",
+  /** Funding & Compliance — Compliance Intelligence (D5.2). */
+  complianceCognition: "education.cognition.compliance",
+  /** Funding & Compliance — Funding Readiness synthesis (D5.2). */
+  fundingReadinessCognition: "education.cognition.funding_readiness",
   experience: "education.experience",
   action: "education.action",
   evidence: "education.evidence",

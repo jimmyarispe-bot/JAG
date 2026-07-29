@@ -45,7 +45,21 @@ export function detectEducationPlanScenario(
 
   if (
     haystack.includes("scholarship") ||
-    intent.intentId.includes("scholarship")
+    intent.intentId.includes("scholarship") ||
+    haystack.includes("funding review") ||
+    haystack.includes("funding_review") ||
+    haystack.includes("compliance review") ||
+    haystack.includes("compliance_review") ||
+    haystack.includes("annual eligibility") ||
+    haystack.includes("annual_eligibility") ||
+    haystack.includes("funding audit") ||
+    haystack.includes("funding_audit") ||
+    haystack.includes("executive funding") ||
+    haystack.includes("executive_funding") ||
+    intent.intentId.includes("funding") ||
+    intent.intentId.includes("compliance") ||
+    intent.intentId.includes("eligibility") ||
+    intent.intentId.includes("audit")
   ) {
     return "scholarship_review";
   }
@@ -142,6 +156,8 @@ export const EDUCATION_SCENARIO_CONTRIBUTORS: Record<
   scholarship_review: [
     "education.cognition.enrollment",
     "education.cognition.scholarship",
+    "education.cognition.compliance",
+    "education.cognition.funding_readiness",
   ],
   support: [
     "education.cognition.intervention",

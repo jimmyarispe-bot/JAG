@@ -142,10 +142,54 @@ export const ACADEMIC_OPERATIONS_CAPABILITY_PACK: EducationCapabilityPackMetadat
     tags: ["operations", "scheduling", "staffing", "capacity"],
   };
 
+/** Funding & Compliance — Scholarship, Compliance, Funding Readiness. */
+export const FUNDING_COMPLIANCE_CAPABILITY_PACK: EducationCapabilityPackMetadata =
+  {
+    id: EDUCATION_CAPABILITY_PACK_IDS.fundingCompliance,
+    name: "Funding & Compliance",
+    version: "0.1.0",
+    description:
+      "Funding and compliance intelligence: scholarship eligibility/renewal, compliance obligations, and funding readiness synthesis.",
+    contributors: [
+      EDUCATION_CONTRIBUTOR_IDS.scholarshipCognition,
+      EDUCATION_CONTRIBUTOR_IDS.complianceCognition,
+      EDUCATION_CONTRIBUTOR_IDS.fundingReadinessCognition,
+    ],
+    plannerIntents: [
+      "education.scholarship.review",
+      "education.funding.review",
+      "education.compliance.review",
+      "education.eligibility.annual",
+      "education.funding.audit",
+      "education.funding.executive_brief",
+    ],
+    knowledgeExtensions: [
+      EDUCATION_CAPABILITY_IDS.scholarships,
+      EDUCATION_CAPABILITY_IDS.compliance,
+      EDUCATION_CAPABILITY_IDS.fundingReadiness,
+    ],
+    policyExtensions: [
+      EDUCATION_POLICY_IDS.scholarshipEligibility,
+      EDUCATION_POLICY_IDS.fundingRenewalRequirements,
+      EDUCATION_POLICY_IDS.fundingRequiredDocumentation,
+      EDUCATION_POLICY_IDS.fundingDeadlines,
+      EDUCATION_POLICY_IDS.complianceRequiredDocumentation,
+      EDUCATION_POLICY_IDS.complianceThresholds,
+    ],
+    documentation: ["intelligence/12_FUNDING_COMPLIANCE_CAPABILITY.md"],
+    dependencies: [
+      EDUCATION_CAPABILITY_PACK_IDS.studentLifecycle,
+      EDUCATION_CAPABILITY_PACK_IDS.academicOperations,
+    ],
+    maturity: "building",
+    tags: ["funding", "scholarship", "compliance"],
+  };
+
 /** Default pack manifests registered by the Education domain. */
 export const EDUCATION_CAPABILITY_PACK_MANIFESTS: readonly EducationCapabilityPackMetadata[] =
   [
     STUDENT_LIFECYCLE_CAPABILITY_PACK,
     STUDENT_SUPPORT_CAPABILITY_PACK,
     ACADEMIC_OPERATIONS_CAPABILITY_PACK,
+    FUNDING_COMPLIANCE_CAPABILITY_PACK,
   ];

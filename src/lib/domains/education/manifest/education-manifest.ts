@@ -102,6 +102,22 @@ export function createEducationManifest(): DomainManifest {
         description:
           "Operational Readiness — Academic Operations synthesis (D5.1)",
       },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.scholarshipCognition,
+        kind: "cognition",
+        description: "Scholarship Intelligence — Funding & Compliance (D5.2)",
+      },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.complianceCognition,
+        kind: "cognition",
+        description: "Compliance Intelligence — Funding & Compliance (D5.2)",
+      },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.fundingReadinessCognition,
+        kind: "cognition",
+        description:
+          "Funding Readiness — Funding & Compliance synthesis (D5.2)",
+      },
       { id: EDUCATION_CONTRIBUTOR_IDS.experience, kind: "experience" },
       { id: EDUCATION_CONTRIBUTOR_IDS.action, kind: "action" },
       { id: EDUCATION_CONTRIBUTOR_IDS.evidence, kind: "evidence" },

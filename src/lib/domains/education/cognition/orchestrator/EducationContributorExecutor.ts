@@ -25,10 +25,19 @@ import {
   runCapacityIntelligence,
 } from "../capacity";
 import {
+  COMPLIANCE_CONTRIBUTOR_ID,
+  runComplianceIntelligence,
+} from "../compliance";
+import {
   FAMILY_ENGAGEMENT_CONTRIBUTOR_ID,
   buildFamilyEngagementInputs,
   runFamilyEngagementIntelligence,
 } from "../family-engagement";
+import {
+  FUNDING_READINESS_CONTRIBUTOR_ID,
+  buildFundingReadinessInputs,
+  runFundingReadinessIntelligence,
+} from "../funding-readiness";
 import {
   INTERVENTION_CONTRIBUTOR_ID,
   buildInterventionInputs,
@@ -43,6 +52,10 @@ import {
   SCHEDULING_CONTRIBUTOR_ID,
   runSchedulingIntelligence,
 } from "../scheduling";
+import {
+  SCHOLARSHIP_CONTRIBUTOR_ID,
+  runScholarshipIntelligence,
+} from "../scholarship";
 import {
   STAFFING_CONTRIBUTOR_ID,
   runStaffingIntelligence,
@@ -366,6 +379,43 @@ function runContributor(input: {
     });
   }
 
+  if (input.contributorId === SCHOLARSHIP_CONTRIBUTOR_ID) {
+    const observation = input.observations.scholarship;
+    if (!observation) {
+      throw new Error("Missing scholarship observation");
+    }
+    return runScholarshipIntelligence(observation, { now: input.now });
+  }
+
+  if (input.contributorId === COMPLIANCE_CONTRIBUTOR_ID) {
+    const observation = input.observations.compliance;
+    if (!observation) {
+      throw new Error("Missing compliance observation");
+    }
+    return runComplianceIntelligence(observation, { now: input.now });
+  }
+
+  if (input.contributorId === FUNDING_READINESS_CONTRIBUTOR_ID) {
+    const { subjectId, organizationId } = resolveSubject(input);
+    const synthesisInputs = buildFundingReadinessInputs({
+      subjectId,
+      organizationId,
+      upstream: input.priorResults,
+    });
+    if (
+      !synthesisInputs.scholarship &&
+      !synthesisInputs.compliance &&
+      !synthesisInputs.enrollment
+    ) {
+      throw new Error(
+        "Funding readiness synthesis requires upstream contributor results"
+      );
+    }
+    return runFundingReadinessIntelligence(synthesisInputs, {
+      now: input.now,
+    });
+  }
+
   throw new Error(
     `No executor registered for contributor ${input.contributorId}`
   );
@@ -380,6 +430,8 @@ function resolveSubject(input: {
 }): { subjectId: string; organizationId?: string } {
   const subjectId =
     input.priorResults[0]?.result.subjectId ??
+    input.observations.scholarship?.student.studentId ??
+    input.observations.compliance?.student.studentId ??
     input.observations.scheduling?.subject.subjectId ??
     input.observations.staffing?.subject.subjectId ??
     input.observations.capacity?.subject.subjectId ??
@@ -388,6 +440,8 @@ function resolveSubject(input: {
     input.observations.enrollment?.student?.studentId ??
     "unknown";
   const organizationId =
+    input.observations.scholarship?.organizationId ??
+    input.observations.compliance?.organizationId ??
     input.observations.scheduling?.organizationId ??
     input.observations.staffing?.organizationId ??
     input.observations.capacity?.organizationId ??

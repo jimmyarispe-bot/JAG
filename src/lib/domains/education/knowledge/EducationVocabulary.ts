@@ -167,6 +167,48 @@ export const EDUCATION_VOCABULARY: readonly EducationVocabularyTerm[] = [
     kind: "entity",
   },
   {
+    id: "education.term.funding_source",
+    term: "Funding Source",
+    definition: "Source of educational funding such as scholarship or grant.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.scholarship_award",
+    term: "Scholarship Award",
+    definition: "Awarded scholarship instance for a student or enrollment.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.eligibility_rule",
+    term: "Eligibility Rule",
+    definition: "Rule concept governing funding or scholarship eligibility.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.compliance_requirement",
+    term: "Compliance Requirement",
+    definition: "Required compliance obligation for a student or program.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.renewal_cycle",
+    term: "Renewal Cycle",
+    definition: "Cycle for renewing scholarships or funding awards.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.supporting_documentation",
+    term: "Supporting Documentation",
+    definition: "Documentation required to support funding or compliance.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.funding_period",
+    term: "Funding Period",
+    definition: "Time window during which funding applies.",
+    kind: "entity",
+  },
+  {
     id: "education.term.capability.enrollment",
     term: "Enrollment Intelligence",
     definition: "Domain capability to reason about enrollment readiness and requirements.",

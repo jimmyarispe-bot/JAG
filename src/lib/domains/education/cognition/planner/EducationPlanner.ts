@@ -256,27 +256,67 @@ export function createDefaultEducationContributorCatalog(): EducationContributor
       label: "Operational Readiness (synthesis)",
     },
     {
-      contributorId: "education.cognition.scholarship",
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.scholarshipCognition,
       nodeKind: "scholarship",
-      capabilities: ["education", "scholarship"],
+      capabilities: ["education", "scholarship", "funding"],
       dependsOn: [EDUCATION_CONTRIBUTOR_IDS.enrollmentCognition],
       expectedOutputs: [
         "evidence.scholarship",
         "recommendations.scholarship",
+        "proposals.scholarship",
       ],
-      intentMatchers: ["scholarship"],
-      available: false,
-      label: "Scholarship Intelligence (future)",
+      intentMatchers: [
+        "scholarship",
+        "funding",
+        "eligibility",
+        "annual eligibility",
+      ],
+      available: true,
+      label: "Scholarship Intelligence",
     },
     {
-      contributorId: "education.cognition.compliance",
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.complianceCognition,
       nodeKind: "compliance",
-      capabilities: ["education", "compliance"],
+      capabilities: ["education", "compliance", "funding"],
       dependsOn: [],
-      expectedOutputs: ["evidence.compliance"],
-      intentMatchers: ["compliance"],
-      available: false,
-      label: "Compliance Intelligence (future)",
+      expectedOutputs: [
+        "evidence.compliance",
+        "recommendations.compliance",
+        "proposals.compliance",
+      ],
+      intentMatchers: [
+        "compliance",
+        "funding",
+        "audit",
+        "eligibility",
+      ],
+      available: true,
+      label: "Compliance Intelligence",
+    },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.fundingReadinessCognition,
+      nodeKind: "funding_readiness",
+      capabilities: ["education", "funding", "funding_readiness", "synthesis"],
+      dependsOn: [
+        EDUCATION_CONTRIBUTOR_IDS.scholarshipCognition,
+        EDUCATION_CONTRIBUTOR_IDS.complianceCognition,
+        EDUCATION_CONTRIBUTOR_IDS.enrollmentCognition,
+      ],
+      expectedOutputs: [
+        "evidence.funding_readiness",
+        "recommendations.funding_readiness",
+        "proposals.funding_readiness",
+      ],
+      intentMatchers: [
+        "funding",
+        "scholarship",
+        "compliance",
+        "eligibility",
+        "audit",
+        "executive funding",
+      ],
+      available: true,
+      label: "Funding Readiness (synthesis)",
     },
   ];
 }
@@ -482,9 +522,16 @@ function inferKind(contributorId: string): EducationGraphNodeKind {
   if (contributorId.includes("staffing")) return "staffing";
   if (contributorId.includes("capacity")) return "capacity";
   if (contributorId.includes("intervention")) return "intervention";
+  if (
+    contributorId.includes("funding_readiness") ||
+    contributorId.includes("funding-readiness")
+  ) {
+    return "funding_readiness";
+  }
   if (contributorId.includes("scholarship")) return "scholarship";
   if (contributorId.includes("scheduling")) return "scheduling";
   if (contributorId.includes("family")) return "family_engagement";
+  if (contributorId.includes("compliance")) return "compliance";
   return "compliance";
 }
 

@@ -6,10 +6,12 @@
 import type { RuntimeIntent } from "@/lib/jag/runtime";
 import type { AttendanceObservation } from "../attendance";
 import type { CapacityObservation } from "../capacity";
+import type { ComplianceObservation } from "../compliance";
 import type { EnrollmentObservation } from "../enrollment";
 import type { EducationPlannerContext } from "../planner";
 import type { AcademicProgressObservation } from "../progress";
 import type { SchedulingObservation } from "../scheduling";
+import type { ScholarshipObservation } from "../scholarship";
 import type { StaffingObservation } from "../staffing";
 
 /**
@@ -23,6 +25,8 @@ export interface EducationNormalizedObservations {
   scheduling?: SchedulingObservation;
   staffing?: StaffingObservation;
   capacity?: CapacityObservation;
+  scholarship?: ScholarshipObservation;
+  compliance?: ComplianceObservation;
   /**
    * Extensible map for future contributors
    * (keyed by contributor id or observation attribute key).

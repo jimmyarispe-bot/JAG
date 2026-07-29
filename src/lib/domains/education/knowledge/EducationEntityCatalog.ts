@@ -38,6 +38,14 @@ export const EDUCATION_ENTITY_IDS = {
   teachingAssignment: "education.entity.teaching_assignment",
   capacityUnit: "education.entity.capacity_unit",
   instructionalLoad: "education.entity.instructional_load",
+  /** Funding & Compliance (D5.2) */
+  fundingSource: "education.entity.funding_source",
+  scholarshipAward: "education.entity.scholarship_award",
+  eligibilityRule: "education.entity.eligibility_rule",
+  complianceRequirement: "education.entity.compliance_requirement",
+  renewalCycle: "education.entity.renewal_cycle",
+  supportingDocumentation: "education.entity.supporting_documentation",
+  fundingPeriod: "education.entity.funding_period",
 } as const;
 
 export type EducationEntityId =
@@ -197,6 +205,55 @@ export const EDUCATION_ENTITY_CATALOG: readonly EducationEntityDefinition[] = [
     vocabularyId: "education.term.instructional_load",
     description: "Measured teaching load for a staff member.",
     tags: ["operations", "staffing"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.fundingSource,
+    name: "Funding Source",
+    vocabularyId: "education.term.funding_source",
+    description: "Source of educational funding (scholarship, grant, or aid).",
+    tags: ["finance", "funding"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.scholarshipAward,
+    name: "Scholarship Award",
+    vocabularyId: "education.term.scholarship_award",
+    description: "Awarded scholarship instance for a student/enrollment.",
+    tags: ["finance", "funding"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.eligibilityRule,
+    name: "Eligibility Rule",
+    vocabularyId: "education.term.eligibility_rule",
+    description: "Rule concept governing funding or scholarship eligibility.",
+    tags: ["finance", "policy"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.complianceRequirement,
+    name: "Compliance Requirement",
+    vocabularyId: "education.term.compliance_requirement",
+    description: "Required compliance obligation for a student or program.",
+    tags: ["governance", "compliance"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.renewalCycle,
+    name: "Renewal Cycle",
+    vocabularyId: "education.term.renewal_cycle",
+    description: "Cycle for renewing scholarships or funding awards.",
+    tags: ["finance", "funding"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.supportingDocumentation,
+    name: "Supporting Documentation",
+    vocabularyId: "education.term.supporting_documentation",
+    description: "Documentation required to support funding or compliance.",
+    tags: ["governance", "documents"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.fundingPeriod,
+    name: "Funding Period",
+    vocabularyId: "education.term.funding_period",
+    description: "Time window during which funding applies.",
+    tags: ["finance", "time"],
   },
 ] as const;
 

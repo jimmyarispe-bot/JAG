@@ -29,6 +29,7 @@ export const EDUCATION_CAPABILITY_IDS = {
   familyEngagement: "education.capability.family_engagement",
   scholarships: "education.capability.scholarships",
   compliance: "education.capability.compliance",
+  fundingReadiness: "education.capability.funding_readiness",
 } as const;
 
 export const EDUCATION_CAPABILITY_CATALOG: readonly EducationCapabilityDefinition[] =
@@ -178,11 +179,21 @@ export const EDUCATION_CAPABILITY_CATALOG: readonly EducationCapabilityDefinitio
       description: "Reason about scholarship eligibility relative to enrollment.",
       relatedEntityIds: [
         "education.entity.scholarship",
+        "education.entity.scholarship_award",
+        "education.entity.funding_source",
+        "education.entity.eligibility_rule",
+        "education.entity.renewal_cycle",
+        "education.entity.funding_period",
         "education.entity.enrollment",
         "education.entity.student",
       ],
-      relatedPolicyIds: ["education.policy.scholarship.eligibility"],
-      tags: ["finance"],
+      relatedPolicyIds: [
+        "education.policy.scholarship.eligibility",
+        "education.policy.funding.renewal_requirements",
+        "education.policy.funding.deadlines",
+      ],
+      contributorIdHint: "education.cognition.scholarship",
+      tags: ["finance", "funding"],
     },
     {
       id: EDUCATION_CAPABILITY_IDS.compliance,
@@ -192,8 +203,29 @@ export const EDUCATION_CAPABILITY_CATALOG: readonly EducationCapabilityDefinitio
         "education.entity.program",
         "education.entity.student",
         "education.entity.enrollment",
+        "education.entity.compliance_requirement",
+        "education.entity.supporting_documentation",
       ],
-      tags: ["governance"],
+      relatedPolicyIds: [
+        "education.policy.compliance.required_documentation",
+        "education.policy.compliance.thresholds",
+      ],
+      contributorIdHint: "education.cognition.compliance",
+      tags: ["governance", "compliance"],
+    },
+    {
+      id: EDUCATION_CAPABILITY_IDS.fundingReadiness,
+      name: "Funding Readiness",
+      description:
+        "Synthesize scholarship and compliance posture into funding readiness.",
+      relatedEntityIds: [
+        "education.entity.scholarship_award",
+        "education.entity.compliance_requirement",
+        "education.entity.funding_period",
+        "education.entity.enrollment",
+      ],
+      contributorIdHint: "education.cognition.funding_readiness",
+      tags: ["finance", "compliance", "synthesis"],
     },
   ] as const;
 
