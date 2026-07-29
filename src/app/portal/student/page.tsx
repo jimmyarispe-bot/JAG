@@ -1,97 +1,34 @@
-import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth/session";
-import { createAuthClient } from "@/lib/supabase/server-auth";
-import { getStudentSelfId, canAccessStudentPortal } from "@/lib/platform/identity/portal-access";
-import { getStudentSelfDashboard } from "@/lib/portal/student-dashboard";
-import { getStudentDeadlines } from "@/lib/compliance/deadlines";
-import { StudentAssignmentsDeadlinesWidget } from "@/components/portal/StudentAssignmentsDeadlinesWidget";
-import { ActionChip, ActionChipGroup } from "@/components/ui/cta";
+import { getStudentExperienceHome } from "@/lib/portal/student-experience/home";
+import { getStudentExperience } from "@/lib/portal/student-experience/orchestrator";
+import { requireStudentExperienceContext } from "@/lib/portal/student-experience/access";
+import { StudentHomeDashboard } from "@/components/portal/student-experience/StudentHomeDashboard";
 
 export default async function StudentPortalHomePage() {
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) redirect("/login?next=/portal/student");
+  const ctx = await requireStudentExperienceContext("/portal/student");
+  const home = await getStudentExperienceHome(
+    ctx.supabase,
+    ctx.sessionUser.id,
+    ctx.studentId
+  );
 
-  const supabase = await createAuthClient();
-  const [canStudent, studentId] = await Promise.all([
-    canAccessStudentPortal(supabase, sessionUser.id),
-    getStudentSelfId(supabase, sessionUser.id),
-  ]);
-
-  if (!canStudent || !studentId) {
-    redirect("/portal");
-  }
-
-  const data = await getStudentSelfDashboard(supabase, studentId);
-  if (!data.student) redirect("/portal");
-
-  const deadlines = await getStudentDeadlines(supabase, studentId);
+  getStudentExperience().publishDashboardViewed({
+    organizationId: ctx.organizationId,
+    actorUserId: ctx.sessionUser.id,
+    studentId: ctx.studentId,
+  });
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Hi, {data.student.first_name}!</h1>
-        <p className="text-slate-600">Your schedule, goals, and progress for today.</p>
-      </div>
-
-      <section className="grid gap-4 sm:grid-cols-3">
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-500">Success score</p>
-          <p className="text-2xl font-semibold">{data.score?.overallScore ?? "—"}</p>
-        </article>
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-500">Attendance (30d)</p>
-          <p className="text-2xl font-semibold">{data.attendanceRate != null ? `${data.attendanceRate}%` : "—"}</p>
-        </article>
-        <article className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-500">Active goals</p>
-          <p className="text-2xl font-semibold">{data.goals.length}</p>
-        </article>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold">Today&apos;s schedule</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {data.todaySchedule.sessions.map((s) => (
-            <li key={s.id as string} className="rounded-lg bg-slate-50 px-3 py-2">
-              Class · {new Date((s as { scheduled_start: string }).scheduled_start).toLocaleTimeString()}
-            </li>
-          ))}
-          {data.todaySchedule.services.map((s) => (
-            <li key={s.id as string} className="rounded-lg bg-sky-50 px-3 py-2 capitalize">
-              {(s as { service_type?: string }).service_type ?? "Service"} · {new Date((s as { scheduled_at: string }).scheduled_at).toLocaleTimeString()}
-            </li>
-          ))}
-          {!data.todaySchedule.sessions.length && !data.todaySchedule.services.length && (
-            <li className="text-slate-500">No sessions scheduled today.</li>
-          )}
-        </ul>
-      </section>
-
-      <StudentAssignmentsDeadlinesWidget
-        dueToday={deadlines.today}
-        dueTomorrow={deadlines.dueTomorrow}
-        upcoming={deadlines.upcoming ?? [...deadlines.thisWeek, ...deadlines.next30Days]}
-        overdue={deadlines.overdue}
-        completed={deadlines.completed ?? []}
-      />
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold">My goals</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {data.goals.map((g) => (
-            <li key={g.id} className="rounded-lg bg-emerald-50 px-3 py-2">{g.title}{g.description ? ` — ${g.description}` : ""}</li>
-          ))}
-        </ul>
-      </section>
-
-      <ActionChipGroup>
-        <ActionChip href="/portal/student/schedule" size="sm">
-          Full schedule
-        </ActionChip>
-        <ActionChip href="/portal/messages" size="sm">
-          Messages
-        </ActionChip>
-      </ActionChipGroup>
-    </div>
+    <StudentHomeDashboard
+      firstName={home.dashboard.student?.first_name ?? ctx.student.first_name}
+      score={home.dashboard.score?.overallScore}
+      attendanceRate={home.dashboard.attendanceRate}
+      goalCount={home.dashboard.goals.length}
+      upcomingSessions={home.upcomingSessions}
+      announcements={home.announcements}
+      notifications={home.notifications}
+      tasks={home.tasks}
+      deadlines={home.deadlines}
+      quickActions={home.quickActions}
+    />
   );
 }

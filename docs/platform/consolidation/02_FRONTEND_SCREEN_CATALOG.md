@@ -62,9 +62,25 @@ Route families as of consolidation. Detail audits: `docs/applications/academyos/
 | Student by id | `/portal/students/[studentId]` | SIS |
 | AcademyOS parent shell | `/academyos/parent` | Portal composition |
 
-## D. Student experience
+## D. Student experience (Wave 1.3)
 
-Covered primarily under portal student routes (dashboard/schedule/goals/progress/messages/portfolio). Staff view: `/dashboard/students/**`.
+| Screen | Route | Engines |
+|--------|-------|---------|
+| Student home | `/portal/student` | Identity, Scheduling, Notifications |
+| My Learning | `/portal/student/learning` | **LearningIntelligence**, Knowledge |
+| Assignments | `/portal/student/assignments` | Workflow / compliance deadlines |
+| Assessments | `/portal/student/assessments` | Learning, Knowledge |
+| Attendance | `/portal/student/attendance` | SIS |
+| Calendar | `/portal/student/calendar` | Scheduling, Calendar |
+| Documents | `/portal/student/documents` | **Knowledge** |
+| Goals | `/portal/student/goals` | Learning |
+| Achievements | `/portal/student/achievements` | LearningIntelligence |
+| Learning Coach | `/portal/student/coach` | **LearningIntelligence** (evidence-only) |
+| Profile | `/portal/student/profile` | Identity |
+| Schedule (legacy) | `/portal/student/schedule` | Scheduling |
+| Messages | `/portal/messages` | Communications |
+
+Staff view: `/dashboard/students/**`.
 
 ## E. Teacher workspace
 

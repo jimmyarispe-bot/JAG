@@ -28,14 +28,18 @@ Portals are **Education Domain UX** on shared Identity, Notifications, Knowledge
 | Docs | `/portal/documents` | Evidence / documents → Knowledge |
 | Thin shell | `/academyos/parent` | Pack-composed parent experience |
 
-## C. Student portal
+## C. Student portal (Wave 1.3)
 
 | Area | Routes | Capabilities |
 |------|--------|--------------|
-| Student home | `/portal/student` | Overview |
-| Goals | `/portal/student/goals` | Goals / mastery signals |
-| Schedule | `/portal/student/schedule` | Classes / sessions |
-| Shared parent-visible | progress, messages, portfolio, calendar | Same engines; permission-scoped |
+| Student home | `/portal/student` | Schedule, announcements, tasks, quick actions |
+| My Learning | `/portal/student/learning` | Mastery / LI summaries |
+| Assignments / assessments | `/portal/student/assignments`, `/assessments` | Deadlines + results |
+| Attendance / calendar | `/portal/student/attendance`, `/calendar` | SIS + scheduling |
+| Goals / achievements / coach | `/portal/student/goals`, `/achievements`, `/coach` | Evidence-backed LI coach |
+| Documents / profile | `/portal/student/documents`, `/profile` | Knowledge + Identity |
+| Schedule (legacy) | `/portal/student/schedule` | Classes / sessions |
+| Shared | messages, portfolio, notifications | Same engines; permission-scoped |
 
 ## D. Staff portals (dashboard shells)
 

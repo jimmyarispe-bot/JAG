@@ -9,6 +9,7 @@ import {
   PARENT_EXPERIENCE_NAV,
   PARENT_EXPERIENCE_SECONDARY_NAV,
 } from "@/lib/portal/experience/constants";
+import { STUDENT_EXPERIENCE_NAV } from "@/lib/portal/student-experience/constants";
 
 const PARENT_NAV = [
   ...PARENT_EXPERIENCE_NAV,
@@ -18,6 +19,12 @@ const PARENT_NAV = [
       n.href === "/portal/conferences" ||
       n.href === "/portal/portfolio"
   ),
+];
+
+const STUDENT_NAV = [
+  ...STUDENT_EXPERIENCE_NAV,
+  { href: "/portal/student/schedule", label: "Schedule" },
+  { href: "/portal/notifications", label: "Notifications" },
 ];
 
 interface PortalShellProps {
@@ -40,14 +47,7 @@ export function PortalShell({
   productName,
 }: PortalShellProps) {
   const pathname = usePathname();
-  const nav = mode === "student"
-    ? [
-        { href: "/portal/student", label: "My Day" },
-        { href: "/portal/student/schedule", label: "Schedule" },
-        { href: "/portal/student/goals", label: "Goals" },
-        { href: "/portal/messages", label: "Messages" },
-      ]
-    : PARENT_NAV;
+  const nav = mode === "student" ? STUDENT_NAV : PARENT_NAV;
 
   return (
     <div className="portal-root min-h-screen bg-slate-50 text-slate-900">
