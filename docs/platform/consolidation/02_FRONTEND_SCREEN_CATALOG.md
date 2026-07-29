@@ -124,19 +124,33 @@ Product orchestration at `/dashboard/school-leader/**` — no new engines; consu
 | Deep links | `/dashboard/students`, `/admissions`, `/hr`, `/finance`, `/scheduling`, `/compliance` | Same engines |
 | Spec | `docs/academyos/portal/04_SCHOOL_LEADER_EXPERIENCE.md` | — |
 
-## G. Executive / founder / board
+## G. Executive Workspace (Wave 1.6) / founder / board
 
-| Screen | Route family | Engines |
-|--------|--------------|---------|
-| Executive home | `/dashboard/executive` | Org, EI |
+Product orchestration at `/dashboard/executive/**` — no new engines; consumes Org, Finance/CFO (read-only), LI, Innovation, Strategy, Knowledge, Reporting, Twin/Memory.
+
+| Screen | Route | Engines |
+|--------|-------|---------|
+| Executive home | `/dashboard/executive` | Org, EI, Work |
+| Multi-school | `/dashboard/executive/multi-school` | Reporting / network |
+| Academics | `/dashboard/executive/academics` | **P-015** Learning Intelligence |
+| Operations | `/dashboard/executive/operations` | Admissions, Scheduling, Compliance |
+| Finance (read-only) | `/dashboard/executive/finance` | Finance, CFO |
+| People | `/dashboard/executive/people` | Workforce |
+| Strategy | `/dashboard/executive/strategy` | StrategyEngine (@organization) |
+| Innovation | `/dashboard/executive/innovation` | InnovationEngine |
+| Org intelligence | `/dashboard/executive/intelligence` | Twin, Memory (evidence-only) |
+| Reports | `/dashboard/executive/reports` | Existing reporting studio |
+| Communications | `/dashboard/executive/communications` | Communications |
+| Profile | `/dashboard/executive/profile` | Identity |
 | KPIs / strategic / scenarios | `/dashboard/executive/{kpis,strategic,scenarios}` | Org, Innovation, CFO |
 | Board | `/dashboard/executive/board` | CFO, Knowledge, Org |
-| Finance executive | `/dashboard/finance/executive` | Finance, CFO |
+| Finance executive (deep link) | `/dashboard/finance/executive` | Finance, CFO |
 | Forecasting / risk / grants | `/dashboard/executive/**` | CFO, Finance, Planning |
 | Founder | `/dashboard/founder`, `/founder` | Founder EI, Org |
-| Mission control / network | `/dashboard/mission-control`, `/network` | Platform EI |
+| Mission control / network | `/dashboard/mission-control`, `/dashboard/executive/network` | Platform EI |
 | Release / observability | `/dashboard/executive/release` | Release registry |
 | Decisions / briefings | `/dashboard/executive/{decisions,briefings}` | Decision, Memory |
+| Spec | `docs/academyos/portal/05_EXECUTIVE_EXPERIENCE.md` | — |
 
 ## H. Finance (shared + education UI)
 

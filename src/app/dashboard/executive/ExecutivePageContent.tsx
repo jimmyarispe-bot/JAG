@@ -36,6 +36,8 @@ import {
 } from "@/lib/platform/intelligence/executive-command-center/types";
 import { decisionsToLegacyJagWork } from "@/lib/dashboard/morning-brief/sections";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { EXECUTIVE_QUICK_ACTIONS } from "@/lib/executive/experience/constants";
+import { getExecutiveExperience } from "@/lib/executive/experience/orchestrator";
 import "@/lib/platform/execution-engine";
 
 const InteractiveCommandCenter = dynamic(
@@ -225,7 +227,7 @@ async function ExecutiveOperationalLoopView() {
     <div className="space-y-6">
       <PageHeader
         title="Operational Loop"
-        subtitle="Canonical JAG lifecycle — transition audit, gaps, and recovery"
+        subtitle="The JAG™ canonical lifecycle — transition audit, gaps, and recovery"
         actions={
           <Link
             href="/dashboard/executive?work=today"
@@ -440,6 +442,12 @@ async function ExecutiveInsightSidePanel({ work }: { work?: string }) {
             href: "/dashboard/executive?work=board_ready",
             variant: "secondary",
           },
+          ...EXECUTIVE_QUICK_ACTIONS.map((a) => ({
+            id: a.href,
+            label: a.label,
+            href: a.href,
+            variant: "secondary" as const,
+          })),
         ]}
       />
     </div>
@@ -472,6 +480,19 @@ export async function ExecutivePageContent({ searchParams }: ExecutivePageConten
   const workPerspective = resolveJagWorkPerspective("executive", sp.work);
   const perspectiveLabel =
     EXECUTIVE_WORK_PERSPECTIVES.find((p) => p.id === workPerspective)?.label ?? "Today's Work";
+
+  const identity = await getIdentityContext();
+  if (identity) {
+    const orgId =
+      identity.orgAssignments.find((a) => a.is_primary)?.school_id ||
+      identity.accessibleSchoolIds[0] ||
+      "default";
+    getExecutiveExperience().publishDashboardViewed({
+      organizationId: orgId,
+      actorUserId: identity.effectiveUserId,
+      schoolId: orgId === "default" ? null : orgId,
+    });
+  }
 
   // Shell renders immediately with static nav — widgets stream data independently.
   return (

@@ -21,7 +21,7 @@ Actions: `read` · `create` · `update` · `approve` · `archive` · `export` ·
 | **Therapist** | Support plans / sessions | IEP/504/therapy, notes | Coach (clinical caution) | Caseload | Therapy progress | Clinical docs (Knowledge) |
 | **Finance** | `/dashboard/finance` | AP/AR, tuition, treasury, reporting | **CFO assistant** | Billing / exceptions | Financial statements | Invoices, statements |
 | **HR** | `/dashboard/hr` | Employees, hiring, payroll, certs | Coach | HR workflows | Headcount | HR docs (Knowledge) |
-| **Executive** | `/dashboard/executive` | KPIs, strategy, board, risk | CFO + Innovation + Coach | Exec briefings | Board packs | Board docs |
+| **Executive** | `/dashboard/executive` | Multi-school, academics, operations, finance (read-only), people, strategy, innovation, org intelligence, reports, communications, profile (+ KPIs/board/risk tools) | CFO + Innovation + Strategy + Coach (evidence-only) | Exec briefings | Board packs / reports catalog | Board docs |
 | **Board member** | Executive board views | Board, finance highlights | Summaries only | Board packs | Board reports | Minutes / policies |
 | **Founder** | `/dashboard/founder` | Org health, priorities, decisions | Full EI + CFO | Critical alerts | Cross-org | Strategic docs |
 | **CEO / ED** | Executive + admin | Org, finance, admissions, compliance | Full EI | Critical | Org-wide | Policies |

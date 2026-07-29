@@ -51,7 +51,7 @@ Not “portals” by URL, but role workspaces:
 | School leader (Wave 1.5) | `/dashboard/school-leader/**` (home, enrollment, students, teachers, academics, scheduling, compliance, finance, HR, communications, reports, profile) + deep links to domain dashboards | Leaders |
 | Admissions | `/dashboard/admissions/**`, `/academyos/admissions` | Admissions staff |
 | Finance | `/dashboard/finance/**` | Finance roles |
-| Executive / founder | `/dashboard/executive/**`, `/founder` | Executives |
+| Executive (Wave 1.6) / founder | `/dashboard/executive/**` (home, multi-school, academics, operations, finance, people, strategy, innovation, intelligence, reports, communications, profile) + `/founder` | Executives |
 | Platform admin | `/dashboard/admin/**`, `/platform/**` | Admins |
 
 ## E. Portal consolidation rules
