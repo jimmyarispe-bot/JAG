@@ -8,6 +8,52 @@
   --jag-muted: #8a8a8a;
   --jag-muted-2: #5c5c5c;
   --jag-ready: #9aa0a6;
+  --jag-focus: #c4c4c4;
   color-scheme: dark;
   font-family: var(--font-jag-sans), ui-sans-serif, sans-serif;
+}
+
+.jag-command-center :focus-visible {
+  outline: 2px solid var(--jag-focus);
+  outline-offset: 2px;
+}
+
+.jag-skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 80;
+  transform: translateY(-200%);
+  border-radius: 0.25rem;
+  border: 1px solid var(--jag-border-strong);
+  background: var(--jag-panel);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--jag-text);
+}
+
+.jag-skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jag-command-center *,
+  .jag-command-center *::before,
+  .jag-command-center *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Contrast-safe muted text for large executive displays */
+@media (min-width: 1600px) {
+  .jag-command-center {
+    --jag-muted: #9a9a9a;
+  }
+}
+
+.jag-command-palette::backdrop {
+  background: rgb(0 0 0 / 0.65);
 }

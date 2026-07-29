@@ -3,6 +3,7 @@ import {
   JAG_DECISION_GROUPS,
   type JagDecisionCenterModel,
 } from "@/lib/jag-command-center/decision-center/types";
+import { JagEmptyState } from "../JagEmptyState";
 import { JagSection } from "../JagSection";
 import { JagDecisionCardView } from "./JagDecisionCard";
 import { JagDecisionFilters } from "./JagDecisionFilters";
@@ -36,18 +37,15 @@ export function JagDecisionCenterView({
       </JagSection>
 
       {model.counts.total === 0 ? (
-        <div className="rounded-md border border-dashed border-[var(--jag-border)] bg-[var(--jag-panel)] px-4 py-10 text-sm leading-relaxed text-[var(--jag-muted)]">
-          No action proposals are bound to the Command Center yet. Run Education
-          intelligence contributors, then record the execution snapshot with{" "}
-          <code className="font-[family-name:var(--font-jag-mono)] text-[11px]">
-            recordEducationExecutionSnapshot
-          </code>
-          . Each suggested action becomes a decision card here.
-        </div>
+        <JagEmptyState
+          title="No decisions in the queue"
+          description="No action proposals are bound yet. Run Education intelligence contributors, then record the execution snapshot with recordEducationExecutionSnapshot. Each suggested action becomes a decision card here."
+        />
       ) : model.decisions.length === 0 ? (
-        <div className="rounded-md border border-dashed border-[var(--jag-border)] bg-[var(--jag-panel)] px-4 py-8 text-sm text-[var(--jag-muted)]">
-          No decisions match the current filters.
-        </div>
+        <JagEmptyState
+          title="No matching decisions"
+          description="No decisions match the current filters. Clear filters or broaden search."
+        />
       ) : (
         <div className="space-y-8">
           {JAG_DECISION_GROUPS.map((group) => {

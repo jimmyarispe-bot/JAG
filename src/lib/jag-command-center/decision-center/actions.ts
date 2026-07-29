@@ -7,6 +7,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
+import { recordJagAuditEvent } from "../audit";
+import { pushJagNotification } from "../notifications";
 import {
   addExecutionUpdate,
   assignDecision,
@@ -39,18 +41,27 @@ function revalidateDecision(decisionId: string): void {
 }
 
 async function requireActor(): Promise<
-  | { ok: true; actor: string }
+  | {
+      ok: true;
+      actor: string;
+      userId: string;
+    }
   | { ok: false; error: string }
 > {
   const session = await getJagPlatformSession();
   if (!session) return { ok: false, error: "Not authenticated." };
-  return { ok: true, actor: session.displayName || session.email };
+  return {
+    ok: true,
+    actor: session.displayName || session.email,
+    userId: session.userId,
+  };
 }
 
 export async function updateDecisionCenterStatus(input: {
   decisionId: string;
   status: string;
   message?: string;
+  organizationId?: string;
 }): Promise<UpdateDecisionStatusResult> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
@@ -69,6 +80,34 @@ export async function updateDecisionCenterStatus(input: {
     actor: auth.actor,
     message: input.message,
   });
+
+  const action =
+    status === "Approved"
+      ? ("decision_approved" as const)
+      : status === "Completed"
+        ? ("decision_completed" as const)
+        : ("decision_status_updated" as const);
+
+  recordJagAuditEvent({
+    action,
+    actorUserId: auth.userId,
+    actorLabel: auth.actor,
+    organizationId: input.organizationId,
+    decisionId: input.decisionId,
+    detail: `Decision status → ${status}`,
+    metadata: { status },
+  });
+
+  if (status === "Approved") {
+    pushJagNotification({
+      kind: "decision_approved",
+      title: "Decision approved",
+      body: `Decision ${input.decisionId.slice(0, 8)}… marked Approved.`,
+      href: `/jag/decisions/${input.decisionId}`,
+      organizationId: input.organizationId,
+      decisionId: input.decisionId,
+    });
+  }
 
   revalidateDecision(input.decisionId);
   return { ok: true, status };
@@ -118,6 +157,44 @@ export async function assignDecisionCenterOwner(input: {
     priority: input.priority,
   });
 
+  recordJagAuditEvent({
+    action: "decision_assigned",
+    actorUserId: auth.userId,
+    actorLabel: auth.actor,
+    organizationId: input.organizationId,
+    decisionId: input.decisionId,
+    detail: `Assigned to ${assignment.summary}`,
+    metadata: {
+      priority: input.priority,
+      ...(input.dueDate ? { dueDate: input.dueDate } : {}),
+    },
+  });
+
+  pushJagNotification({
+    kind: "decision_assigned",
+    title: "Decision assigned",
+    body: `Assigned to ${assignment.summary}${
+      assignment.dueDate ? ` · due ${assignment.dueDate.slice(0, 10)}` : ""
+    }`,
+    href: `/jag/decisions/${input.decisionId}`,
+    organizationId: input.organizationId,
+    decisionId: input.decisionId,
+  });
+
+  if (
+    assignment.dueDate &&
+    Date.parse(assignment.dueDate) < Date.now()
+  ) {
+    pushJagNotification({
+      kind: "decision_overdue",
+      title: "Decision overdue",
+      body: `Assignment due date ${assignment.dueDate.slice(0, 10)} is already past.`,
+      href: `/jag/decisions/${input.decisionId}`,
+      organizationId: input.organizationId,
+      decisionId: input.decisionId,
+    });
+  }
+
   revalidateDecision(input.decisionId);
   return { ok: true, summary: assignment.summary };
 }
@@ -131,6 +208,7 @@ export async function addDecisionCenterExecutionUpdate(input: {
   message: string;
   progressPct?: number;
   evidenceRef?: string;
+  organizationId?: string;
 }): Promise<ActionResult> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
@@ -150,6 +228,19 @@ export async function addDecisionCenterExecutionUpdate(input: {
     evidenceRef: input.evidenceRef?.trim() || undefined,
   });
 
+  recordJagAuditEvent({
+    action:
+      input.kind === "completed"
+        ? "decision_completed"
+        : "decision_execution_updated",
+    actorUserId: auth.userId,
+    actorLabel: auth.actor,
+    organizationId: input.organizationId,
+    decisionId: input.decisionId,
+    detail: `${input.kind}: ${input.message.trim()}`,
+    metadata: { kind: input.kind },
+  });
+
   revalidateDecision(input.decisionId);
   return { ok: true };
 }
@@ -164,6 +255,7 @@ export async function recordDecisionCenterOutcome(input: {
   achievedIntendedResult: boolean;
   futurePriority: JagDecisionFuturePriority;
   feedbackNotes?: string;
+  organizationId?: string;
 }): Promise<ActionResult> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
@@ -193,6 +285,16 @@ export async function recordDecisionCenterOutcome(input: {
     achievedIntendedResult: input.achievedIntendedResult,
     futurePriority: input.futurePriority,
     notes: input.feedbackNotes,
+  });
+
+  recordJagAuditEvent({
+    action: "decision_outcome_reviewed",
+    actorUserId: auth.userId,
+    actorLabel: auth.actor,
+    organizationId: input.organizationId,
+    decisionId: input.decisionId,
+    detail: `Outcome ${input.result}`,
+    metadata: { result: input.result },
   });
 
   revalidateDecision(input.decisionId);

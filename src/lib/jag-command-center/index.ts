@@ -18,6 +18,14 @@ export {
 } from "./intelligence-store";
 export * from "./decision-center";
 export * from "./briefing-engine";
+export * from "./audit";
+export * from "./notifications";
+export { loadJagSearchCatalog } from "./search-catalog";
+export {
+  filterJagSearchCatalog,
+  type JagSearchItem,
+  type JagSearchItemKind,
+} from "./search-filter";
 export type {
   JagCapabilityPackView,
   JagDecisionExecutionDashboard,

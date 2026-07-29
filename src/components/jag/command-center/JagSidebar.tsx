@@ -11,10 +11,11 @@ export function JagSidebar({ pathname }: { readonly pathname: string }) {
     <>
       <button
         type="button"
-        className="fixed left-3 top-3 z-40 rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] px-2.5 py-1.5 text-xs text-[var(--jag-text)] md:hidden"
+        className="fixed left-3 top-3 z-40 rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] px-2.5 py-1.5 text-xs text-[var(--jag-text)] focus-visible:border-[var(--jag-border-strong)] md:hidden"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls="jag-command-nav"
+        aria-label={open ? "Close navigation menu" : "Open navigation menu"}
       >
         Menu
       </button>

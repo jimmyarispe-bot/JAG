@@ -1,13 +1,23 @@
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
+import type { JagNotification } from "@/lib/jag-command-center/notifications";
+import type { JagSearchItem } from "@/lib/jag-command-center/search-filter";
+import { JagCommandPalette } from "./JagCommandPalette";
+import { JagNotificationBell } from "./JagNotificationBell";
 
 export function JagHeader({
   session,
   organizationOptions,
   domainOptions,
+  searchCatalog,
+  notifications,
+  unreadNotificationCount,
 }: {
   readonly session: JagPlatformSession;
   readonly organizationOptions: readonly { id: string; label: string }[];
   readonly domainOptions: readonly { id: string; label: string }[];
+  readonly searchCatalog: readonly JagSearchItem[];
+  readonly notifications: readonly JagNotification[];
+  readonly unreadNotificationCount: number;
 }) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--jag-border)] bg-[var(--jag-bg)] px-4 md:px-6">
@@ -15,19 +25,21 @@ export function JagHeader({
         <span className="font-[family-name:var(--font-jag-display)] text-sm font-semibold tracking-tight text-[var(--jag-text)]">
           JAG
         </span>
-        <span className="text-[var(--jag-border-strong)]">/</span>
+        <span className="text-[var(--jag-border-strong)]" aria-hidden>
+          /
+        </span>
         <span className="truncate text-xs text-[var(--jag-muted)]">
           Command Center
         </span>
       </div>
 
-      <div className="ml-8 flex min-w-0 flex-1 items-center gap-2 md:ml-6">
+      <div className="ml-0 flex min-w-0 flex-1 items-center gap-2 md:ml-6">
         <label className="sr-only" htmlFor="jag-org-select">
           Organization
         </label>
         <select
           id="jag-org-select"
-          className="max-w-[10rem] truncate rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] px-2 py-1.5 text-xs text-[var(--jag-text)] outline-none focus:border-[var(--jag-border-strong)] md:max-w-[14rem]"
+          className="max-w-[9rem] truncate rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] px-2 py-1.5 text-xs text-[var(--jag-text)] outline-none focus-visible:border-[var(--jag-border-strong)] md:max-w-[14rem]"
           defaultValue={organizationOptions[0]?.id ?? ""}
           disabled={organizationOptions.length === 0}
         >
@@ -47,7 +59,7 @@ export function JagHeader({
         </label>
         <select
           id="jag-domain-select"
-          className="max-w-[9rem] truncate rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] px-2 py-1.5 text-xs text-[var(--jag-text)] outline-none focus:border-[var(--jag-border-strong)] md:max-w-[12rem]"
+          className="max-w-[8rem] truncate rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] px-2 py-1.5 text-xs text-[var(--jag-text)] outline-none focus-visible:border-[var(--jag-border-strong)] md:max-w-[12rem]"
           defaultValue={domainOptions[0]?.id ?? ""}
           disabled={domainOptions.length === 0}
         >
@@ -62,19 +74,17 @@ export function JagHeader({
           )}
         </select>
 
-        <label className="sr-only" htmlFor="jag-search">
-          Search
-        </label>
-        <input
-          id="jag-search"
-          type="search"
-          placeholder="Search"
-          className="hidden min-w-0 flex-1 rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-1.5 text-xs text-[var(--jag-text)] outline-none placeholder:text-[var(--jag-muted-2)] focus:border-[var(--jag-border-strong)] sm:block"
-        />
+        <div className="min-w-0 flex-1">
+          <JagCommandPalette catalog={searchCatalog} />
+        </div>
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <div className="text-right">
+        <JagNotificationBell
+          notifications={notifications}
+          unreadCount={unreadNotificationCount}
+        />
+        <div className="hidden text-right sm:block">
           <p className="truncate text-xs font-medium text-[var(--jag-text)]">
             {session.displayName}
           </p>

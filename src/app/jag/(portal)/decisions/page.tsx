@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { JagDecisionCenterView } from "@/components/jag/command-center/decisions";
-import { JagSection } from "@/components/jag/command-center";
+import { JagLoadingSkeleton } from "@/components/jag/command-center";
 import {
   loadDecisionCenter,
   type JagDecisionFilters,
@@ -25,13 +25,32 @@ export default async function JagDecisionsPage({
   }
 
   const params = await searchParams;
-  const filters = parseFilters(params);
 
   return (
-    <Suspense fallback={<Loading />}>
-      <JagDecisionCenterView model={loadDecisionCenter(session, filters)} />
+    <Suspense
+      fallback={
+        <JagLoadingSkeleton
+          title="Decision Center"
+          description="Loading executive decision queue…"
+        />
+      }
+    >
+      <DecisionsContent params={params} />
     </Suspense>
   );
+}
+
+async function DecisionsContent({
+  params,
+}: {
+  params: Record<string, string | undefined>;
+}) {
+  const session = await getJagPlatformSession();
+  if (!session) {
+    redirect(JAG_PLATFORM_LOGIN_PATH);
+  }
+  const model = loadDecisionCenter(session, parseFilters(params));
+  return <JagDecisionCenterView model={model} />;
 }
 
 function parseFilters(
@@ -63,19 +82,4 @@ function isStatus(v?: string): v is JagDecisionStatus {
 
 function isGroup(v?: string): v is JagDecisionGroup {
   return Boolean(v && (JAG_DECISION_GROUPS as readonly string[]).includes(v));
-}
-
-function Loading() {
-  return (
-    <JagSection title="Decision Center" description="Loading queue…">
-      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-36 animate-pulse rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)]"
-          />
-        ))}
-      </div>
-    </JagSection>
-  );
 }

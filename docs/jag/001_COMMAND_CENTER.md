@@ -46,6 +46,9 @@ Authentication continues to use the existing JAG Platform session (`getJagPlatfo
 | Overview | `/jag` |
 | Decision Center | `/jag/decisions` — see [003_DECISION_CENTER.md](./003_DECISION_CENTER.md), [004_DECISION_EXECUTION.md](./004_DECISION_EXECUTION.md) |
 | Executive Briefings | `/jag/briefings` — see [005_EXECUTIVE_BRIEFING_ENGINE.md](./005_EXECUTIVE_BRIEFING_ENGINE.md) |
+| Observability | `/jag/observability` — executive audit trail (RC-001) |
+
+Release candidate hardening: [RC1_HARDENING.md](./RC1_HARDENING.md).
 | Organizations | `/jag/organizations` |
 | Domains | `/jag/domains` |
 | Capability Packs | `/jag/capability-packs` |

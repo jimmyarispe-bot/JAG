@@ -7,7 +7,9 @@
 
 import { revalidatePath } from "next/cache";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
+import { recordJagAuditEvent } from "../audit";
 import { setDecisionStatus } from "../decision-center/status-store";
+import { pushJagNotification } from "../notifications";
 import {
   addBriefingNote,
   enableBriefingShare,
@@ -41,7 +43,13 @@ function revalidateBriefing(briefingId: string): void {
 }
 
 async function requireActor(): Promise<
-  | { ok: true; actor: string; session: NonNullable<Awaited<ReturnType<typeof getJagPlatformSession>>> }
+  | {
+      ok: true;
+      actor: string;
+      session: NonNullable<
+        Awaited<ReturnType<typeof getJagPlatformSession>>
+      >;
+    }
   | { ok: false; error: string }
 > {
   const session = await getJagPlatformSession();
@@ -90,6 +98,26 @@ export async function generateExecutiveBriefing(input: {
   }
 
   saveBriefing(result);
+
+  recordJagAuditEvent({
+    action: "brief_generated",
+    actorUserId: auth.session.userId,
+    actorLabel: auth.actor,
+    organizationId: result.organizationId,
+    briefingId: result.id,
+    detail: `Generated ${result.kindLabel}`,
+    metadata: { kind: result.kind, scope: result.scope },
+  });
+
+  pushJagNotification({
+    kind: "brief_ready",
+    title: "Brief ready",
+    body: result.title,
+    href: `/jag/briefings/${result.id}`,
+    organizationId: result.organizationId,
+    briefingId: result.id,
+  });
+
   revalidateBriefing(result.id);
   return { ok: true, briefingId: result.id };
 }
@@ -100,7 +128,8 @@ export async function approveBriefingDecision(input: {
 }): Promise<ActionResult> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
-  if (!getBriefing(input.briefingId)) {
+  const briefing = getBriefing(input.briefingId);
+  if (!briefing) {
     return { ok: false, error: "Briefing not found." };
   }
   setDecisionStatus({
@@ -109,6 +138,27 @@ export async function approveBriefingDecision(input: {
     actor: auth.actor,
     message: `Approved from briefing ${input.briefingId}`,
   });
+
+  recordJagAuditEvent({
+    action: "decision_approved",
+    actorUserId: auth.session.userId,
+    actorLabel: auth.actor,
+    organizationId: briefing.organizationId,
+    decisionId: input.decisionId,
+    briefingId: input.briefingId,
+    detail: "Approved from executive briefing",
+  });
+
+  pushJagNotification({
+    kind: "decision_approved",
+    title: "Decision approved",
+    body: "Approved from briefing actions.",
+    href: `/jag/decisions/${input.decisionId}`,
+    organizationId: briefing.organizationId,
+    decisionId: input.decisionId,
+    briefingId: input.briefingId,
+  });
+
   revalidateBriefing(input.briefingId);
   revalidatePath(`/jag/decisions/${input.decisionId}`);
   return { ok: true };
@@ -124,6 +174,7 @@ export async function addExecutiveBriefingNote(input: {
   if (!input.text.trim()) {
     return { ok: false, error: "Note text is required." };
   }
+  const briefing = getBriefing(input.briefingId);
   const note = addBriefingNote({
     briefingId: input.briefingId,
     actor: auth.actor,
@@ -131,6 +182,16 @@ export async function addExecutiveBriefingNote(input: {
     sectionId: input.sectionId,
   });
   if (!note) return { ok: false, error: "Briefing not found." };
+
+  recordJagAuditEvent({
+    action: "brief_note_added",
+    actorUserId: auth.session.userId,
+    actorLabel: auth.actor,
+    organizationId: briefing?.organizationId,
+    briefingId: input.briefingId,
+    detail: "Executive note added",
+  });
+
   revalidateBriefing(input.briefingId);
   return { ok: true };
 }
@@ -145,6 +206,7 @@ export async function scheduleBriefingFollowUpReview(input: {
   if (!input.at.trim()) {
     return { ok: false, error: "Review date is required." };
   }
+  const briefing = getBriefing(input.briefingId);
   const review = scheduleBriefingReview({
     briefingId: input.briefingId,
     actor: auth.actor,
@@ -152,6 +214,25 @@ export async function scheduleBriefingFollowUpReview(input: {
     note: input.note || "Scheduled executive review",
   });
   if (!review) return { ok: false, error: "Briefing not found." };
+
+  recordJagAuditEvent({
+    action: "brief_review_scheduled",
+    actorUserId: auth.session.userId,
+    actorLabel: auth.actor,
+    organizationId: briefing?.organizationId,
+    briefingId: input.briefingId,
+    detail: `Review scheduled for ${input.at.slice(0, 10)}`,
+  });
+
+  pushJagNotification({
+    kind: "follow_up_scheduled",
+    title: "Follow-up scheduled",
+    body: `Review on ${input.at.slice(0, 10)}`,
+    href: `/jag/briefings/${input.briefingId}`,
+    organizationId: briefing?.organizationId,
+    briefingId: input.briefingId,
+  });
+
   revalidateBriefing(input.briefingId);
   return { ok: true };
 }
@@ -161,8 +242,19 @@ export async function createBriefingShareLink(input: {
 }): Promise<ActionResult<{ sharePath: string; token: string }>> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
+  const briefing = getBriefing(input.briefingId);
   const token = enableBriefingShare(input.briefingId);
   if (!token) return { ok: false, error: "Briefing not found." };
+
+  recordJagAuditEvent({
+    action: "brief_share_created",
+    actorUserId: auth.session.userId,
+    actorLabel: auth.actor,
+    organizationId: briefing?.organizationId,
+    briefingId: input.briefingId,
+    detail: "Read-only share link created",
+  });
+
   revalidateBriefing(input.briefingId);
   return {
     ok: true,
@@ -183,7 +275,7 @@ export async function createFollowUpBriefing(input: {
     return { ok: false, error: "Invalid follow-up briefing type." };
   }
 
-  return generateExecutiveBriefing({
+  const result = await generateExecutiveBriefing({
     scope: source.scope,
     organizationId: source.organizationId,
     organizationIds: [...source.organizationIds],
@@ -198,4 +290,18 @@ export async function createFollowUpBriefing(input: {
         ? source.window.end.slice(0, 10)
         : undefined,
   });
+
+  if (result.ok) {
+    recordJagAuditEvent({
+      action: "brief_follow_up_created",
+      actorUserId: auth.session.userId,
+      actorLabel: auth.actor,
+      organizationId: source.organizationId,
+      briefingId: result.briefingId,
+      detail: `Follow-up from ${input.sourceBriefingId}`,
+      metadata: { sourceBriefingId: input.sourceBriefingId },
+    });
+  }
+
+  return result;
 }

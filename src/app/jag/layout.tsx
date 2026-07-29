@@ -4,7 +4,12 @@ import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { headers } from "next/headers";
 import { JagCommandShell } from "@/components/jag/command-center";
 import "@/components/jag/command-center/command-center.css";
-import { loadJagCommandCenterOverview } from "@/lib/jag-command-center";
+import {
+  countUnreadJagNotifications,
+  listJagNotifications,
+  loadJagCommandCenterOverview,
+  loadJagSearchCatalog,
+} from "@/lib/jag-command-center";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 const jagSans = IBM_Plex_Sans({
@@ -62,6 +67,9 @@ export default async function JagRootLayout({
   }
 
   const overview = loadJagCommandCenterOverview(session);
+  const searchCatalog = loadJagSearchCatalog(session);
+  const notifications = listJagNotifications(20);
+  const unreadNotificationCount = countUnreadJagNotifications();
 
   return (
     <div
@@ -77,6 +85,9 @@ export default async function JagRootLayout({
         pathname={pathname}
         organizationOptions={overview.organizationOptions}
         domainOptions={overview.domainOptions}
+        searchCatalog={searchCatalog}
+        notifications={notifications}
+        unreadNotificationCount={unreadNotificationCount}
       >
         {children}
       </JagCommandShell>
