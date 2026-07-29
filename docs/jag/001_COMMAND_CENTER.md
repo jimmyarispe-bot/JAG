@@ -45,7 +45,7 @@ Authentication continues to use the existing JAG Platform session (`getJagPlatfo
 |------|------|
 | Overview | `/jag` |
 | Decision Center | `/jag/decisions` — see [003_DECISION_CENTER.md](./003_DECISION_CENTER.md), [004_DECISION_EXECUTION.md](./004_DECISION_EXECUTION.md) |
-| Executive Briefings | `/jag/briefings` |
+| Executive Briefings | `/jag/briefings` — see [005_EXECUTIVE_BRIEFING_ENGINE.md](./005_EXECUTIVE_BRIEFING_ENGINE.md) |
 | Organizations | `/jag/organizations` |
 | Domains | `/jag/domains` |
 | Capability Packs | `/jag/capability-packs` |

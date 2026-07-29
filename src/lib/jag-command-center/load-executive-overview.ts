@@ -182,7 +182,7 @@ function loadExecutiveBrief(
       criticalRisks: [],
       recommendedActions: [],
       explanation:
-        "No Executive Education Brief is available yet. Briefs are produced by the Education top-level synthesis contributor (education.cognition.executive_briefing). Plan an executive intent (Executive Brief, Board Review, Quarterly Review), run the Education Intelligence Orchestrator with School Health and Campus Performance upstream results, then bind the execution snapshot to the Command Center. The latest brief summary, priorities, risks, and recommended actions will appear here.",
+        "No Executive Education Brief is bound yet. Bind an Education Intelligence snapshot (education.cognition.executive_briefing), or generate a narrative briefing from the Executive Briefing Engine at /jag/briefings (Organization Health, Decision Queue, readiness, and outcomes).",
       href,
     };
   }

@@ -12,6 +12,10 @@ export {
   JagDecisionCenterView,
   JagDecisionDetailView,
 } from "./decisions";
+export {
+  JagBriefingDetailView,
+  JagBriefingsView,
+} from "./briefings";
 export { JAG_COMMAND_NAV, isJagNavActive } from "./nav";
 export type { JagCardStatus, JagOverviewCardModel } from "./types";
 

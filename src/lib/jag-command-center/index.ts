@@ -17,6 +17,7 @@ export {
   resetJagIntelligenceStoreForTests,
 } from "./intelligence-store";
 export * from "./decision-center";
+export * from "./briefing-engine";
 export type {
   JagCapabilityPackView,
   JagDecisionExecutionDashboard,
