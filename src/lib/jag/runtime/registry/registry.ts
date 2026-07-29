@@ -12,6 +12,8 @@ import type { ContextProvider } from "../context/context-provider";
 import type { ContextRuntime } from "../context/context-runtime";
 import type { IdentityProvider } from "../identity/identity-provider";
 import type { IdentityRuntime } from "../identity/identity-runtime";
+import type { IntentProvider } from "../intent/intent-provider";
+import type { IntentRuntime } from "../intent/intent-runtime";
 import type { RuntimePipelineStageId } from "../types/stages";
 
 export interface RuntimeRegistryOptions {
@@ -35,8 +37,10 @@ export class RuntimeRegistry {
   private readonly actionProviders = new Map<string, RuntimeActionProvider>();
   private readonly identityProviders = new Map<string, IdentityProvider>();
   private readonly contextProviders = new Map<string, ContextProvider>();
+  private readonly intentProviders = new Map<string, IntentProvider>();
   private identityRuntime: IdentityRuntime | null = null;
   private contextRuntime: ContextRuntime | null = null;
+  private intentRuntime: IntentRuntime | null = null;
   private readonly eventUnsubscribers = new Map<string, () => void>();
   private readonly events?: RuntimeEventBus;
   private readonly runtimeRef?: () => unknown;
@@ -292,6 +296,38 @@ export class RuntimeRegistry {
     return this.contextRuntime;
   }
 
+  registerIntentProvider(provider: IntentProvider): void {
+    if (this.intentProviders.has(provider.id)) {
+      throw new RuntimeExtensionError(
+        `Intent provider already registered: ${provider.id}`,
+        { code: "RUNTIME_INTENT_PROVIDER_EXISTS" }
+      );
+    }
+    this.intentProviders.set(provider.id, provider);
+    void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
+      kind: "intent_provider",
+      id: provider.id,
+    });
+  }
+
+  unregisterIntentProvider(id: string): boolean {
+    return this.intentProviders.delete(id);
+  }
+
+  listIntentProviders(): IntentProvider[] {
+    return [...this.intentProviders.values()].sort(
+      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+    );
+  }
+
+  setIntentRuntime(intent: IntentRuntime | null): void {
+    this.intentRuntime = intent;
+  }
+
+  getIntentRuntime(): IntentRuntime | null {
+    return this.intentRuntime;
+  }
+
   clear(): void {
     for (const unsub of this.eventUnsubscribers.values()) unsub();
     this.eventUnsubscribers.clear();
@@ -302,8 +338,10 @@ export class RuntimeRegistry {
     this.actionProviders.clear();
     this.identityProviders.clear();
     this.contextProviders.clear();
+    this.intentProviders.clear();
     this.identityRuntime = null;
     this.contextRuntime = null;
+    this.intentRuntime = null;
   }
 }
 

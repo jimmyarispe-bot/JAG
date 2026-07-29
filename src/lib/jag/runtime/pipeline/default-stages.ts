@@ -1,8 +1,9 @@
 import type { RuntimePipelineStage } from "../contracts";
 import { contextRequestFromExecution } from "../context/context-runtime";
 import { toOrganizationalContext } from "../context/context-types";
-import { RuntimeContextError } from "../errors";
+import { RuntimeContextError, RuntimeIntentError } from "../errors";
 import { identityRequestFromContext } from "../identity/identity-runtime";
+import { intentRequestFromExecution } from "../intent/intent-runtime";
 import type { RuntimeRegistry } from "../registry";
 import {
   RUNTIME_PIPELINE_STAGE_IDS,
@@ -61,6 +62,27 @@ function createSkeletonStage(
           );
           ctx.setOrganizationalContext(toOrganizationalContext(snapshot));
           ctx.state.data.contextSnapshot = snapshot;
+        }
+        return;
+      }
+
+      if (id === "intent") {
+        const intentRuntime = registry.getIntentRuntime();
+        if (intentRuntime) {
+          const identity = ctx.state.identity;
+          if (!identity) {
+            throw new RuntimeIntentError(
+              "Identity required before Intent stage",
+              { code: "INTENT_REQUIRES_IDENTITY" }
+            );
+          }
+          const intent = await intentRuntime.resolveOrThrow(
+            intentRequestFromExecution(ctx, identity)
+          );
+          ctx.setIntent(intent);
+          ctx.state.data.intentConcurrent = intentRuntime.listConcurrent(
+            identity.principalId
+          );
         }
         return;
       }
