@@ -12,6 +12,8 @@ export const EDUCATION_CONTRIBUTOR_IDS = {
   cognition: "education.cognition",
   /** First real cognitive intelligence contributor (D2.1). */
   enrollmentCognition: "education.cognition.enrollment",
+  /** Second real cognitive intelligence contributor (D2.3). */
+  attendanceCognition: "education.cognition.attendance",
   experience: "education.experience",
   action: "education.action",
   evidence: "education.evidence",

@@ -51,6 +51,11 @@ export function createEducationManifest(): DomainManifest {
         kind: "cognition",
         description: "Enrollment Intelligence (D2.1)",
       },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.attendanceCognition,
+        kind: "cognition",
+        description: "Attendance Intelligence (D2.3)",
+      },
       { id: EDUCATION_CONTRIBUTOR_IDS.experience, kind: "experience" },
       { id: EDUCATION_CONTRIBUTOR_IDS.action, kind: "action" },
       { id: EDUCATION_CONTRIBUTOR_IDS.evidence, kind: "evidence" },
@@ -83,6 +88,7 @@ export function createEducationManifest(): DomainManifest {
     featureFlags: {
       foundationPlaceholders: true,
       enrollmentIntelligence: true,
+      attendanceIntelligence: true,
       executionEnabled: false,
     },
     metadata: {
@@ -92,10 +98,11 @@ export function createEducationManifest(): DomainManifest {
         "contracts",
         "reference-domain",
         "enrollment-intelligence",
+        "attendance-intelligence",
       ],
       attributes: {
         academyos: false,
-        phase: "D2.1",
+        phase: "D2.3",
       },
     },
   });

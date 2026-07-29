@@ -42,6 +42,7 @@ export function createEducationDomainBuilder(): DomainBuilder {
     .registerIntentContributor(contributors.intent)
     .registerCognitiveContributor(contributors.cognition)
     .registerCognitiveContributor(contributors.enrollmentCognition)
+    .registerCognitiveContributor(contributors.attendanceCognition)
     .registerExperienceContributor(contributors.experience)
     .registerActionContributor(contributors.action)
     .registerEvidenceContributor(contributors.evidence)

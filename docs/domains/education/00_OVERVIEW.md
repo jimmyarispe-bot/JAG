@@ -3,7 +3,7 @@
 **Program D1 — Education Domain Foundation**  
 **Authority:** [JAG_CONSTITUTION.md](../../../JAG_CONSTITUTION.md) · [DOMAIN_ADAPTER_CHECKLIST.md](../../jag-os/runtime/DOMAIN_ADAPTER_CHECKLIST.md) · [Domain SDK](../../jag-os/domain-sdk/00_DOMAIN_SDK.md)  
 **Package:** `src/lib/domains/education`  
-**Status:** Foundation + Enrollment Intelligence (D2.1)
+**Status:** Foundation + Enrollment (D2.1) + Framework + Attendance (D2.3)
 
 ---
 

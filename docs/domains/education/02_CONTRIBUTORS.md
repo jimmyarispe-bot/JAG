@@ -12,6 +12,7 @@ All contributors are **placeholders**. They satisfy Runtime contracts so registr
 | `education.intent` | Intent | Catalog declared; `detect()` → `[]` |
 | `education.cognition` | Cognition | Placeholder `gatherEvidence()` → `[]` |
 | `education.cognition.enrollment` | Cognition | **D2.1 Enrollment Intelligence** — evidence + recommendations |
+| `education.cognition.attendance` | Cognition | **D2.3 Attendance Intelligence** — framework-based |
 | `education.experience` | Experience | Empty widgets / briefing / nav |
 | `education.action` | Action | Catalog declared; `execute` → `skipped` |
 | `education.evidence` | Evidence | `collect` / `publish` → `[]` |
