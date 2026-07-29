@@ -29,7 +29,7 @@ Status key:
 | KnowledgeEngine | Completed | P-014 |
 | Domain integration inventory | Completed | P-010A |
 | **This consolidation pack** | Completed | **P-013A** |
-| Learning Intelligence | Needs Implementation | **P-015** (integrate IP) |
+| Learning Intelligence | **Completed / Integrated** | **P-015** — facade over AcademyOS learning SoR |
 | Notification consolidation | Needs Refactor | BOTH stacks |
 | Reporting Engine execution | Needs Implementation | Definitions heavy |
 | Identity hardening | Needs Implementation | Later roadmap |
@@ -42,12 +42,12 @@ Status key:
 | Students / families SIS | Completed / Integrated | Production-ready registry |
 | Communications module | Completed / Needs Refactor | Engine consolidation later |
 | Workflow / Forms frameworks usage | Integrated | Definitions registered |
-| Admissions pipeline | Needs Implementation | Building → production-ready |
+| Admissions pipeline | **Wave 1.1 Experience Complete** | Public site + wizard + CRM orchestration; deepen production polish |
 | Scholarships | Needs Implementation | Building |
 | Scheduling / attendance / teacher | Needs Implementation | Building / Partial |
 | Parent / student portals | Needs Refactor | Partial UX; docs → Knowledge |
 | Gradebook / curriculum runtime | Needs Implementation | Designed > runtime |
-| Mastery / literacy / interventions IP | Needs Implementation | **P-015 integrate — do not rebuild** |
+| Mastery / literacy / interventions IP | **Integrated** (runtime) / Designed (blueprint depth) | LI facade + AcademyOS pack; literacy blueprints remain IP |
 | IEP / 504 / therapy workflows | Needs Implementation | Partial SoR; sparse workflows |
 | Education billing on Shared Finance | Needs Refactor | Pack billing → Revenue adapters |
 | Compliance / state reporting | Needs Implementation | Missing packs |
@@ -72,14 +72,13 @@ Status key:
 
 ---
 
-## E. Ordered backlog (post–P-013A)
+## E. Ordered backlog (post–P-015)
 
-1. **P-015** Learning Intelligence™ — integrate mastery/assessment/intervention IP  
-2. Admissions + scholarships → production-ready (Education)  
-3. Scheduling + attendance + teacher workspace polish  
-4. Education finance adapters fully on Shared Finance/Revenue  
-5. SPED workflow density (IEP/504/therapy) on Workflow + Knowledge  
-6. Notification consolidation  
-7. Reporting Engine execution + education report packs  
-8. Connectors  
-9. Mobile (deferred)
+1. Admissions + scholarships → production-ready (Education)  
+2. Scheduling + attendance + teacher workspace polish  
+3. Education finance adapters fully on Shared Finance/Revenue  
+4. SPED workflow density (IEP/504/therapy) on Workflow + Knowledge  
+5. Notification consolidation  
+6. Reporting Engine execution + education report packs  
+7. Connectors  
+8. Mobile (deferred)

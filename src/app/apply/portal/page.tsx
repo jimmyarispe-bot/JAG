@@ -38,7 +38,8 @@ export default async function ApplyPortalPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Application Portal</h1>
           <p className="mt-2 text-slate-600">
-            Continue applications, upload documents, and track admissions progress.
+            Continue applications, upload documents, and track admissions progress — Draft through
+            Enrolled.
           </p>
         </div>
         <PortalLeadList leads={leads} schoolYearBySchool={schoolYearBySchool} />

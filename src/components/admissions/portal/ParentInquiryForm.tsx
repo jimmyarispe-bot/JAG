@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { submitPublicInquiry } from "@/lib/admissions/portal/actions";
+import { experienceSubmitInterest } from "@/lib/admissions/experience/actions";
 import { GRADES } from "@/lib/constants/grades";
 import { PROGRAMS } from "@/lib/constants/programs";
 import { FundingSourceCheckboxes } from "@/components/ui/FundingSourceCheckboxes";
@@ -31,9 +31,9 @@ export function ParentInquiryForm({ schools }: ParentInquiryFormProps) {
     const formData = new FormData(e.currentTarget);
 
     void action.run(async () => {
-      const result = await submitPublicInquiry(formData);
-      if (result.error) throw new Error(result.error);
-      router.push(`/apply/thank-you?lead=${result.leadId}`);
+      const result = await experienceSubmitInterest(formData);
+      if ("error" in result && result.error) throw new Error(result.error);
+      router.push(`/apply/thank-you?lead=${"leadId" in result ? result.leadId : ""}`);
       return result;
     });
   }
@@ -125,8 +125,18 @@ export function ParentInquiryForm({ schools }: ParentInquiryFormProps) {
             <FundingSourceCheckboxes />
           </div>
           <div>
-            <label className={portalLabelClass} htmlFor="referral_source">How did you hear about us?</label>
-            <input id="referral_source" name="referral_source" className={portalInputClass} />
+            <label className={portalLabelClass} htmlFor="referral_source">Referral source</label>
+            <input id="referral_source" name="referral_source" className={portalInputClass} placeholder="How did you hear about us?" />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={portalLabelClass} htmlFor="learning_concerns">Learning concerns</label>
+            <textarea
+              id="learning_concerns"
+              name="learning_concerns"
+              rows={3}
+              className={portalInputClass}
+              placeholder="Optional — learning, social, or support needs"
+            />
           </div>
         </div>
       </section>
@@ -154,6 +164,19 @@ export function ParentInquiryForm({ schools }: ParentInquiryFormProps) {
           <div>
             <label className={portalLabelClass} htmlFor="guardian_phone">Phone</label>
             <input id="guardian_phone" name="guardian_phone" type="tel" className={portalInputClass} />
+          </div>
+          <div>
+            <label className={portalLabelClass} htmlFor="preferred_contact_method">Preferred contact method</label>
+            <select
+              id="preferred_contact_method"
+              name="preferred_contact_method"
+              className={portalInputClass}
+              defaultValue="email"
+            >
+              <option value="email">Email</option>
+              <option value="phone">Phone</option>
+              <option value="text">Text</option>
+            </select>
           </div>
         </div>
       </section>

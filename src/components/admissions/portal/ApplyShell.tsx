@@ -23,6 +23,9 @@ export function ApplyShell({
             <p className="text-xs text-slate-500">Enrollment inquiry & application portal</p>
           </div>
           <nav className="flex items-center gap-3 text-sm">
+            <Link href="/admissions" className="text-slate-600 hover:text-slate-900">
+              Admissions
+            </Link>
             <Link href="/apply" className="text-slate-600 hover:text-slate-900">
               Inquiry
             </Link>
@@ -31,6 +34,9 @@ export function ApplyShell({
             </Link>
             <Link href="/apply/portal/finance" className="text-slate-600 hover:text-slate-900">
               Billing
+            </Link>
+            <Link href="/admissions/onboarding" className="text-slate-600 hover:text-slate-900">
+              Onboarding
             </Link>
             <Link href="/portal" className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700">
               Family Portal

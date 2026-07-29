@@ -19,12 +19,17 @@ Route families as of consolidation. Detail audits: `docs/applications/academyos/
 
 | Screen | Route | Engines |
 |--------|-------|---------|
-| Apply entry | `/apply` | Identity, Workflow, Admissions |
-| Apply portal | `/apply/portal` | Admissions, Knowledge, Finance |
+| Admissions public site | `/admissions/**` | Branding, Admissions, Notifications |
+| Interest / apply entry | `/apply` | Identity, Workflow, Admissions |
+| Discovery call / tour / assessment | `/admissions/{discovery-call,schedule-tour,assessment}` | Admissions, Calendar, Learning |
+| Apply portal / dashboard | `/apply/portal` | Admissions, Knowledge, Finance |
 | Application detail | `/apply/portal/[applicationId]` | Admissions, Knowledge, Workflow |
-| Apply finance | `/apply/portal/finance` | Finance, Admissions |
+| Application wizard | `/apply/portal/[applicationId]/wizard` | Admissions, Knowledge, Workflow |
+| Apply finance / tuition | `/apply/portal/finance` | Finance, Admissions |
+| Parent onboarding | `/admissions/onboarding` | Identity, Portal |
 | Thank you | `/apply/thank-you` | Notifications |
 | Admissions dashboard (staff) | `/dashboard/admissions/**` | Admissions, Workflow, Org |
+| Admissions experience hub | `/dashboard/admissions/experience` | Admissions + platform engines |
 | Admissions automation | `/dashboard/admissions/automation` | Workflow, Automation |
 | Admissions workflows | `/dashboard/admissions/workflows` | Workflow |
 | AcademyOS admissions shell | `/academyos/admissions` | Admissions |

@@ -2,8 +2,15 @@ import { FUNDING_SOURCES, fundingSourceCategory } from "@/lib/constants/programs
 
 export const APPLICATION_DOCUMENT_TYPES = [
   { type: "birth_certificate", label: "Birth Certificate", required: true },
-  { type: "report_card", label: "Most Recent Report Card", required: true },
+  { type: "evaluation", label: "Evaluations", required: false },
+  { type: "iep", label: "IEP", required: false },
+  { type: "504", label: "504 Plan", required: false },
+  { type: "report_card", label: "Report Cards", required: true },
+  { type: "transcript", label: "Transcripts", required: false },
+  { type: "assessment", label: "Assessments", required: false },
+  { type: "medical", label: "Medical Documents", required: false },
   { type: "immunization", label: "Immunization Records", required: true },
+  { type: "other", label: "Other", required: false },
   { type: "photo_id", label: "Student Photo ID", required: false },
 ] as const;
 

@@ -6,7 +6,14 @@ import { AdmissionsProgressMeter } from "@/components/admissions/portal/Admissio
 import { FinancialAidSection } from "@/components/admissions/portal/FinancialAidSection";
 import { StateFundingVerificationPanel } from "@/components/admissions/portal/StateFundingVerification";
 import { SubmitApplicationButton } from "@/components/admissions/portal/SubmitApplicationButton";
+import {
+  ApplicationStatusChip,
+  ApplicationStatusLegend,
+} from "@/components/admissions/experience/ApplicationStatusChip";
+import { EnrollmentOfferPanel } from "@/components/admissions/experience/EnrollmentOfferPanel";
+import { ContractsPanel } from "@/components/admissions/experience/ContractsPanel";
 import { ListSkeleton } from "@/components/experience-system";
+import Link from "next/link";
 
 /** P010 — Document Center is a large client island; load only on this portal route. */
 const ApplicationDetailsForm = dynamic(
@@ -92,13 +99,34 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
           <ActionChip href="/apply/portal" size="sm" variant="ghost">
             Back to applications
           </ActionChip>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-            {lead ? `${lead.first_name} ${lead.last_name}` : "Application"}
-          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              {lead ? `${lead.first_name} ${lead.last_name}` : "Application"}
+            </h1>
+            <ApplicationStatusChip
+              applicationStatus={application.application_status}
+              leadStage={lead && "lead_stage" in lead ? String(lead.lead_stage) : null}
+            />
+          </div>
           <p className="mt-1 text-slate-600">
             {lead?.schools?.name ?? "School"} · {programLabel(lead?.program ?? null)} ·{" "}
             {application.school_years?.name ?? "School Year"}
           </p>
+          <ApplicationStatusLegend />
+          <div className="mt-3 flex flex-wrap gap-3 text-sm">
+            <Link
+              href={`/apply/portal/${applicationId}/wizard`}
+              className="font-medium text-brand-700 underline"
+            >
+              Open multi-step application wizard
+            </Link>
+            <Link href="/admissions/onboarding" className="text-slate-600 underline">
+              Parent onboarding
+            </Link>
+            <Link href="/apply/portal/finance" className="text-slate-600 underline">
+              Tuition setup
+            </Link>
+          </div>
         </div>
 
         <AdmissionsProgressMeter progress={progress} />
@@ -145,6 +173,16 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
           applicationId={applicationId}
           progress={progress}
           applicationStatus={application.application_status}
+        />
+
+        <EnrollmentOfferPanel
+          applicationId={applicationId}
+          leadId={application.lead_id}
+        />
+
+        <ContractsPanel
+          applicationId={applicationId}
+          leadId={application.lead_id}
         />
       </div>
     </ApplyShell>

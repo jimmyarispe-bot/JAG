@@ -21,6 +21,7 @@ import {
   getStateFundingVerifications,
 } from "@/lib/admissions/portal/queries";
 import { runAutomatedAcceptanceWorkflow } from "@/lib/admissions/portal/acceptance";
+import { getLegacyUserFromAuthClient } from "@/lib/platform/authentication";
 import {
   onApplicationStarted,
   onApplicationSubmitted,
@@ -94,9 +95,7 @@ export async function submitPublicInquiry(formData: FormData) {
 
 export async function startApplication(leadId: string, schoolYearId: string) {
   const supabase = await createAuthClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getLegacyUserFromAuthClient(supabase);
 
   const { data, error } = await supabase
     .from("admissions_applications")
@@ -146,9 +145,7 @@ export async function saveApplicationDetails(formData: FormData) {
 
 export async function registerApplicationDocument(formData: FormData) {
   const supabase = await createAuthClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getLegacyUserFromAuthClient(supabase);
 
   const applicationId = formData.get("application_id") as string;
   const documentSubtype = (formData.get("document_subtype") as string) || null;
@@ -189,6 +186,121 @@ export async function registerApplicationDocument(formData: FormData) {
   return { success: true };
 }
 
+const ADMISSIONS_DOCUMENTS_BUCKET = "admissions-documents";
+
+/**
+ * Server-side document upload — storage + register.
+ * Client components must not call Supabase storage directly.
+ */
+export async function uploadPortalDocument(formData: FormData) {
+  const supabase = await createAuthClient();
+  const user = await getLegacyUserFromAuthClient(supabase);
+  if (!user) return { error: "Unauthorized" };
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return { error: "File is required" };
+  }
+
+  const applicationId = String(formData.get("application_id") ?? "");
+  const documentType = String(formData.get("document_type") ?? "");
+  const documentSubtype = (formData.get("document_subtype") as string) || null;
+  const mode = String(formData.get("mode") ?? "application");
+  const scholarshipApplicationId =
+    (formData.get("scholarship_application_id") as string) || null;
+
+  if (!applicationId || !documentType) {
+    return { error: "application_id and document_type are required" };
+  }
+
+  const ext = file.name.split(".").pop() ?? "bin";
+  const path = `${applicationId}/${documentType}-${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(ADMISSIONS_DOCUMENTS_BUCKET)
+    .upload(path, file, { upsert: false });
+
+  if (uploadError) return { error: uploadError.message };
+
+  const registerData = new FormData();
+  registerData.set("application_id", applicationId);
+  registerData.set("document_type", documentType);
+  registerData.set("file_name", file.name);
+  registerData.set("storage_path", path);
+  registerData.set("mime_type", file.type);
+  registerData.set("file_size_bytes", String(file.size));
+  if (documentSubtype) registerData.set("document_subtype", documentSubtype);
+
+  if (mode === "scholarship" && scholarshipApplicationId) {
+    registerData.set("scholarship_application_id", scholarshipApplicationId);
+    const scholarshipResult = await registerScholarshipDocument(registerData);
+    if (!scholarshipResult.error) {
+      await mirrorPortalUploadToKnowledge({
+        supabase,
+        userId: user.id,
+        applicationId,
+        documentType,
+        file,
+      });
+    }
+    return scholarshipResult;
+  }
+
+  const registerResult = await registerApplicationDocument(registerData);
+  if (!registerResult.error) {
+    await mirrorPortalUploadToKnowledge({
+      supabase,
+      userId: user.id,
+      applicationId,
+      documentType,
+      file,
+    });
+  }
+  return registerResult;
+}
+
+/** KnowledgeEngine owns document content; admissions tables keep CRM status. */
+async function mirrorPortalUploadToKnowledge(input: {
+  supabase: Awaited<ReturnType<typeof createAuthClient>>;
+  userId: string;
+  applicationId: string;
+  documentType: string;
+  file: File;
+}) {
+  try {
+    const { data: application } = await input.supabase
+      .from("admissions_applications")
+      .select("lead_id, admissions_leads(school_id, schools(organization_id))")
+      .eq("id", input.applicationId)
+      .maybeSingle();
+
+    const lead = application?.admissions_leads as
+      | { school_id?: string; schools?: { organization_id?: string } | null }
+      | { school_id?: string; schools?: { organization_id?: string } | null }[]
+      | null
+      | undefined;
+    const leadRow = Array.isArray(lead) ? lead[0] : lead;
+    const organizationId = leadRow?.schools?.organization_id;
+    if (!organizationId) return;
+
+    const buf = Buffer.from(await input.file.arrayBuffer());
+    const { linkAdmissionsDocumentToKnowledge } = await import(
+      "@/lib/admissions/experience/knowledge-bridge"
+    );
+    await linkAdmissionsDocumentToKnowledge({
+      organizationId,
+      userId: input.userId,
+      applicationId: input.applicationId,
+      documentType: input.documentType,
+      fileName: input.file.name,
+      mimeType: input.file.type,
+      content: buf.toString("base64"),
+    });
+  } catch {
+    /* Knowledge mirror is best-effort; CRM registration already succeeded */
+  }
+}
+
 export async function deleteApplicationDocument(documentId: string, applicationId: string) {
   const supabase = await createAuthClient();
   const { error } = await supabase.from("application_documents").delete().eq("id", documentId);
@@ -225,9 +337,7 @@ export async function verifyStateFundingStaff(formData: FormData) {
   if ("error" in auth) return { error: auth.error };
 
   const supabase = auth.supabase;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getLegacyUserFromAuthClient(supabase);
 
   const verificationId = formData.get("verification_id") as string;
   const applicationId = formData.get("application_id") as string;
@@ -299,9 +409,7 @@ export async function saveFinancialAidApplication(formData: FormData) {
 
 export async function registerScholarshipDocument(formData: FormData) {
   const supabase = await createAuthClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getLegacyUserFromAuthClient(supabase);
 
   const applicationId = formData.get("application_id") as string;
 
@@ -336,9 +444,7 @@ export async function registerScholarshipDocument(formData: FormData) {
 
 export async function submitApplication(applicationId: string) {
   const supabase = await createAuthClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getLegacyUserFromAuthClient(supabase);
 
   const portalData = await getPortalApplication(applicationId);
   if (!portalData) return { error: "Application not found" };
@@ -435,9 +541,7 @@ async function maybeRunAutomatedAcceptance(
 
 export async function runStaffAcceptanceCheck(applicationId: string, leadId: string) {
   const supabase = await createAuthClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getLegacyUserFromAuthClient(supabase);
 
   const portalData = await getPortalApplication(applicationId);
   if (!portalData) return { error: "Application not found" };
