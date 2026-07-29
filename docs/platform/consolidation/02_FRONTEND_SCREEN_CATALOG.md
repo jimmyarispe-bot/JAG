@@ -38,12 +38,19 @@ Route families as of consolidation. Detail audits: `docs/applications/academyos/
 
 | Screen | Route | Engines |
 |--------|-------|---------|
-| Portal home | `/portal` | Identity, Org, SIS |
-| Progress | `/portal/progress` | Learning, Knowledge |
+| Portal home (Wave 1.2) | `/portal` | Identity, Org, SIS, Notifications |
+| My Children | `/portal/children` | SIS, Learning |
+| Learning | `/portal/learning` | **LearningIntelligence**, Knowledge |
+| Attendance | `/portal/attendance` | SIS / Attendance |
+| Progress (legacy) | `/portal/progress` | Learning, Knowledge |
 | Forms | `/portal/forms` | Forms, Workflow |
 | Conferences | `/portal/conferences` | Calendar, Comms |
 | Messages | `/portal/messages` | Communications |
-| Finance | `/portal/finance` | Finance / Revenue |
+| Billing | `/portal/billing` | Finance / Revenue |
+| Finance (legacy alias) | `/portal/finance` | Finance / Revenue |
+| Contracts | `/portal/contracts` | Knowledge, Admissions |
+| Support | `/portal/support` | Communications |
+| Profile | `/portal/profile` | Identity |
 | Calendar | `/portal/calendar` | Calendar |
 | Documents | `/portal/documents` | **Knowledge** |
 | Portfolio | `/portal/portfolio` | Learning, Knowledge |

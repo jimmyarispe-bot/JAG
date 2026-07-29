@@ -23,7 +23,16 @@ export default async function PortalDocumentsPage({
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Document Center</h1>
-      <p className="text-slate-600">Enrollment, IEP/504, medical, financial, scholarship, and state funding documents.</p>
+      <p className="text-slate-600">
+        Report cards, IEPs, 504s, evaluations, contracts, medical, and billing statements.
+        Canonical storage ownership: KnowledgeEngine (search, download, version history).
+      </p>
+      <p className="text-sm text-slate-500">
+        Contracts:{" "}
+        <a href="/portal/contracts" className="underline">
+          /portal/contracts
+        </a>
+      </p>
 
       {Object.entries(docs.grouped).map(([category, items]) =>
         items && items.length > 0 ? (

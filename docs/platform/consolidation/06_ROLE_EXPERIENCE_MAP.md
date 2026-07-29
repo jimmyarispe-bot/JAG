@@ -12,7 +12,7 @@ Actions: `read` · `create` · `update` · `approve` · `archive` · `export` ·
 | **Visitor** | Marketing home | Public nav | None | Marketing only | None | Public assets |
 | **Prospective parent** | Apply / marketing | Apply, contact | Optional Coach help | Application status | None | Upload application docs |
 | **Applicant** | Apply portal | Application, finance, docs | Help | Stage changes | Application status | Application packet |
-| **Parent** | `/portal` | Progress, finance, messages, docs, calendar | Coach (scoped) | School + billing | Student progress | Portal documents |
+| **Parent** | `/portal` | Children, learning, attendance, billing, messages, docs, calendar, forms, contracts, support, profile | Coach (scoped) | School + billing | Student progress | Portal documents (Knowledge) |
 | **Student** | `/portal/student` | Schedule, goals, progress, messages | Learning coach (future P-015) | Assignments / school | Progress | Portfolio |
 | **Teacher** | `/dashboard/teacher` | Classes, attendance, mastery, messages | Mr. JAG Coach; LI later | Class / parent | Class reports | Lesson / observations |
 | **School leader** | Students / mission hub | SIS, admissions, teachers, finance, compliance | Executive + Coach | Ops alerts | School KPIs | School docs |

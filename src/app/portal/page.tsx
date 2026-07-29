@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { createAuthClient } from "@/lib/supabase/server-auth";
-import { getParentDashboardData, getLinkedStudentsForPortal } from "@/lib/portal/dashboard";
-import { ParentDashboard } from "@/components/portal/ParentDashboard";
+import { getLinkedStudentsForPortal } from "@/lib/portal/dashboard";
+import { getParentExperienceHome } from "@/lib/portal/experience/home";
+import { getParentExperience } from "@/lib/portal/experience/orchestrator";
+import { ParentHomeDashboard } from "@/components/portal/experience/ParentHomeDashboard";
 import { recordPortalLoginAction } from "@/lib/portal/actions";
 import { loadOrganizationBranding, formatProductTitle } from "@/lib/branding";
 import { ActionChip } from "@/components/ui/cta";
@@ -27,7 +29,9 @@ export default async function PortalHomePage() {
   if (!students.length) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 p-10 text-center">
-        <h1 className="text-2xl font-bold text-slate-900">Welcome to {branding.productName}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">
+          Welcome to {branding.productName}
+        </h1>
         <p className="mt-2 text-slate-600">
           Your enrolled students are not linked yet. Continue admissions or contact the registrar.
         </p>
@@ -39,21 +43,31 @@ export default async function PortalHomePage() {
   }
 
   await recordPortalLoginAction(students.map((s) => s.id));
-  const dashboard = await getParentDashboardData(supabase, sessionUser.id);
+  const home = await getParentExperienceHome(supabase, sessionUser.id);
+
+  const organizationId =
+    (students[0] as { school_id?: string } | undefined)?.school_id ?? "default";
+  getParentExperience().publishDashboardViewed({
+    organizationId,
+    actorUserId: sessionUser.id,
+    studentCount: home.students.length,
+  });
+
+  const welcomeName =
+    sessionUser.email?.split("@")[0]?.replace(/[._]/g, " ") ?? null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Family Dashboard</h1>
-        <p className="mt-1 text-slate-600">Everything you need for your children — schedules, progress, finance, and more.</p>
-      </div>
-      <ParentDashboard
-        students={dashboard.students}
-        financial={dashboard.financial}
-        tasks={dashboard.tasks}
-        deadlines={dashboard.deadlines}
-        unreadNotifications={dashboard.unreadNotifications}
-      />
-    </div>
+    <ParentHomeDashboard
+      welcomeName={welcomeName}
+      students={home.students}
+      financial={home.financial}
+      tasks={home.tasks}
+      deadlines={home.deadlines}
+      unreadNotifications={home.unreadNotifications}
+      todaySchedule={home.todaySchedule}
+      announcements={home.announcements}
+      recentNotifications={home.recentNotifications}
+      quickActions={home.quickActions}
+    />
   );
 }

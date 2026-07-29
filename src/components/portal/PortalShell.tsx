@@ -5,18 +5,19 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { PortalAccessibilityBar } from "./PortalAccessibilityBar";
 
+import {
+  PARENT_EXPERIENCE_NAV,
+  PARENT_EXPERIENCE_SECONDARY_NAV,
+} from "@/lib/portal/experience/constants";
+
 const PARENT_NAV = [
-  { href: "/portal", label: "Home" },
-  { href: "/portal/messages", label: "Messages" },
-  { href: "/portal/calendar", label: "Calendar" },
-  { href: "/portal/progress", label: "Progress" },
-  { href: "/portal/documents", label: "Documents" },
-  { href: "/portal/finance", label: "Finance" },
-  { href: "/portal/conferences", label: "Conferences" },
-  { href: "/portal/forms", label: "Forms" },
-  { href: "/portal/portfolio", label: "Portfolio" },
-  { href: "/portal/notifications", label: "Notifications" },
-  { href: "/portal/engagement", label: "Engagement" },
+  ...PARENT_EXPERIENCE_NAV,
+  ...PARENT_EXPERIENCE_SECONDARY_NAV.filter(
+    (n) =>
+      n.href === "/portal/notifications" ||
+      n.href === "/portal/conferences" ||
+      n.href === "/portal/portfolio"
+  ),
 ];
 
 interface PortalShellProps {

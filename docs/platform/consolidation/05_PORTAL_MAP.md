@@ -16,11 +16,15 @@ Portals are **Education Domain UX** on shared Identity, Notifications, Knowledge
 
 | Area | Routes | Capabilities |
 |------|--------|--------------|
-| Home | `/portal` | Hub, student switcher |
-| Academics | `/portal/progress`, `/portfolio`, `/student/**` | Progress, goals, schedule, portfolio |
+| Home | `/portal` | Hub, schedule, announcements, tasks, student switcher (Wave 1.2) |
+| My Children | `/portal/children`, `/portal/students/[id]` | Multi-student profiles |
+| Academics | `/portal/learning`, `/progress`, `/portfolio`, `/student/**` | Learning Intelligence + progress |
+| Attendance | `/portal/attendance` | Daily history, excuses |
 | Ops | `/portal/calendar`, `/conferences`, `/forms` | Calendar, conferences, forms |
-| Comms | `/portal/messages`, `/notifications`, `/engagement` | Messaging, alerts |
-| Money | `/portal/finance` | Tuition, balances, payments |
+| Comms | `/portal/messages`, `/notifications`, `/support` | Messaging, alerts, help |
+| Money | `/portal/billing`, `/portal/finance` | Tuition, balances, payments (FinanceEngine) |
+| Contracts | `/portal/contracts` | Agreements → Knowledge |
+| Profile | `/portal/profile` | Guardian prefs (Identity) |
 | Docs | `/portal/documents` | Evidence / documents → Knowledge |
 | Thin shell | `/academyos/parent` | Pack-composed parent experience |
 
