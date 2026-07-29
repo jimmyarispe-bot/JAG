@@ -1,0 +1,49 @@
+# 06 — Role Experience Map
+
+Role packs (education): `src/applications/academyos/permissions/roles.ts`  
+Actions: `read` · `create` · `update` · `approve` · `archive` · `export` · `administer`
+
+---
+
+## Role matrix
+
+| Role | Home dashboard | Primary nav | AI features | Notifications | Reports | Documents |
+|------|----------------|-------------|-------------|---------------|---------|-----------|
+| **Visitor** | Marketing home | Public nav | None | Marketing only | None | Public assets |
+| **Prospective parent** | Apply / marketing | Apply, contact | Optional Coach help | Application status | None | Upload application docs |
+| **Applicant** | Apply portal | Application, finance, docs | Help | Stage changes | Application status | Application packet |
+| **Parent** | `/portal` | Progress, finance, messages, docs, calendar | Coach (scoped) | School + billing | Student progress | Portal documents |
+| **Student** | `/portal/student` | Schedule, goals, progress, messages | Learning coach (future P-015) | Assignments / school | Progress | Portfolio |
+| **Teacher** | `/dashboard/teacher` | Classes, attendance, mastery, messages | Mr. JAG Coach; LI later | Class / parent | Class reports | Lesson / observations |
+| **School leader** | Students / mission hub | SIS, admissions, teachers, finance, compliance | Executive + Coach | Ops alerts | School KPIs | School docs |
+| **Admissions** | `/dashboard/admissions` | Pipeline, apply review, scholarships | Coach | Pipeline | Admissions funnel | Application docs |
+| **Registrar** | Students / enrollment | SIS, enrollment, transcripts | Coach | Enrollment | Rosters | Enrollment docs |
+| **Therapist** | Support plans / sessions | IEP/504/therapy, notes | Coach (clinical caution) | Caseload | Therapy progress | Clinical docs (Knowledge) |
+| **Finance** | `/dashboard/finance` | AP/AR, tuition, treasury, reporting | **CFO assistant** | Billing / exceptions | Financial statements | Invoices, statements |
+| **HR** | `/dashboard/hr` | Employees, hiring, payroll, certs | Coach | HR workflows | Headcount | HR docs (Knowledge) |
+| **Executive** | `/dashboard/executive` | KPIs, strategy, board, risk | CFO + Innovation + Coach | Exec briefings | Board packs | Board docs |
+| **Board member** | Executive board views | Board, finance highlights | Summaries only | Board packs | Board reports | Minutes / policies |
+| **Founder** | `/dashboard/founder` | Org health, priorities, decisions | Full EI + CFO | Critical alerts | Cross-org | Strategic docs |
+| **CEO / ED** | Executive + admin | Org, finance, admissions, compliance | Full EI | Critical | Org-wide | Policies |
+| **Employee** (generic) | `/dashboard/employee` | Self-service HR | Help | HR | Self | Personal docs |
+| **Platform admin** | `/dashboard/admin` | Users, modules, integrations | Ops tools | System | Platform health | System templates |
+
+---
+
+## Permission notes
+
+- Education resources use `academyos.<resource>.<action>` plus `academyos.access` / `academyos.admin`.  
+- Shared Finance / CFO / Knowledge APIs use platform session + org gates (`requireFinanceOrg` pattern).  
+- **Hide** unauthorized actions; enforce server-side (CRUD standard).  
+- Time-limited document shares: KnowledgeEngine permissions / sharing.
+
+---
+
+## AI feature boundaries by role
+
+| Feature | Who | Must not |
+|---------|-----|----------|
+| Mr. JAG Help / Coach | Most authenticated roles | Modify SoR silently |
+| CFO conversational finance | Finance / Executive / Founder | Post journals |
+| Knowledge summaries | Roles with doc access | Summarize without evidence |
+| Learning AI coach | Teacher / Student (P-015) | Replace teacher judgment / invent diagnoses |

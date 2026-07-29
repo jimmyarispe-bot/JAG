@@ -27,6 +27,7 @@ Older roadmaps remain historical references and should defer here:
 | ✅ **P-012** | **FP&A & Financial Reporting** | Statements, budgets, forecasts, variance, dashboards | **Complete** |
 | ✅ **P-013** | **JAG CFO™** | Runway, EBITDA, QoE, valuation, scenarios, board, conversational finance | **Complete** |
 | ✅ **P-014** | **JAG Knowledge™ & Document Intelligence** | Knowledge graph, docs AI, evidence, search, OCR | **Complete** |
+| ✅ **P-013A** | **AcademyOS + JAG Consolidation** | Screens, workflows, forms, portals, roles, engine map, canonical product spec | **Complete** |
 | P-015 | Learning Intelligence™ | Integrate AcademyOS mastery/assessment IP into shared engine | Planned |
 | Later | Notification consolidation | Single Notification Engine | Planned |
 | Later | Reporting Engine execution | Executable reports across domains | Planned |
