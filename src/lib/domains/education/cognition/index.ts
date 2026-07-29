@@ -5,4 +5,5 @@ export * from "./enrollment";
 export * from "./attendance";
 export * from "./graph";
 export * from "./planner";
+export * from "./orchestrator";
 
