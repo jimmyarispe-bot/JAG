@@ -46,6 +46,7 @@ export const JAG_BRIEFING_SECTION_IDS = [
   "completed_outcomes",
   "emerging_trends",
   "forecast",
+  "scenario_analysis",
   "recommended_executive_actions",
   "executive_insights",
   "appendix",

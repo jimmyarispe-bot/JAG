@@ -21,6 +21,11 @@ export const JAG_COMMAND_NAV: readonly JagNavItem[] = [
     href: "/jag/briefings",
   },
   {
+    id: "scenarios",
+    label: "Scenario Planner",
+    href: "/jag/scenarios",
+  },
+  {
     id: "organizations",
     label: "Organizations",
     href: "/jag/organizations",

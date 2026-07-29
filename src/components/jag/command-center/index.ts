@@ -18,6 +18,7 @@ export {
   JagBriefingDetailView,
   JagBriefingsView,
 } from "./briefings";
+export { JagScenarioPlannerView } from "./scenarios";
 export { JAG_COMMAND_NAV, isJagNavActive } from "./nav";
 export type { JagCardStatus, JagOverviewCardModel } from "./types";
 

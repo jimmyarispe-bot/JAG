@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { JagSection } from "../JagSection";
 import { JagStatusBadge } from "../JagStatusBadge";
 import type { JagForecastsOverviewView } from "@/lib/jag-command-center";
@@ -11,6 +12,14 @@ export function JagForecastsSection({
     <JagSection
       title="Forecasts"
       description="Advisory predictions of likely future conditions. Not facts — confidence, drivers, and assumptions always apply."
+      actions={
+        <Link
+          href="/jag/scenarios"
+          className="text-xs text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+        >
+          Scenario Planner
+        </Link>
+      }
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-xs text-[var(--jag-muted)]">{forecasts.advisoryNotice}</p>

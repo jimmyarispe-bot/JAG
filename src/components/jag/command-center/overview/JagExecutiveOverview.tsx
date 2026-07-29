@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { JagExecutiveOverviewModel } from "@/lib/jag-command-center";
 import { JagCapabilityPacksSection } from "./JagCapabilityPacksSection";
 import { JagDecisionExecutionSection } from "./JagDecisionExecutionSection";
@@ -28,7 +29,17 @@ export function JagExecutiveOverview({
           {" · "}
           Real services only. Empty means unbound — never fabricated.
           {" · "}
-          Forecasts are advisory.
+          Forecasts and scenarios are advisory.
+        </p>
+        <p className="pt-2 text-xs">
+          <Link
+            href="/jag/scenarios"
+            className="text-[var(--jag-muted)] underline-offset-2 hover:text-[var(--jag-text)] hover:underline"
+          >
+            Open Scenario Planner
+          </Link>
+          {" · "}
+          Model hypothetical changes before deciding.
         </p>
       </header>
 

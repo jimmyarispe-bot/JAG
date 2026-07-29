@@ -185,6 +185,24 @@ export type JagDecisionDetail = {
     readonly confidence: number;
   };
   readonly predictedConsequence: JagDecisionPredictedConsequence | null;
+  /** Advisory scenario what-if branches — Sprint 202. */
+  readonly scenarioWhatIf: {
+    readonly approve: JagDecisionScenarioWhatIf | null;
+    readonly defer: JagDecisionScenarioWhatIf | null;
+    readonly reject: JagDecisionScenarioWhatIf | null;
+  };
+};
+
+export type JagDecisionScenarioWhatIf = {
+  readonly branch: "approve" | "defer" | "reject";
+  readonly statement: string;
+  readonly confidence: number;
+  readonly scoreDelta: number;
+  readonly stance: string;
+  readonly risks: readonly string[];
+  readonly opportunities: readonly string[];
+  readonly advisoryNotice: string;
+  readonly plannerHref: string;
 };
 
 export type JagDecisionFilters = {

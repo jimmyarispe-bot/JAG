@@ -79,6 +79,50 @@ export function JagDecisionDetailView({
         </Panel>
       ) : null}
 
+      <Panel title="Scenario what-if">
+        <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--jag-muted-2)]">
+          Advisory scenario projections — not certainty
+        </p>
+        <ul className="mt-3 space-y-3">
+          {(
+            [
+              ["approve", "What happens if we approve this?"],
+              ["defer", "What happens if we defer?"],
+              ["reject", "What happens if we reject?"],
+            ] as const
+          ).map(([branch, question]) => {
+            const item = detail.scenarioWhatIf[branch];
+            if (!item) return null;
+            return (
+              <li
+                key={branch}
+                className="rounded border border-[var(--jag-border)] bg-[var(--jag-bg)] px-3 py-2"
+              >
+                <p className="text-xs font-medium text-[var(--jag-text)]">
+                  {question}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--jag-muted)]">
+                  {item.statement}
+                </p>
+                <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted-2)]">
+                  Δ {(item.scoreDelta * 100).toFixed(1)} pts ·{" "}
+                  {(item.confidence * 100).toFixed(0)}% confidence ·{" "}
+                  {item.stance.replace(/_/g, " ")}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+        <Link
+          href={
+            detail.scenarioWhatIf.approve?.plannerHref ?? "/jag/scenarios"
+          }
+          className="mt-3 inline-block text-xs text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+        >
+          Open Scenario Planner
+        </Link>
+      </Panel>
+
       <Panel title="Assignment">
         <JagDecisionAssignmentForm
           decisionId={card.id}

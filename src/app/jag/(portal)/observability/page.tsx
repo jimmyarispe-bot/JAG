@@ -8,12 +8,13 @@ import {
 import {
   listJagAuditEvents,
   listPredictionObservations,
+  listScenarioObservations,
 } from "@/lib/jag-command-center";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 /**
- * Observability surfaces executive audit events and prediction runs.
+ * Observability surfaces executive audit, prediction, and scenario runs.
  * No fabricated telemetry.
  */
 export default async function JagObservabilityPage() {
@@ -24,6 +25,7 @@ export default async function JagObservabilityPage() {
 
   const events = listJagAuditEvents(40);
   const predictions = listPredictionObservations(20);
+  const scenarios = listScenarioObservations(20);
 
   return (
     <div className="space-y-8">
@@ -132,6 +134,50 @@ export default async function JagObservabilityPage() {
                   {p.contributorsUsed.length > 0
                     ? p.contributorsUsed.join(", ")
                     : "none"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </JagSection>
+
+      <JagSection
+        title="Scenario runs"
+        description="Every advisory scenario records execution, inputs, duration, confidence, and comparison metadata."
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-xs text-[var(--jag-muted)]">
+            Scenario projections are hypothetical — not certainty.
+          </p>
+          <JagStatusBadge status={scenarios.length > 0 ? "ready" : "empty"} />
+        </div>
+
+        {scenarios.length === 0 ? (
+          <JagEmptyState
+            title="No scenario runs yet"
+            description="Open Scenario Planner or Decision Center what-if analysis to record a run."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {scenarios.map((s) => (
+              <li
+                key={s.id}
+                className="rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-2 text-xs text-[var(--jag-muted)]"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted-2)]">
+                    {s.finishedAt}
+                  </p>
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[var(--jag-text)]">
+                    {s.durationMs}ms · {s.mode}
+                  </p>
+                </div>
+                <p className="mt-1 text-[var(--jag-text)]">
+                  {s.kinds.length} kind(s) · {s.scenarioIds.length} result(s)
+                  {s.comparisonId ? " · comparison" : ""}
+                </p>
+                <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px]">
+                  org {s.organizationId} · kinds {s.kinds.join(", ")}
                 </p>
               </li>
             ))}

@@ -23,6 +23,7 @@ import {
   type JagStoredSchoolHealth,
 } from "../intelligence-store";
 import { runForecastsForBriefing } from "../predictive/load-forecasts";
+import { runBriefingScenarioAnalysis } from "../scenarios/load-scenarios";
 import { computeExecutiveInsights } from "./insights";
 import {
   briefingKindLabel,
@@ -64,6 +65,7 @@ const SECTION_TITLES: Record<JagBriefingSectionId, string> = {
   completed_outcomes: "Completed Outcomes",
   emerging_trends: "Emerging Trends",
   forecast: "Forecast",
+  scenario_analysis: "Scenario Analysis",
   recommended_executive_actions: "Recommended Executive Actions",
   executive_insights: "Executive Insights",
   appendix: "Appendix",
@@ -227,6 +229,13 @@ export function synthesizeExecutiveBriefing(input: {
       organizationName: primaryName,
       openDecisions,
       recommendations,
+    })
+  );
+  byId.set(
+    "scenario_analysis",
+    sectionScenarioAnalysis({
+      organizationId: primaryId,
+      organizationName: primaryName,
     })
   );
   byId.set(
@@ -1297,6 +1306,96 @@ function sectionForecast(input: {
       .map((r) => r.decisionId)
       .filter((id): id is string => Boolean(id)),
     availableActions: FULL_ACTIONS,
+  });
+}
+
+function sectionScenarioAnalysis(input: {
+  organizationId: string;
+  organizationName: string;
+}): JagBriefingSection {
+  const { results, comparison } = runBriefingScenarioAnalysis({
+    organizationId: input.organizationId,
+    organizationName: input.organizationName,
+  });
+
+  if (!comparison || results.length === 0) {
+    return emptySection(
+      "scenario_analysis",
+      "Scenario analysis unavailable — open Scenario Planner to model approve / defer / reject and custom inputs.",
+      ["jag.scenario_planning"]
+    );
+  }
+
+  const byId = new Map(comparison.rows.map((r) => [r.scenarioId, r]));
+  const favorable = comparison.mostFavorableId
+    ? byId.get(comparison.mostFavorableId)
+    : null;
+  const highestRisk = comparison.highestRiskId
+    ? byId.get(comparison.highestRiskId)
+    : null;
+  const highestConfidence = comparison.highestConfidenceId
+    ? byId.get(comparison.highestConfidenceId)
+    : null;
+
+  const bullets = [
+    "Advisory scenario projections — not certainty. Separate observed facts, forecasts, and assumptions.",
+    favorable
+      ? `Most favorable option: ${favorable.title} (Δ ${(favorable.scoreDelta * 100).toFixed(1)} pts).`
+      : "Most favorable option: unavailable.",
+    highestRisk
+      ? `Highest risk option: ${highestRisk.title} (${highestRisk.riskCount} risk signal(s)).`
+      : "Highest risk option: unavailable.",
+    highestConfidence
+      ? `Highest confidence option: ${highestConfidence.title} (${(highestConfidence.confidence * 100).toFixed(0)}%).`
+      : "Highest confidence option: unavailable.",
+    ...results.slice(0, 3).map(
+      (r) =>
+        `${r.title}: ${r.projectedDifference.summary} · ${(r.confidence * 100).toFixed(0)}% confidence`
+    ),
+  ];
+
+  return section("scenario_analysis", {
+    narrative: comparison.narrative,
+    bullets,
+    confidence: avg(results.map((r) => r.confidence)),
+    evidenceReferences: results.flatMap((r) =>
+      r.evidence.slice(0, 2).map((e) => ({
+        id: e.id,
+        source: e.source,
+        summary: e.summary,
+      }))
+    ),
+    contributorSources: [
+      "jag.scenario_planning",
+      ...new Set(results.flatMap((r) => r.evidence.map((e) => e.contributorId).filter(Boolean) as string[])),
+    ],
+    policyReferences: results.flatMap((r) =>
+      r.assumptions.slice(0, 1).map((a) => a.statement)
+    ),
+    recommendations: results.flatMap((r) =>
+      r.recommendedDecisions.slice(0, 1).map((d) => ({
+        id: `scn-rec-${r.id}-${d.id}`,
+        title: d.title,
+        rationale: d.rationale,
+        decisionId: null,
+        decisionHref: `/jag/scenarios?org=${encodeURIComponent(input.organizationId)}`,
+        organizationId: input.organizationId,
+        explainability: {
+          evidence: r.evidence.slice(0, 3).map((e) => ({
+            id: e.id,
+            source: e.source,
+            summary: e.summary,
+          })),
+          contributors: ["jag.scenario_planning"],
+          policies: r.assumptions.map((a) => a.statement),
+          confidence: r.confidence,
+          dependencies: [],
+          timeline: [],
+        },
+      }))
+    ).slice(0, 4),
+    decisionIds: [],
+    availableActions: NOTE_ACTIONS,
   });
 }
 

@@ -21,6 +21,7 @@ export * from "./briefing-engine";
 export * from "./audit";
 export * from "./notifications";
 export * from "./predictive";
+export * from "./scenarios";
 export { loadJagSearchCatalog } from "./search-catalog";
 export {
   filterJagSearchCatalog,

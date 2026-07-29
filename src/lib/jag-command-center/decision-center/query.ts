@@ -9,7 +9,9 @@ import {
   listStoredExecutionsForOrganizations,
 } from "../intelligence-store";
 import { attachPredictedConsequences } from "../predictive/load-forecasts";
+import { computeDecisionWhatIf } from "../scenarios/load-scenarios";
 import { decisionGroupLabel, resolveContributorCatalog } from "./catalog";
+import type { JagDecisionScenarioWhatIf } from "./types";
 import {
   getDecisionAssignment,
   getDecisionExecutionHistory,
@@ -226,7 +228,46 @@ function buildDetail(card: JagDecisionCard): JagDecisionDetail {
       confidence: card.confidence,
     },
     predictedConsequence: card.predictedConsequence ?? null,
+    scenarioWhatIf: buildScenarioWhatIf(card),
   };
+}
+
+function buildScenarioWhatIf(card: JagDecisionCard): {
+  approve: JagDecisionScenarioWhatIf | null;
+  defer: JagDecisionScenarioWhatIf | null;
+  reject: JagDecisionScenarioWhatIf | null;
+} {
+  const plannerHref = `/jag/scenarios?org=${encodeURIComponent(card.organizationId)}`;
+  const branches = ["approve", "defer", "reject"] as const;
+  const out: {
+    approve: JagDecisionScenarioWhatIf | null;
+    defer: JagDecisionScenarioWhatIf | null;
+    reject: JagDecisionScenarioWhatIf | null;
+  } = { approve: null, defer: null, reject: null };
+
+  for (const branch of branches) {
+    const result = computeDecisionWhatIf({
+      organizationId: card.organizationId,
+      organizationName: card.organizationName,
+      decisionId: card.id,
+      decisionTitle: card.title,
+      category: card.category,
+      branch,
+      observe: false,
+    });
+    out[branch] = {
+      branch,
+      statement: result.statement,
+      confidence: result.scenario.confidence,
+      scoreDelta: result.scenario.projectedDifference.scoreDelta,
+      stance: result.scenario.scenarioState.stance,
+      risks: result.scenario.risks.slice(0, 2),
+      opportunities: result.scenario.opportunities.slice(0, 2),
+      advisoryNotice: result.advisoryNotice,
+      plannerHref,
+    };
+  }
+  return out;
 }
 
 function applyFilters(

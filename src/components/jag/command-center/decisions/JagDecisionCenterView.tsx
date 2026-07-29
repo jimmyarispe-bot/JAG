@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { decisionGroupLabel } from "@/lib/jag-command-center/decision-center/catalog";
 import {
   JAG_DECISION_GROUPS,
@@ -18,6 +19,14 @@ export function JagDecisionCenterView({
       <JagSection
         title="Decision Center"
         description="Every contributor action proposal in one executive queue. Nothing is invented — empty means no proposals are bound yet."
+        actions={
+          <Link
+            href="/jag/scenarios"
+            className="text-xs text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+          >
+            Scenario Planner
+          </Link>
+        }
       >
         <div className="mb-4 flex flex-wrap gap-3 text-xs text-[var(--jag-muted)]">
           <span className="font-[family-name:var(--font-jag-mono)]">
