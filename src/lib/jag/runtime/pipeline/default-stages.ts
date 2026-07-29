@@ -1,6 +1,8 @@
 import type { RuntimePipelineStage } from "../contracts";
 import { contextRequestFromExecution } from "../context/context-runtime";
 import { toOrganizationalContext } from "../context/context-types";
+import { cognitionRequestFromExecution } from "../cognition/cognitive-runtime";
+import { cognitiveResultToBag } from "../cognition/cognition-types";
 import { RuntimeContextError, RuntimeError, RuntimeIntentError } from "../errors";
 import { experienceRequestFromExecution } from "../experience/experience-runtime";
 import { toRuntimeExperience } from "../experience/experience-types";
@@ -85,6 +87,24 @@ function createSkeletonStage(
           ctx.state.data.intentConcurrent = intentRuntime.listConcurrent(
             identity.principalId
           );
+        }
+        return;
+      }
+
+      if (id === "cognition") {
+        const cognitiveRuntime = registry.getCognitiveRuntime();
+        if (cognitiveRuntime) {
+          if (!ctx.state.identity) {
+            throw new RuntimeError(
+              "Identity required before Cognition stage",
+              { code: "COGNITION_REQUIRES_IDENTITY", stageId: "cognition" }
+            );
+          }
+          const result = await cognitiveRuntime.thinkOrThrow(
+            cognitionRequestFromExecution(ctx)
+          );
+          ctx.setCognition(cognitiveResultToBag(result));
+          ctx.state.data.cognitiveResult = result;
         }
         return;
       }

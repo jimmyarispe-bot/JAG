@@ -17,5 +17,6 @@ export * from "./telemetry";
 export * from "./kernel";
 export * from "./identity";
 export * from "./intent";
+export * from "./cognition";
 export * from "./experience";
 

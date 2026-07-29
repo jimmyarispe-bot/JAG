@@ -12,6 +12,8 @@ import type { ContextProvider } from "../context/context-provider";
 import type { ContextRuntime } from "../context/context-runtime";
 import type { IdentityProvider } from "../identity/identity-provider";
 import type { IdentityRuntime } from "../identity/identity-runtime";
+import type { CognitiveProvider } from "../cognition/cognitive-provider";
+import type { CognitiveRuntime } from "../cognition/cognitive-runtime";
 import type { ExperienceProvider } from "../experience/experience-provider";
 import type { ExperienceRuntime } from "../experience/experience-runtime";
 import type { IntentProvider } from "../intent/intent-provider";
@@ -41,10 +43,12 @@ export class RuntimeRegistry {
   private readonly contextProviders = new Map<string, ContextProvider>();
   private readonly intentProviders = new Map<string, IntentProvider>();
   private readonly experienceContributors = new Map<string, ExperienceProvider>();
+  private readonly cognitiveProviders = new Map<string, CognitiveProvider>();
   private identityRuntime: IdentityRuntime | null = null;
   private contextRuntime: ContextRuntime | null = null;
   private intentRuntime: IntentRuntime | null = null;
   private experienceRuntime: ExperienceRuntime | null = null;
+  private cognitiveRuntime: CognitiveRuntime | null = null;
   private readonly eventUnsubscribers = new Map<string, () => void>();
   private readonly events?: RuntimeEventBus;
   private readonly runtimeRef?: () => unknown;
@@ -368,6 +372,38 @@ export class RuntimeRegistry {
     return this.experienceRuntime;
   }
 
+  registerCognitiveProvider(provider: CognitiveProvider): void {
+    if (this.cognitiveProviders.has(provider.id)) {
+      throw new RuntimeExtensionError(
+        `Cognitive provider already registered: ${provider.id}`,
+        { code: "RUNTIME_COGNITIVE_PROVIDER_EXISTS" }
+      );
+    }
+    this.cognitiveProviders.set(provider.id, provider);
+    void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
+      kind: "cognitive_provider",
+      id: provider.id,
+    });
+  }
+
+  unregisterCognitiveProvider(id: string): boolean {
+    return this.cognitiveProviders.delete(id);
+  }
+
+  listCognitiveProviders(): CognitiveProvider[] {
+    return [...this.cognitiveProviders.values()].sort(
+      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+    );
+  }
+
+  setCognitiveRuntime(cognition: CognitiveRuntime | null): void {
+    this.cognitiveRuntime = cognition;
+  }
+
+  getCognitiveRuntime(): CognitiveRuntime | null {
+    return this.cognitiveRuntime;
+  }
+
   clear(): void {
     for (const unsub of this.eventUnsubscribers.values()) unsub();
     this.eventUnsubscribers.clear();
@@ -380,10 +416,12 @@ export class RuntimeRegistry {
     this.identityProviders.clear();
     this.contextProviders.clear();
     this.intentProviders.clear();
+    this.cognitiveProviders.clear();
     this.identityRuntime = null;
     this.contextRuntime = null;
     this.intentRuntime = null;
     this.experienceRuntime = null;
+    this.cognitiveRuntime = null;
   }
 }
 
