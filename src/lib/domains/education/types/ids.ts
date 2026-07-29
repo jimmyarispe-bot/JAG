@@ -1,0 +1,43 @@
+/** Stable Education domain identifiers — contracts only. */
+
+export const EDUCATION_DOMAIN_ID = "education" as const;
+
+export const EDUCATION_DOMAIN_NAME = "education" as const;
+
+export const EDUCATION_DOMAIN_VERSION = "0.1.0" as const;
+
+export const EDUCATION_CONTRIBUTOR_IDS = {
+  context: "education.context",
+  intent: "education.intent",
+  cognition: "education.cognition",
+  experience: "education.experience",
+  action: "education.action",
+  evidence: "education.evidence",
+  memory: "education.memory",
+  twin: "education.twin",
+} as const;
+
+export const EDUCATION_PERMISSIONS = {
+  enrollmentApprove: "education.enrollment.approve",
+  sessionSchedule: "education.session.schedule",
+  attendanceRecord: "education.attendance.record",
+  progressPublish: "education.progress.publish",
+} as const;
+
+export const EDUCATION_ACTION_IDS = {
+  approveEnrollment: "education.enrollment.approve",
+  scheduleSession: "education.session.schedule",
+  recordAttendance: "education.attendance.record",
+  publishProgress: "education.progress.publish",
+} as const;
+
+export const EDUCATION_INTENT_IDS = {
+  teach: "education.teach",
+  learn: "education.learn",
+  assess: "education.assess",
+  enroll: "education.enroll",
+  support: "education.support",
+  communicate: "education.communicate",
+  plan: "education.plan",
+  review: "education.review",
+} as const;
