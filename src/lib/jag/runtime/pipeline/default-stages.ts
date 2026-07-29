@@ -1,6 +1,8 @@
 import type { RuntimePipelineStage } from "../contracts";
 import { contextRequestFromExecution } from "../context/context-runtime";
 import { toOrganizationalContext } from "../context/context-types";
+import { actionRequestFromExecution } from "../action/action-runtime";
+import { toRuntimeAction } from "../action/action-result";
 import { cognitionRequestFromExecution } from "../cognition/cognitive-runtime";
 import { cognitiveResultToBag } from "../cognition/cognition-types";
 import { RuntimeContextError, RuntimeError, RuntimeIntentError } from "../errors";
@@ -142,8 +144,18 @@ function createSkeletonStage(
       }
 
       if (id === "action") {
+        const actionRuntime = registry.getActionRuntime();
         const actionId = ctx.state.data.actionId;
         if (typeof actionId !== "string") {
+          return;
+        }
+        if (actionRuntime) {
+          const result = await actionRuntime.execute(
+            actionRequestFromExecution(ctx, actionId)
+          );
+          ctx.setAction(toRuntimeAction(result));
+          ctx.state.data.actionResult = result;
+          ctx.state.data.actionAuditEventId = result.auditEventId;
           return;
         }
         const provider = registry.findActionProvider(actionId);

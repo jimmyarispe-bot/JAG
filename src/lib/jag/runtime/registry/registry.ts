@@ -12,6 +12,8 @@ import type { ContextProvider } from "../context/context-provider";
 import type { ContextRuntime } from "../context/context-runtime";
 import type { IdentityProvider } from "../identity/identity-provider";
 import type { IdentityRuntime } from "../identity/identity-runtime";
+import type { ActionProvider } from "../action/action-provider";
+import type { ActionRuntime } from "../action/action-runtime";
 import type { CognitiveProvider } from "../cognition/cognitive-provider";
 import type { CognitiveRuntime } from "../cognition/cognitive-runtime";
 import type { ExperienceProvider } from "../experience/experience-provider";
@@ -44,11 +46,13 @@ export class RuntimeRegistry {
   private readonly intentProviders = new Map<string, IntentProvider>();
   private readonly experienceContributors = new Map<string, ExperienceProvider>();
   private readonly cognitiveProviders = new Map<string, CognitiveProvider>();
+  private readonly actionContributors = new Map<string, ActionProvider>();
   private identityRuntime: IdentityRuntime | null = null;
   private contextRuntime: ContextRuntime | null = null;
   private intentRuntime: IntentRuntime | null = null;
   private experienceRuntime: ExperienceRuntime | null = null;
   private cognitiveRuntime: CognitiveRuntime | null = null;
+  private actionRuntime: ActionRuntime | null = null;
   private readonly eventUnsubscribers = new Map<string, () => void>();
   private readonly events?: RuntimeEventBus;
   private readonly runtimeRef?: () => unknown;
@@ -404,6 +408,42 @@ export class RuntimeRegistry {
     return this.cognitiveRuntime;
   }
 
+  /**
+   * Action Runtime contributors (gated dispatch).
+   * Distinct from legacy {@link registerActionProvider}.
+   */
+  registerActionContributor(provider: ActionProvider): void {
+    if (this.actionContributors.has(provider.id)) {
+      throw new RuntimeExtensionError(
+        `Action contributor already registered: ${provider.id}`,
+        { code: "RUNTIME_ACTION_CONTRIBUTOR_EXISTS" }
+      );
+    }
+    this.actionContributors.set(provider.id, provider);
+    void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
+      kind: "action_contributor",
+      id: provider.id,
+    });
+  }
+
+  unregisterActionContributor(id: string): boolean {
+    return this.actionContributors.delete(id);
+  }
+
+  listActionContributors(): ActionProvider[] {
+    return [...this.actionContributors.values()].sort(
+      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+    );
+  }
+
+  setActionRuntime(action: ActionRuntime | null): void {
+    this.actionRuntime = action;
+  }
+
+  getActionRuntime(): ActionRuntime | null {
+    return this.actionRuntime;
+  }
+
   clear(): void {
     for (const unsub of this.eventUnsubscribers.values()) unsub();
     this.eventUnsubscribers.clear();
@@ -413,6 +453,7 @@ export class RuntimeRegistry {
     this.experienceProviders.clear();
     this.experienceContributors.clear();
     this.actionProviders.clear();
+    this.actionContributors.clear();
     this.identityProviders.clear();
     this.contextProviders.clear();
     this.intentProviders.clear();
@@ -422,6 +463,7 @@ export class RuntimeRegistry {
     this.intentRuntime = null;
     this.experienceRuntime = null;
     this.cognitiveRuntime = null;
+    this.actionRuntime = null;
   }
 }
 

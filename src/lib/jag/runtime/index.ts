@@ -19,4 +19,5 @@ export * from "./identity";
 export * from "./intent";
 export * from "./cognition";
 export * from "./experience";
+export * from "./action";
 
