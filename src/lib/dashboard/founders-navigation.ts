@@ -11,6 +11,7 @@ import type { OrganizationBranding } from "@/lib/branding/types";
  */
 export const FOUNDER_DASHBOARD_NAV = [
   { href: "/dashboard", label: "Founder & CEO", exact: true },
+  { href: "/founder", label: "Founder Workspace" },
   { href: "/dashboard/founder", label: "Founder Intelligence" },
   { href: "/dashboard/mission-control", label: "Mission Control" },
   { href: "/exec", label: "Command Center (JAG)" },
@@ -83,6 +84,7 @@ export function getFoundersModuleLabels(branding: OrganizationBranding) {
     documents: "Documents",
     scheduling: "Scheduling",
     teacher: "Teacher Studio",
+    "school-leader": "School Leader",
     scholarships: "Scholarships",
     finance: "Finance",
     hr: "Workforce",

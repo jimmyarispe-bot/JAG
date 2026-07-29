@@ -15,7 +15,7 @@ Actions: `read` · `create` · `update` · `approve` · `archive` · `export` ·
 | **Parent** | `/portal` | Children, learning, attendance, billing, messages, docs, calendar, forms, contracts, support, profile | Coach (scoped) | School + billing | Student progress | Portal documents (Knowledge) |
 | **Student** | `/portal/student` | Learning, assignments, assessments, attendance, calendar, goals, achievements, coach, docs, profile, messages | Learning Coach (LI evidence-only) | Assignments / school | Progress | Student documents (Knowledge) |
 | **Teacher** | `/dashboard/teacher` | Classes, attendance, progress, lessons, AI assistant, parent comms, documents, timesheets, resources, profile | AI Teaching Assistant (LI evidence-only) | Class / parent | Class reports | Lesson / observations / Knowledge |
-| **School leader** | Students / mission hub | SIS, admissions, teachers, finance, compliance | Executive + Coach | Ops alerts | School KPIs | School docs |
+| **School leader** | `/dashboard/school-leader` | Enrollment, students, teachers, academics, scheduling, compliance, finance (read-only), HR, communications, reports, profile | Executive + Coach; LI summaries | Ops alerts | School KPIs / reports catalog | School docs |
 | **Admissions** | `/dashboard/admissions` | Pipeline, apply review, scholarships | Coach | Pipeline | Admissions funnel | Application docs |
 | **Registrar** | Students / enrollment | SIS, enrollment, transcripts | Coach | Enrollment | Rosters | Enrollment docs |
 | **Therapist** | Support plans / sessions | IEP/504/therapy, notes | Coach (clinical caution) | Caseload | Therapy progress | Clinical docs (Knowledge) |

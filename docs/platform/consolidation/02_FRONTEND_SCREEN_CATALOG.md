@@ -103,20 +103,26 @@ Product orchestration at `/dashboard/teacher/**` — no new engines; consumes Sc
 | Profile | `/dashboard/teacher/profile` | Identity |
 | Spec | `docs/academyos/portal/03_TEACHER_EXPERIENCE.md` | — |
 
-## F. School leader
+## F. School Leader Workspace (Wave 1.5)
 
-| Screen | Route family | Engines |
-|--------|--------------|---------|
-| Students / families | `/dashboard/students`, `/families` | SIS, Org |
-| Enrollment / admissions | `/dashboard/admissions` | Admissions, Workflow |
-| Teachers / HR | `/dashboard/hr`, `/employee` | Workforce |
-| Scheduling / calendar | `/dashboard/scheduling`, `/calendar` | Scheduling, Calendar |
-| Finance (school) | `/dashboard/finance/**` | Finance, Revenue |
-| Compliance | `/dashboard/compliance` | Compliance, Workflow |
-| KPIs / reports | Executive + reports surfaces | Analytics, CFO, Org |
-| Scholarships | `/dashboard/scholarships` | Scholarships, Finance |
-| Documents / workflows | `/dashboard/documents`, `/workflows` | Knowledge, Workflow |
-| Communications | `/dashboard/communications/**` | Communications |
+Product orchestration at `/dashboard/school-leader/**` — no new engines; consumes Org, Admissions, SIS, LI, Scheduling, Compliance, Finance/CFO (read-only), HR, Communications.
+
+| Screen | Route | Engines |
+|--------|-------|---------|
+| Campus home | `/dashboard/school-leader` | Org, Scheduling, Admissions, Notifications |
+| Enrollment | `/dashboard/school-leader/enrollment` | Admissions, Scheduling capacity |
+| Students | `/dashboard/school-leader/students` | SIS |
+| Teachers | `/dashboard/school-leader/teachers` | Workforce, Scheduling |
+| Academics | `/dashboard/school-leader/academics` | **P-015** Learning Intelligence |
+| Scheduling | `/dashboard/school-leader/scheduling` | Scheduling, Calendar |
+| Compliance | `/dashboard/school-leader/compliance` | Compliance, HR |
+| Finance (read-only) | `/dashboard/school-leader/finance` | Finance, CFO (ops summaries) |
+| HR | `/dashboard/school-leader/hr` | Workforce |
+| Communications | `/dashboard/school-leader/communications` | Communications |
+| Reports | `/dashboard/school-leader/reports` | Existing reporting surfaces |
+| Profile | `/dashboard/school-leader/profile` | Identity |
+| Deep links | `/dashboard/students`, `/admissions`, `/hr`, `/finance`, `/scheduling`, `/compliance` | Same engines |
+| Spec | `docs/academyos/portal/04_SCHOOL_LEADER_EXPERIENCE.md` | — |
 
 ## G. Executive / founder / board
 

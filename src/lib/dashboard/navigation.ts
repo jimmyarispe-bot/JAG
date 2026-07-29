@@ -3,6 +3,8 @@ import {
   FOUNDERS_QUICK_LAUNCH_MODULE_IDS,
   getFoundersModuleLabels,
 } from "@/lib/dashboard/founders-navigation";
+import { getAcademyNavigationService } from "@/applications/academyos/navigation";
+import { getJagNavigationService } from "@/jag/navigation";
 
 export type ModuleId =
   | "executive"
@@ -15,6 +17,7 @@ export type ModuleId =
   | "documents"
   | "scheduling"
   | "teacher"
+  | "school-leader"
   | "scholarships"
   | "finance"
   | "hr";
@@ -186,6 +189,22 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     ],
   },
   {
+    id: "school-leader",
+    href: "/dashboard/school-leader",
+    sidebarLabel: "School Leader",
+    pageTitle: "School Leader Workspace",
+    pageSubtitle: "Campus operations — enrollment, academics, compliance, and finance summaries",
+    placeholderTitle: "School Leader Workspace",
+    placeholderDescription:
+      "Operational hub for school leaders over existing platform services.",
+    placeholderFeatures: [
+      "Campus overview and alerts",
+      "Enrollment and student oversight",
+      "Academics via Learning Intelligence",
+      "Read-only finance and HR summaries",
+    ],
+  },
+  {
     id: "scholarships",
     href: "/dashboard/scholarships",
     sidebarLabel: "Scholarships",
@@ -258,8 +277,42 @@ export function applyBrandingToModule(
   return { ...module, sidebarLabel, pageTitle: sidebarLabel };
 }
 
+/**
+ * Staff sidebar modules — JAG Navigation Service owns assembly.
+ * Application packages contribute definitions; presentation metadata stays in DASHBOARD_MODULES.
+ */
 export function getBrandedDashboardModules(branding: OrganizationBranding): DashboardModule[] {
-  return DASHBOARD_MODULES.map((module) => applyBrandingToModule(module, branding));
+  const jagModules = getJagNavigationService().listStaffModules();
+  // Client / pre-boot fallback: Academy package static definition (configuration only).
+  const staffModules =
+    jagModules.length > 0
+      ? jagModules
+      : getAcademyNavigationService()
+          .listStaffModules()
+          .map((m) => ({ ...m, applicationId: "academyos" as const }));
+
+  const byId = new Map(DASHBOARD_MODULES.map((module) => [module.id, module]));
+
+  const fromNav = staffModules
+    .map((item) => {
+      const base = byId.get(item.id as ModuleId);
+      if (!base) return null;
+      return applyBrandingToModule(
+        {
+          ...base,
+          href: item.href,
+          sidebarLabel: item.label || base.sidebarLabel,
+        },
+        branding
+      );
+    })
+    .filter((module): module is DashboardModule => module != null);
+
+  if (!fromNav.length) {
+    return DASHBOARD_MODULES.map((module) => applyBrandingToModule(module, branding));
+  }
+
+  return fromNav;
 }
 
 export function getModuleByPath(pathname: string, branding?: OrganizationBranding): DashboardModule {
