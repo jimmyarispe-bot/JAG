@@ -7,7 +7,10 @@ import { createAttendanceContributor } from "../cognition/attendance";
 import { createEducationCognitiveContributor } from "../cognition";
 import { createEnrollmentContributor } from "../cognition/enrollment";
 import { createAcademicProgressContributor } from "../cognition/progress";
+import { createFamilyEngagementContributor } from "../cognition/family-engagement";
+import { createInterventionContributor } from "../cognition/intervention";
 import { createStudentSuccessContributor } from "../cognition/student-success";
+import { createSupportPlanningContributor } from "../cognition/support-planning";
 import { createEducationContextContributor } from "../context";
 import { createEducationEvidenceContributor } from "../evidence";
 import { createEducationExperienceContributor } from "../experience";
@@ -24,6 +27,9 @@ export interface EducationContributorSet {
   attendanceCognition: ReturnType<typeof createAttendanceContributor>;
   progressCognition: ReturnType<typeof createAcademicProgressContributor>;
   studentSuccessCognition: ReturnType<typeof createStudentSuccessContributor>;
+  interventionCognition: ReturnType<typeof createInterventionContributor>;
+  familyEngagementCognition: ReturnType<typeof createFamilyEngagementContributor>;
+  supportPlanningCognition: ReturnType<typeof createSupportPlanningContributor>;
   experience: ReturnType<typeof createEducationExperienceContributor>;
   action: ReturnType<typeof createEducationActionContributor>;
   evidence: ReturnType<typeof createEducationEvidenceContributor>;
@@ -40,6 +46,9 @@ export function createEducationContributors(): EducationContributorSet {
     attendanceCognition: createAttendanceContributor(),
     progressCognition: createAcademicProgressContributor(),
     studentSuccessCognition: createStudentSuccessContributor(),
+    interventionCognition: createInterventionContributor(),
+    familyEngagementCognition: createFamilyEngagementContributor(),
+    supportPlanningCognition: createSupportPlanningContributor(),
     experience: createEducationExperienceContributor(),
     action: createEducationActionContributor(),
     evidence: createEducationEvidenceContributor(),
@@ -58,6 +67,9 @@ export {
   createAttendanceContributor,
   createAcademicProgressContributor,
   createStudentSuccessContributor,
+  createInterventionContributor,
+  createFamilyEngagementContributor,
+  createSupportPlanningContributor,
   createEducationCognitiveContributor,
   createEnrollmentContributor,
   createEducationContextContributor,

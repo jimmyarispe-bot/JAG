@@ -66,6 +66,21 @@ export function createEducationManifest(): DomainManifest {
         kind: "cognition",
         description: "Student Success Intelligence — synthesis (D4.1)",
       },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.interventionCognition,
+        kind: "cognition",
+        description: "Intervention Intelligence — Student Support (D4.2)",
+      },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.familyEngagementCognition,
+        kind: "cognition",
+        description: "Family Engagement Intelligence — Student Support (D4.2)",
+      },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.supportPlanningCognition,
+        kind: "cognition",
+        description: "Support Planning — Student Support synthesis (D4.2)",
+      },
       { id: EDUCATION_CONTRIBUTOR_IDS.experience, kind: "experience" },
       { id: EDUCATION_CONTRIBUTOR_IDS.action, kind: "action" },
       { id: EDUCATION_CONTRIBUTOR_IDS.evidence, kind: "evidence" },

@@ -21,10 +21,25 @@ import {
   runAcademicProgressIntelligence,
 } from "../progress";
 import {
+  FAMILY_ENGAGEMENT_CONTRIBUTOR_ID,
+  buildFamilyEngagementInputs,
+  runFamilyEngagementIntelligence,
+} from "../family-engagement";
+import {
+  INTERVENTION_CONTRIBUTOR_ID,
+  buildInterventionInputs,
+  runInterventionIntelligence,
+} from "../intervention";
+import {
   STUDENT_SUCCESS_CONTRIBUTOR_ID,
   buildStudentSuccessInputs,
   runStudentSuccessIntelligence,
 } from "../student-success";
+import {
+  SUPPORT_PLANNING_CONTRIBUTOR_ID,
+  buildSupportPlanningInputs,
+  runSupportPlanningIntelligence,
+} from "../support-planning";
 import type { EducationNormalizedObservations } from "./EducationExecutionContext";
 import type { EducationContributorExecutionRecord } from "./EducationExecutionResult";
 import type {
@@ -214,16 +229,7 @@ function runContributor(input: {
   }
 
   if (input.contributorId === STUDENT_SUCCESS_CONTRIBUTOR_ID) {
-    const subjectId =
-      input.priorResults[0]?.result.subjectId ??
-      input.observations.progress?.student.studentId ??
-      input.observations.attendance?.student.studentId ??
-      input.observations.enrollment?.student?.studentId ??
-      "unknown";
-    const organizationId =
-      input.observations.progress?.organizationId ??
-      input.observations.attendance?.organizationId ??
-      input.observations.enrollment?.organizationId;
+    const { subjectId, organizationId } = resolveSubject(input);
     const synthesisInputs = buildStudentSuccessInputs({
       subjectId,
       organizationId,
@@ -241,9 +247,86 @@ function runContributor(input: {
     return runStudentSuccessIntelligence(synthesisInputs, { now: input.now });
   }
 
+  if (input.contributorId === INTERVENTION_CONTRIBUTOR_ID) {
+    const { subjectId, organizationId } = resolveSubject(input);
+    const supportInputs = buildInterventionInputs({
+      subjectId,
+      organizationId,
+      upstream: input.priorResults,
+    });
+    if (
+      !supportInputs.studentSuccess &&
+      !supportInputs.progress &&
+      !supportInputs.attendance
+    ) {
+      throw new Error(
+        "Intervention intelligence requires upstream contributor results"
+      );
+    }
+    return runInterventionIntelligence(supportInputs, { now: input.now });
+  }
+
+  if (input.contributorId === FAMILY_ENGAGEMENT_CONTRIBUTOR_ID) {
+    const { subjectId, organizationId } = resolveSubject(input);
+    const supportInputs = buildFamilyEngagementInputs({
+      subjectId,
+      organizationId,
+      upstream: input.priorResults,
+    });
+    if (
+      !supportInputs.studentSuccess &&
+      !supportInputs.attendance &&
+      !supportInputs.enrollment
+    ) {
+      throw new Error(
+        "Family engagement intelligence requires upstream contributor results"
+      );
+    }
+    return runFamilyEngagementIntelligence(supportInputs, { now: input.now });
+  }
+
+  if (input.contributorId === SUPPORT_PLANNING_CONTRIBUTOR_ID) {
+    const { subjectId, organizationId } = resolveSubject(input);
+    const synthesisInputs = buildSupportPlanningInputs({
+      subjectId,
+      organizationId,
+      upstream: input.priorResults,
+    });
+    if (
+      !synthesisInputs.intervention &&
+      !synthesisInputs.familyEngagement &&
+      !synthesisInputs.studentSuccess
+    ) {
+      throw new Error(
+        "Support planning synthesis requires upstream contributor results"
+      );
+    }
+    return runSupportPlanningIntelligence(synthesisInputs, { now: input.now });
+  }
+
   throw new Error(
     `No executor registered for contributor ${input.contributorId}`
   );
+}
+
+function resolveSubject(input: {
+  priorResults: ReadonlyArray<{
+    contributorId: string;
+    result: EducationContributorResult;
+  }>;
+  observations: EducationNormalizedObservations;
+}): { subjectId: string; organizationId?: string } {
+  const subjectId =
+    input.priorResults[0]?.result.subjectId ??
+    input.observations.progress?.student.studentId ??
+    input.observations.attendance?.student.studentId ??
+    input.observations.enrollment?.student?.studentId ??
+    "unknown";
+  const organizationId =
+    input.observations.progress?.organizationId ??
+    input.observations.attendance?.organizationId ??
+    input.observations.enrollment?.organizationId;
+  return { subjectId, organizationId };
 }
 
 /** Map EnrollmentIntelligenceResult → EducationContributorResult for the graph. */

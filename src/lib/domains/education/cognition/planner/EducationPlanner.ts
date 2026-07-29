@@ -106,18 +106,77 @@ export function createDefaultEducationContributorCatalog(): EducationContributor
       label: "Student Success Intelligence (synthesis)",
     },
     {
-      contributorId: "education.cognition.intervention",
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.interventionCognition,
       nodeKind: "intervention",
-      capabilities: ["education", "intervention"],
-      dependsOn: [EDUCATION_CONTRIBUTOR_IDS.attendanceCognition],
+      capabilities: ["education", "intervention", "support"],
+      dependsOn: [
+        EDUCATION_CONTRIBUTOR_IDS.studentSuccessCognition,
+        EDUCATION_CONTRIBUTOR_IDS.attendanceCognition,
+        EDUCATION_CONTRIBUTOR_IDS.progressCognition,
+      ],
       expectedOutputs: [
         "evidence.intervention",
         "recommendations.intervention",
         "proposals.intervention",
       ],
-      intentMatchers: ["intervention", "support", "success"],
-      available: false,
-      label: "Intervention Intelligence (future)",
+      intentMatchers: [
+        "intervention",
+        "support",
+        "mtss",
+        "student_services",
+        "student services",
+      ],
+      available: true,
+      label: "Intervention Intelligence",
+    },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.familyEngagementCognition,
+      nodeKind: "family_engagement",
+      capabilities: ["education", "family", "family_engagement", "support"],
+      dependsOn: [
+        EDUCATION_CONTRIBUTOR_IDS.studentSuccessCognition,
+        EDUCATION_CONTRIBUTOR_IDS.attendanceCognition,
+        EDUCATION_CONTRIBUTOR_IDS.enrollmentCognition,
+      ],
+      expectedOutputs: [
+        "evidence.family_engagement",
+        "recommendations.family_engagement",
+        "proposals.family_engagement",
+      ],
+      intentMatchers: [
+        "family",
+        "communicate",
+        "family meeting",
+        "support",
+        "mtss",
+      ],
+      available: true,
+      label: "Family Engagement Intelligence",
+    },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.supportPlanningCognition,
+      nodeKind: "support_planning",
+      capabilities: ["education", "support", "support_planning", "synthesis"],
+      dependsOn: [
+        EDUCATION_CONTRIBUTOR_IDS.interventionCognition,
+        EDUCATION_CONTRIBUTOR_IDS.familyEngagementCognition,
+        EDUCATION_CONTRIBUTOR_IDS.studentSuccessCognition,
+      ],
+      expectedOutputs: [
+        "evidence.support_planning",
+        "recommendations.support_planning",
+        "proposals.support_planning",
+      ],
+      intentMatchers: [
+        "support",
+        "mtss",
+        "student_services",
+        "student services",
+        "support review",
+        "support_review",
+      ],
+      available: true,
+      label: "Support Planning (synthesis)",
     },
     {
       contributorId: "education.cognition.scholarship",
@@ -152,45 +211,17 @@ export function createDefaultEducationContributorCatalog(): EducationContributor
       available: false,
       label: "Compliance Intelligence (future)",
     },
-    {
-      contributorId: "education.cognition.family_engagement",
-      nodeKind: "family_engagement",
-      capabilities: ["education", "family"],
-      dependsOn: [],
-      expectedOutputs: ["recommendations.family"],
-      intentMatchers: ["family", "communicate"],
-      available: false,
-      label: "Family Engagement Intelligence (future)",
-    },
   ];
 }
 
 /**
- * Intervention depends on Attendance OR Progress.
- * Prefer the available dependency so missing Progress does not hard-fail
- * when Attendance exists (and vice versa).
+ * Preserve declared catalog dependencies. Historically Intervention used
+ * Attendance-OR-Progress; D4.2 declares explicit Student Support deps.
  */
 export function normalizeCatalogDependencies(
   catalog: readonly EducationContributorDescriptor[]
 ): EducationContributorDescriptor[] {
-  const byId = new Map(catalog.map((d) => [d.contributorId, d] as const));
-  return catalog.map((d) => {
-    if (d.contributorId !== "education.cognition.intervention") return d;
-    const attendance = byId.get(EDUCATION_CONTRIBUTOR_IDS.attendanceCognition);
-    const progress = byId.get(EDUCATION_CONTRIBUTOR_IDS.progressCognition);
-    const deps: string[] = [];
-    if (attendance?.available) {
-      deps.push(attendance.contributorId);
-    } else if (progress?.available) {
-      deps.push(progress.contributorId);
-    } else {
-      deps.push(
-        EDUCATION_CONTRIBUTOR_IDS.attendanceCognition,
-        EDUCATION_CONTRIBUTOR_IDS.progressCognition
-      );
-    }
-    return { ...d, dependsOn: deps };
-  });
+  return catalog.map((d) => ({ ...d, dependsOn: [...d.dependsOn] }));
 }
 
 export function createEducationPlanner(options?: {
@@ -362,6 +393,12 @@ function buildExecutionNodes(input: {
 function inferKind(contributorId: string): EducationGraphNodeKind {
   if (contributorId.includes("enrollment")) return "enrollment";
   if (contributorId.includes("attendance")) return "attendance";
+  if (
+    contributorId.includes("support_planning") ||
+    contributorId.includes("support-planning")
+  ) {
+    return "support_planning";
+  }
   if (
     contributorId.includes("student_success") ||
     contributorId.includes("student-success")

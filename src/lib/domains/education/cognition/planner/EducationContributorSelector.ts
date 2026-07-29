@@ -49,6 +49,22 @@ export function detectEducationPlanScenario(
     return "scholarship_review";
   }
   if (
+    intent.intentId === "education.support" ||
+    intent.intentId.endsWith(".support") ||
+    haystack.includes("support review") ||
+    haystack.includes("support_review") ||
+    haystack.includes("intervention planning") ||
+    haystack.includes("intervention_planning") ||
+    haystack.includes("family meeting") ||
+    haystack.includes("family_meeting") ||
+    haystack.includes("mtss") ||
+    haystack.includes("student services") ||
+    haystack.includes("student_services") ||
+    (haystack.includes("support") && !haystack.includes("success"))
+  ) {
+    return "support";
+  }
+  if (
     haystack.includes("student_success") ||
     haystack.includes("student success") ||
     (haystack.includes("success") && haystack.includes("review")) ||
@@ -66,13 +82,6 @@ export function detectEducationPlanScenario(
     intent.intentId.includes("attendance")
   ) {
     return "attendance_review";
-  }
-  if (
-    intent.intentId === "education.support" ||
-    intent.intentId.endsWith(".support") ||
-    (haystack.includes("support") && !haystack.includes("success"))
-  ) {
-    return "support";
   }
   if (
     intent.intentId === "education.enroll" ||
@@ -109,8 +118,9 @@ export const EDUCATION_SCENARIO_CONTRIBUTORS: Record<
     "education.cognition.scholarship",
   ],
   support: [
-    "education.cognition.attendance",
     "education.cognition.intervention",
+    "education.cognition.family_engagement",
+    "education.cognition.support_planning",
   ],
   generic_education: [
     "education.cognition.enrollment",

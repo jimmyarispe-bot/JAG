@@ -18,6 +18,12 @@ export const EDUCATION_CONTRIBUTOR_IDS = {
   progressCognition: "education.cognition.progress",
   /** First synthesis cognitive contributor (D4.1). */
   studentSuccessCognition: "education.cognition.student_success",
+  /** Student Support capability — Intervention Intelligence (D4.2). */
+  interventionCognition: "education.cognition.intervention",
+  /** Student Support capability — Family Engagement Intelligence (D4.2). */
+  familyEngagementCognition: "education.cognition.family_engagement",
+  /** Student Support capability — Support Planning synthesis (D4.2). */
+  supportPlanningCognition: "education.cognition.support_planning",
   experience: "education.experience",
   action: "education.action",
   evidence: "education.evidence",

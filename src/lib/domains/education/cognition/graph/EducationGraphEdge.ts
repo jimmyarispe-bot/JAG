@@ -84,6 +84,41 @@ export const EDUCATION_DEFAULT_GRAPH_EDGES: readonly EducationGraphEdge[] = [
     kind: "escalates_to",
     rationale: "Synthesized risk escalates to intervention",
   },
+  {
+    id: "edge.student_success.family_engagement",
+    from: "student_success",
+    to: "family_engagement",
+    kind: "influences",
+    rationale: "Student success synthesis informs family partnership",
+  },
+  {
+    id: "edge.student_success.support_planning",
+    from: "student_success",
+    to: "support_planning",
+    kind: "influences",
+    rationale: "Student success feeds unified support planning",
+  },
+  {
+    id: "edge.enrollment.family_engagement",
+    from: "enrollment",
+    to: "family_engagement",
+    kind: "influences",
+    rationale: "Enrollment partnership opportunities drive family engagement",
+  },
+  {
+    id: "edge.intervention.support_planning",
+    from: "intervention",
+    to: "support_planning",
+    kind: "escalates_to",
+    rationale: "Intervention candidates feed support planning synthesis",
+  },
+  {
+    id: "edge.family_engagement.support_planning",
+    from: "family_engagement",
+    to: "support_planning",
+    kind: "influences",
+    rationale: "Family engagement opportunities feed support planning synthesis",
+  },
 
   {
     id: "edge.scheduling.attendance",
