@@ -1,4 +1,5 @@
 import type { RuntimePipelineStage } from "../contracts";
+import { identityRequestFromContext } from "../identity/identity-runtime";
 import type { RuntimeRegistry } from "../registry";
 import {
   RUNTIME_PIPELINE_STAGE_IDS,
@@ -28,6 +29,19 @@ function createSkeletonStage(
     optional: isPostExperienceOptional(id),
     async execute(ctx) {
       ctx.throwIfCancelled();
+
+      if (id === "identity") {
+        const identityRuntime = registry.getIdentityRuntime();
+        if (identityRuntime) {
+          const resolved = await identityRuntime.resolveOrThrow(
+            identityRequestFromContext(ctx)
+          );
+          ctx.setIdentity(resolved.identity);
+          ctx.state.data.identityScope = resolved.scope;
+          ctx.state.data.identityProviderId = resolved.providerId;
+        }
+        return;
+      }
 
       if (id === "experience") {
         const providers = registry.listExperienceProviders();

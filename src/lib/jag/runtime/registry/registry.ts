@@ -8,6 +8,8 @@ import type {
 import { RUNTIME_KERNEL_EVENT_TYPES } from "../contracts/event";
 import { RuntimeExtensionError } from "../errors";
 import type { RuntimeEventBus } from "../events";
+import type { IdentityProvider } from "../identity/identity-provider";
+import type { IdentityRuntime } from "../identity/identity-runtime";
 import type { RuntimePipelineStageId } from "../types/stages";
 
 export interface RuntimeRegistryOptions {
@@ -29,6 +31,8 @@ export class RuntimeRegistry {
   private readonly stages = new Map<RuntimePipelineStageId, RuntimePipelineStage>();
   private readonly experienceProviders = new Map<string, RuntimeExperienceProvider>();
   private readonly actionProviders = new Map<string, RuntimeActionProvider>();
+  private readonly identityProviders = new Map<string, IdentityProvider>();
+  private identityRuntime: IdentityRuntime | null = null;
   private readonly eventUnsubscribers = new Map<string, () => void>();
   private readonly events?: RuntimeEventBus;
   private readonly runtimeRef?: () => unknown;
@@ -220,6 +224,38 @@ export class RuntimeRegistry {
     );
   }
 
+  registerIdentityProvider(provider: IdentityProvider): void {
+    if (this.identityProviders.has(provider.id)) {
+      throw new RuntimeExtensionError(
+        `Identity provider already registered: ${provider.id}`,
+        { code: "RUNTIME_IDENTITY_PROVIDER_EXISTS" }
+      );
+    }
+    this.identityProviders.set(provider.id, provider);
+    void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
+      kind: "identity_provider",
+      id: provider.id,
+    });
+  }
+
+  unregisterIdentityProvider(id: string): boolean {
+    return this.identityProviders.delete(id);
+  }
+
+  listIdentityProviders(): IdentityProvider[] {
+    return [...this.identityProviders.values()].sort(
+      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+    );
+  }
+
+  setIdentityRuntime(identity: IdentityRuntime | null): void {
+    this.identityRuntime = identity;
+  }
+
+  getIdentityRuntime(): IdentityRuntime | null {
+    return this.identityRuntime;
+  }
+
   clear(): void {
     for (const unsub of this.eventUnsubscribers.values()) unsub();
     this.eventUnsubscribers.clear();
@@ -228,6 +264,8 @@ export class RuntimeRegistry {
     this.stages.clear();
     this.experienceProviders.clear();
     this.actionProviders.clear();
+    this.identityProviders.clear();
+    this.identityRuntime = null;
   }
 }
 
