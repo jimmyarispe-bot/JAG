@@ -1,0 +1,13 @@
+.jag-command-center {
+  --jag-bg: #0a0a0a;
+  --jag-panel: #111111;
+  --jag-panel-2: #1a1a1a;
+  --jag-border: #222222;
+  --jag-border-strong: #3a3a3a;
+  --jag-text: #ededed;
+  --jag-muted: #8a8a8a;
+  --jag-muted-2: #5c5c5c;
+  --jag-ready: #9aa0a6;
+  color-scheme: dark;
+  font-family: var(--font-jag-sans), ui-sans-serif, sans-serif;
+}
