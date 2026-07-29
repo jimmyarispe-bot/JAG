@@ -14,6 +14,7 @@ export * from "./context";
 export * from "./intent";
 export * from "./cognition";
 export * from "./knowledge";
+export * from "./policy";
 export * from "./experience";
 export * from "./actions";
 export * from "./evidence";
