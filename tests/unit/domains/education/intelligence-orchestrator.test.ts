@@ -3,8 +3,10 @@ import type { RuntimeIntent } from "@/lib/jag/runtime";
 import {
   ATTENDANCE_CONTRIBUTOR_ID,
   ENROLLMENT_CONTRIBUTOR_ID,
+  PROGRESS_CONTRIBUTOR_ID,
   createEducationIntelligenceOrchestrator,
   executeEducationIntelligence,
+  type AcademicProgressObservation,
   type AttendanceObservation,
   type AttendanceSessionRecord,
   type EducationContributorResult,
@@ -88,6 +90,30 @@ function attendanceObservation(
   };
 }
 
+function progressObservation(): AcademicProgressObservation {
+  return {
+    organizationId: "org-edu",
+    student: { studentId: "stu-orch-1", displayName: "Orch Student" },
+    program: { programId: "prog-1", typeCode: "academic" },
+    goals: [
+      {
+        goalId: "goal-1",
+        currentMastery: 0.7,
+        targetMastery: 0.7,
+      },
+    ],
+    courses: [
+      {
+        courseId: "course-1",
+        progressRatio: 0.5,
+        expectedProgressRatio: 0.5,
+      },
+    ],
+    assessments: [{ assessmentId: "a1", status: "complete", typeCode: "formative" }],
+    earnedCredits: 24,
+  };
+}
+
 function stubResult(subjectId: string): EducationContributorResult {
   return {
     subjectId,
@@ -149,7 +175,7 @@ describe("Education Intelligence Orchestrator (D2.6)", () => {
   });
 
   describe("multi-contributor execution", () => {
-    it("runs Enrollment and Attendance for student success review", () => {
+    it("runs Enrollment, Attendance, and Progress for student success review", () => {
       const result = executeEducationIntelligence({
         intent: intent(
           "education.student_success.review",
@@ -158,6 +184,7 @@ describe("Education Intelligence Orchestrator (D2.6)", () => {
         observations: {
           enrollment: enrollmentObservation(),
           attendance: attendanceObservation(),
+          progress: progressObservation(),
         },
         now: "2026-01-01T00:00:00.000Z",
       });
@@ -166,16 +193,18 @@ describe("Education Intelligence Orchestrator (D2.6)", () => {
         expect.arrayContaining([
           ENROLLMENT_CONTRIBUTOR_ID,
           ATTENDANCE_CONTRIBUTOR_ID,
+          PROGRESS_CONTRIBUTOR_ID,
         ])
       );
       expect(result.graphResult.consultedContributorIds).toEqual(
         expect.arrayContaining([
           ENROLLMENT_CONTRIBUTOR_ID,
           ATTENDANCE_CONTRIBUTOR_ID,
+          PROGRESS_CONTRIBUTOR_ID,
         ])
       );
       expect(result.telemetry.executedContributorIds.length).toBeGreaterThanOrEqual(
-        2
+        3
       );
     });
   });
@@ -431,6 +460,7 @@ describe("Education Intelligence Orchestrator (D2.6)", () => {
         observations: {
           enrollment: enrollmentObservation(),
           attendance: attendanceObservation(),
+          progress: progressObservation(),
         },
         subjectId: "stu-orch-1",
         organizationId: "org-edu",

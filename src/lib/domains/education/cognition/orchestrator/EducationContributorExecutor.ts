@@ -16,6 +16,10 @@ import {
 } from "../enrollment";
 import type { EducationContributorResult } from "../framework";
 import type { EducationExecutionPlan } from "../planner";
+import {
+  PROGRESS_CONTRIBUTOR_ID,
+  runAcademicProgressIntelligence,
+} from "../progress";
 import type { EducationNormalizedObservations } from "./EducationExecutionContext";
 import type { EducationContributorExecutionRecord } from "./EducationExecutionResult";
 import type {
@@ -189,6 +193,14 @@ function runContributor(input: {
       throw new Error("Missing attendance observation");
     }
     return runAttendanceIntelligence(observation, { now: input.now });
+  }
+
+  if (input.contributorId === PROGRESS_CONTRIBUTOR_ID) {
+    const observation = input.observations.progress;
+    if (!observation) {
+      throw new Error("Missing academic progress observation");
+    }
+    return runAcademicProgressIntelligence(observation, { now: input.now });
   }
 
   // Future / unavailable contributors should not reach here if the planner

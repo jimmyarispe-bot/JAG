@@ -74,13 +74,14 @@ describe("Education Intelligence Planner (D2.5)", () => {
         expect.arrayContaining([
           ENROLLMENT_CONTRIBUTOR_ID,
           ATTENDANCE_CONTRIBUTOR_ID,
+          EDUCATION_CONTRIBUTOR_IDS.progressCognition,
         ])
       );
       expect(result.plan.skippedContributorIds).toEqual(
-        expect.arrayContaining([
-          "education.cognition.progress",
-          "education.cognition.intervention",
-        ])
+        expect.arrayContaining(["education.cognition.intervention"])
+      );
+      expect(result.plan.skippedContributorIds).not.toContain(
+        EDUCATION_CONTRIBUTOR_IDS.progressCognition
       );
       expect(result.plan.stages.length).toBeGreaterThanOrEqual(1);
     });

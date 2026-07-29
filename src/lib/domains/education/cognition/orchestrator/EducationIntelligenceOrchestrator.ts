@@ -90,12 +90,14 @@ function runEducationIntelligencePipeline(
     context.subjectId ??
     context.observations.enrollment?.student?.studentId ??
     context.observations.attendance?.student?.studentId ??
+    context.observations.progress?.student?.studentId ??
     execution.results[0]?.result.subjectId;
 
   const organizationId =
     context.organizationId ??
     context.observations.enrollment?.organizationId ??
     context.observations.attendance?.organizationId ??
+    context.observations.progress?.organizationId ??
     context.plannerContext?.organizationId;
 
   const graphResult = deps.graph.evaluateResults(execution.results, {

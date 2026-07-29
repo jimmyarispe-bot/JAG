@@ -3,8 +3,10 @@ import type { RuntimeIntent } from "@/lib/jag/runtime";
 import {
   ATTENDANCE_CONTRIBUTOR_ID,
   ENROLLMENT_CONTRIBUTOR_ID,
+  PROGRESS_CONTRIBUTOR_ID,
   createEducationIntelligenceOrchestrator,
   executeEducationIntelligence,
+  type AcademicProgressObservation,
   type AttendanceObservation,
   type AttendanceSessionRecord,
   type EducationContributorResult,
@@ -86,6 +88,19 @@ function attendanceObservation(
   };
 }
 
+function progressObservation(): AcademicProgressObservation {
+  return {
+    organizationId: "org-edu",
+    student: { studentId: "stu-obs-1", displayName: "Obs Student" },
+    goals: [{ goalId: "g1", currentMastery: 0.7, targetMastery: 0.7 }],
+    courses: [
+      { courseId: "c1", progressRatio: 0.5, expectedProgressRatio: 0.5 },
+    ],
+    assessments: [{ assessmentId: "a1", status: "complete" }],
+    earnedCredits: 24,
+  };
+}
+
 function stubResult(subjectId: string): EducationContributorResult {
   return {
     subjectId,
@@ -149,7 +164,7 @@ describe("Education Intelligence Observability (D2.7)", () => {
   });
 
   describe("multiple contributors", () => {
-    it("traces both enrollment and attendance", () => {
+    it("traces enrollment, attendance, and progress", () => {
       const out = executeEducationIntelligence({
         intent: intent(
           "education.student_success.review",
@@ -158,6 +173,7 @@ describe("Education Intelligence Observability (D2.7)", () => {
         observations: {
           enrollment: enrollmentObservation(),
           attendance: attendanceObservation(),
+          progress: progressObservation(),
         },
         now: "2026-01-01T00:00:00.000Z",
       });
@@ -166,10 +182,11 @@ describe("Education Intelligence Observability (D2.7)", () => {
         expect.arrayContaining([
           ENROLLMENT_CONTRIBUTOR_ID,
           ATTENDANCE_CONTRIBUTOR_ID,
+          PROGRESS_CONTRIBUTOR_ID,
         ])
       );
-      expect(out.metrics.executedContributorCount).toBeGreaterThanOrEqual(2);
-      expect(out.snapshot.contributorResults.length).toBeGreaterThanOrEqual(2);
+      expect(out.metrics.executedContributorCount).toBeGreaterThanOrEqual(3);
+      expect(out.snapshot.contributorResults.length).toBeGreaterThanOrEqual(3);
     });
   });
 
@@ -317,6 +334,7 @@ describe("Education Intelligence Observability (D2.7)", () => {
         observations: {
           enrollment: enrollmentObservation(),
           attendance: attendanceObservation(),
+          progress: progressObservation(),
         },
         subjectId: "stu-obs-1",
         organizationId: "org-edu",

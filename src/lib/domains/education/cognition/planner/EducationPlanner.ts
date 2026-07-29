@@ -68,14 +68,18 @@ export function createDefaultEducationContributorCatalog(): EducationContributor
       label: "Attendance Intelligence",
     },
     {
-      contributorId: "education.cognition.progress",
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.progressCognition,
       nodeKind: "progress",
       capabilities: ["education", "progress"],
       dependsOn: [],
-      expectedOutputs: ["evidence.progress", "recommendations.progress"],
+      expectedOutputs: [
+        "evidence.progress",
+        "recommendations.progress",
+        "proposals.progress",
+      ],
       intentMatchers: ["progress", "assess", "success"],
-      available: false,
-      label: "Progress Intelligence (future)",
+      available: true,
+      label: "Academic Progress Intelligence",
     },
     {
       contributorId: "education.cognition.intervention",
@@ -149,7 +153,7 @@ export function normalizeCatalogDependencies(
   return catalog.map((d) => {
     if (d.contributorId !== "education.cognition.intervention") return d;
     const attendance = byId.get(EDUCATION_CONTRIBUTOR_IDS.attendanceCognition);
-    const progress = byId.get("education.cognition.progress");
+    const progress = byId.get(EDUCATION_CONTRIBUTOR_IDS.progressCognition);
     const deps: string[] = [];
     if (attendance?.available) {
       deps.push(attendance.contributorId);
@@ -158,7 +162,7 @@ export function normalizeCatalogDependencies(
     } else {
       deps.push(
         EDUCATION_CONTRIBUTOR_IDS.attendanceCognition,
-        "education.cognition.progress"
+        EDUCATION_CONTRIBUTOR_IDS.progressCognition
       );
     }
     return { ...d, dependsOn: deps };

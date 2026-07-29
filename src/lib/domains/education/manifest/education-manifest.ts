@@ -56,6 +56,11 @@ export function createEducationManifest(): DomainManifest {
         kind: "cognition",
         description: "Attendance Intelligence (D2.3)",
       },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.progressCognition,
+        kind: "cognition",
+        description: "Academic Progress Intelligence (D4.0)",
+      },
       { id: EDUCATION_CONTRIBUTOR_IDS.experience, kind: "experience" },
       { id: EDUCATION_CONTRIBUTOR_IDS.action, kind: "action" },
       { id: EDUCATION_CONTRIBUTOR_IDS.evidence, kind: "evidence" },
