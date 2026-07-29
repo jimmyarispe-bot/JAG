@@ -6,6 +6,7 @@ import {
   projectDecisionId,
   recordSchoolHealthResult,
   resetDecisionCatalogCacheForTests,
+  resetDecisionExecutionStoreForTests,
   resetDecisionStatusStoreForTests,
   resetJagIntelligenceStoreForTests,
   setDecisionStatus,
@@ -24,6 +25,7 @@ describe("Decision Center (JAG-003)", () => {
   beforeEach(() => {
     resetJagIntelligenceStoreForTests();
     resetDecisionStatusStoreForTests();
+    resetDecisionExecutionStoreForTests();
     resetDecisionCatalogCacheForTests();
   });
 

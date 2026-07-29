@@ -13,6 +13,11 @@ import {
   resolveContributorCatalog,
 } from "./catalog";
 import {
+  getDecisionAssignment,
+  getDecisionOutcome,
+  isDecisionOverdue,
+} from "./execution-store";
+import {
   ensureDecisionTracked,
   getDecisionStatus,
 } from "./status-store";
@@ -56,6 +61,10 @@ export function projectDecisionCard(input: {
 
   ensureDecisionTracked(id, input.execution.analyzedAt);
 
+  const status = getDecisionStatus(id);
+  const assignment = getDecisionAssignment(id);
+  const outcome = getDecisionOutcome(id);
+
   return {
     id,
     title: input.proposal.label || input.proposal.kind,
@@ -69,17 +78,20 @@ export function projectDecisionCard(input: {
     capabilityPackName: catalog.capabilityPackName,
     contributorId: input.execution.contributorId,
     contributorLabel: catalog.contributorLabel,
-    priority: priorityLabelFromRank(input.proposal.priority),
+    priority: assignment?.priority ?? priorityLabelFromRank(input.proposal.priority),
     priorityRank: input.proposal.priority,
     confidence: input.execution.confidence,
     evidenceCount: input.execution.evidenceCount,
     recommendedAction: input.proposal.rationale || input.proposal.label,
-    status: getDecisionStatus(id),
+    status,
     actionId: input.proposal.actionId,
     actionKind: input.proposal.kind,
     executionId: input.execution.id,
     analyzedAt: input.execution.analyzedAt,
     rationale: input.proposal.rationale,
+    assignment,
+    isOverdue: isDecisionOverdue(id, status),
+    outcomeResult: outcome?.result ?? null,
   };
 }
 

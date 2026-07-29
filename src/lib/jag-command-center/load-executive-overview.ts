@@ -17,6 +17,7 @@ import {
 import { getDecisionService } from "@/lib/executive-intelligence";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
+import { loadDecisionCenter } from "./decision-center/query";
 import { projectDecisionId } from "./decision-center/project";
 import { listLoadedDomains } from "./domains";
 import {
@@ -27,6 +28,7 @@ import {
 } from "./intelligence-store";
 import type {
   JagCapabilityPackView,
+  JagDecisionExecutionDashboard,
   JagDecisionGroupId,
   JagExecutiveBriefView,
   JagExecutiveOverviewModel,
@@ -61,6 +63,7 @@ export function loadExecutiveOverview(
     organizationId,
     organizationName: organization?.name ?? null,
     organizationHealth: loadOrgHealth(organizationId),
+    decisionExecution: loadDecisionExecutionDashboard(session),
     priorities: loadPriorities(organizationId),
     executiveBrief: loadExecutiveBrief(organizationId),
     capabilityPacks: loadCapabilityPacks(),
@@ -78,6 +81,21 @@ export function loadExecutiveOverview(
         }))
       : [],
     recommendedDecisions: loadRecommendedDecisions(organizationId),
+  };
+}
+
+function loadDecisionExecutionDashboard(
+  session: JagPlatformSession
+): JagDecisionExecutionDashboard {
+  const { metrics } = loadDecisionCenter(session, {});
+  return {
+    openDecisions: metrics.openDecisions,
+    assigned: metrics.assigned,
+    overdue: metrics.overdue,
+    completedThisWeek: metrics.completedThisWeek,
+    outcomeSuccessRate: metrics.outcomeSuccessRate,
+    outcomeReviewedCount: metrics.outcomeReviewedCount,
+    href: "/jag/decisions",
   };
 }
 

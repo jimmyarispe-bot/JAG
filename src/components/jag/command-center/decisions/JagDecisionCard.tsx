@@ -45,6 +45,18 @@ export function JagDecisionCardView({
           mono
         />
         <Field label="Status" value={decision.status} />
+        <Field
+          label="Assigned"
+          value={decision.assignment?.summary ?? "—"}
+        />
+        <Field
+          label="Due"
+          value={
+            decision.isOverdue
+              ? "Overdue"
+              : decision.assignment?.dueDate?.slice(0, 10) ?? "—"
+          }
+        />
       </dl>
 
       <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-[var(--jag-muted)]">

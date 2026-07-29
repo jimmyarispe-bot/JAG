@@ -1,5 +1,6 @@
 import type { JagExecutiveOverviewModel } from "@/lib/jag-command-center";
 import { JagCapabilityPacksSection } from "./JagCapabilityPacksSection";
+import { JagDecisionExecutionSection } from "./JagDecisionExecutionSection";
 import { JagDomainsSection } from "./JagDomainsSection";
 import { JagExecutiveBriefSection } from "./JagExecutiveBriefSection";
 import { JagOrgHealthSection } from "./JagOrgHealthSection";
@@ -29,6 +30,7 @@ export function JagExecutiveOverview({
       </header>
 
       <JagOrgHealthSection health={model.organizationHealth} />
+      <JagDecisionExecutionSection metrics={model.decisionExecution} />
       <JagPrioritiesSection priorities={model.priorities} />
       <JagExecutiveBriefSection brief={model.executiveBrief} />
 

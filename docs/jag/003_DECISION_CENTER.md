@@ -31,9 +31,11 @@ Title · Category · Organization · Domain · Capability Pack · Contributor ·
 
 ## 4. Status workflow
 
-`New` · `Reviewing` · `Approved` · `Deferred` · `Completed` · `Dismissed`
+`New` · `Reviewing` · `Approved` · `Assigned` · `In Progress` · `Completed` · `Outcome Reviewed` · `Deferred` · `Dismissed`
 
 Status lives in the Command Center application store (not Core / Runtime).
+
+Execution, assignment, and outcomes: [004_DECISION_EXECUTION.md](./004_DECISION_EXECUTION.md).
 
 ---
 

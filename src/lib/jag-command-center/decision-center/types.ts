@@ -4,12 +4,25 @@ export const JAG_DECISION_STATUSES = [
   "New",
   "Reviewing",
   "Approved",
-  "Deferred",
+  "Assigned",
+  "In Progress",
   "Completed",
+  "Outcome Reviewed",
+  "Deferred",
   "Dismissed",
 ] as const;
 
 export type JagDecisionStatus = (typeof JAG_DECISION_STATUSES)[number];
+
+/** Terminal / parked statuses outside the happy-path lifecycle. */
+export const JAG_DECISION_CLOSED_STATUSES = [
+  "Completed",
+  "Outcome Reviewed",
+  "Dismissed",
+] as const;
+
+export type JagDecisionClosedStatus =
+  (typeof JAG_DECISION_CLOSED_STATUSES)[number];
 
 export const JAG_DECISION_GROUPS = [
   "students",
@@ -21,6 +34,66 @@ export const JAG_DECISION_GROUPS = [
 export type JagDecisionGroup = (typeof JAG_DECISION_GROUPS)[number];
 
 export type JagDecisionPriorityLabel = "P1" | "P2" | "P3";
+
+export type JagDecisionAssignmentTarget =
+  | "organization"
+  | "role"
+  | "user";
+
+export type JagDecisionAssignment = {
+  readonly targetType: JagDecisionAssignmentTarget;
+  readonly organizationId?: string;
+  readonly organizationName?: string;
+  readonly role?: string;
+  readonly userId?: string;
+  readonly userLabel?: string;
+  readonly dueDate?: string;
+  readonly priority: JagDecisionPriorityLabel;
+  readonly assignedAt: string;
+  readonly assignedBy: string;
+  readonly summary: string;
+};
+
+export type JagDecisionExecutionEventKind =
+  | "started"
+  | "progress"
+  | "completed"
+  | "outcome_note"
+  | "evidence_added"
+  | "assigned"
+  | "status";
+
+export type JagDecisionExecutionEvent = {
+  readonly id: string;
+  readonly kind: JagDecisionExecutionEventKind;
+  readonly at: string;
+  readonly actor: string;
+  readonly message: string;
+  readonly progressPct?: number;
+  readonly evidenceRef?: string;
+};
+
+export type JagDecisionOutcomeResult = "success" | "failure";
+
+export type JagDecisionOutcome = {
+  readonly expectedOutcome: string;
+  readonly actualOutcome: string;
+  readonly confidence: number;
+  readonly result: JagDecisionOutcomeResult;
+  readonly lessonsLearned: string;
+  readonly reviewedAt: string;
+  readonly reviewedBy: string;
+};
+
+export type JagDecisionFuturePriority = "higher" | "lower" | "same";
+
+export type JagDecisionFeedback = {
+  readonly achievedIntendedResult: boolean;
+  readonly futurePriority: JagDecisionFuturePriority;
+  readonly notes?: string;
+  readonly recordedAt: string;
+  readonly recordedBy: string;
+};
 
 export type JagDecisionCard = {
   readonly id: string;
@@ -46,6 +119,9 @@ export type JagDecisionCard = {
   readonly executionId: string;
   readonly analyzedAt: string;
   readonly rationale: string;
+  readonly assignment: JagDecisionAssignment | null;
+  readonly isOverdue: boolean;
+  readonly outcomeResult: JagDecisionOutcomeResult | null;
 };
 
 export type JagDecisionTimelineEntry = {
@@ -85,6 +161,10 @@ export type JagDecisionDetail = {
   };
   readonly dependencies: readonly string[];
   readonly timeline: readonly JagDecisionTimelineEntry[];
+  readonly assignment: JagDecisionAssignment | null;
+  readonly executionHistory: readonly JagDecisionExecutionEvent[];
+  readonly outcome: JagDecisionOutcome | null;
+  readonly feedback: JagDecisionFeedback | null;
   readonly observability: {
     readonly analyzedAt: string;
     readonly durationMs?: number;
@@ -105,6 +185,15 @@ export type JagDecisionFilters = {
   readonly q?: string;
 };
 
+export type JagDecisionExecutionMetrics = {
+  readonly openDecisions: number;
+  readonly assigned: number;
+  readonly overdue: number;
+  readonly completedThisWeek: number;
+  readonly outcomeSuccessRate: number | null;
+  readonly outcomeReviewedCount: number;
+};
+
 export type JagDecisionCenterModel = {
   readonly decisions: readonly JagDecisionCard[];
   readonly grouped: Readonly<Record<JagDecisionGroup, readonly JagDecisionCard[]>>;
@@ -122,4 +211,5 @@ export type JagDecisionCenterModel = {
     readonly byStatus: Readonly<Record<JagDecisionStatus, number>>;
     readonly byGroup: Readonly<Record<JagDecisionGroup, number>>;
   };
+  readonly metrics: JagDecisionExecutionMetrics;
 };

@@ -26,9 +26,9 @@ export function JagDecisionCenterView({
             {model.decisions.length} shown
           </span>
           <span>
-            New {model.counts.byStatus.New} · Reviewing{" "}
-            {model.counts.byStatus.Reviewing} · Approved{" "}
-            {model.counts.byStatus.Approved}
+            Open {model.metrics.openDecisions} · Assigned{" "}
+            {model.metrics.assigned} · Overdue {model.metrics.overdue} · Done
+            this week {model.metrics.completedThisWeek}
           </span>
         </div>
 

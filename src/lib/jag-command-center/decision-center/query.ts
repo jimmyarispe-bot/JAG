@@ -9,6 +9,13 @@ import {
   listStoredExecutionsForOrganizations,
 } from "../intelligence-store";
 import { decisionGroupLabel, resolveContributorCatalog } from "./catalog";
+import {
+  getDecisionAssignment,
+  getDecisionExecutionHistory,
+  getDecisionFeedback,
+  getDecisionOutcome,
+} from "./execution-store";
+import { computeDecisionExecutionMetrics } from "./metrics";
 import { projectDecisionCard, projectDecisionsFromExecutions } from "./project";
 import { getDecisionTimeline } from "./status-store";
 import type {
@@ -82,6 +89,7 @@ export function loadDecisionCenter(
       byStatus,
       byGroup,
     },
+    metrics: computeDecisionExecutionMetrics(all),
   };
 }
 
@@ -204,6 +212,10 @@ function buildDetail(card: JagDecisionCard): JagDecisionDetail {
     },
     dependencies: detail?.dependsOn ?? [],
     timeline: getDecisionTimeline(card.id),
+    assignment: getDecisionAssignment(card.id),
+    executionHistory: getDecisionExecutionHistory(card.id),
+    outcome: getDecisionOutcome(card.id),
+    feedback: getDecisionFeedback(card.id),
     observability: {
       analyzedAt: card.analyzedAt,
       durationMs: execution?.durationMs,

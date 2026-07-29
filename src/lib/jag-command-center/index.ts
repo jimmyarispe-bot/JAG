@@ -19,6 +19,7 @@ export {
 export * from "./decision-center";
 export type {
   JagCapabilityPackView,
+  JagDecisionExecutionDashboard,
   JagDecisionGroupId,
   JagExecutiveBriefView,
   JagExecutiveOverviewModel,

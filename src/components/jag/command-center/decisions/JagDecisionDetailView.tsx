@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { JagDecisionDetail } from "@/lib/jag-command-center/decision-center/types";
 import { JagSection } from "../JagSection";
+import { JagDecisionAssignmentForm } from "./JagDecisionAssignmentForm";
+import { JagDecisionExecutionForm } from "./JagDecisionExecutionForm";
+import { JagDecisionOutcomeForm } from "./JagDecisionOutcomeForm";
 import { JagDecisionStatusForm } from "./JagDecisionStatusForm";
 
 export function JagDecisionDetailView({
@@ -14,7 +17,9 @@ export function JagDecisionDetailView({
     <div className="space-y-6">
       <JagSection
         title={card.title}
-        description={`${card.categoryLabel} · ${card.organizationName} · ${card.priority}`}
+        description={`${card.categoryLabel} · ${card.organizationName} · ${card.priority}${
+          card.isOverdue ? " · Overdue" : ""
+        }`}
         actions={
           <Link
             href="/jag/decisions"
@@ -39,6 +44,53 @@ export function JagDecisionDetailView({
           <JagDecisionStatusForm decisionId={card.id} status={card.status} />
         </div>
       </JagSection>
+
+      <Panel title="Assignment">
+        <JagDecisionAssignmentForm
+          decisionId={card.id}
+          organizationId={card.organizationId}
+          organizationName={card.organizationName}
+          assignment={detail.assignment}
+        />
+      </Panel>
+
+      <Panel title="Execution">
+        <JagDecisionExecutionForm decisionId={card.id} />
+        {detail.executionHistory.length === 0 ? (
+          <Empty text="No execution updates yet. Start work to move into In Progress." />
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {detail.executionHistory.map((event) => (
+              <li
+                key={event.id}
+                className="border-t border-[var(--jag-border)] pt-2 text-xs text-[var(--jag-muted)] first:border-0 first:pt-0"
+              >
+                <span className="font-[family-name:var(--font-jag-mono)] text-[var(--jag-muted-2)]">
+                  {event.at}
+                </span>
+                {" · "}
+                <span className="text-[var(--jag-text)]">{event.kind}</span>
+                {" · "}
+                {event.actor}
+                {" · "}
+                {event.message}
+                {typeof event.progressPct === "number"
+                  ? ` · ${event.progressPct}%`
+                  : ""}
+                {event.evidenceRef ? ` · ${event.evidenceRef}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel title="Outcome review">
+        <JagDecisionOutcomeForm
+          decisionId={card.id}
+          outcome={detail.outcome}
+          feedback={detail.feedback}
+        />
+      </Panel>
 
       <Panel title="Evidence">
         {detail.evidence.length === 0 ? (
@@ -272,5 +324,5 @@ function BulletList({
 }
 
 function Empty({ text }: { text: string }) {
-  return <p className="text-xs text-[var(--jag-muted)]">{text}</p>;
+  return <p className="mt-3 text-xs text-[var(--jag-muted)]">{text}</p>;
 }

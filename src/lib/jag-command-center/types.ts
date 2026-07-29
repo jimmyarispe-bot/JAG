@@ -96,10 +96,22 @@ export type JagRecommendedDecisionGroup = {
   readonly items: readonly JagRecommendedDecisionItem[];
 };
 
+export type JagDecisionExecutionDashboard = {
+  readonly openDecisions: number;
+  readonly assigned: number;
+  readonly overdue: number;
+  readonly completedThisWeek: number;
+  /** 0–1 when outcomes exist; null when none reviewed yet. */
+  readonly outcomeSuccessRate: number | null;
+  readonly outcomeReviewedCount: number;
+  readonly href: string;
+};
+
 export type JagExecutiveOverviewModel = {
   readonly organizationId: string | null;
   readonly organizationName: string | null;
   readonly organizationHealth: JagOrgHealthView;
+  readonly decisionExecution: JagDecisionExecutionDashboard;
   readonly priorities: readonly JagPriorityItem[];
   readonly executiveBrief: JagExecutiveBriefView;
   readonly capabilityPacks: readonly JagCapabilityPackView[];
