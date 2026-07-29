@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { JagBriefingDetailView } from "@/components/jag/command-center/briefings";
+import type { BriefingViewMode } from "@/components/jag/command-center/briefings/JagBriefingToolbar";
 import { JagSection } from "@/components/jag/command-center";
 import { getBriefingDetail } from "@/lib/jag-command-center";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
@@ -8,8 +9,10 @@ import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 export default async function JagBriefingDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }) {
   const session = await getJagPlatformSession();
   if (!session) {
@@ -17,6 +20,8 @@ export default async function JagBriefingDetailPage({
   }
 
   const { id } = await params;
+  const sp = await searchParams;
+  const mode = parseMode(sp.mode);
   const briefing = getBriefingDetail(session, id);
 
   if (!briefing) {
@@ -39,5 +44,10 @@ export default async function JagBriefingDetailPage({
     );
   }
 
-  return <JagBriefingDetailView briefing={briefing} />;
+  return <JagBriefingDetailView briefing={briefing} mode={mode} />;
+}
+
+function parseMode(value?: string): BriefingViewMode {
+  if (value === "print" || value === "board") return value;
+  return "standard";
 }

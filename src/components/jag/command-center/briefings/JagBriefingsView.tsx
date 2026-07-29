@@ -12,7 +12,7 @@ export function JagBriefingsView({
     <div className="space-y-6">
       <JagSection
         title="Executive Briefings"
-        description="Evidence-backed narrative briefings synthesized from Command Center intelligence — not a dashboard."
+        description="Evidence-backed narrative briefings — single org, multi-org, or entire enterprise. Not a dashboard."
         actions={
           <Link
             href="/jag"
@@ -30,17 +30,13 @@ export function JagBriefingsView({
 
       <JagSection
         title="Generated briefings"
-        description={
-          model.selectedOrganizationId
-            ? "Briefings for the selected organization scope."
-            : "Generate a briefing to begin the archive."
-        }
+        description="Archive of synthesized briefings for the selected organization scope."
       >
         {model.briefings.length === 0 ? (
           <div className="rounded-md border border-dashed border-[var(--jag-border)] bg-[var(--jag-panel)] px-4 py-8 text-sm text-[var(--jag-muted)]">
-            No briefings have been generated yet. Choose an organization and
-            timeline, then synthesize. Empty sections in a briefing mean those
-            sources are unbound — nothing is invented.
+            No briefings have been generated yet. Choose scope, type, and
+            timeline, then synthesize. Empty sections mean unbound sources —
+            nothing is invented.
           </div>
         ) : (
           <ul className="space-y-2">
@@ -56,7 +52,8 @@ export function JagBriefingsView({
                         {b.title}
                       </p>
                       <p className="mt-0.5 text-[11px] text-[var(--jag-muted)]">
-                        {b.organizationName} · {b.windowLabel}
+                        {b.kindLabel} · {b.scope} · {b.organizationName} ·{" "}
+                        {b.windowLabel}
                       </p>
                     </div>
                     <div className="shrink-0 text-right font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted)]">

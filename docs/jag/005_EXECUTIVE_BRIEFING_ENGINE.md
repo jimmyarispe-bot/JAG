@@ -1,7 +1,7 @@
 # 005 — Executive Briefing Engine
 
-**Sprint:** JAG-005  
-**Routes:** `/jag/briefings` · `/jag/briefings/[id]`  
+**Sprint:** JAG-005 (+ enhancement)  
+**Routes:** `/jag/briefings` · `/jag/briefings/[id]` · `/jag/briefings/share/[token]`  
 **Status:** Complete
 
 ---
@@ -10,76 +10,98 @@
 
 Generate evidence-backed executive briefings.
 
-A briefing is a **narrative**, not a dashboard. It is synthesized deterministically from Command Center application stores:
+A briefing is a **narrative**, not a dashboard. It is synthesized deterministically from Command Center application stores.
 
-- Organization Health  
-- Decision Queue  
-- Recent contributor executions  
-- Operational readiness  
-- Funding readiness  
-- Student success  
-- Recent outcomes  
-
-No JAG Core / Runtime / Domain SDK changes. No LLM.
+No JAG Core / Runtime / Domain SDK changes. No LLM. No fabricated content.
 
 ---
 
 ## 2. Organization scope
 
-Each briefing is scoped to one organization from the session. Generation requires selecting an organization.
+| Scope | Behavior |
+|-------|----------|
+| Single Organization | One session org |
+| Multi-Organization | Selected session orgs |
+| Entire Enterprise | All session orgs (enterprise-ready) |
 
 ---
 
 ## 3. Timeline windows
 
-| Timeline | Window |
-|----------|--------|
-| Today | UTC midnight → now |
-| This Week | Monday UTC → now |
-| This Month | 1st of month UTC → now |
-| Quarter | Quarter start UTC → now |
-| Custom | Caller-provided start/end |
+Today · This Week · This Month · Quarter · Custom
 
 ---
 
-## 4. Brief structure
+## 4. Briefing types (follow-up ready)
 
-Every briefing includes:
+Morning Brief · Weekly Executive Review · Monthly Board Report · Quarterly Strategic Review · Operational Incident Brief · Funding Brief · Student Success Brief · Compliance Brief · Risk Brief
+
+Same engine; kind changes section order and narrative emphasis.
+
+---
+
+## 5. Brief structure
+
+Standard narrative sections plus first-class executive questions:
 
 1. Executive Summary  
-2. Today's Priorities  
-3. Critical Risks  
-4. Opportunities  
-5. Decision Queue Summary  
-6. Completed Outcomes  
-7. Emerging Trends  
-8. Recommended Executive Actions  
-9. Appendix  
+2. **What happened?**  
+3. **Why did it happen?**  
+4. **What should I decide today?**  
+5. **What happens if I do nothing?**  
+6. **What should I watch next?**  
+7. Today's Priorities  
+8. Critical Risks  
+9. Opportunities  
+10. Decision Queue Summary  
+11. Completed Outcomes  
+12. Emerging Trends  
+13. Recommended Executive Actions  
+14. Executive Insights  
+15. Appendix  
 
-Each section carries:
-
-- Narrative + bullets (when sources exist)  
-- Evidence references  
-- Confidence (or explicit unavailable)  
-- Contributor sources  
-- Policy references (when applicable)  
-
-Empty sections explain what is unbound — nothing is invented.
+Each section includes evidence references, confidence, contributor sources, and policy references (when applicable).
 
 ---
 
-## 5. Data flow
+## 6. Explainability
 
-1. Hosts bind Education intelligence via `recordEducationExecutionSnapshot` (and Decision Center workflows).  
-2. Executive opens `/jag/briefings`, selects organization + timeline.  
-3. `synthesizeExecutiveBriefing` builds sections from stores.  
-4. Briefing is saved in the application briefing archive and opened at `/jag/briefings/[id]`.
+Every recommendation supports:
+
+Show Evidence · Show Contributors · Show Policies · Show Confidence · Show Dependencies · Show Timeline
 
 ---
 
-## 6. Constraints
+## 7. Decision links
+
+Recommendations link to Decision Center records so executives can Review, Approve, Assign, and Track without searching elsewhere.
+
+Section actions: Approve Decision · Open Decision · Assign · Create Follow-up · Add Executive Note · Schedule Review
+
+---
+
+## 8. Executive insights
+
+Computed only from bound intelligence:
+
+Largest improvement · Largest deterioration · Highest / lowest confidence · Fastest-growing risk · Highest-impact opportunity · Most successful completed decision · Most overdue decision
+
+---
+
+## 9. Share & export
+
+| Capability | Behavior |
+|------------|----------|
+| Print-friendly | `?mode=print` |
+| PDF export | Browser print → PDF |
+| Board presentation | `?mode=board` |
+| Read-only share link | `/jag/briefings/share/[token]` (public) |
+| Email delivery | Reserved for future integration |
+
+---
+
+## 10. Constraints
 
 - Application layer under `src/lib/jag-command-center/briefing-engine/`  
-- UI under `src/components/jag/command-center/briefings/`  
 - Do not modify Core, Runtime, or Domain SDK  
 - Do not fabricate health, risks, or outcomes  

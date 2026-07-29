@@ -39,9 +39,21 @@ export default async function JagRootLayout({
   const headerStore = await headers();
   const pathname = headerStore.get("x-pathname") ?? "/jag";
   const isLogin = pathname === "/jag/login" || pathname.startsWith("/jag/login/");
+  const isSharedBriefing = pathname.startsWith("/jag/briefings/share/");
 
-  if (isLogin) {
-    return children;
+  if (isLogin || isSharedBriefing) {
+    return (
+      <div
+        className={`${jagSans.variable} ${jagMono.variable}`}
+        style={
+          {
+            "--font-jag-display": "var(--font-jag-sans)",
+          } as CSSProperties
+        }
+      >
+        {children}
+      </div>
+    );
   }
 
   const session = await getJagPlatformSession();

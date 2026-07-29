@@ -8,20 +8,43 @@ import {
   passwordSetupPathForUser,
   userMustResetPassword,
 } from "@/lib/auth/must-reset-password";
+import { getUserFromAuthClient } from "@/lib/platform/authentication";
 import {
   applyTraceHeaders,
   resolveRequestTraceIds,
 } from "@/lib/observability/request-ids";
 import { ServerTimingCollector } from "@/lib/performance/server-timing";
+import {
+  decodeJagPlatformSession,
+  JAG_PLATFORM_SESSION_COOKIE,
+} from "@/lib/jag-platform/session";
+
+function isJagPortalPath(pathname: string): boolean {
+  return pathname === "/jag" || pathname.startsWith("/jag/");
+}
+
+function isJagPublicPath(pathname: string): boolean {
+  return (
+    pathname === "/jag/login" ||
+    pathname.startsWith("/jag/login/") ||
+    pathname.startsWith("/jag/briefings/share/") ||
+    pathname === "/api/jag-platform/auth/login" ||
+    pathname === "/api/jag-platform/auth/logout" ||
+    pathname === "/api/jag-business/provision"
+  );
+}
 
 function isProtectedPage(pathname: string): boolean {
   return (
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/exec") ||
+    pathname.startsWith("/founder") ||
+    pathname.startsWith("/decisions") ||
     pathname.startsWith("/cloud") ||
     pathname.startsWith("/operations") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/portal") ||
+    pathname.startsWith("/workspace") ||
     pathname.startsWith("/organizations") ||
     pathname.startsWith("/users") ||
     pathname.startsWith("/settings") ||
@@ -60,6 +83,41 @@ export async function middleware(req: NextRequest) {
   });
   applyTraceHeaders(res.headers, traceIds);
 
+  const finish = (response: NextResponse) => {
+    const end =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    timing.add("mw_total", end - middlewareStarted, "Middleware total");
+    timing.apply(response.headers);
+    applyTraceHeaders(response.headers, traceIds);
+    return response;
+  };
+
+  // JAG Platform Portal + public business APIs — separate from AcademyOS session.
+  if (
+    isJagPortalPath(pathname) ||
+    pathname.startsWith("/api/jag-platform/") ||
+    pathname.startsWith("/api/jag-business/")
+  ) {
+    if (!isJagPublicPath(pathname) && isJagPortalPath(pathname)) {
+      const session = decodeJagPlatformSession(
+        req.cookies.get(JAG_PLATFORM_SESSION_COOKIE)?.value
+      );
+      if (!session) {
+        const loginUrl = new URL("/jag/login", req.url);
+        loginUrl.searchParams.set("next", pathname);
+        return finish(NextResponse.redirect(loginUrl));
+      }
+      requestHeaders.set("x-jag-platform-authenticated", "1");
+      requestHeaders.set("x-jag-platform-role", session.role);
+      requestHeaders.set("x-jag-platform-user-id", session.userId);
+      res = NextResponse.next({ request: { headers: requestHeaders } });
+      applyTraceHeaders(res.headers, traceIds);
+    }
+    return finish(res);
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -83,23 +141,20 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await timing.measure("mw_auth_getUser", () => supabase.auth.getUser(), "Supabase session");
+  const authUser = await timing.measure(
+    "mw_auth_getUser",
+    () => getUserFromAuthClient(supabase),
+    "Auth session"
+  );
+  const user = authUser
+    ? {
+        id: authUser.id,
+        user_metadata: authUser.userMetadata,
+      }
+    : null;
 
   const protectedPage = isProtectedPage(pathname);
   const protectedApi = isProtectedApi(pathname);
-
-  const finish = (response: NextResponse) => {
-    const end =
-      typeof performance !== "undefined" && typeof performance.now === "function"
-        ? performance.now()
-        : Date.now();
-    timing.add("mw_total", end - middlewareStarted, "Middleware total");
-    timing.apply(response.headers);
-    applyTraceHeaders(response.headers, traceIds);
-    return response;
-  };
 
   if ((protectedPage || protectedApi) && !user) {
     if (protectedApi) {
@@ -136,10 +191,16 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/jag",
+    "/jag/:path*",
     "/dashboard",
     "/dashboard/:path*",
     "/exec",
     "/exec/:path*",
+    "/founder",
+    "/founder/:path*",
+    "/decisions",
+    "/decisions/:path*",
     "/cloud",
     "/cloud/:path*",
     "/operations",
@@ -148,6 +209,7 @@ export const config = {
     "/admin/:path*",
     "/portal",
     "/portal/:path*",
+    "/workspace",
     "/organizations",
     "/organizations/:path*",
     "/users",
