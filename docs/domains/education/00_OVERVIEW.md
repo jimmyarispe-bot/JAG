@@ -3,7 +3,7 @@
 **Program D1 — Education Domain Foundation**  
 **Authority:** [JAG_CONSTITUTION.md](../../../JAG_CONSTITUTION.md) · [DOMAIN_ADAPTER_CHECKLIST.md](../../jag-os/runtime/DOMAIN_ADAPTER_CHECKLIST.md) · [Domain SDK](../../jag-os/domain-sdk/00_DOMAIN_SDK.md)  
 **Package:** `src/lib/domains/education`  
-**Status:** Foundation + Enrollment + Framework + Attendance + Intelligence Graph (D2.4) + Planner (D2.5) + Orchestrator (D2.6) + Observability (D2.7)
+**Status:** Foundation + Enrollment + Framework + Attendance + Intelligence Graph (D2.4) + Planner (D2.5) + Orchestrator (D2.6) + Observability (D2.7) + Knowledge Model (D3.0)
 
 ---
 
@@ -36,7 +36,8 @@ src/lib/domains/education/
   contributors/    factory
   context/         contracts + placeholder
   intent/          catalog + placeholder
-  cognition/       interfaces + placeholder
+  cognition/       intelligence pipeline (planner → orchestrator → graph)
+  knowledge/       canonical knowledge model (D3.0 — definitions only)
   experience/      fragment tokens + placeholder
   actions/         action catalog + skipped execute
   evidence/        source tokens + placeholder

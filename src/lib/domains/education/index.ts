@@ -13,6 +13,7 @@ export * from "./contributors";
 export * from "./context";
 export * from "./intent";
 export * from "./cognition";
+export * from "./knowledge";
 export * from "./experience";
 export * from "./actions";
 export * from "./evidence";
