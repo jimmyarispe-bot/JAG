@@ -25,6 +25,7 @@ export type EducationPlanScenario =
   | "scholarship_review"
   | "support"
   | "academic_operations"
+  | "executive_intelligence"
   | "generic_education"
   | "unknown";
 
@@ -43,6 +44,29 @@ export function detectEducationPlanScenario(
 ): EducationPlanScenario {
   const haystack = buildHaystack(intent, context);
 
+  if (
+    haystack.includes("board review") ||
+    haystack.includes("board_review") ||
+    haystack.includes("annual planning") ||
+    haystack.includes("annual_planning") ||
+    haystack.includes("strategic review") ||
+    haystack.includes("strategic_review") ||
+    haystack.includes("network health") ||
+    haystack.includes("network_health") ||
+    haystack.includes("quarterly") ||
+    ((haystack.includes("executive brief") ||
+      haystack.includes("executive_brief")) &&
+      !haystack.includes("funding")) ||
+    intent.intentId.includes("board") ||
+    intent.intentId.includes("strategic") ||
+    intent.intentId.includes("network") ||
+    intent.intentId.includes("annual.planning") ||
+    intent.intentId.includes("quarterly") ||
+    (intent.intentId.includes("executive") &&
+      !intent.intentId.includes("funding"))
+  ) {
+    return "executive_intelligence";
+  }
   if (
     haystack.includes("scholarship") ||
     intent.intentId.includes("scholarship") ||
@@ -106,7 +130,6 @@ export function detectEducationPlanScenario(
     haystack.includes("student_success") ||
     haystack.includes("student success") ||
     (haystack.includes("success") && haystack.includes("review")) ||
-    haystack.includes("quarterly") ||
     haystack.includes("advisor") ||
     haystack.includes("leadership brief") ||
     haystack.includes("leadership_brief") ||
@@ -169,6 +192,11 @@ export const EDUCATION_SCENARIO_CONTRIBUTORS: Record<
     "education.cognition.staffing",
     "education.cognition.capacity",
     "education.cognition.operational_readiness",
+  ],
+  executive_intelligence: [
+    "education.cognition.school_health",
+    "education.cognition.campus_performance",
+    "education.cognition.executive_briefing",
   ],
   generic_education: [
     "education.cognition.enrollment",

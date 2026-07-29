@@ -118,6 +118,23 @@ export function createEducationManifest(): DomainManifest {
         description:
           "Funding Readiness — Funding & Compliance synthesis (D5.2)",
       },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.schoolHealthCognition,
+        kind: "cognition",
+        description: "School Health Intelligence — Executive Intelligence (D5.3)",
+      },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.campusPerformanceCognition,
+        kind: "cognition",
+        description:
+          "Campus Performance Intelligence — Executive Intelligence (D5.3)",
+      },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.executiveBriefingCognition,
+        kind: "cognition",
+        description:
+          "Executive Education Briefing — top-level synthesis (D5.3)",
+      },
       { id: EDUCATION_CONTRIBUTOR_IDS.experience, kind: "experience" },
       { id: EDUCATION_CONTRIBUTOR_IDS.action, kind: "action" },
       { id: EDUCATION_CONTRIBUTOR_IDS.evidence, kind: "evidence" },

@@ -30,6 +30,10 @@ export const EDUCATION_CAPABILITY_IDS = {
   scholarships: "education.capability.scholarships",
   compliance: "education.capability.compliance",
   fundingReadiness: "education.capability.funding_readiness",
+  /** Executive Intelligence (D5.3) */
+  schoolHealth: "education.capability.school_health",
+  campusPerformance: "education.capability.campus_performance",
+  executiveBriefing: "education.capability.executive_briefing",
 } as const;
 
 export const EDUCATION_CAPABILITY_CATALOG: readonly EducationCapabilityDefinition[] =
@@ -226,6 +230,68 @@ export const EDUCATION_CAPABILITY_CATALOG: readonly EducationCapabilityDefinitio
       ],
       contributorIdHint: "education.cognition.funding_readiness",
       tags: ["finance", "compliance", "synthesis"],
+    },
+    {
+      id: EDUCATION_CAPABILITY_IDS.schoolHealth,
+      name: "School Health",
+      description:
+        "Assess overall organizational health from student, support, operations, and funding signals.",
+      relatedEntityIds: [
+        "education.entity.campus",
+        "education.entity.district",
+        "education.entity.network",
+        "education.entity.executive_kpi",
+        "education.entity.performance_indicator",
+      ],
+      relatedPolicyIds: [
+        "education.policy.executive.network_goals",
+        "education.policy.executive.thresholds",
+        "education.policy.executive.strategic_priorities",
+        "education.policy.executive.performance_targets",
+      ],
+      contributorIdHint: "education.cognition.school_health",
+      tags: ["executive", "health", "synthesis"],
+    },
+    {
+      id: EDUCATION_CAPABILITY_IDS.campusPerformance,
+      name: "Campus Performance",
+      description:
+        "Compare and evaluate performance across schools, campuses, or programs.",
+      relatedEntityIds: [
+        "education.entity.campus",
+        "education.entity.program",
+        "education.entity.district",
+        "education.entity.network",
+        "education.entity.performance_indicator",
+        "education.entity.executive_kpi",
+      ],
+      relatedPolicyIds: [
+        "education.policy.executive.performance_targets",
+        "education.policy.executive.thresholds",
+      ],
+      contributorIdHint: "education.cognition.campus_performance",
+      tags: ["executive", "performance", "comparative"],
+    },
+    {
+      id: EDUCATION_CAPABILITY_IDS.executiveBriefing,
+      name: "Executive Education Briefing",
+      description:
+        "Top-level executive synthesis of school health, campus performance, and readiness postures.",
+      relatedEntityIds: [
+        "education.entity.network",
+        "education.entity.district",
+        "education.entity.strategic_goal",
+        "education.entity.executive_kpi",
+        "education.entity.performance_indicator",
+      ],
+      relatedPolicyIds: [
+        "education.policy.executive.network_goals",
+        "education.policy.executive.thresholds",
+        "education.policy.executive.strategic_priorities",
+        "education.policy.executive.performance_targets",
+      ],
+      contributorIdHint: "education.cognition.executive_briefing",
+      tags: ["executive", "briefing", "top_level_synthesis"],
     },
   ] as const;
 

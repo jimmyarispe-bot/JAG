@@ -3,7 +3,7 @@
 **Program D1 — Education Domain Foundation**  
 **Authority:** [JAG_CONSTITUTION.md](../../../JAG_CONSTITUTION.md) · [DOMAIN_ADAPTER_CHECKLIST.md](../../jag-os/runtime/DOMAIN_ADAPTER_CHECKLIST.md) · [Domain SDK](../../jag-os/domain-sdk/00_DOMAIN_SDK.md)  
 **Package:** `src/lib/domains/education`  
-**Status:** Foundation + Enrollment + Framework + Attendance + Intelligence Graph (D2.4) + Planner (D2.5) + Orchestrator (D2.6) + Observability (D2.7) + Knowledge Model (D3.0) + Policy Engine (D3.1) + Academic Progress (D4.0) + Student Success Synthesis (D4.1) + Student Support Capability Pack (D4.2) + Capability Pack Registry (D5.0) + Academic Operations Capability Pack (D5.1) + Funding & Compliance Capability Pack (D5.2)
+**Status:** Foundation + Enrollment + Framework + Attendance + Intelligence Graph (D2.4) + Planner (D2.5) + Orchestrator (D2.6) + Observability (D2.7) + Knowledge Model (D3.0) + Policy Engine (D3.1) + Academic Progress (D4.0) + Student Success Synthesis (D4.1) + Student Support Capability Pack (D4.2) + Capability Pack Registry (D5.0) + Academic Operations Capability Pack (D5.1) + Funding & Compliance Capability Pack (D5.2) + Executive Intelligence Capability Pack (D5.3) — Education Domain v1.0 feature complete
 
 ---
 

@@ -10,11 +10,14 @@ import { createAcademicProgressContributor } from "../cognition/progress";
 import { createCapacityContributor } from "../cognition/capacity";
 import { createComplianceContributor } from "../cognition/compliance";
 import { createFamilyEngagementContributor } from "../cognition/family-engagement";
+import { createCampusPerformanceContributor } from "../cognition/campus-performance";
+import { createExecutiveBriefingContributor } from "../cognition/executive-briefing";
 import { createFundingReadinessContributor } from "../cognition/funding-readiness";
 import { createInterventionContributor } from "../cognition/intervention";
 import { createOperationalReadinessContributor } from "../cognition/operational-readiness";
 import { createSchedulingContributor } from "../cognition/scheduling";
 import { createScholarshipContributor } from "../cognition/scholarship";
+import { createSchoolHealthContributor } from "../cognition/school-health";
 import { createStaffingContributor } from "../cognition/staffing";
 import { createStudentSuccessContributor } from "../cognition/student-success";
 import { createSupportPlanningContributor } from "../cognition/support-planning";
@@ -46,6 +49,9 @@ export interface EducationContributorSet {
   scholarshipCognition: ReturnType<typeof createScholarshipContributor>;
   complianceCognition: ReturnType<typeof createComplianceContributor>;
   fundingReadinessCognition: ReturnType<typeof createFundingReadinessContributor>;
+  schoolHealthCognition: ReturnType<typeof createSchoolHealthContributor>;
+  campusPerformanceCognition: ReturnType<typeof createCampusPerformanceContributor>;
+  executiveBriefingCognition: ReturnType<typeof createExecutiveBriefingContributor>;
   experience: ReturnType<typeof createEducationExperienceContributor>;
   action: ReturnType<typeof createEducationActionContributor>;
   evidence: ReturnType<typeof createEducationEvidenceContributor>;
@@ -72,6 +78,9 @@ export function createEducationContributors(): EducationContributorSet {
     scholarshipCognition: createScholarshipContributor(),
     complianceCognition: createComplianceContributor(),
     fundingReadinessCognition: createFundingReadinessContributor(),
+    schoolHealthCognition: createSchoolHealthContributor(),
+    campusPerformanceCognition: createCampusPerformanceContributor(),
+    executiveBriefingCognition: createExecutiveBriefingContributor(),
     experience: createEducationExperienceContributor(),
     action: createEducationActionContributor(),
     evidence: createEducationEvidenceContributor(),
@@ -100,6 +109,9 @@ export {
   createScholarshipContributor,
   createComplianceContributor,
   createFundingReadinessContributor,
+  createSchoolHealthContributor,
+  createCampusPerformanceContributor,
+  createExecutiveBriefingContributor,
   createEducationCognitiveContributor,
   createEnrollmentContributor,
   createEducationContextContributor,

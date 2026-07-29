@@ -21,6 +21,7 @@ Packs are metadata. They do **not** replace the Graph, Planner, Orchestrator, or
 | [Student Support](02_STUDENT_SUPPORT.md) | `education.capability_pack.student_support` | Student Lifecycle |
 | Academic Operations | `education.capability_pack.academic_operations` | Student Lifecycle |
 | Funding & Compliance | `education.capability_pack.funding_compliance` | Student Lifecycle, Academic Operations |
+| [Executive Intelligence](../intelligence/13_EXECUTIVE_INTELLIGENCE_CAPABILITY.md) | `education.capability_pack.executive_intelligence` | Student Lifecycle, Student Support, Academic Operations, Funding & Compliance |
 
 ---
 

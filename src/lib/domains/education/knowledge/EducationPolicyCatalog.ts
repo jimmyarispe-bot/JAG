@@ -63,6 +63,11 @@ export const EDUCATION_POLICY_IDS = {
   complianceRequiredDocumentation:
     "education.policy.compliance.required_documentation",
   complianceThresholds: "education.policy.compliance.thresholds",
+  /** Executive Intelligence (D5.3) — metadata only */
+  networkGoals: "education.policy.executive.network_goals",
+  executiveThresholds: "education.policy.executive.thresholds",
+  strategicPriorities: "education.policy.executive.strategic_priorities",
+  performanceTargets: "education.policy.executive.performance_targets",
 } as const;
 
 export const EDUCATION_POLICY_CATALOG: readonly EducationPolicyDefinition[] = [
@@ -413,6 +418,102 @@ export const EDUCATION_POLICY_CATALOG: readonly EducationPolicyDefinition[] = [
         example: true,
       },
     ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.networkGoals,
+    name: "Network goals",
+    kind: "general",
+    description:
+      "Declares network-level strategic goals for executive intelligence (metadata only).",
+    relatedEntityIds: [
+      "education.entity.network",
+      "education.entity.district",
+      "education.entity.strategic_goal",
+    ],
+    parameters: [
+      {
+        key: "goalIds",
+        label: "Strategic goal ids",
+        valueType: "string_list",
+        example: ["goal.graduation", "goal.equity"],
+      },
+    ],
+    notes: "No evaluation logic outside Policy Engine.",
+  },
+  {
+    id: EDUCATION_POLICY_IDS.executiveThresholds,
+    name: "Executive thresholds",
+    kind: "general",
+    description:
+      "Declares executive health/risk thresholds for leadership review (metadata only).",
+    relatedEntityIds: [
+      "education.entity.executive_kpi",
+      "education.entity.performance_indicator",
+      "education.entity.network",
+    ],
+    parameters: [
+      {
+        key: "minimumHealthScore",
+        label: "Minimum health score",
+        valueType: "ratio",
+        example: 0.7,
+      },
+      {
+        key: "criticalRiskCount",
+        label: "Critical risk count threshold",
+        valueType: "number",
+        example: 1,
+      },
+    ],
+    notes: "No evaluation logic outside Policy Engine.",
+  },
+  {
+    id: EDUCATION_POLICY_IDS.strategicPriorities,
+    name: "Strategic priorities",
+    kind: "general",
+    description:
+      "Declares ordered strategic priorities for board and annual planning (metadata only).",
+    relatedEntityIds: [
+      "education.entity.strategic_goal",
+      "education.entity.network",
+    ],
+    parameters: [
+      {
+        key: "priorityLabels",
+        label: "Priority labels",
+        valueType: "string_list",
+        example: ["student success", "funding stability", "operations"],
+      },
+    ],
+    notes: "No evaluation logic outside Policy Engine.",
+  },
+  {
+    id: EDUCATION_POLICY_IDS.performanceTargets,
+    name: "Performance targets",
+    kind: "general",
+    description:
+      "Declares campus/program performance targets for comparative review (metadata only).",
+    relatedEntityIds: [
+      "education.entity.campus",
+      "education.entity.program",
+      "education.entity.performance_indicator",
+      "education.entity.executive_kpi",
+    ],
+    parameters: [
+      {
+        key: "targetScore",
+        label: "Target performance score",
+        valueType: "ratio",
+        example: 0.85,
+      },
+      {
+        key: "indicatorIds",
+        label: "Performance indicator ids",
+        valueType: "string_list",
+        example: ["kpi.attendance", "kpi.progress"],
+      },
+    ],
+    notes: "No evaluation logic outside Policy Engine.",
   },
 ] as const;
 

@@ -46,6 +46,12 @@ export const EDUCATION_ENTITY_IDS = {
   renewalCycle: "education.entity.renewal_cycle",
   supportingDocumentation: "education.entity.supporting_documentation",
   fundingPeriod: "education.entity.funding_period",
+  /** Executive Intelligence (D5.3) — Campus already exists above */
+  district: "education.entity.district",
+  network: "education.entity.network",
+  strategicGoal: "education.entity.strategic_goal",
+  executiveKpi: "education.entity.executive_kpi",
+  performanceIndicator: "education.entity.performance_indicator",
 } as const;
 
 export type EducationEntityId =
@@ -254,6 +260,41 @@ export const EDUCATION_ENTITY_CATALOG: readonly EducationEntityDefinition[] = [
     vocabularyId: "education.term.funding_period",
     description: "Time window during which funding applies.",
     tags: ["finance", "time"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.district,
+    name: "District",
+    vocabularyId: "education.term.district",
+    description: "Administrative district spanning campuses or schools.",
+    tags: ["organization", "executive"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.network,
+    name: "Network",
+    vocabularyId: "education.term.network",
+    description: "Multi-campus or multi-district education network.",
+    tags: ["organization", "executive"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.strategicGoal,
+    name: "Strategic Goal",
+    vocabularyId: "education.term.strategic_goal",
+    description: "Leadership-level strategic objective for the network or district.",
+    tags: ["executive", "strategy"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.executiveKpi,
+    name: "Executive KPI",
+    vocabularyId: "education.term.executive_kpi",
+    description: "Key performance indicator tracked at executive level.",
+    tags: ["executive", "kpi"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.performanceIndicator,
+    name: "Performance Indicator",
+    vocabularyId: "education.term.performance_indicator",
+    description: "Measurable indicator used in campus or network performance reviews.",
+    tags: ["executive", "performance"],
   },
 ] as const;
 

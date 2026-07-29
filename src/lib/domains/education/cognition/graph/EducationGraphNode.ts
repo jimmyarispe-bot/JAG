@@ -17,6 +17,9 @@ export const EDUCATION_GRAPH_NODE_KINDS = [
   "capacity",
   "operational_readiness",
   "funding_readiness",
+  "school_health",
+  "campus_performance",
+  "executive_briefing",
 ] as const;
 
 export type EducationGraphNodeKind =
@@ -50,12 +53,33 @@ export const EDUCATION_GRAPH_NODE_LABELS: Record<
   capacity: "Capacity",
   operational_readiness: "Operational Readiness",
   funding_readiness: "Funding Readiness",
+  school_health: "School Health",
+  campus_performance: "Campus Performance",
+  executive_briefing: "Executive Education Briefing",
 };
 
 /** Map known contributor ids to graph node kinds. */
 export function nodeKindFromContributorId(
   contributorId: string
 ): EducationGraphNodeKind | null {
+  if (
+    contributorId.includes("executive_briefing") ||
+    contributorId.includes("executive-briefing")
+  ) {
+    return "executive_briefing";
+  }
+  if (
+    contributorId.includes("school_health") ||
+    contributorId.includes("school-health")
+  ) {
+    return "school_health";
+  }
+  if (
+    contributorId.includes("campus_performance") ||
+    contributorId.includes("campus-performance")
+  ) {
+    return "campus_performance";
+  }
   if (contributorId.includes("enrollment")) return "enrollment";
   if (contributorId.includes("attendance")) return "attendance";
   if (

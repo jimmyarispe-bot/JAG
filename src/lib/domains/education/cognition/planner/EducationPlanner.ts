@@ -318,6 +318,98 @@ export function createDefaultEducationContributorCatalog(): EducationContributor
       available: true,
       label: "Funding Readiness (synthesis)",
     },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.schoolHealthCognition,
+      nodeKind: "school_health",
+      capabilities: ["education", "executive", "school_health", "synthesis"],
+      dependsOn: [
+        EDUCATION_CONTRIBUTOR_IDS.studentSuccessCognition,
+        EDUCATION_CONTRIBUTOR_IDS.supportPlanningCognition,
+        EDUCATION_CONTRIBUTOR_IDS.operationalReadinessCognition,
+        EDUCATION_CONTRIBUTOR_IDS.fundingReadinessCognition,
+      ],
+      expectedOutputs: [
+        "evidence.school_health",
+        "recommendations.school_health",
+        "proposals.school_health",
+      ],
+      intentMatchers: [
+        "executive",
+        "board",
+        "quarterly",
+        "strategic",
+        "network",
+        "health",
+      ],
+      available: true,
+      label: "School Health Intelligence",
+    },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.campusPerformanceCognition,
+      nodeKind: "campus_performance",
+      capabilities: [
+        "education",
+        "executive",
+        "campus_performance",
+        "synthesis",
+      ],
+      dependsOn: [
+        EDUCATION_CONTRIBUTOR_IDS.studentSuccessCognition,
+        EDUCATION_CONTRIBUTOR_IDS.supportPlanningCognition,
+        EDUCATION_CONTRIBUTOR_IDS.operationalReadinessCognition,
+        EDUCATION_CONTRIBUTOR_IDS.fundingReadinessCognition,
+      ],
+      expectedOutputs: [
+        "evidence.campus_performance",
+        "recommendations.campus_performance",
+        "proposals.campus_performance",
+      ],
+      intentMatchers: [
+        "executive",
+        "board",
+        "campus",
+        "network",
+        "strategic",
+        "quarterly",
+        "annual",
+      ],
+      available: true,
+      label: "Campus Performance Intelligence",
+    },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.executiveBriefingCognition,
+      nodeKind: "executive_briefing",
+      capabilities: [
+        "education",
+        "executive",
+        "executive_briefing",
+        "TOP_LEVEL_SYNTHESIS",
+        "synthesis",
+      ],
+      dependsOn: [
+        EDUCATION_CONTRIBUTOR_IDS.schoolHealthCognition,
+        EDUCATION_CONTRIBUTOR_IDS.campusPerformanceCognition,
+        EDUCATION_CONTRIBUTOR_IDS.fundingReadinessCognition,
+        EDUCATION_CONTRIBUTOR_IDS.supportPlanningCognition,
+        EDUCATION_CONTRIBUTOR_IDS.operationalReadinessCognition,
+      ],
+      expectedOutputs: [
+        "evidence.executive_briefing",
+        "recommendations.executive_briefing",
+        "proposals.executive_briefing",
+      ],
+      intentMatchers: [
+        "executive",
+        "board",
+        "quarterly",
+        "annual",
+        "strategic",
+        "network",
+        "executive brief",
+      ],
+      available: true,
+      label: "Executive Education Briefing (top-level synthesis)",
+    },
   ];
 }
 
@@ -498,6 +590,24 @@ function buildExecutionNodes(input: {
 }
 
 function inferKind(contributorId: string): EducationGraphNodeKind {
+  if (
+    contributorId.includes("executive_briefing") ||
+    contributorId.includes("executive-briefing")
+  ) {
+    return "executive_briefing";
+  }
+  if (
+    contributorId.includes("school_health") ||
+    contributorId.includes("school-health")
+  ) {
+    return "school_health";
+  }
+  if (
+    contributorId.includes("campus_performance") ||
+    contributorId.includes("campus-performance")
+  ) {
+    return "campus_performance";
+  }
   if (contributorId.includes("enrollment")) return "enrollment";
   if (contributorId.includes("attendance")) return "attendance";
   if (

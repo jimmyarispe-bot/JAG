@@ -38,6 +38,12 @@ export const EDUCATION_CONTRIBUTOR_IDS = {
   complianceCognition: "education.cognition.compliance",
   /** Funding & Compliance — Funding Readiness synthesis (D5.2). */
   fundingReadinessCognition: "education.cognition.funding_readiness",
+  /** Executive Intelligence — School Health (D5.3). */
+  schoolHealthCognition: "education.cognition.school_health",
+  /** Executive Intelligence — Campus Performance (D5.3). */
+  campusPerformanceCognition: "education.cognition.campus_performance",
+  /** Executive Intelligence — Executive Education Briefing top-level synthesis (D5.3). */
+  executiveBriefingCognition: "education.cognition.executive_briefing",
   experience: "education.experience",
   action: "education.action",
   evidence: "education.evidence",

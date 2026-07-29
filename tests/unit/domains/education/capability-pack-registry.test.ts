@@ -22,12 +22,13 @@ describe("Education Capability Pack Registry (D5.0)", () => {
       const registry = createEducationCapabilityRegistry();
       const packs = registry.listCapabilityPacks();
 
-      expect(packs).toHaveLength(4);
+      expect(packs).toHaveLength(5);
       expect(packs.map((p) => p.id)).toEqual([
         EDUCATION_CAPABILITY_PACK_IDS.studentLifecycle,
         EDUCATION_CAPABILITY_PACK_IDS.studentSupport,
         EDUCATION_CAPABILITY_PACK_IDS.academicOperations,
         EDUCATION_CAPABILITY_PACK_IDS.fundingCompliance,
+        EDUCATION_CAPABILITY_PACK_IDS.executiveIntelligence,
       ]);
       expect(
         registry.getCapabilityPack(

@@ -185,6 +185,49 @@ export const FUNDING_COMPLIANCE_CAPABILITY_PACK: EducationCapabilityPackMetadata
     tags: ["funding", "scholarship", "compliance"],
   };
 
+/** Executive Intelligence — School Health, Campus Performance, Executive Briefing. */
+export const EXECUTIVE_INTELLIGENCE_CAPABILITY_PACK: EducationCapabilityPackMetadata =
+  {
+    id: EDUCATION_CAPABILITY_PACK_IDS.executiveIntelligence,
+    name: "Executive Intelligence",
+    version: "0.1.0",
+    description:
+      "Leadership-level reasoning: school health, campus performance comparison, and top-level executive education briefing.",
+    contributors: [
+      EDUCATION_CONTRIBUTOR_IDS.schoolHealthCognition,
+      EDUCATION_CONTRIBUTOR_IDS.campusPerformanceCognition,
+      EDUCATION_CONTRIBUTOR_IDS.executiveBriefingCognition,
+    ],
+    plannerIntents: [
+      "education.executive.brief",
+      "education.board.review",
+      "education.quarterly.review",
+      "education.annual.planning",
+      "education.strategic.review",
+      "education.network.health",
+    ],
+    knowledgeExtensions: [
+      EDUCATION_CAPABILITY_IDS.schoolHealth,
+      EDUCATION_CAPABILITY_IDS.campusPerformance,
+      EDUCATION_CAPABILITY_IDS.executiveBriefing,
+    ],
+    policyExtensions: [
+      EDUCATION_POLICY_IDS.networkGoals,
+      EDUCATION_POLICY_IDS.executiveThresholds,
+      EDUCATION_POLICY_IDS.strategicPriorities,
+      EDUCATION_POLICY_IDS.performanceTargets,
+    ],
+    documentation: ["intelligence/13_EXECUTIVE_INTELLIGENCE_CAPABILITY.md"],
+    dependencies: [
+      EDUCATION_CAPABILITY_PACK_IDS.studentLifecycle,
+      EDUCATION_CAPABILITY_PACK_IDS.studentSupport,
+      EDUCATION_CAPABILITY_PACK_IDS.academicOperations,
+      EDUCATION_CAPABILITY_PACK_IDS.fundingCompliance,
+    ],
+    maturity: "feature-complete",
+    tags: ["executive", "leadership", "briefing", "network"],
+  };
+
 /** Default pack manifests registered by the Education domain. */
 export const EDUCATION_CAPABILITY_PACK_MANIFESTS: readonly EducationCapabilityPackMetadata[] =
   [
@@ -192,4 +235,5 @@ export const EDUCATION_CAPABILITY_PACK_MANIFESTS: readonly EducationCapabilityPa
     STUDENT_SUPPORT_CAPABILITY_PACK,
     ACADEMIC_OPERATIONS_CAPABILITY_PACK,
     FUNDING_COMPLIANCE_CAPABILITY_PACK,
+    EXECUTIVE_INTELLIGENCE_CAPABILITY_PACK,
   ];

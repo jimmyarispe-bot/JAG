@@ -209,6 +209,36 @@ export const EDUCATION_VOCABULARY: readonly EducationVocabularyTerm[] = [
     kind: "entity",
   },
   {
+    id: "education.term.district",
+    term: "District",
+    definition: "Administrative district spanning campuses or schools.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.network",
+    term: "Network",
+    definition: "Multi-campus or multi-district education network.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.strategic_goal",
+    term: "Strategic Goal",
+    definition: "Leadership-level strategic objective for the network or district.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.executive_kpi",
+    term: "Executive KPI",
+    definition: "Key performance indicator tracked at executive level.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.performance_indicator",
+    term: "Performance Indicator",
+    definition: "Measurable indicator used in campus or network performance reviews.",
+    kind: "entity",
+  },
+  {
     id: "education.term.capability.enrollment",
     term: "Enrollment Intelligence",
     definition: "Domain capability to reason about enrollment readiness and requirements.",

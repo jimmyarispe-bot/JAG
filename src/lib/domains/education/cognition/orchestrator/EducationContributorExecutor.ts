@@ -34,6 +34,16 @@ import {
   runFamilyEngagementIntelligence,
 } from "../family-engagement";
 import {
+  CAMPUS_PERFORMANCE_CONTRIBUTOR_ID,
+  buildCampusPerformanceInputs,
+  runCampusPerformanceIntelligence,
+} from "../campus-performance";
+import {
+  EXECUTIVE_BRIEFING_CONTRIBUTOR_ID,
+  buildExecutiveBriefingInputs,
+  runExecutiveBriefingIntelligence,
+} from "../executive-briefing";
+import {
   FUNDING_READINESS_CONTRIBUTOR_ID,
   buildFundingReadinessInputs,
   runFundingReadinessIntelligence,
@@ -56,6 +66,11 @@ import {
   SCHOLARSHIP_CONTRIBUTOR_ID,
   runScholarshipIntelligence,
 } from "../scholarship";
+import {
+  SCHOOL_HEALTH_CONTRIBUTOR_ID,
+  buildSchoolHealthInputs,
+  runSchoolHealthIntelligence,
+} from "../school-health";
 import {
   STAFFING_CONTRIBUTOR_ID,
   runStaffingIntelligence,
@@ -412,6 +427,73 @@ function runContributor(input: {
       );
     }
     return runFundingReadinessIntelligence(synthesisInputs, {
+      now: input.now,
+    });
+  }
+
+  if (input.contributorId === SCHOOL_HEALTH_CONTRIBUTOR_ID) {
+    const { subjectId, organizationId } = resolveSubject(input);
+    const synthesisInputs = buildSchoolHealthInputs({
+      subjectId,
+      organizationId,
+      upstream: input.priorResults,
+    });
+    if (
+      !synthesisInputs.studentSuccess &&
+      !synthesisInputs.supportPlanning &&
+      !synthesisInputs.operationalReadiness &&
+      !synthesisInputs.fundingReadiness
+    ) {
+      throw new Error(
+        "School health synthesis requires upstream contributor results"
+      );
+    }
+    return runSchoolHealthIntelligence(synthesisInputs, { now: input.now });
+  }
+
+  if (input.contributorId === CAMPUS_PERFORMANCE_CONTRIBUTOR_ID) {
+    const { subjectId, organizationId } = resolveSubject(input);
+    const synthesisInputs = buildCampusPerformanceInputs({
+      subjectId,
+      organizationId,
+      upstream: input.priorResults,
+      attributes: input.observations.extras,
+    });
+    if (
+      !synthesisInputs.studentSuccess &&
+      !synthesisInputs.supportPlanning &&
+      !synthesisInputs.operationalReadiness &&
+      !synthesisInputs.fundingReadiness &&
+      !(synthesisInputs.campuses && synthesisInputs.campuses.length > 0)
+    ) {
+      throw new Error(
+        "Campus performance synthesis requires upstream contributor results"
+      );
+    }
+    return runCampusPerformanceIntelligence(synthesisInputs, {
+      now: input.now,
+    });
+  }
+
+  if (input.contributorId === EXECUTIVE_BRIEFING_CONTRIBUTOR_ID) {
+    const { subjectId, organizationId } = resolveSubject(input);
+    const synthesisInputs = buildExecutiveBriefingInputs({
+      subjectId,
+      organizationId,
+      upstream: input.priorResults,
+    });
+    if (
+      !synthesisInputs.schoolHealth &&
+      !synthesisInputs.campusPerformance &&
+      !synthesisInputs.fundingReadiness &&
+      !synthesisInputs.supportPlanning &&
+      !synthesisInputs.operationalReadiness
+    ) {
+      throw new Error(
+        "Executive briefing synthesis requires upstream contributor results"
+      );
+    }
+    return runExecutiveBriefingIntelligence(synthesisInputs, {
       now: input.now,
     });
   }
