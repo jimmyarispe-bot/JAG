@@ -1,4 +1,7 @@
 import type { RuntimePipelineStage } from "../contracts";
+import { contextRequestFromExecution } from "../context/context-runtime";
+import { toOrganizationalContext } from "../context/context-types";
+import { RuntimeContextError } from "../errors";
 import { identityRequestFromContext } from "../identity/identity-runtime";
 import type { RuntimeRegistry } from "../registry";
 import {
@@ -39,6 +42,25 @@ function createSkeletonStage(
           ctx.setIdentity(resolved.identity);
           ctx.state.data.identityScope = resolved.scope;
           ctx.state.data.identityProviderId = resolved.providerId;
+        }
+        return;
+      }
+
+      if (id === "context") {
+        const contextRuntime = registry.getContextRuntime();
+        if (contextRuntime) {
+          const identity = ctx.state.identity;
+          if (!identity) {
+            throw new RuntimeContextError(
+              "Identity required before Context stage",
+              { code: "CONTEXT_REQUIRES_IDENTITY" }
+            );
+          }
+          const snapshot = await contextRuntime.resolveOrThrow(
+            contextRequestFromExecution(ctx, identity)
+          );
+          ctx.setOrganizationalContext(toOrganizationalContext(snapshot));
+          ctx.state.data.contextSnapshot = snapshot;
         }
         return;
       }

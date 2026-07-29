@@ -8,6 +8,8 @@ import type {
 import { RUNTIME_KERNEL_EVENT_TYPES } from "../contracts/event";
 import { RuntimeExtensionError } from "../errors";
 import type { RuntimeEventBus } from "../events";
+import type { ContextProvider } from "../context/context-provider";
+import type { ContextRuntime } from "../context/context-runtime";
 import type { IdentityProvider } from "../identity/identity-provider";
 import type { IdentityRuntime } from "../identity/identity-runtime";
 import type { RuntimePipelineStageId } from "../types/stages";
@@ -32,7 +34,9 @@ export class RuntimeRegistry {
   private readonly experienceProviders = new Map<string, RuntimeExperienceProvider>();
   private readonly actionProviders = new Map<string, RuntimeActionProvider>();
   private readonly identityProviders = new Map<string, IdentityProvider>();
+  private readonly contextProviders = new Map<string, ContextProvider>();
   private identityRuntime: IdentityRuntime | null = null;
+  private contextRuntime: ContextRuntime | null = null;
   private readonly eventUnsubscribers = new Map<string, () => void>();
   private readonly events?: RuntimeEventBus;
   private readonly runtimeRef?: () => unknown;
@@ -256,6 +260,38 @@ export class RuntimeRegistry {
     return this.identityRuntime;
   }
 
+  registerContextProvider(provider: ContextProvider): void {
+    if (this.contextProviders.has(provider.id)) {
+      throw new RuntimeExtensionError(
+        `Context provider already registered: ${provider.id}`,
+        { code: "RUNTIME_CONTEXT_PROVIDER_EXISTS" }
+      );
+    }
+    this.contextProviders.set(provider.id, provider);
+    void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
+      kind: "context_provider",
+      id: provider.id,
+    });
+  }
+
+  unregisterContextProvider(id: string): boolean {
+    return this.contextProviders.delete(id);
+  }
+
+  listContextProviders(): ContextProvider[] {
+    return [...this.contextProviders.values()].sort(
+      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+    );
+  }
+
+  setContextRuntime(context: ContextRuntime | null): void {
+    this.contextRuntime = context;
+  }
+
+  getContextRuntime(): ContextRuntime | null {
+    return this.contextRuntime;
+  }
+
   clear(): void {
     for (const unsub of this.eventUnsubscribers.values()) unsub();
     this.eventUnsubscribers.clear();
@@ -265,7 +301,9 @@ export class RuntimeRegistry {
     this.experienceProviders.clear();
     this.actionProviders.clear();
     this.identityProviders.clear();
+    this.contextProviders.clear();
     this.identityRuntime = null;
+    this.contextRuntime = null;
   }
 }
 
