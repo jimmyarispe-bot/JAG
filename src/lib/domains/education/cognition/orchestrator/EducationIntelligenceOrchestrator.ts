@@ -11,6 +11,7 @@ import {
   createEducationIntelligenceGraph,
   type EducationIntelligenceGraph,
 } from "../graph";
+import { buildEducationExecutionSnapshot } from "../observability";
 import {
   createEducationPlanner,
   type EducationPlanner,
@@ -30,6 +31,7 @@ export interface EducationIntelligenceOrchestratorOptions {
 export interface EducationIntelligenceOrchestrator {
   /**
    * Run the full Education intelligence pipeline for the given intent + observations.
+   * Returns result + telemetry + snapshot + trace + timeline + metrics.
    */
   execute(context: EducationExecutionContext): EducationExecutionResult;
 }
@@ -67,8 +69,9 @@ function runEducationIntelligencePipeline(
     runners?: EducationIntelligenceOrchestratorOptions["runners"];
   }
 ): EducationExecutionResult {
-  const started = Date.now();
-  const now = context.now ?? new Date().toISOString();
+  const startedMs = Date.now();
+  const startedAt = context.now ?? new Date().toISOString();
+  const now = startedAt;
 
   const planResult = deps.planner.plan({
     intent: context.intent,
@@ -119,18 +122,21 @@ function runEducationIntelligencePipeline(
     ...execution.runtimeSkippedContributorIds,
   ]);
 
+  const durationMs = Date.now() - startedMs;
+  const completedAt = context.now ?? new Date().toISOString();
+
   const telemetry = buildEducationExecutionTelemetry({
     executedContributorIds: execution.executedContributorIds,
     skippedContributorIds,
     failures: execution.failures,
     skippedDependents: execution.skippedDependents,
-    durationMs: Date.now() - started,
+    durationMs,
     evidenceCount,
     recommendationCount,
     actionProposalCount,
     stageCount: planResult.plan.stages.length,
     planOk: planResult.ok,
-    now,
+    now: completedAt,
   });
 
   const ok =
@@ -138,7 +144,23 @@ function runEducationIntelligencePipeline(
     execution.failures.length === 0 &&
     execution.executedContributorIds.length > 0;
 
-  return {
+  const snapshot = buildEducationExecutionSnapshot({
+    ok,
+    planResult,
+    planValidation: planResult.validationIssues,
+    contributorRecords: execution.records,
+    contributorResults: execution.results,
+    graphResult,
+    telemetry,
+    intentLabel: context.intent.label,
+    subjectId,
+    organizationId,
+    startedAt,
+    completedAt,
+    durationMs,
+  });
+
+  const result: EducationExecutionResult = {
     ok,
     plan: planResult.plan,
     planValidation: planResult.validationIssues,
@@ -147,7 +169,16 @@ function runEducationIntelligencePipeline(
     graphResult,
     telemetry,
     planResult,
+    result: null as unknown as EducationExecutionResult,
+    trace: snapshot.trace,
+    timeline: snapshot.timeline,
+    metrics: snapshot.metrics,
+    snapshot,
   };
+  // Self-reference for `{ result, telemetry, snapshot, trace, timeline, metrics }`
+  result.result = result;
+
+  return result;
 }
 
 function unique(values: readonly string[]): string[] {

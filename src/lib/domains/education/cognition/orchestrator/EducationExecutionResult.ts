@@ -5,6 +5,12 @@
 import type { EducationContributorResult } from "../framework";
 import type { EducationGraphResult } from "../graph";
 import type {
+  EducationExecutionMetrics,
+  EducationExecutionSnapshot,
+  EducationExecutionTimeline,
+  EducationExecutionTrace,
+} from "../observability";
+import type {
   EducationExecutionPlan,
   EducationPlanResult,
   EducationPlanValidationIssue,
@@ -20,8 +26,13 @@ export interface EducationContributorExecutionRecord {
   stage?: number;
 }
 
+/**
+ * Orchestrator execute() return value.
+ * Exposes result + telemetry + observability surfaces without changing
+ * intelligence pipeline behavior.
+ */
 export interface EducationExecutionResult {
-  /** True when the plan validated and at least one contributor executed (or graph ran empty-safe). */
+  /** True when the plan validated, no failures, and at least one contributor executed. */
   ok: boolean;
   plan: EducationExecutionPlan;
   planValidation: readonly EducationPlanValidationIssue[];
@@ -37,4 +48,13 @@ export interface EducationExecutionResult {
   telemetry: EducationExecutionTelemetry;
   /** Full planner result for hosts that need selection diagnostics. */
   planResult: EducationPlanResult;
+
+  // --- Observability (D2.7) ---
+  /** Self-reference for hosts that destructure `{ result, telemetry, … }`. */
+  result: EducationExecutionResult;
+  trace: EducationExecutionTrace;
+  timeline: EducationExecutionTimeline;
+  metrics: EducationExecutionMetrics;
+  /** Immutable frozen snapshot for replay / debugging. */
+  snapshot: EducationExecutionSnapshot;
 }

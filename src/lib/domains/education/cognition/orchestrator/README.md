@@ -24,7 +24,14 @@ Applications should call the orchestrator — not contributors or the graph dire
 import { createEducationIntelligenceOrchestrator } from "@/lib/domains/education";
 
 const orchestrator = createEducationIntelligenceOrchestrator();
-const result = orchestrator.execute({
+const {
+  result,
+  telemetry,
+  snapshot,
+  trace,
+  timeline,
+  metrics,
+} = orchestrator.execute({
   intent,
   observations: {
     enrollment: enrollmentObservation,
@@ -33,7 +40,7 @@ const result = orchestrator.execute({
 });
 
 // result.graphResult — unified recommendations / evidence / proposals
-// result.telemetry — executed / skipped / failures / counts
+// telemetry / trace / timeline / metrics / snapshot — D2.7 observability
 ```
 
 ## Guarantees
