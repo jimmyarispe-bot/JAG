@@ -47,7 +47,7 @@ Not “portals” by URL, but role workspaces:
 
 | Workspace | Entry | Audience |
 |-----------|-------|----------|
-| Teacher | `/dashboard/teacher/**` | Teachers |
+| Teacher (Wave 1.4) | `/dashboard/teacher/**` (home, classes, attendance, progress, lessons, assistant, communications, documents, timesheets, resources, profile; sessions/students detail) | Teachers |
 | School leader | `/dashboard/students`, admissions, finance, HR | Leaders |
 | Admissions | `/dashboard/admissions/**`, `/academyos/admissions` | Admissions staff |
 | Finance | `/dashboard/finance/**` | Finance roles |

@@ -36,6 +36,8 @@ import {
 } from "@/lib/teacher/queries";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getTeacherDocumentationDeadlines } from "@/lib/compliance/deadlines";
+import { TEACHER_QUICK_ACTIONS } from "@/lib/teacher/experience/constants";
+import { getTeacherExperience } from "@/lib/teacher/experience/orchestrator";
 
 const WORKSPACE_SWITCHER_IDS = new Set(["executive", "students", "scheduling", "teacher"]);
 
@@ -165,6 +167,22 @@ export async function TeacherPageContent({ searchParams }: TeacherPageContentPro
     (s) => !["completed", "complete", "documented"].includes(s.lessonStatus.toLowerCase())
   );
 
+  const { data: teacherEmployee } = await supabase
+    .from("employees")
+    .select("organization_id, school_id")
+    .eq("id", employeeId)
+    .maybeSingle();
+
+  getTeacherExperience().publishDashboardViewed({
+    organizationId:
+      (teacherEmployee as { organization_id?: string } | null)?.organization_id ??
+      (teacherEmployee as { school_id?: string } | null)?.school_id ??
+      ctx.orgAssignments[0]?.school_id ??
+      "default",
+    actorUserId: ctx.effectiveUserId,
+    employeeId,
+  });
+
   const orgContext = workspaceState?.org ?? null;
   const orgScopeLabel =
     orgContext?.activeScope.schoolName ??
@@ -208,6 +226,12 @@ export async function TeacherPageContent({ searchParams }: TeacherPageContentPro
                 variant: "primary" as const,
               }]
             : []),
+          ...TEACHER_QUICK_ACTIONS.map((a) => ({
+            id: a.href,
+            label: a.label,
+            href: a.href,
+            variant: "secondary" as const,
+          })),
           {
             id: "priorities",
             label: "Highest priorities",

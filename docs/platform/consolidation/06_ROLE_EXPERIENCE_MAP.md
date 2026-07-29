@@ -14,7 +14,7 @@ Actions: `read` · `create` · `update` · `approve` · `archive` · `export` ·
 | **Applicant** | Apply portal | Application, finance, docs | Help | Stage changes | Application status | Application packet |
 | **Parent** | `/portal` | Children, learning, attendance, billing, messages, docs, calendar, forms, contracts, support, profile | Coach (scoped) | School + billing | Student progress | Portal documents (Knowledge) |
 | **Student** | `/portal/student` | Learning, assignments, assessments, attendance, calendar, goals, achievements, coach, docs, profile, messages | Learning Coach (LI evidence-only) | Assignments / school | Progress | Student documents (Knowledge) |
-| **Teacher** | `/dashboard/teacher` | Classes, attendance, mastery, messages | Mr. JAG Coach; LI later | Class / parent | Class reports | Lesson / observations |
+| **Teacher** | `/dashboard/teacher` | Classes, attendance, progress, lessons, AI assistant, parent comms, documents, timesheets, resources, profile | AI Teaching Assistant (LI evidence-only) | Class / parent | Class reports | Lesson / observations / Knowledge |
 | **School leader** | Students / mission hub | SIS, admissions, teachers, finance, compliance | Executive + Coach | Ops alerts | School KPIs | School docs |
 | **Admissions** | `/dashboard/admissions` | Pipeline, apply review, scholarships | Coach | Pipeline | Admissions funnel | Application docs |
 | **Registrar** | Students / enrollment | SIS, enrollment, transcripts | Coach | Enrollment | Rosters | Enrollment docs |
@@ -46,4 +46,4 @@ Actions: `read` · `create` · `update` · `approve` · `archive` · `export` ·
 | Mr. JAG Help / Coach | Most authenticated roles | Modify SoR silently |
 | CFO conversational finance | Finance / Executive / Founder | Post journals |
 | Knowledge summaries | Roles with doc access | Summarize without evidence |
-| Learning AI coach | Teacher / Student (Wave 1.3 LI coach) | Replace teacher judgment / invent diagnoses |
+| Learning AI coach | Teacher (Wave 1.4 assistant) / Student (Wave 1.3 LI coach) | Replace teacher judgment / invent diagnoses |

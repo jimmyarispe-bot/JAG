@@ -82,17 +82,26 @@ Route families as of consolidation. Detail audits: `docs/applications/academyos/
 
 Staff view: `/dashboard/students/**`.
 
-## E. Teacher workspace
+## E. Teacher workspace (Wave 1.4)
 
-| Screen | Route family | Engines |
-|--------|--------------|---------|
-| Teacher home / today | `/dashboard/teacher/**` | Scheduling, Attendance, Learning |
-| Attendance | Teacher + attendance APIs | Attendance, SIS |
-| Lesson / resources | Teacher workspace APIs | Learning, Knowledge |
-| Observations / session notes | Academic-ops | Knowledge, Learning |
-| Mastery / progress | Learning APIs | **P-015**, Learning |
-| Payroll / timesheets | Workforce APIs + HR | Workforce, Finance patterns |
-| Parent communication | Communications | Notifications, Messaging |
+Product orchestration at `/dashboard/teacher/**` — no new engines; consumes Scheduling, Attendance, LI, Knowledge, Finance timekeeping, Communications.
+
+| Screen | Route | Engines |
+|--------|-------|---------|
+| Teacher home / today | `/dashboard/teacher` | Scheduling, Attendance, Work, Notifications |
+| My Classes | `/dashboard/teacher/classes` | Scheduling |
+| Class session | `/dashboard/teacher/sessions/[id]` | Scheduling, Attendance, Learning |
+| Student profile | `/dashboard/teacher/students/[id]` | SIS, **P-015**, Knowledge |
+| Attendance | `/dashboard/teacher/attendance` | Attendance |
+| Progress monitoring | `/dashboard/teacher/progress` | **P-015**, Learning |
+| Lesson planning | `/dashboard/teacher/lessons` | Curriculum / Learning, Knowledge |
+| AI Teaching Assistant | `/dashboard/teacher/assistant` | **P-015** (evidence-only) |
+| Parent communication | `/dashboard/teacher/communications` | Communications, Notifications |
+| Documents | `/dashboard/teacher/documents` | KnowledgeEngine |
+| Timesheets | `/dashboard/teacher/timesheets` | Finance / workforce timekeeping |
+| Resources | `/dashboard/teacher/resources` | Curriculum, Knowledge |
+| Profile | `/dashboard/teacher/profile` | Identity |
+| Spec | `docs/academyos/portal/03_TEACHER_EXPERIENCE.md` | — |
 
 ## F. School leader
 
