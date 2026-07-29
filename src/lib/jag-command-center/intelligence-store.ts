@@ -35,6 +35,16 @@ export type JagStoredExecutiveBrief = {
   readonly recommendedActions: readonly string[];
 };
 
+export type JagStoredExecutionDetail = {
+  readonly evidence: EducationContributorResult["evidence"];
+  readonly recommendations: EducationContributorResult["recommendations"];
+  readonly blockingIssues: readonly string[];
+  readonly warnings: readonly string[];
+  readonly readiness: EducationContributorResult["readiness"];
+  readonly attributes?: Readonly<Record<string, unknown>>;
+  readonly dependsOn: readonly string[];
+};
+
 export type JagStoredExecution = {
   readonly id: string;
   readonly organizationId: string;
@@ -46,6 +56,8 @@ export type JagStoredExecution = {
   readonly analyzedAt: string;
   readonly evidenceCount: number;
   readonly suggestedActions: readonly EducationActionProposal[];
+  /** Full contributor payload for Decision Center detail views. */
+  readonly detail?: JagStoredExecutionDetail;
 };
 
 type OrgBucket = {
@@ -117,25 +129,23 @@ export function recordEducationExecutionSnapshot(
   const b = bucket(organizationId);
   const capturedAt = snapshot.capturedAt;
 
+  const depByContributor = new Map(
+    snapshot.plan.nodes.map((n) => [n.contributorId, n.dependsOn] as const)
+  );
+
   const executions: JagStoredExecution[] = snapshot.contributorRecords
     .filter((r) => r.status === "executed" && r.result)
     .map((r) => {
       const result = r.result as EducationContributorResult;
-      return {
+      return toStoredExecution({
         id: `${snapshot.snapshotId}:${r.contributorId}`,
         organizationId,
         contributorId: r.contributorId,
-        label: labelForContributor(r.contributorId),
-        confidence: result.confidence,
+        result,
         durationMs: r.durationMs,
-        resultSummary: result.explanation || result.readiness,
-        analyzedAt: result.analyzedAt || capturedAt,
-        evidenceCount: result.evidence.length,
-        suggestedActions: [
-          ...result.suggestedActions,
-          ...result.recommendations.flatMap((rec) => rec.suggestedActions),
-        ],
-      };
+        analyzedAtFallback: capturedAt,
+        dependsOn: depByContributor.get(r.contributorId) ?? [],
+      });
     });
 
   b.executions = [...executions, ...b.executions].slice(0, 50);
@@ -178,17 +188,14 @@ export function recordSchoolHealthResult(input: {
     input.result
   );
   b.executions = [
-    {
+    toStoredExecution({
       id: `school-health:${input.result.analyzedAt}`,
       organizationId: input.organizationId,
       contributorId: SCHOOL_HEALTH_CONTRIBUTOR_ID,
-      label: "School Health",
-      confidence: input.result.confidence,
-      resultSummary: input.result.explanation,
-      analyzedAt: input.result.analyzedAt,
-      evidenceCount: input.result.evidence.length,
-      suggestedActions: input.result.suggestedActions,
-    },
+      result: input.result,
+      analyzedAtFallback: input.result.analyzedAt,
+      dependsOn: [],
+    }),
     ...b.executions,
   ].slice(0, 50);
 }
@@ -207,19 +214,88 @@ export function recordExecutiveBriefResult(input: {
     input.result
   );
   b.executions = [
-    {
+    toStoredExecution({
       id: `executive-brief:${input.result.analyzedAt}`,
       organizationId: input.organizationId,
       contributorId: EXECUTIVE_BRIEFING_CONTRIBUTOR_ID,
-      label: "Executive Education Briefing",
-      confidence: input.result.confidence,
-      resultSummary: input.result.explanation,
-      analyzedAt: input.result.analyzedAt,
-      evidenceCount: input.result.evidence.length,
-      suggestedActions: input.result.suggestedActions,
-    },
+      result: input.result,
+      analyzedAtFallback: input.result.analyzedAt,
+      dependsOn: [],
+    }),
     ...b.executions,
   ].slice(0, 50);
+}
+
+export function getStoredExecution(
+  organizationId: string,
+  executionId: string
+): JagStoredExecution | null {
+  return (
+    bucket(organizationId).executions.find((e) => e.id === executionId) ?? null
+  );
+}
+
+export function listStoredExecutionsForOrganizations(
+  organizationIds: readonly string[],
+  limit = 200
+): readonly JagStoredExecution[] {
+  const out: JagStoredExecution[] = [];
+  for (const organizationId of organizationIds) {
+    out.push(...bucket(organizationId).executions);
+  }
+  return out
+    .slice()
+    .sort((a, b) => b.analyzedAt.localeCompare(a.analyzedAt))
+    .slice(0, limit);
+}
+
+function toStoredExecution(input: {
+  id: string;
+  organizationId: string;
+  contributorId: string;
+  result: EducationContributorResult;
+  durationMs?: number;
+  analyzedAtFallback: string;
+  dependsOn: readonly string[];
+}): JagStoredExecution {
+  const suggestedActions = dedupeProposals([
+    ...input.result.suggestedActions,
+    ...input.result.recommendations.flatMap((rec) => rec.suggestedActions),
+  ]);
+  return {
+    id: input.id,
+    organizationId: input.organizationId,
+    contributorId: input.contributorId,
+    label: labelForContributor(input.contributorId),
+    confidence: input.result.confidence,
+    durationMs: input.durationMs,
+    resultSummary: input.result.explanation || input.result.readiness,
+    analyzedAt: input.result.analyzedAt || input.analyzedAtFallback,
+    evidenceCount: input.result.evidence.length,
+    suggestedActions,
+    detail: {
+      evidence: input.result.evidence,
+      recommendations: input.result.recommendations,
+      blockingIssues: input.result.blockingIssues,
+      warnings: input.result.warnings,
+      readiness: input.result.readiness,
+      attributes: input.result.attributes,
+      dependsOn: input.dependsOn,
+    },
+  };
+}
+
+function dedupeProposals(
+  proposals: readonly EducationActionProposal[]
+): EducationActionProposal[] {
+  const seen = new Set<string>();
+  const out: EducationActionProposal[] = [];
+  for (const p of proposals) {
+    if (seen.has(p.actionId)) continue;
+    seen.add(p.actionId);
+    out.push(p);
+  }
+  return out;
 }
 
 function projectSchoolHealth(

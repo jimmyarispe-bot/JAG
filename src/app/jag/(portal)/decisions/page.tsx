@@ -1,21 +1,23 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { JagDecisionCenter } from "@/components/jag-platform/JagDecisionCenter";
+import { JagDecisionCenterView } from "@/components/jag/command-center/decisions";
+import { JagSection } from "@/components/jag/command-center";
 import {
-  listAccessibleEvidenceOrganizations,
-  resolveEvidenceOrganization,
-} from "@/lib/evidence-center";
-import {
-  createDecisionHistoryService,
-  createDecisionService,
-  getDecisionSummary,
-} from "@/lib/executive-intelligence";
+  loadDecisionCenter,
+  type JagDecisionFilters,
+  type JagDecisionGroup,
+  type JagDecisionPriorityLabel,
+  type JagDecisionStatus,
+  JAG_DECISION_GROUPS,
+  JAG_DECISION_STATUSES,
+} from "@/lib/jag-command-center";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 export default async function JagDecisionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ org?: string; decision?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const session = await getJagPlatformSession();
   if (!session) {
@@ -23,32 +25,57 @@ export default async function JagDecisionsPage({
   }
 
   const params = await searchParams;
-  const org = resolveEvidenceOrganization(session, params.org);
-  if (!org) {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-sm">
-        No organization is available for Decision Center™.
-      </div>
-    );
-  }
-
-  const organizations = listAccessibleEvidenceOrganizations(session);
-  const service = createDecisionService();
-  service.syncFromInsights(org.id, session.userId);
-  const decisions = service.list(org.id);
-  const summary = getDecisionSummary(org.id);
-  const mergedTimeline = createDecisionHistoryService().listMergedTimeline(
-    org.id
-  );
+  const filters = parseFilters(params);
 
   return (
-    <JagDecisionCenter
-      organizations={organizations}
-      organizationId={org.id}
-      decisions={decisions}
-      summary={summary}
-      mergedTimeline={mergedTimeline}
-      selectedId={params.decision ?? null}
-    />
+    <Suspense fallback={<Loading />}>
+      <JagDecisionCenterView model={loadDecisionCenter(session, filters)} />
+    </Suspense>
+  );
+}
+
+function parseFilters(
+  params: Record<string, string | undefined>
+): JagDecisionFilters {
+  const priority = params.priority;
+  const status = params.status;
+  const group = params.group;
+
+  return {
+    priority: isPriority(priority) ? priority : "all",
+    organizationId: params.org || "all",
+    domainId: params.domain || "all",
+    capabilityPackId: params.pack || "all",
+    status: isStatus(status) ? status : "all",
+    contributorId: params.contributor || "all",
+    group: isGroup(group) ? group : "all",
+    q: params.q,
+  };
+}
+
+function isPriority(v?: string): v is JagDecisionPriorityLabel {
+  return v === "P1" || v === "P2" || v === "P3";
+}
+
+function isStatus(v?: string): v is JagDecisionStatus {
+  return Boolean(v && (JAG_DECISION_STATUSES as readonly string[]).includes(v));
+}
+
+function isGroup(v?: string): v is JagDecisionGroup {
+  return Boolean(v && (JAG_DECISION_GROUPS as readonly string[]).includes(v));
+}
+
+function Loading() {
+  return (
+    <JagSection title="Decision Center" description="Loading queue…">
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-36 animate-pulse rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)]"
+          />
+        ))}
+      </div>
+    </JagSection>
   );
 }

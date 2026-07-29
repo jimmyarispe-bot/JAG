@@ -19,13 +19,13 @@ Never fabricate metrics. Empty states explain what is missing and how to obtain 
 | Section | Source |
 |---------|--------|
 | Organization Health | Bound School Health contributor result (`education.cognition.school_health`) |
-| Today's Priorities | Open Decision Center items (top 5) → `/jag/priorities/[id]` |
+| Today's Priorities | Open Decision Center items (top 5) → `/jag/decisions/[id]` |
 | Executive Brief | Bound Executive Education Briefing result |
 | Capability Packs | `listCapabilityPacks()` |
 | Loaded Domains | Dynamic loaders (Education today) |
 | Runtime Status | Planner, Graph, Policy Engine, Knowledge Model, Observability health |
 | Recent Intelligence | Bound contributor executions |
-| Recommended Decisions | High-priority action proposals + open decisions, grouped |
+| Recommended Decisions | High-priority action proposals → `/jag/decisions/[id]`, grouped |
 
 ---
 
@@ -60,3 +60,5 @@ That binds School Health, Executive Briefing, recent executions, and action prop
 - UI + application services only  
 - No JAG Core / Runtime / Domain SDK modifications  
 - No fabricated health scores, trends, or confidence values  
+
+Proposal deep-links open the Decision Center (`/jag/decisions/[id]`).

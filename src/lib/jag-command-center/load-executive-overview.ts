@@ -17,6 +17,7 @@ import {
 import { getDecisionService } from "@/lib/executive-intelligence";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
+import { projectDecisionId } from "./decision-center/project";
 import { listLoadedDomains } from "./domains";
 import {
   getStoredExecutiveBrief,
@@ -285,11 +286,17 @@ function loadRecommendedDecisions(
   )) {
     if (proposal.priority > 2) continue;
     const group = groupForContributor(execution.contributorId);
+    const decisionId = projectDecisionId({
+      organizationId,
+      executionId: execution.id,
+      actionId: proposal.actionId,
+    });
     groups[group].push({
       id: `${execution.id}:${proposal.actionId}`,
       title: proposal.label || proposal.kind,
       rationale: proposal.rationale,
       priority: proposal.priority,
+      href: `/jag/decisions/${decisionId}`,
       source: execution.label,
     });
   }

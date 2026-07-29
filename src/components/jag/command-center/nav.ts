@@ -11,6 +11,11 @@ export type JagNavItem = {
 export const JAG_COMMAND_NAV: readonly JagNavItem[] = [
   { id: "overview", label: "Overview", href: "/jag" },
   {
+    id: "decisions",
+    label: "Decision Center",
+    href: "/jag/decisions",
+  },
+  {
     id: "briefings",
     label: "Executive Briefings",
     href: "/jag/briefings",
