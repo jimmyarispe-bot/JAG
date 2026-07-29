@@ -22,6 +22,9 @@ export const EDUCATION_CAPABILITY_IDS = {
   attendance: "education.capability.attendance",
   academicProgress: "education.capability.academic_progress",
   scheduling: "education.capability.scheduling",
+  staffing: "education.capability.staffing",
+  capacity: "education.capability.capacity",
+  operationalReadiness: "education.capability.operational_readiness",
   interventions: "education.capability.interventions",
   familyEngagement: "education.capability.family_engagement",
   scholarships: "education.capability.scholarships",
@@ -84,11 +87,68 @@ export const EDUCATION_CAPABILITY_CATALOG: readonly EducationCapabilityDefinitio
       relatedEntityIds: [
         "education.entity.class",
         "education.entity.session",
+        "education.entity.section",
+        "education.entity.classroom",
+        "education.entity.instructional_block",
+        "education.entity.bell_schedule",
         "education.entity.course",
         "education.entity.campus",
         "education.entity.teacher",
       ],
+      relatedPolicyIds: [
+        "education.policy.operations.session_overlap",
+        "education.policy.operations.instructional_coverage",
+      ],
+      contributorIdHint: "education.cognition.scheduling",
       tags: ["operations"],
+    },
+    {
+      id: EDUCATION_CAPABILITY_IDS.staffing,
+      name: "Staffing",
+      description:
+        "Reason about instructional staffing, assignments, certifications, and load.",
+      relatedEntityIds: [
+        "education.entity.teacher",
+        "education.entity.teaching_assignment",
+        "education.entity.instructional_load",
+        "education.entity.program",
+      ],
+      relatedPolicyIds: [
+        "education.policy.operations.teacher_load",
+        "education.policy.operations.program_staffing_requirements",
+      ],
+      contributorIdHint: "education.cognition.staffing",
+      tags: ["operations", "staffing"],
+    },
+    {
+      id: EDUCATION_CAPABILITY_IDS.capacity,
+      name: "Capacity",
+      description:
+        "Reason about instructional capacity utilization across programs and campuses.",
+      relatedEntityIds: [
+        "education.entity.capacity_unit",
+        "education.entity.section",
+        "education.entity.program",
+        "education.entity.campus",
+        "education.entity.classroom",
+      ],
+      relatedPolicyIds: ["education.policy.operations.maximum_class_size"],
+      contributorIdHint: "education.cognition.capacity",
+      tags: ["operations", "capacity"],
+    },
+    {
+      id: EDUCATION_CAPABILITY_IDS.operationalReadiness,
+      name: "Operational Readiness",
+      description:
+        "Synthesize scheduling, staffing, and capacity into overall operational readiness.",
+      relatedEntityIds: [
+        "education.entity.section",
+        "education.entity.teaching_assignment",
+        "education.entity.capacity_unit",
+        "education.entity.campus",
+      ],
+      contributorIdHint: "education.cognition.operational_readiness",
+      tags: ["operations", "synthesis"],
     },
     {
       id: EDUCATION_CAPABILITY_IDS.interventions,

@@ -42,6 +42,7 @@ export interface EducationCapabilityPackMetadata {
 export const EDUCATION_CAPABILITY_PACK_IDS = {
   studentLifecycle: "education.capability_pack.student_lifecycle",
   studentSupport: "education.capability_pack.student_support",
+  academicOperations: "education.capability_pack.academic_operations",
 } as const;
 
 export type EducationCapabilityPackId =

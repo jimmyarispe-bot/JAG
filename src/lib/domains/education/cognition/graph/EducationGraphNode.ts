@@ -13,6 +13,9 @@ export const EDUCATION_GRAPH_NODE_KINDS = [
   "compliance",
   "family_engagement",
   "support_planning",
+  "staffing",
+  "capacity",
+  "operational_readiness",
 ] as const;
 
 export type EducationGraphNodeKind =
@@ -42,6 +45,9 @@ export const EDUCATION_GRAPH_NODE_LABELS: Record<
   compliance: "Compliance",
   family_engagement: "Family Engagement",
   support_planning: "Support Planning",
+  staffing: "Staffing",
+  capacity: "Capacity",
+  operational_readiness: "Operational Readiness",
 };
 
 /** Map known contributor ids to graph node kinds. */
@@ -50,6 +56,12 @@ export function nodeKindFromContributorId(
 ): EducationGraphNodeKind | null {
   if (contributorId.includes("enrollment")) return "enrollment";
   if (contributorId.includes("attendance")) return "attendance";
+  if (
+    contributorId.includes("operational_readiness") ||
+    contributorId.includes("operational-readiness")
+  ) {
+    return "operational_readiness";
+  }
   if (
     contributorId.includes("support_planning") ||
     contributorId.includes("support-planning")
@@ -63,6 +75,8 @@ export function nodeKindFromContributorId(
     return "student_success";
   }
   if (contributorId.includes("progress")) return "progress";
+  if (contributorId.includes("staffing")) return "staffing";
+  if (contributorId.includes("capacity")) return "capacity";
   if (contributorId.includes("scheduling") || contributorId.includes("schedule"))
     return "scheduling";
   if (contributorId.includes("intervention")) return "intervention";

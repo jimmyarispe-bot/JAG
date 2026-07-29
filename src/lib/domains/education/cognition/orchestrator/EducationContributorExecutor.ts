@@ -21,6 +21,10 @@ import {
   runAcademicProgressIntelligence,
 } from "../progress";
 import {
+  CAPACITY_CONTRIBUTOR_ID,
+  runCapacityIntelligence,
+} from "../capacity";
+import {
   FAMILY_ENGAGEMENT_CONTRIBUTOR_ID,
   buildFamilyEngagementInputs,
   runFamilyEngagementIntelligence,
@@ -30,6 +34,19 @@ import {
   buildInterventionInputs,
   runInterventionIntelligence,
 } from "../intervention";
+import {
+  OPERATIONAL_READINESS_CONTRIBUTOR_ID,
+  buildOperationalReadinessInputs,
+  runOperationalReadinessIntelligence,
+} from "../operational-readiness";
+import {
+  SCHEDULING_CONTRIBUTOR_ID,
+  runSchedulingIntelligence,
+} from "../scheduling";
+import {
+  STAFFING_CONTRIBUTOR_ID,
+  runStaffingIntelligence,
+} from "../staffing";
 import {
   STUDENT_SUCCESS_CONTRIBUTOR_ID,
   buildStudentSuccessInputs,
@@ -304,6 +321,51 @@ function runContributor(input: {
     return runSupportPlanningIntelligence(synthesisInputs, { now: input.now });
   }
 
+  if (input.contributorId === SCHEDULING_CONTRIBUTOR_ID) {
+    const observation = input.observations.scheduling;
+    if (!observation) {
+      throw new Error("Missing scheduling observation");
+    }
+    return runSchedulingIntelligence(observation, { now: input.now });
+  }
+
+  if (input.contributorId === STAFFING_CONTRIBUTOR_ID) {
+    const observation = input.observations.staffing;
+    if (!observation) {
+      throw new Error("Missing staffing observation");
+    }
+    return runStaffingIntelligence(observation, { now: input.now });
+  }
+
+  if (input.contributorId === CAPACITY_CONTRIBUTOR_ID) {
+    const observation = input.observations.capacity;
+    if (!observation) {
+      throw new Error("Missing capacity observation");
+    }
+    return runCapacityIntelligence(observation, { now: input.now });
+  }
+
+  if (input.contributorId === OPERATIONAL_READINESS_CONTRIBUTOR_ID) {
+    const { subjectId, organizationId } = resolveSubject(input);
+    const synthesisInputs = buildOperationalReadinessInputs({
+      subjectId,
+      organizationId,
+      upstream: input.priorResults,
+    });
+    if (
+      !synthesisInputs.scheduling &&
+      !synthesisInputs.staffing &&
+      !synthesisInputs.capacity
+    ) {
+      throw new Error(
+        "Operational readiness synthesis requires upstream contributor results"
+      );
+    }
+    return runOperationalReadinessIntelligence(synthesisInputs, {
+      now: input.now,
+    });
+  }
+
   throw new Error(
     `No executor registered for contributor ${input.contributorId}`
   );
@@ -318,11 +380,17 @@ function resolveSubject(input: {
 }): { subjectId: string; organizationId?: string } {
   const subjectId =
     input.priorResults[0]?.result.subjectId ??
+    input.observations.scheduling?.subject.subjectId ??
+    input.observations.staffing?.subject.subjectId ??
+    input.observations.capacity?.subject.subjectId ??
     input.observations.progress?.student.studentId ??
     input.observations.attendance?.student.studentId ??
     input.observations.enrollment?.student?.studentId ??
     "unknown";
   const organizationId =
+    input.observations.scheduling?.organizationId ??
+    input.observations.staffing?.organizationId ??
+    input.observations.capacity?.organizationId ??
     input.observations.progress?.organizationId ??
     input.observations.attendance?.organizationId ??
     input.observations.enrollment?.organizationId;

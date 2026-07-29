@@ -24,6 +24,7 @@ export type EducationPlanScenario =
   | "student_success_review"
   | "scholarship_review"
   | "support"
+  | "academic_operations"
   | "generic_education"
   | "unknown";
 
@@ -65,6 +66,29 @@ export function detectEducationPlanScenario(
     return "support";
   }
   if (
+    haystack.includes("daily operations") ||
+    haystack.includes("daily_operations") ||
+    haystack.includes("scheduling review") ||
+    haystack.includes("scheduling_review") ||
+    haystack.includes("staffing review") ||
+    haystack.includes("staffing_review") ||
+    haystack.includes("capacity review") ||
+    haystack.includes("capacity_review") ||
+    haystack.includes("semester planning") ||
+    haystack.includes("semester_planning") ||
+    haystack.includes("leadership operations") ||
+    haystack.includes("leadership_operations") ||
+    haystack.includes("operations brief") ||
+    haystack.includes("operations review") ||
+    haystack.includes("academic operations") ||
+    intent.intentId.includes("operations") ||
+    intent.intentId.includes("scheduling") ||
+    intent.intentId.includes("staffing") ||
+    intent.intentId.includes("capacity")
+  ) {
+    return "academic_operations";
+  }
+  if (
     haystack.includes("student_success") ||
     haystack.includes("student success") ||
     (haystack.includes("success") && haystack.includes("review")) ||
@@ -73,7 +97,9 @@ export function detectEducationPlanScenario(
     haystack.includes("leadership brief") ||
     haystack.includes("leadership_brief") ||
     (haystack.includes("advisor") && haystack.includes("brief")) ||
-    (haystack.includes("leadership") && haystack.includes("brief"))
+    (haystack.includes("leadership") &&
+      haystack.includes("brief") &&
+      !haystack.includes("operations"))
   ) {
     return "student_success_review";
   }
@@ -121,6 +147,12 @@ export const EDUCATION_SCENARIO_CONTRIBUTORS: Record<
     "education.cognition.intervention",
     "education.cognition.family_engagement",
     "education.cognition.support_planning",
+  ],
+  academic_operations: [
+    "education.cognition.scheduling",
+    "education.cognition.staffing",
+    "education.cognition.capacity",
+    "education.cognition.operational_readiness",
   ],
   generic_education: [
     "education.cognition.enrollment",
@@ -248,6 +280,9 @@ function reasonForInclude(
   }
   if (scenario === "support") {
     return "Included for support intent";
+  }
+  if (scenario === "academic_operations") {
+    return "Included for academic operations intent";
   }
   return `Included for scenario "${scenario}"`;
 }

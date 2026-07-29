@@ -24,6 +24,14 @@ export const EDUCATION_CONTRIBUTOR_IDS = {
   familyEngagementCognition: "education.cognition.family_engagement",
   /** Student Support capability — Support Planning synthesis (D4.2). */
   supportPlanningCognition: "education.cognition.support_planning",
+  /** Academic Operations — Scheduling Intelligence (D5.1). */
+  schedulingCognition: "education.cognition.scheduling",
+  /** Academic Operations — Staffing Intelligence (D5.1). */
+  staffingCognition: "education.cognition.staffing",
+  /** Academic Operations — Capacity Intelligence (D5.1). */
+  capacityCognition: "education.cognition.capacity",
+  /** Academic Operations — Operational Readiness synthesis (D5.1). */
+  operationalReadinessCognition: "education.cognition.operational_readiness",
   experience: "education.experience",
   action: "education.action",
   evidence: "education.evidence",

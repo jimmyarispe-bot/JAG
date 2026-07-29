@@ -7,8 +7,12 @@ import { createAttendanceContributor } from "../cognition/attendance";
 import { createEducationCognitiveContributor } from "../cognition";
 import { createEnrollmentContributor } from "../cognition/enrollment";
 import { createAcademicProgressContributor } from "../cognition/progress";
+import { createCapacityContributor } from "../cognition/capacity";
 import { createFamilyEngagementContributor } from "../cognition/family-engagement";
 import { createInterventionContributor } from "../cognition/intervention";
+import { createOperationalReadinessContributor } from "../cognition/operational-readiness";
+import { createSchedulingContributor } from "../cognition/scheduling";
+import { createStaffingContributor } from "../cognition/staffing";
 import { createStudentSuccessContributor } from "../cognition/student-success";
 import { createSupportPlanningContributor } from "../cognition/support-planning";
 import { createEducationContextContributor } from "../context";
@@ -30,6 +34,12 @@ export interface EducationContributorSet {
   interventionCognition: ReturnType<typeof createInterventionContributor>;
   familyEngagementCognition: ReturnType<typeof createFamilyEngagementContributor>;
   supportPlanningCognition: ReturnType<typeof createSupportPlanningContributor>;
+  schedulingCognition: ReturnType<typeof createSchedulingContributor>;
+  staffingCognition: ReturnType<typeof createStaffingContributor>;
+  capacityCognition: ReturnType<typeof createCapacityContributor>;
+  operationalReadinessCognition: ReturnType<
+    typeof createOperationalReadinessContributor
+  >;
   experience: ReturnType<typeof createEducationExperienceContributor>;
   action: ReturnType<typeof createEducationActionContributor>;
   evidence: ReturnType<typeof createEducationEvidenceContributor>;
@@ -49,6 +59,10 @@ export function createEducationContributors(): EducationContributorSet {
     interventionCognition: createInterventionContributor(),
     familyEngagementCognition: createFamilyEngagementContributor(),
     supportPlanningCognition: createSupportPlanningContributor(),
+    schedulingCognition: createSchedulingContributor(),
+    staffingCognition: createStaffingContributor(),
+    capacityCognition: createCapacityContributor(),
+    operationalReadinessCognition: createOperationalReadinessContributor(),
     experience: createEducationExperienceContributor(),
     action: createEducationActionContributor(),
     evidence: createEducationEvidenceContributor(),
@@ -70,6 +84,10 @@ export {
   createInterventionContributor,
   createFamilyEngagementContributor,
   createSupportPlanningContributor,
+  createSchedulingContributor,
+  createStaffingContributor,
+  createCapacityContributor,
+  createOperationalReadinessContributor,
   createEducationCognitiveContributor,
   createEnrollmentContributor,
   createEducationContextContributor,

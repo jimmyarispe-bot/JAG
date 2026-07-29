@@ -5,9 +5,12 @@
 
 import type { RuntimeIntent } from "@/lib/jag/runtime";
 import type { AttendanceObservation } from "../attendance";
+import type { CapacityObservation } from "../capacity";
 import type { EnrollmentObservation } from "../enrollment";
 import type { EducationPlannerContext } from "../planner";
 import type { AcademicProgressObservation } from "../progress";
+import type { SchedulingObservation } from "../scheduling";
+import type { StaffingObservation } from "../staffing";
 
 /**
  * Normalized observation bag. Hosts construct these; the orchestrator
@@ -17,6 +20,9 @@ export interface EducationNormalizedObservations {
   enrollment?: EnrollmentObservation;
   attendance?: AttendanceObservation;
   progress?: AcademicProgressObservation;
+  scheduling?: SchedulingObservation;
+  staffing?: StaffingObservation;
+  capacity?: CapacityObservation;
   /**
    * Extensible map for future contributors
    * (keyed by contributor id or observation attribute key).

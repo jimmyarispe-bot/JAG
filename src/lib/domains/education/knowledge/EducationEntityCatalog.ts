@@ -30,6 +30,14 @@ export const EDUCATION_ENTITY_IDS = {
   progressRecord: "education.entity.progress_record",
   goal: "education.entity.goal",
   enrollment: "education.entity.enrollment",
+  /** Academic Operations (D5.1) */
+  classroom: "education.entity.classroom",
+  section: "education.entity.section",
+  instructionalBlock: "education.entity.instructional_block",
+  bellSchedule: "education.entity.bell_schedule",
+  teachingAssignment: "education.entity.teaching_assignment",
+  capacityUnit: "education.entity.capacity_unit",
+  instructionalLoad: "education.entity.instructional_load",
 } as const;
 
 export type EducationEntityId =
@@ -140,6 +148,55 @@ export const EDUCATION_ENTITY_CATALOG: readonly EducationEntityDefinition[] = [
     vocabularyId: "education.term.enrollment",
     description: "Placement of a student into a program.",
     tags: ["process"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.classroom,
+    name: "Classroom",
+    vocabularyId: "education.term.classroom",
+    description: "Physical or virtual space where instruction occurs.",
+    tags: ["operations", "space"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.section,
+    name: "Section",
+    vocabularyId: "education.term.section",
+    description: "Scheduled offering of a course with capacity and staffing.",
+    tags: ["operations"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.instructionalBlock,
+    name: "Instructional Block",
+    vocabularyId: "education.term.instructional_block",
+    description: "Timed block of instruction within a bell schedule.",
+    tags: ["operations", "time"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.bellSchedule,
+    name: "Bell Schedule",
+    vocabularyId: "education.term.bell_schedule",
+    description: "Campus or program daily period structure.",
+    tags: ["operations", "time"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.teachingAssignment,
+    name: "Teaching Assignment",
+    vocabularyId: "education.term.teaching_assignment",
+    description: "Assignment of a teacher to a section or class.",
+    tags: ["operations", "staffing"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.capacityUnit,
+    name: "Capacity Unit",
+    vocabularyId: "education.term.capacity_unit",
+    description: "Unit of instructional capacity (seats, sections, or virtual slots).",
+    tags: ["operations", "capacity"],
+  },
+  {
+    id: EDUCATION_ENTITY_IDS.instructionalLoad,
+    name: "Instructional Load",
+    vocabularyId: "education.term.instructional_load",
+    description: "Measured teaching load for a staff member.",
+    tags: ["operations", "staffing"],
   },
 ] as const;
 

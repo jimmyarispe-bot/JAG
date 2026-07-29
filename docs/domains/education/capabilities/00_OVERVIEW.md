@@ -19,6 +19,7 @@ Packs are metadata. They do **not** replace the Graph, Planner, Orchestrator, or
 |------|----|------------|
 | [Student Lifecycle](01_STUDENT_LIFECYCLE.md) | `education.capability_pack.student_lifecycle` | — |
 | [Student Support](02_STUDENT_SUPPORT.md) | `education.capability_pack.student_support` | Student Lifecycle |
+| Academic Operations | `education.capability_pack.academic_operations` | Student Lifecycle |
 
 ---
 

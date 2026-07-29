@@ -125,6 +125,48 @@ export const EDUCATION_VOCABULARY: readonly EducationVocabularyTerm[] = [
     kind: "general",
   },
   {
+    id: "education.term.classroom",
+    term: "Classroom",
+    definition: "Physical or virtual space where instruction occurs.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.section",
+    term: "Section",
+    definition: "Scheduled offering of a course with capacity and staffing.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.instructional_block",
+    term: "Instructional Block",
+    definition: "Timed block of instruction within a bell schedule.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.bell_schedule",
+    term: "Bell Schedule",
+    definition: "Campus or program daily period structure.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.teaching_assignment",
+    term: "Teaching Assignment",
+    definition: "Assignment of a teacher to a section or class.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.capacity_unit",
+    term: "Capacity Unit",
+    definition: "Unit of instructional capacity such as seats or virtual slots.",
+    kind: "entity",
+  },
+  {
+    id: "education.term.instructional_load",
+    term: "Instructional Load",
+    definition: "Measured teaching load for a staff member.",
+    kind: "entity",
+  },
+  {
     id: "education.term.capability.enrollment",
     term: "Enrollment Intelligence",
     definition: "Domain capability to reason about enrollment readiness and requirements.",

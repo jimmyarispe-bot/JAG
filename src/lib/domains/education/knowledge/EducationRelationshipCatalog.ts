@@ -36,6 +36,10 @@ export const EDUCATION_RELATIONSHIP_IDS = {
   progressRecordForStudent: "education.rel.progress_record_for_student",
   programOfferedAtCampus: "education.rel.program_offered_at_campus",
   studentHasGoal: "education.rel.student_has_goal",
+  teacherAssignedToSection: "education.rel.teacher_assigned_to_section",
+  sectionUsesClassroom: "education.rel.section_uses_classroom",
+  sectionInBellSchedule: "education.rel.section_in_bell_schedule",
+  loadForTeacher: "education.rel.load_for_teacher",
 } as const;
 
 export const EDUCATION_RELATIONSHIP_CATALOG: readonly EducationRelationshipDefinition[] =
@@ -176,6 +180,46 @@ export const EDUCATION_RELATIONSHIP_CATALOG: readonly EducationRelationshipDefin
       predicate: "has_goal",
       inversePredicate: "belongs_to_student",
       cardinality: "one_to_many",
+    },
+    {
+      id: EDUCATION_RELATIONSHIP_IDS.teacherAssignedToSection,
+      name: "Teacher assigned to Section",
+      description: "A teacher holds a teaching assignment for a section.",
+      fromEntityId: EDUCATION_ENTITY_IDS.teacher,
+      toEntityId: EDUCATION_ENTITY_IDS.section,
+      predicate: "assigned_to",
+      inversePredicate: "staffed_by",
+      cardinality: "many_to_many",
+    },
+    {
+      id: EDUCATION_RELATIONSHIP_IDS.sectionUsesClassroom,
+      name: "Section uses Classroom",
+      description: "A section is scheduled in a classroom.",
+      fromEntityId: EDUCATION_ENTITY_IDS.section,
+      toEntityId: EDUCATION_ENTITY_IDS.classroom,
+      predicate: "uses",
+      inversePredicate: "hosts",
+      cardinality: "many_to_one",
+    },
+    {
+      id: EDUCATION_RELATIONSHIP_IDS.sectionInBellSchedule,
+      name: "Section in Bell Schedule",
+      description: "A section is placed within a bell schedule.",
+      fromEntityId: EDUCATION_ENTITY_IDS.section,
+      toEntityId: EDUCATION_ENTITY_IDS.bellSchedule,
+      predicate: "scheduled_in",
+      inversePredicate: "contains_section",
+      cardinality: "many_to_one",
+    },
+    {
+      id: EDUCATION_RELATIONSHIP_IDS.loadForTeacher,
+      name: "Load for Teacher",
+      description: "An instructional load measurement belongs to a teacher.",
+      fromEntityId: EDUCATION_ENTITY_IDS.instructionalLoad,
+      toEntityId: EDUCATION_ENTITY_IDS.teacher,
+      predicate: "measures",
+      inversePredicate: "has_load",
+      cardinality: "many_to_one",
     },
   ] as const;
 

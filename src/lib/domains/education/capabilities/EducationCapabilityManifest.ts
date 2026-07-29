@@ -98,6 +98,54 @@ export const STUDENT_SUPPORT_CAPABILITY_PACK: EducationCapabilityPackMetadata =
     tags: ["support", "intervention", "family", "mtss"],
   };
 
+/** Academic Operations — Scheduling, Staffing, Capacity, Operational Readiness. */
+export const ACADEMIC_OPERATIONS_CAPABILITY_PACK: EducationCapabilityPackMetadata =
+  {
+    id: EDUCATION_CAPABILITY_PACK_IDS.academicOperations,
+    name: "Academic Operations",
+    version: "0.1.0",
+    description:
+      "Operational delivery intelligence: scheduling conflicts/coverage, staffing load and qualifications, capacity utilization, and operational readiness synthesis.",
+    contributors: [
+      EDUCATION_CONTRIBUTOR_IDS.schedulingCognition,
+      EDUCATION_CONTRIBUTOR_IDS.staffingCognition,
+      EDUCATION_CONTRIBUTOR_IDS.capacityCognition,
+      EDUCATION_CONTRIBUTOR_IDS.operationalReadinessCognition,
+    ],
+    plannerIntents: [
+      EDUCATION_INTENT_IDS.plan,
+      "education.operations.daily_review",
+      "education.scheduling.review",
+      "education.staffing.review",
+      "education.capacity.review",
+      "education.semester.planning",
+      "education.leadership.operations_brief",
+    ],
+    knowledgeExtensions: [
+      EDUCATION_CAPABILITY_IDS.scheduling,
+      EDUCATION_CAPABILITY_IDS.staffing,
+      EDUCATION_CAPABILITY_IDS.capacity,
+      EDUCATION_CAPABILITY_IDS.operationalReadiness,
+    ],
+    policyExtensions: [
+      EDUCATION_POLICY_IDS.maximumClassSize,
+      EDUCATION_POLICY_IDS.teacherLoad,
+      EDUCATION_POLICY_IDS.programStaffingRequirements,
+      EDUCATION_POLICY_IDS.instructionalCoverage,
+      EDUCATION_POLICY_IDS.sessionOverlap,
+    ],
+    documentation: [
+      "intelligence/11_ACADEMIC_OPERATIONS_CAPABILITY.md",
+    ],
+    dependencies: [EDUCATION_CAPABILITY_PACK_IDS.studentLifecycle],
+    maturity: "building",
+    tags: ["operations", "scheduling", "staffing", "capacity"],
+  };
+
 /** Default pack manifests registered by the Education domain. */
 export const EDUCATION_CAPABILITY_PACK_MANIFESTS: readonly EducationCapabilityPackMetadata[] =
-  [STUDENT_LIFECYCLE_CAPABILITY_PACK, STUDENT_SUPPORT_CAPABILITY_PACK];
+  [
+    STUDENT_LIFECYCLE_CAPABILITY_PACK,
+    STUDENT_SUPPORT_CAPABILITY_PACK,
+    ACADEMIC_OPERATIONS_CAPABILITY_PACK,
+  ];

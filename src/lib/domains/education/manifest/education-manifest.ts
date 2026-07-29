@@ -81,6 +81,27 @@ export function createEducationManifest(): DomainManifest {
         kind: "cognition",
         description: "Support Planning — Student Support synthesis (D4.2)",
       },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.schedulingCognition,
+        kind: "cognition",
+        description: "Scheduling Intelligence — Academic Operations (D5.1)",
+      },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.staffingCognition,
+        kind: "cognition",
+        description: "Staffing Intelligence — Academic Operations (D5.1)",
+      },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.capacityCognition,
+        kind: "cognition",
+        description: "Capacity Intelligence — Academic Operations (D5.1)",
+      },
+      {
+        id: EDUCATION_CONTRIBUTOR_IDS.operationalReadinessCognition,
+        kind: "cognition",
+        description:
+          "Operational Readiness — Academic Operations synthesis (D5.1)",
+      },
       { id: EDUCATION_CONTRIBUTOR_IDS.experience, kind: "experience" },
       { id: EDUCATION_CONTRIBUTOR_IDS.action, kind: "action" },
       { id: EDUCATION_CONTRIBUTOR_IDS.evidence, kind: "evidence" },

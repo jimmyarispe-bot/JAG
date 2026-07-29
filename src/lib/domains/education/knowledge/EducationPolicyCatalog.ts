@@ -8,6 +8,7 @@ export type EducationPolicyKind =
   | "enrollment_requirement"
   | "scholarship_requirement"
   | "graduation_requirement"
+  | "operations_constraint"
   | "general";
 
 export interface EducationPolicyParameter {
@@ -44,6 +45,13 @@ export const EDUCATION_POLICY_IDS = {
   enrollmentCapacity: "education.policy.enrollment.capacity",
   scholarshipEligibility: "education.policy.scholarship.eligibility",
   graduationCredits: "education.policy.graduation.credits",
+  /** Academic Operations (D5.1) — metadata only */
+  maximumClassSize: "education.policy.operations.maximum_class_size",
+  teacherLoad: "education.policy.operations.teacher_load",
+  programStaffingRequirements:
+    "education.policy.operations.program_staffing_requirements",
+  instructionalCoverage: "education.policy.operations.instructional_coverage",
+  sessionOverlap: "education.policy.operations.session_overlap",
 } as const;
 
 export const EDUCATION_POLICY_CATALOG: readonly EducationPolicyDefinition[] = [
@@ -181,6 +189,107 @@ export const EDUCATION_POLICY_CATALOG: readonly EducationPolicyDefinition[] = [
         label: "Required credits",
         valueType: "number",
         example: 24,
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.maximumClassSize,
+    name: "Maximum class size",
+    kind: "operations_constraint",
+    description:
+      "Declares maximum enrolled students per section/class (metadata only).",
+    relatedEntityIds: [
+      "education.entity.section",
+      "education.entity.class",
+      "education.entity.capacity_unit",
+    ],
+    parameters: [
+      {
+        key: "maximumSeats",
+        label: "Maximum seats",
+        valueType: "number",
+        example: 28,
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.teacherLoad,
+    name: "Teacher load",
+    kind: "operations_constraint",
+    description:
+      "Declares maximum instructional load for a teacher (metadata only).",
+    relatedEntityIds: [
+      "education.entity.teacher",
+      "education.entity.instructional_load",
+      "education.entity.teaching_assignment",
+    ],
+    parameters: [
+      {
+        key: "maximumLoad",
+        label: "Maximum load",
+        valueType: "number",
+        example: 5,
+        unit: "sections",
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.programStaffingRequirements,
+    name: "Program staffing requirements",
+    kind: "operations_constraint",
+    description:
+      "Declares staffing coverage expectations for a program (metadata only).",
+    relatedEntityIds: [
+      "education.entity.program",
+      "education.entity.teacher",
+      "education.entity.teaching_assignment",
+    ],
+    parameters: [
+      {
+        key: "minimumQualifiedTeachers",
+        label: "Minimum qualified teachers",
+        valueType: "number",
+        example: 1,
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.instructionalCoverage,
+    name: "Instructional coverage",
+    kind: "operations_constraint",
+    description:
+      "Declares that scheduled instructional blocks must have assigned coverage (metadata only).",
+    relatedEntityIds: [
+      "education.entity.instructional_block",
+      "education.entity.teaching_assignment",
+      "education.entity.session",
+    ],
+    parameters: [
+      {
+        key: "requireCoverage",
+        label: "Require coverage",
+        valueType: "boolean",
+        example: true,
+      },
+    ],
+  },
+  {
+    id: EDUCATION_POLICY_IDS.sessionOverlap,
+    name: "Session overlap",
+    kind: "operations_constraint",
+    description:
+      "Declares constraints about overlapping sessions for teachers or rooms (metadata only).",
+    relatedEntityIds: [
+      "education.entity.session",
+      "education.entity.classroom",
+      "education.entity.teacher",
+    ],
+    parameters: [
+      {
+        key: "allowOverlap",
+        label: "Allow overlap",
+        valueType: "boolean",
+        example: false,
       },
     ],
   },

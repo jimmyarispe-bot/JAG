@@ -179,6 +179,83 @@ export function createDefaultEducationContributorCatalog(): EducationContributor
       label: "Support Planning (synthesis)",
     },
     {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.schedulingCognition,
+      nodeKind: "scheduling",
+      capabilities: ["education", "scheduling", "operations"],
+      dependsOn: [],
+      expectedOutputs: [
+        "evidence.scheduling",
+        "recommendations.scheduling",
+        "proposals.scheduling",
+      ],
+      intentMatchers: [
+        "schedule",
+        "scheduling",
+        "operations",
+        "semester",
+        "daily",
+      ],
+      available: true,
+      label: "Scheduling Intelligence",
+    },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.staffingCognition,
+      nodeKind: "staffing",
+      capabilities: ["education", "staffing", "operations"],
+      dependsOn: [],
+      expectedOutputs: [
+        "evidence.staffing",
+        "recommendations.staffing",
+        "proposals.staffing",
+      ],
+      intentMatchers: ["staffing", "staff", "operations", "semester"],
+      available: true,
+      label: "Staffing Intelligence",
+    },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.capacityCognition,
+      nodeKind: "capacity",
+      capabilities: ["education", "capacity", "operations"],
+      dependsOn: [],
+      expectedOutputs: [
+        "evidence.capacity",
+        "recommendations.capacity",
+        "proposals.capacity",
+      ],
+      intentMatchers: ["capacity", "operations", "semester"],
+      available: true,
+      label: "Capacity Intelligence",
+    },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.operationalReadinessCognition,
+      nodeKind: "operational_readiness",
+      capabilities: [
+        "education",
+        "operations",
+        "operational_readiness",
+        "synthesis",
+      ],
+      dependsOn: [
+        EDUCATION_CONTRIBUTOR_IDS.schedulingCognition,
+        EDUCATION_CONTRIBUTOR_IDS.staffingCognition,
+        EDUCATION_CONTRIBUTOR_IDS.capacityCognition,
+      ],
+      expectedOutputs: [
+        "evidence.operational_readiness",
+        "recommendations.operational_readiness",
+        "proposals.operational_readiness",
+      ],
+      intentMatchers: [
+        "operations",
+        "operational",
+        "daily operations",
+        "semester",
+        "leadership operations",
+      ],
+      available: true,
+      label: "Operational Readiness (synthesis)",
+    },
+    {
       contributorId: "education.cognition.scholarship",
       nodeKind: "scholarship",
       capabilities: ["education", "scholarship"],
@@ -190,16 +267,6 @@ export function createDefaultEducationContributorCatalog(): EducationContributor
       intentMatchers: ["scholarship"],
       available: false,
       label: "Scholarship Intelligence (future)",
-    },
-    {
-      contributorId: "education.cognition.scheduling",
-      nodeKind: "scheduling",
-      capabilities: ["education", "scheduling"],
-      dependsOn: [],
-      expectedOutputs: ["evidence.scheduling", "recommendations.scheduling"],
-      intentMatchers: ["schedule", "plan"],
-      available: false,
-      label: "Scheduling Intelligence (future)",
     },
     {
       contributorId: "education.cognition.compliance",
@@ -394,6 +461,12 @@ function inferKind(contributorId: string): EducationGraphNodeKind {
   if (contributorId.includes("enrollment")) return "enrollment";
   if (contributorId.includes("attendance")) return "attendance";
   if (
+    contributorId.includes("operational_readiness") ||
+    contributorId.includes("operational-readiness")
+  ) {
+    return "operational_readiness";
+  }
+  if (
     contributorId.includes("support_planning") ||
     contributorId.includes("support-planning")
   ) {
@@ -406,6 +479,8 @@ function inferKind(contributorId: string): EducationGraphNodeKind {
     return "student_success";
   }
   if (contributorId.includes("progress")) return "progress";
+  if (contributorId.includes("staffing")) return "staffing";
+  if (contributorId.includes("capacity")) return "capacity";
   if (contributorId.includes("intervention")) return "intervention";
   if (contributorId.includes("scholarship")) return "scholarship";
   if (contributorId.includes("scheduling")) return "scheduling";
