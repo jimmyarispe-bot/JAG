@@ -1,7 +1,9 @@
 import type { RuntimePipelineStage } from "../contracts";
 import { contextRequestFromExecution } from "../context/context-runtime";
 import { toOrganizationalContext } from "../context/context-types";
-import { RuntimeContextError, RuntimeIntentError } from "../errors";
+import { RuntimeContextError, RuntimeError, RuntimeIntentError } from "../errors";
+import { experienceRequestFromExecution } from "../experience/experience-runtime";
+import { toRuntimeExperience } from "../experience/experience-types";
 import { identityRequestFromContext } from "../identity/identity-runtime";
 import { intentRequestFromExecution } from "../intent/intent-runtime";
 import type { RuntimeRegistry } from "../registry";
@@ -88,6 +90,21 @@ function createSkeletonStage(
       }
 
       if (id === "experience") {
+        const experienceRuntime = registry.getExperienceRuntime();
+        if (experienceRuntime) {
+          if (!ctx.state.identity) {
+            throw new RuntimeError(
+              "Identity required before Experience stage",
+              { code: "EXPERIENCE_REQUIRES_IDENTITY", stageId: "experience" }
+            );
+          }
+          const model = await experienceRuntime.composeOrThrow(
+            experienceRequestFromExecution(ctx)
+          );
+          ctx.setExperience(toRuntimeExperience(model));
+          ctx.state.data.experienceModel = model;
+          return;
+        }
         const providers = registry.listExperienceProviders();
         for (const provider of providers) {
           const input = {
