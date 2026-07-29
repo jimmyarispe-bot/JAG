@@ -12,5 +12,6 @@
 | [04_LEGACY_SURFACES.md](./04_LEGACY_SURFACES.md) | Workspaces → future contexts |
 | [05_CONSTITUTIONAL_VIOLATIONS.md](./05_CONSTITUTIONAL_VIOLATIONS.md) | Violations — do not fix here |
 | [06_PHASE_OMEGA_ROADMAP.md](./06_PHASE_OMEGA_ROADMAP.md) | Implementation order after review |
+| [07_SUPREME_ARCHITECTURE_REVIEW.md](./07_SUPREME_ARCHITECTURE_REVIEW.md) | Ω-0A challenge review — **GO WITH CONDITIONS** |
 
-**Ω-0 rule:** Documentation and classification only. No code. No UI. No engines. No Orchestrator build.
+**Ω-0 / Ω-0A rule:** Documentation and architectural reasoning only. No code. No UI. No engines. No Orchestrator build until human approval of `07`.
