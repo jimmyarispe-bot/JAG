@@ -2,7 +2,7 @@
 
 **Sprint:** JAG-001  
 **Route:** `/jag`  
-**Status:** Shell complete
+**Status:** Shell complete · Overview populated in [002_EXECUTIVE_OVERVIEW.md](./002_EXECUTIVE_OVERVIEW.md)
 
 ---
 
