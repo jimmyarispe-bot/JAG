@@ -113,72 +113,33 @@ function createSkeletonStage(
 
       if (id === "experience") {
         const experienceRuntime = registry.getExperienceRuntime();
-        if (experienceRuntime) {
-          if (!ctx.state.identity) {
-            throw new RuntimeError(
-              "Identity required before Experience stage",
-              { code: "EXPERIENCE_REQUIRES_IDENTITY", stageId: "experience" }
-            );
-          }
-          const model = await experienceRuntime.composeOrThrow(
-            experienceRequestFromExecution(ctx)
+        if (!experienceRuntime) return;
+        if (!ctx.state.identity) {
+          throw new RuntimeError(
+            "Identity required before Experience stage",
+            { code: "EXPERIENCE_REQUIRES_IDENTITY", stageId: "experience" }
           );
-          ctx.setExperience(toRuntimeExperience(model));
-          ctx.state.data.experienceModel = model;
-          return;
         }
-        const providers = registry.listExperienceProviders();
-        for (const provider of providers) {
-          const input = {
-            identity: ctx.state.identity,
-            organizationalContext: ctx.state.organizationalContext,
-            intent: ctx.state.intent,
-            cognition: ctx.state.cognition,
-          };
-          if (provider.supports && !provider.supports(input)) continue;
-          const experience = await provider.compose(input);
-          ctx.setExperience(experience);
-          break;
-        }
+        const model = await experienceRuntime.composeOrThrow(
+          experienceRequestFromExecution(ctx)
+        );
+        ctx.setExperience(toRuntimeExperience(model));
+        ctx.state.data.experienceModel = model;
         return;
       }
 
       if (id === "action") {
         const actionRuntime = registry.getActionRuntime();
         const actionId = ctx.state.data.actionId;
-        if (typeof actionId !== "string") {
+        if (typeof actionId !== "string" || !actionRuntime) {
           return;
         }
-        if (actionRuntime) {
-          const result = await actionRuntime.execute(
-            actionRequestFromExecution(ctx, actionId)
-          );
-          ctx.setAction(toRuntimeAction(result));
-          ctx.state.data.actionResult = result;
-          ctx.state.data.actionAuditEventId = result.auditEventId;
-          return;
-        }
-        const provider = registry.findActionProvider(actionId);
-        if (!provider) return;
-        const action = await provider.execute(
-          {
-            actionId,
-            payload:
-              (ctx.state.data.actionPayload as
-                | Record<string, unknown>
-                | undefined) ?? {},
-            idempotencyKey:
-              typeof ctx.state.data.idempotencyKey === "string"
-                ? ctx.state.data.idempotencyKey
-                : undefined,
-          },
-          {
-            identity: ctx.state.identity,
-            organizationalContext: ctx.state.organizationalContext,
-            intent: ctx.state.intent,
-          }
+        const result = await actionRuntime.execute(
+          actionRequestFromExecution(ctx, actionId)
         );
-        ctx.setAction(action);
+        ctx.setAction(toRuntimeAction(result));
+        ctx.state.data.actionResult = result;
+        ctx.state.data.actionAuditEventId = result.auditEventId;
       }
     },
   };

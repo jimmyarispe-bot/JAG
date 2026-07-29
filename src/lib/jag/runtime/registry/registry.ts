@@ -1,11 +1,21 @@
 import type {
-  RuntimeActionProvider,
   RuntimeDomainPackageRegistration,
-  RuntimeExperienceProvider,
   RuntimeExtension,
   RuntimePipelineStage,
 } from "../contracts";
 import { RUNTIME_KERNEL_EVENT_TYPES } from "../contracts/event";
+import type {
+  ActionContributor,
+  CognitiveContributor,
+  ContextContributor,
+  DomainAdapterRegistrationApi,
+  EvidenceContributor,
+  ExperienceContributor,
+  IdentityContributor,
+  IntentContributor,
+  MemoryContributor,
+  TwinContributor,
+} from "../adapters";
 import { RuntimeExtensionError } from "../errors";
 import type { RuntimeEventBus } from "../events";
 import type { ContextProvider } from "../context/context-provider";
@@ -29,7 +39,8 @@ export interface RuntimeRegistryOptions {
 }
 
 /**
- * Registration hub for domain packages, extensions, stages, and providers.
+ * Registration hub for domain packages, extensions, stages, and contributors.
+ * Single extension model: Contributor registration → Contracts → Registry.
  * Does not register any industry pack by default.
  */
 export class RuntimeRegistry {
@@ -39,14 +50,21 @@ export class RuntimeRegistry {
   >();
   private readonly extensions = new Map<string, RuntimeExtension>();
   private readonly stages = new Map<RuntimePipelineStageId, RuntimePipelineStage>();
-  private readonly experienceProviders = new Map<string, RuntimeExperienceProvider>();
-  private readonly actionProviders = new Map<string, RuntimeActionProvider>();
-  private readonly identityProviders = new Map<string, IdentityProvider>();
-  private readonly contextProviders = new Map<string, ContextProvider>();
-  private readonly intentProviders = new Map<string, IntentProvider>();
-  private readonly experienceContributors = new Map<string, ExperienceProvider>();
-  private readonly cognitiveProviders = new Map<string, CognitiveProvider>();
-  private readonly actionContributors = new Map<string, ActionProvider>();
+  private readonly identityContributors = new Map<string, IdentityContributor>();
+  private readonly contextContributors = new Map<string, ContextContributor>();
+  private readonly intentContributors = new Map<string, IntentContributor>();
+  private readonly experienceContributors = new Map<
+    string,
+    ExperienceContributor
+  >();
+  private readonly cognitiveContributors = new Map<
+    string,
+    CognitiveContributor
+  >();
+  private readonly actionContributors = new Map<string, ActionContributor>();
+  private readonly evidenceContributors = new Map<string, EvidenceContributor>();
+  private readonly memoryContributors = new Map<string, MemoryContributor>();
+  private readonly twinContributors = new Map<string, TwinContributor>();
   private identityRuntime: IdentityRuntime | null = null;
   private contextRuntime: ContextRuntime | null = null;
   private intentRuntime: IntentRuntime | null = null;
@@ -198,74 +216,45 @@ export class RuntimeRegistry {
     return true;
   }
 
-  registerExperienceProvider(provider: RuntimeExperienceProvider): void {
-    if (this.experienceProviders.has(provider.id)) {
+  // ── Identity ──────────────────────────────────────────────────────────
+
+  registerIdentityContributor(contributor: IdentityContributor): void {
+    if (this.identityContributors.has(contributor.id)) {
       throw new RuntimeExtensionError(
-        `Experience provider already registered: ${provider.id}`,
-        { code: "RUNTIME_EXPERIENCE_PROVIDER_EXISTS" }
+        `Identity contributor already registered: ${contributor.id}`,
+        { code: "RUNTIME_IDENTITY_CONTRIBUTOR_EXISTS" }
       );
     }
-    this.experienceProviders.set(provider.id, provider);
-  }
-
-  unregisterExperienceProvider(id: string): boolean {
-    return this.experienceProviders.delete(id);
-  }
-
-  listExperienceProviders(): RuntimeExperienceProvider[] {
-    return [...this.experienceProviders.values()].sort(
-      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
-    );
-  }
-
-  registerActionProvider(provider: RuntimeActionProvider): void {
-    if (this.actionProviders.has(provider.id)) {
-      throw new RuntimeExtensionError(
-        `Action provider already registered: ${provider.id}`,
-        { code: "RUNTIME_ACTION_PROVIDER_EXISTS" }
-      );
-    }
-    this.actionProviders.set(provider.id, provider);
-  }
-
-  unregisterActionProvider(id: string): boolean {
-    return this.actionProviders.delete(id);
-  }
-
-  listActionProviders(): RuntimeActionProvider[] {
-    return [...this.actionProviders.values()].sort(
-      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
-    );
-  }
-
-  findActionProvider(actionId: string): RuntimeActionProvider | undefined {
-    return this.listActionProviders().find((p) =>
-      p.actionIds.includes(actionId)
-    );
-  }
-
-  registerIdentityProvider(provider: IdentityProvider): void {
-    if (this.identityProviders.has(provider.id)) {
-      throw new RuntimeExtensionError(
-        `Identity provider already registered: ${provider.id}`,
-        { code: "RUNTIME_IDENTITY_PROVIDER_EXISTS" }
-      );
-    }
-    this.identityProviders.set(provider.id, provider);
+    this.identityContributors.set(contributor.id, contributor);
     void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
-      kind: "identity_provider",
-      id: provider.id,
+      kind: "identity_contributor",
+      id: contributor.id,
     });
   }
 
-  unregisterIdentityProvider(id: string): boolean {
-    return this.identityProviders.delete(id);
+  /** @deprecated Use {@link registerIdentityContributor}. */
+  registerIdentityProvider(provider: IdentityProvider): void {
+    this.registerIdentityContributor(provider);
   }
 
-  listIdentityProviders(): IdentityProvider[] {
-    return [...this.identityProviders.values()].sort(
+  unregisterIdentityContributor(id: string): boolean {
+    return this.identityContributors.delete(id);
+  }
+
+  /** @deprecated Use {@link unregisterIdentityContributor}. */
+  unregisterIdentityProvider(id: string): boolean {
+    return this.unregisterIdentityContributor(id);
+  }
+
+  listIdentityContributors(): IdentityContributor[] {
+    return [...this.identityContributors.values()].sort(
       (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
     );
+  }
+
+  /** @deprecated Use {@link listIdentityContributors}. */
+  listIdentityProviders(): IdentityProvider[] {
+    return this.listIdentityContributors();
   }
 
   setIdentityRuntime(identity: IdentityRuntime | null): void {
@@ -276,28 +265,45 @@ export class RuntimeRegistry {
     return this.identityRuntime;
   }
 
-  registerContextProvider(provider: ContextProvider): void {
-    if (this.contextProviders.has(provider.id)) {
+  // ── Context ───────────────────────────────────────────────────────────
+
+  registerContextContributor(contributor: ContextContributor): void {
+    if (this.contextContributors.has(contributor.id)) {
       throw new RuntimeExtensionError(
-        `Context provider already registered: ${provider.id}`,
-        { code: "RUNTIME_CONTEXT_PROVIDER_EXISTS" }
+        `Context contributor already registered: ${contributor.id}`,
+        { code: "RUNTIME_CONTEXT_CONTRIBUTOR_EXISTS" }
       );
     }
-    this.contextProviders.set(provider.id, provider);
+    this.contextContributors.set(contributor.id, contributor);
     void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
-      kind: "context_provider",
-      id: provider.id,
+      kind: "context_contributor",
+      id: contributor.id,
     });
   }
 
-  unregisterContextProvider(id: string): boolean {
-    return this.contextProviders.delete(id);
+  /** @deprecated Use {@link registerContextContributor}. */
+  registerContextProvider(provider: ContextProvider): void {
+    this.registerContextContributor(provider);
   }
 
-  listContextProviders(): ContextProvider[] {
-    return [...this.contextProviders.values()].sort(
+  unregisterContextContributor(id: string): boolean {
+    return this.contextContributors.delete(id);
+  }
+
+  /** @deprecated Use {@link unregisterContextContributor}. */
+  unregisterContextProvider(id: string): boolean {
+    return this.unregisterContextContributor(id);
+  }
+
+  listContextContributors(): ContextContributor[] {
+    return [...this.contextContributors.values()].sort(
       (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
     );
+  }
+
+  /** @deprecated Use {@link listContextContributors}. */
+  listContextProviders(): ContextProvider[] {
+    return this.listContextContributors();
   }
 
   setContextRuntime(context: ContextRuntime | null): void {
@@ -308,28 +314,45 @@ export class RuntimeRegistry {
     return this.contextRuntime;
   }
 
-  registerIntentProvider(provider: IntentProvider): void {
-    if (this.intentProviders.has(provider.id)) {
+  // ── Intent ────────────────────────────────────────────────────────────
+
+  registerIntentContributor(contributor: IntentContributor): void {
+    if (this.intentContributors.has(contributor.id)) {
       throw new RuntimeExtensionError(
-        `Intent provider already registered: ${provider.id}`,
-        { code: "RUNTIME_INTENT_PROVIDER_EXISTS" }
+        `Intent contributor already registered: ${contributor.id}`,
+        { code: "RUNTIME_INTENT_CONTRIBUTOR_EXISTS" }
       );
     }
-    this.intentProviders.set(provider.id, provider);
+    this.intentContributors.set(contributor.id, contributor);
     void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
-      kind: "intent_provider",
-      id: provider.id,
+      kind: "intent_contributor",
+      id: contributor.id,
     });
   }
 
-  unregisterIntentProvider(id: string): boolean {
-    return this.intentProviders.delete(id);
+  /** @deprecated Use {@link registerIntentContributor}. */
+  registerIntentProvider(provider: IntentProvider): void {
+    this.registerIntentContributor(provider);
   }
 
-  listIntentProviders(): IntentProvider[] {
-    return [...this.intentProviders.values()].sort(
+  unregisterIntentContributor(id: string): boolean {
+    return this.intentContributors.delete(id);
+  }
+
+  /** @deprecated Use {@link unregisterIntentContributor}. */
+  unregisterIntentProvider(id: string): boolean {
+    return this.unregisterIntentContributor(id);
+  }
+
+  listIntentContributors(): IntentContributor[] {
+    return [...this.intentContributors.values()].sort(
       (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
     );
+  }
+
+  /** @deprecated Use {@link listIntentContributors}. */
+  listIntentProviders(): IntentProvider[] {
+    return this.listIntentContributors();
   }
 
   setIntentRuntime(intent: IntentRuntime | null): void {
@@ -340,21 +363,19 @@ export class RuntimeRegistry {
     return this.intentRuntime;
   }
 
-  /**
-   * Fragment contributors for Experience Runtime composition
-   * (widgets / briefing / nav). Distinct from {@link registerExperienceProvider}.
-   */
-  registerExperienceContributor(provider: ExperienceProvider): void {
-    if (this.experienceContributors.has(provider.id)) {
+  // ── Experience ────────────────────────────────────────────────────────
+
+  registerExperienceContributor(contributor: ExperienceContributor): void {
+    if (this.experienceContributors.has(contributor.id)) {
       throw new RuntimeExtensionError(
-        `Experience contributor already registered: ${provider.id}`,
+        `Experience contributor already registered: ${contributor.id}`,
         { code: "RUNTIME_EXPERIENCE_CONTRIBUTOR_EXISTS" }
       );
     }
-    this.experienceContributors.set(provider.id, provider);
+    this.experienceContributors.set(contributor.id, contributor);
     void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
       kind: "experience_contributor",
-      id: provider.id,
+      id: contributor.id,
     });
   }
 
@@ -362,7 +383,7 @@ export class RuntimeRegistry {
     return this.experienceContributors.delete(id);
   }
 
-  listExperienceContributors(): ExperienceProvider[] {
+  listExperienceContributors(): ExperienceContributor[] {
     return [...this.experienceContributors.values()].sort(
       (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
     );
@@ -376,28 +397,45 @@ export class RuntimeRegistry {
     return this.experienceRuntime;
   }
 
-  registerCognitiveProvider(provider: CognitiveProvider): void {
-    if (this.cognitiveProviders.has(provider.id)) {
+  // ── Cognition ─────────────────────────────────────────────────────────
+
+  registerCognitiveContributor(contributor: CognitiveContributor): void {
+    if (this.cognitiveContributors.has(contributor.id)) {
       throw new RuntimeExtensionError(
-        `Cognitive provider already registered: ${provider.id}`,
-        { code: "RUNTIME_COGNITIVE_PROVIDER_EXISTS" }
+        `Cognitive contributor already registered: ${contributor.id}`,
+        { code: "RUNTIME_COGNITIVE_CONTRIBUTOR_EXISTS" }
       );
     }
-    this.cognitiveProviders.set(provider.id, provider);
+    this.cognitiveContributors.set(contributor.id, contributor);
     void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
-      kind: "cognitive_provider",
-      id: provider.id,
+      kind: "cognitive_contributor",
+      id: contributor.id,
     });
   }
 
-  unregisterCognitiveProvider(id: string): boolean {
-    return this.cognitiveProviders.delete(id);
+  /** @deprecated Use {@link registerCognitiveContributor}. */
+  registerCognitiveProvider(provider: CognitiveProvider): void {
+    this.registerCognitiveContributor(provider);
   }
 
-  listCognitiveProviders(): CognitiveProvider[] {
-    return [...this.cognitiveProviders.values()].sort(
+  unregisterCognitiveContributor(id: string): boolean {
+    return this.cognitiveContributors.delete(id);
+  }
+
+  /** @deprecated Use {@link unregisterCognitiveContributor}. */
+  unregisterCognitiveProvider(id: string): boolean {
+    return this.unregisterCognitiveContributor(id);
+  }
+
+  listCognitiveContributors(): CognitiveContributor[] {
+    return [...this.cognitiveContributors.values()].sort(
       (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
     );
+  }
+
+  /** @deprecated Use {@link listCognitiveContributors}. */
+  listCognitiveProviders(): CognitiveProvider[] {
+    return this.listCognitiveContributors();
   }
 
   setCognitiveRuntime(cognition: CognitiveRuntime | null): void {
@@ -408,21 +446,19 @@ export class RuntimeRegistry {
     return this.cognitiveRuntime;
   }
 
-  /**
-   * Action Runtime contributors (gated dispatch).
-   * Distinct from legacy {@link registerActionProvider}.
-   */
-  registerActionContributor(provider: ActionProvider): void {
-    if (this.actionContributors.has(provider.id)) {
+  // ── Action ────────────────────────────────────────────────────────────
+
+  registerActionContributor(contributor: ActionContributor): void {
+    if (this.actionContributors.has(contributor.id)) {
       throw new RuntimeExtensionError(
-        `Action contributor already registered: ${provider.id}`,
+        `Action contributor already registered: ${contributor.id}`,
         { code: "RUNTIME_ACTION_CONTRIBUTOR_EXISTS" }
       );
     }
-    this.actionContributors.set(provider.id, provider);
+    this.actionContributors.set(contributor.id, contributor);
     void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
       kind: "action_contributor",
-      id: provider.id,
+      id: contributor.id,
     });
   }
 
@@ -430,7 +466,7 @@ export class RuntimeRegistry {
     return this.actionContributors.delete(id);
   }
 
-  listActionContributors(): ActionProvider[] {
+  listActionContributors(): ActionContributor[] {
     return [...this.actionContributors.values()].sort(
       (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
     );
@@ -444,20 +480,113 @@ export class RuntimeRegistry {
     return this.actionRuntime;
   }
 
+  // ── Evidence / Memory / Twin (registration only — no Core engines) ────
+
+  registerEvidenceContributor(contributor: EvidenceContributor): void {
+    if (this.evidenceContributors.has(contributor.id)) {
+      throw new RuntimeExtensionError(
+        `Evidence contributor already registered: ${contributor.id}`,
+        { code: "RUNTIME_EVIDENCE_CONTRIBUTOR_EXISTS" }
+      );
+    }
+    this.evidenceContributors.set(contributor.id, contributor);
+    void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
+      kind: "evidence_contributor",
+      id: contributor.id,
+    });
+  }
+
+  unregisterEvidenceContributor(id: string): boolean {
+    return this.evidenceContributors.delete(id);
+  }
+
+  listEvidenceContributors(): EvidenceContributor[] {
+    return [...this.evidenceContributors.values()].sort(
+      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+    );
+  }
+
+  registerMemoryContributor(contributor: MemoryContributor): void {
+    if (this.memoryContributors.has(contributor.id)) {
+      throw new RuntimeExtensionError(
+        `Memory contributor already registered: ${contributor.id}`,
+        { code: "RUNTIME_MEMORY_CONTRIBUTOR_EXISTS" }
+      );
+    }
+    this.memoryContributors.set(contributor.id, contributor);
+    void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
+      kind: "memory_contributor",
+      id: contributor.id,
+    });
+  }
+
+  unregisterMemoryContributor(id: string): boolean {
+    return this.memoryContributors.delete(id);
+  }
+
+  listMemoryContributors(): MemoryContributor[] {
+    return [...this.memoryContributors.values()].sort(
+      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+    );
+  }
+
+  registerTwinContributor(contributor: TwinContributor): void {
+    if (this.twinContributors.has(contributor.id)) {
+      throw new RuntimeExtensionError(
+        `Twin contributor already registered: ${contributor.id}`,
+        { code: "RUNTIME_TWIN_CONTRIBUTOR_EXISTS" }
+      );
+    }
+    this.twinContributors.set(contributor.id, contributor);
+    void this.events?.publish(RUNTIME_KERNEL_EVENT_TYPES.EXTENSION_REGISTERED, {
+      kind: "twin_contributor",
+      id: contributor.id,
+    });
+  }
+
+  unregisterTwinContributor(id: string): boolean {
+    return this.twinContributors.delete(id);
+  }
+
+  listTwinContributors(): TwinContributor[] {
+    return [...this.twinContributors.values()].sort(
+      (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+    );
+  }
+
+  /**
+   * Narrow contributor registration surface for {@link DomainAdapter.register}.
+   */
+  asDomainAdapterApi(): DomainAdapterRegistrationApi {
+    return {
+      registerIdentityContributor: (c) => this.registerIdentityContributor(c),
+      registerContextContributor: (c) => this.registerContextContributor(c),
+      registerIntentContributor: (c) => this.registerIntentContributor(c),
+      registerCognitiveContributor: (c) => this.registerCognitiveContributor(c),
+      registerExperienceContributor: (c) =>
+        this.registerExperienceContributor(c),
+      registerActionContributor: (c) => this.registerActionContributor(c),
+      registerEvidenceContributor: (c) => this.registerEvidenceContributor(c),
+      registerMemoryContributor: (c) => this.registerMemoryContributor(c),
+      registerTwinContributor: (c) => this.registerTwinContributor(c),
+    };
+  }
+
   clear(): void {
     for (const unsub of this.eventUnsubscribers.values()) unsub();
     this.eventUnsubscribers.clear();
     this.domainPackages.clear();
     this.extensions.clear();
     this.stages.clear();
-    this.experienceProviders.clear();
+    this.identityContributors.clear();
+    this.contextContributors.clear();
+    this.intentContributors.clear();
     this.experienceContributors.clear();
-    this.actionProviders.clear();
+    this.cognitiveContributors.clear();
     this.actionContributors.clear();
-    this.identityProviders.clear();
-    this.contextProviders.clear();
-    this.intentProviders.clear();
-    this.cognitiveProviders.clear();
+    this.evidenceContributors.clear();
+    this.memoryContributors.clear();
+    this.twinContributors.clear();
     this.identityRuntime = null;
     this.contextRuntime = null;
     this.intentRuntime = null;

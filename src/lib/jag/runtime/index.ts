@@ -8,6 +8,7 @@
 
 export * from "./types";
 export * from "./contracts";
+export * from "./adapters";
 export * from "./errors";
 export * from "./events";
 export * from "./context";

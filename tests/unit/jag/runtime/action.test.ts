@@ -9,10 +9,13 @@ import {
   installExperienceRuntime,
   installIdentityRuntime,
   installIntentRuntime,
+  isActionRejected,
+  toActionRejected,
   type ActionProvider,
   type CognitiveResult,
   type PrincipalRecord,
   type RuntimeIdentity,
+  type RuntimeIntent,
   type RuntimeOrganizationalContext,
 } from "@/lib/jag/runtime";
 
@@ -38,6 +41,21 @@ function orgContext(): RuntimeOrganizationalContext {
     organizationId: "org-a",
     domainHints: [],
     mode: "persistent",
+  };
+}
+
+function intent(overrides: Partial<RuntimeIntent> = {}): RuntimeIntent {
+  return {
+    intentId: "review.work",
+    domainHints: [],
+    actionCandidates: ["review.item"],
+    confidence: 1,
+    source: "explicit",
+    signals: [],
+    conflicts: [],
+    requiresClarification: false,
+    resolvedAt: new Date().toISOString(),
+    ...overrides,
   };
 }
 
@@ -121,11 +139,32 @@ describe("JAG Action Runtime", () => {
         actionId: "review.item",
         identity: identity({ permissions: ["workspace.read"] }),
         organizationalContext: orgContext(),
+        intent: intent(),
         cognition: cognition(),
         evidenceRefs: cognition().evidenceRefs,
       });
       expect(result.status).toBe("rejected");
       expect(result.error?.code).toBe("ACTION_UNAUTHORIZED");
+    });
+  });
+
+  describe("action gates", () => {
+    it("rejects execution without RuntimeIntent", async () => {
+      const runtime = createActionRuntime();
+      runtime.registerProvider(reviewProvider());
+      const result = await runtime.execute({
+        actionId: "review.item",
+        identity: identity(),
+        organizationalContext: orgContext(),
+        intent: intent({ intentId: "" }),
+        cognition: cognition(),
+        evidenceRefs: cognition().evidenceRefs,
+      });
+      expect(result.status).toBe("rejected");
+      expect(result.error?.code).toBe("ACTION_REQUIRES_INTENT");
+      expect(result.missing).toEqual(["intent"]);
+      expect(isActionRejected(result)).toBe(true);
+      expect(toActionRejected(result)?.code).toBe("ACTION_REQUIRES_INTENT");
     });
   });
 
@@ -137,6 +176,7 @@ describe("JAG Action Runtime", () => {
         actionId: "review.item",
         identity: identity(),
         organizationalContext: orgContext(),
+        intent: intent(),
         cognition: cognition(),
         evidenceRefs: [],
       });
@@ -151,6 +191,7 @@ describe("JAG Action Runtime", () => {
         actionId: "review.item",
         identity: identity(),
         organizationalContext: orgContext(),
+        intent: intent(),
         cognition: { ...cognition(), briefId: "" },
         evidenceRefs: cognition().evidenceRefs,
       });
@@ -168,6 +209,7 @@ describe("JAG Action Runtime", () => {
         actionId: "review.item",
         identity: identity(),
         organizationalContext: orgContext(),
+        intent: intent(),
         cognition: cognition(),
         evidenceRefs: cognition().evidenceRefs,
         cognitionRecommendationId: "rec-1",
@@ -196,6 +238,7 @@ describe("JAG Action Runtime", () => {
         actionId: "review.item",
         identity: identity(),
         organizationalContext: orgContext(),
+        intent: intent(),
         cognition: cognition(),
         evidenceRefs: cognition().evidenceRefs,
       });
@@ -212,6 +255,7 @@ describe("JAG Action Runtime", () => {
         actionId: "review.item",
         identity: identity(),
         organizationalContext: orgContext(),
+        intent: intent(),
         cognition: cognition(),
         evidenceRefs: cognition().evidenceRefs,
         cognitionRecommendationId: "rec-1",
@@ -256,6 +300,7 @@ describe("JAG Action Runtime", () => {
         actionId: "review.item",
         identity: identity(),
         organizationalContext: orgContext(),
+        intent: intent(),
         cognition: cognition(),
         evidenceRefs: cognition().evidenceRefs,
       });

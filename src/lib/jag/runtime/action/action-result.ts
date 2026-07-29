@@ -2,6 +2,10 @@ import type { RuntimeAction, RuntimeActionStatus } from "../contracts/action";
 import type { RuntimeEvidenceReference } from "../contracts/evidence";
 import type { RuntimeMemoryReference } from "../contracts/memory";
 import type { RuntimeTwinReference } from "../contracts/twin";
+import type {
+  ActionGateRequirement,
+  RuntimeActionRejected,
+} from "./action-types";
 
 /**
  * Normalized action execution result.
@@ -19,8 +23,31 @@ export interface RuntimeActionResult {
   auditEventId: string;
   undoToken?: string;
   error?: { code: string; message: string };
+  /** Present when status is rejected due to gate failure. */
+  missing?: readonly ActionGateRequirement[];
   attributes?: Readonly<Record<string, unknown>>;
   completedAt: string;
+}
+
+export function isActionRejected(
+  result: RuntimeActionResult
+): result is RuntimeActionResult & RuntimeActionRejected {
+  return result.status === "rejected";
+}
+
+export function toActionRejected(
+  result: RuntimeActionResult
+): RuntimeActionRejected | null {
+  if (result.status !== "rejected") return null;
+  return {
+    status: "rejected",
+    actionId: result.actionId,
+    code: result.error?.code ?? "ACTION_REJECTED",
+    message: result.error?.message ?? "Action rejected",
+    auditEventId: result.auditEventId,
+    missing: result.missing,
+    completedAt: result.completedAt,
+  };
 }
 
 export function toRuntimeAction(result: RuntimeActionResult): RuntimeAction {
@@ -48,7 +75,8 @@ export function rejectedResult(
   auditEventId: string,
   code: string,
   message: string,
-  nowIso: string
+  nowIso: string,
+  missing?: readonly ActionGateRequirement[]
 ): RuntimeActionResult {
   return {
     actionId,
@@ -58,6 +86,7 @@ export function rejectedResult(
     twinRefs: [],
     auditEventId,
     error: { code, message },
+    missing,
     completedAt: nowIso,
   };
 }

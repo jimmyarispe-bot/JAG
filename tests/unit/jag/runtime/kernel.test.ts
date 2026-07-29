@@ -245,36 +245,24 @@ describe("JAG Runtime Kernel", () => {
       ).rejects.toBeInstanceOf(RuntimeExtensionError);
     });
 
-    it("registers experience and action providers", async () => {
+    it("registers experience and action contributors via single model", () => {
       const rt = createJagRuntime();
-      rt.registry.registerExperienceProvider({
+      rt.registry.registerExperienceContributor({
         id: "exp.default",
-        compose() {
-          return {
-            workspaceId: "ws1",
-            contextId: "ctx1",
-            widgetIds: [],
-            commandEnabled: true,
-            searchEnabled: true,
-          };
-        },
       });
-      rt.registry.registerActionProvider({
+      rt.registry.registerActionContributor({
         id: "act.echo",
         actionIds: ["echo"],
-        execute(request) {
-          return {
-            actionId: request.actionId,
-            status: "succeeded",
-          };
+        execute() {
+          return { status: "succeeded" };
         },
       });
 
-      const result = await rt.run({
-        initialData: { actionId: "echo" },
-      });
-      expect(result.experience?.workspaceId).toBe("ws1");
-      expect(result.action?.status).toBe("succeeded");
+      expect(rt.registry.listExperienceContributors()).toHaveLength(1);
+      expect(rt.registry.listActionContributors()).toHaveLength(1);
+      expect(rt.registry.listActionContributors()[0]?.actionIds).toContain(
+        "echo"
+      );
     });
   });
 

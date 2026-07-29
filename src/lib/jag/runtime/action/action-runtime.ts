@@ -43,9 +43,11 @@ import {
   toRuntimeAction,
   type RuntimeActionResult,
 } from "./action-result";
+import type { RuntimeIntent } from "../contracts/intent";
 import type {
   ActionCatalogEntry,
   ActionExecutionRequest,
+  ActionGateRequirement,
 } from "./action-types";
 
 export interface ActionRuntimeOptions {
@@ -148,7 +150,8 @@ class ActionRuntimeImpl implements ActionRuntime {
         auditEventId,
         validationError.code,
         validationError.message,
-        now
+        now,
+        validationError.missing
       );
       this.audit.record(request, result);
       await this.publishRejected(result);
@@ -285,6 +288,7 @@ class ActionRuntimeImpl implements ActionRuntime {
       code: result.error?.code ?? "ACTION_REJECTED",
       message: result.error?.message ?? "Action rejected",
       auditEventId: result.auditEventId,
+      missing: result.missing,
     };
     await this.events?.publish(ACTION_EVENT_TYPES.ACTION_REJECTED, payload);
   }
@@ -303,27 +307,52 @@ class ActionRuntimeImpl implements ActionRuntime {
 
 function validateExecutionRequest(
   request: ActionExecutionRequest
-): { code: string; message: string } | null {
+): {
+  code: string;
+  message: string;
+  missing: readonly ActionGateRequirement[];
+} | null {
   if (!request.identity?.principalId) {
-    return { code: "ACTION_REQUIRES_IDENTITY", message: "Identity required" };
+    return {
+      code: "ACTION_REQUIRES_IDENTITY",
+      message: "RuntimeIdentity required",
+      missing: ["identity"],
+    };
   }
   if (!request.organizationalContext?.contextId) {
-    return { code: "ACTION_REQUIRES_CONTEXT", message: "Context required" };
+    return {
+      code: "ACTION_REQUIRES_CONTEXT",
+      message: "OrganizationalContext required",
+      missing: ["context"],
+    };
+  }
+  if (!request.intent?.intentId) {
+    return {
+      code: "ACTION_REQUIRES_INTENT",
+      message: "RuntimeIntent required",
+      missing: ["intent"],
+    };
   }
   if (!request.cognition?.briefId) {
     return {
       code: "ACTION_REQUIRES_COGNITION",
       message: "CognitiveResult required",
+      missing: ["cognition"],
     };
   }
   if (!request.evidenceRefs?.length) {
     return {
       code: "ACTION_REQUIRES_EVIDENCE",
-      message: "Evidence references required",
+      message: "EvidenceSet required",
+      missing: ["evidence"],
     };
   }
   if (!request.actionId) {
-    return { code: "ACTION_ID_REQUIRED", message: "actionId required" };
+    return {
+      code: "ACTION_ID_REQUIRED",
+      message: "actionId required",
+      missing: [],
+    };
   }
   return null;
 }
@@ -360,7 +389,7 @@ export function actionRequestFromExecution(
     actionId,
     identity,
     organizationalContext,
-    intent: ctx.state.intent,
+    intent: ctx.state.intent ?? emptyIntentPlaceholder(),
     cognition,
     evidenceRefs,
     cognitionRecommendationId:
@@ -404,5 +433,20 @@ function syntheticCognitionFromBag(
     generatedAt: new Date().toISOString(),
     summary:
       typeof cognition?.summary === "string" ? cognition.summary : undefined,
+  };
+}
+
+/** Placeholder so gate validation can emit typed RuntimeActionRejected. */
+function emptyIntentPlaceholder(): RuntimeIntent {
+  return {
+    intentId: "",
+    domainHints: [],
+    actionCandidates: [],
+    confidence: 0,
+    source: "unknown",
+    signals: [],
+    conflicts: [],
+    requiresClarification: false,
+    resolvedAt: new Date().toISOString(),
   };
 }

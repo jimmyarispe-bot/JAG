@@ -27,7 +27,10 @@ export interface RuntimeActionRequest {
   cognitionRecommendationId?: string;
 }
 
-/** Provider registered for Action stage dispatch (pluggable). */
+/**
+ * @deprecated Removed from execution paths in Ω-7B.
+ * Use ActionContributor via Action Runtime + registerActionContributor.
+ */
 export interface RuntimeActionProvider {
   id: string;
   actionIds: readonly string[];

@@ -49,4 +49,5 @@ export interface ActionRejectedPayload {
   code: string;
   message: string;
   auditEventId: string;
+  missing?: readonly string[];
 }

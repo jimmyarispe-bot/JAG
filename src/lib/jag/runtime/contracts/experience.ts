@@ -18,7 +18,10 @@ export interface RuntimeExperience {
   attributes?: Readonly<Record<string, unknown>>;
 }
 
-/** Provider registered for Experience stage composition (pluggable). */
+/**
+ * @deprecated Removed from execution paths in Ω-7B.
+ * Use ExperienceContributor via Experience Runtime + registerExperienceContributor.
+ */
 export interface RuntimeExperienceProvider {
   id: string;
   priority?: number;
