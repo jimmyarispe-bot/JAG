@@ -4,6 +4,7 @@ import {
   ATTENDANCE_CONTRIBUTOR_ID,
   ENROLLMENT_CONTRIBUTOR_ID,
   PROGRESS_CONTRIBUTOR_ID,
+  STUDENT_SUCCESS_CONTRIBUTOR_ID,
   createEducationIntelligenceOrchestrator,
   executeEducationIntelligence,
   type AcademicProgressObservation,
@@ -183,10 +184,11 @@ describe("Education Intelligence Observability (D2.7)", () => {
           ENROLLMENT_CONTRIBUTOR_ID,
           ATTENDANCE_CONTRIBUTOR_ID,
           PROGRESS_CONTRIBUTOR_ID,
+          STUDENT_SUCCESS_CONTRIBUTOR_ID,
         ])
       );
-      expect(out.metrics.executedContributorCount).toBeGreaterThanOrEqual(3);
-      expect(out.snapshot.contributorResults.length).toBeGreaterThanOrEqual(3);
+      expect(out.metrics.executedContributorCount).toBeGreaterThanOrEqual(4);
+      expect(out.snapshot.contributorResults.length).toBeGreaterThanOrEqual(4);
     });
   });
 

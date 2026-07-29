@@ -77,9 +77,33 @@ export function createDefaultEducationContributorCatalog(): EducationContributor
         "recommendations.progress",
         "proposals.progress",
       ],
-      intentMatchers: ["progress", "assess", "success"],
+      intentMatchers: ["progress", "assess"],
       available: true,
       label: "Academic Progress Intelligence",
+    },
+    {
+      contributorId: EDUCATION_CONTRIBUTOR_IDS.studentSuccessCognition,
+      nodeKind: "student_success",
+      capabilities: ["education", "student_success", "synthesis"],
+      dependsOn: [
+        EDUCATION_CONTRIBUTOR_IDS.enrollmentCognition,
+        EDUCATION_CONTRIBUTOR_IDS.attendanceCognition,
+        EDUCATION_CONTRIBUTOR_IDS.progressCognition,
+      ],
+      expectedOutputs: [
+        "evidence.student_success",
+        "recommendations.student_success",
+        "proposals.student_success",
+      ],
+      intentMatchers: [
+        "student_success",
+        "quarterly",
+        "advisor",
+        "leadership",
+        "brief",
+      ],
+      available: true,
+      label: "Student Success Intelligence (synthesis)",
     },
     {
       contributorId: "education.cognition.intervention",
@@ -338,6 +362,12 @@ function buildExecutionNodes(input: {
 function inferKind(contributorId: string): EducationGraphNodeKind {
   if (contributorId.includes("enrollment")) return "enrollment";
   if (contributorId.includes("attendance")) return "attendance";
+  if (
+    contributorId.includes("student_success") ||
+    contributorId.includes("student-success")
+  ) {
+    return "student_success";
+  }
   if (contributorId.includes("progress")) return "progress";
   if (contributorId.includes("intervention")) return "intervention";
   if (contributorId.includes("scholarship")) return "scholarship";

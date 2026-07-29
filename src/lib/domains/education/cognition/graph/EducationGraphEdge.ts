@@ -57,6 +57,35 @@ export const EDUCATION_DEFAULT_GRAPH_EDGES: readonly EducationGraphEdge[] = [
     kind: "escalates_to",
   },
   {
+    id: "edge.enrollment.student_success",
+    from: "enrollment",
+    to: "student_success",
+    kind: "influences",
+    rationale: "Enrollment outcomes feed student success synthesis",
+  },
+  {
+    id: "edge.attendance.student_success",
+    from: "attendance",
+    to: "student_success",
+    kind: "influences",
+    rationale: "Attendance outcomes feed student success synthesis",
+  },
+  {
+    id: "edge.progress.student_success",
+    from: "progress",
+    to: "student_success",
+    kind: "influences",
+    rationale: "Academic progress outcomes feed student success synthesis",
+  },
+  {
+    id: "edge.student_success.intervention",
+    from: "student_success",
+    to: "intervention",
+    kind: "escalates_to",
+    rationale: "Synthesized risk escalates to intervention",
+  },
+
+  {
     id: "edge.scheduling.attendance",
     from: "scheduling",
     to: "attendance",

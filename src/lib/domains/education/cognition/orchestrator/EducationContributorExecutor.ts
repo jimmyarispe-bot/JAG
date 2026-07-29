@@ -20,6 +20,11 @@ import {
   PROGRESS_CONTRIBUTOR_ID,
   runAcademicProgressIntelligence,
 } from "../progress";
+import {
+  STUDENT_SUCCESS_CONTRIBUTOR_ID,
+  buildStudentSuccessInputs,
+  runStudentSuccessIntelligence,
+} from "../student-success";
 import type { EducationNormalizedObservations } from "./EducationExecutionContext";
 import type { EducationContributorExecutionRecord } from "./EducationExecutionResult";
 import type {
@@ -38,7 +43,14 @@ export interface EducationContributorExecutorInput {
   runners?: Readonly<
     Record<
       string,
-      (observations: EducationNormalizedObservations, now?: string) => EducationContributorResult
+      (
+        observations: EducationNormalizedObservations,
+        now?: string,
+        priorResults?: ReadonlyArray<{
+          contributorId: string;
+          result: EducationContributorResult;
+        }>
+      ) => EducationContributorResult
     >
   >;
 }
@@ -69,13 +81,6 @@ export function executeEducationContributors(
     contributorId: string;
     result: EducationContributorResult;
   }> = [];
-
-  const stageById = new Map<string, number>();
-  for (const stage of input.plan.stages) {
-    for (const id of stage.contributorIds) {
-      stageById.set(id, stage.stage);
-    }
-  }
 
   const dependsOnById = new Map<string, readonly string[]>();
   for (const node of input.plan.nodes) {
@@ -124,6 +129,7 @@ export function executeEducationContributors(
           observations: input.observations,
           now: input.now,
           runners: input.runners,
+          priorResults: results,
         });
         const durationMs = nowMs() - started;
         executedContributorIds.push(contributorId);
@@ -170,10 +176,14 @@ function runContributor(input: {
   observations: EducationNormalizedObservations;
   now?: string;
   runners?: EducationContributorExecutorInput["runners"];
+  priorResults: ReadonlyArray<{
+    contributorId: string;
+    result: EducationContributorResult;
+  }>;
 }): EducationContributorResult {
   const custom = input.runners?.[input.contributorId];
   if (custom) {
-    return custom(input.observations, input.now);
+    return custom(input.observations, input.now, input.priorResults);
   }
 
   if (input.contributorId === ENROLLMENT_CONTRIBUTOR_ID) {
@@ -203,13 +213,32 @@ function runContributor(input: {
     return runAcademicProgressIntelligence(observation, { now: input.now });
   }
 
-  // Future / unavailable contributors should not reach here if the planner
-  // marked them unavailable — treat as a soft failure for extensibility.
-  const extra =
-    input.observations.extras?.[input.contributorId] ??
-    input.observations.extras?.[`observation.${input.contributorId}`];
-  if (extra != null && input.runners?.[input.contributorId]) {
-    return input.runners[input.contributorId]!(input.observations, input.now);
+  if (input.contributorId === STUDENT_SUCCESS_CONTRIBUTOR_ID) {
+    const subjectId =
+      input.priorResults[0]?.result.subjectId ??
+      input.observations.progress?.student.studentId ??
+      input.observations.attendance?.student.studentId ??
+      input.observations.enrollment?.student?.studentId ??
+      "unknown";
+    const organizationId =
+      input.observations.progress?.organizationId ??
+      input.observations.attendance?.organizationId ??
+      input.observations.enrollment?.organizationId;
+    const synthesisInputs = buildStudentSuccessInputs({
+      subjectId,
+      organizationId,
+      upstream: input.priorResults,
+    });
+    if (
+      !synthesisInputs.enrollment &&
+      !synthesisInputs.attendance &&
+      !synthesisInputs.progress
+    ) {
+      throw new Error(
+        "Student success synthesis requires upstream contributor results"
+      );
+    }
+    return runStudentSuccessIntelligence(synthesisInputs, { now: input.now });
   }
 
   throw new Error(

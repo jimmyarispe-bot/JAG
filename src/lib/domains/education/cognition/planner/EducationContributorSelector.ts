@@ -51,7 +51,13 @@ export function detectEducationPlanScenario(
   if (
     haystack.includes("student_success") ||
     haystack.includes("student success") ||
-    (haystack.includes("success") && haystack.includes("review"))
+    (haystack.includes("success") && haystack.includes("review")) ||
+    haystack.includes("quarterly") ||
+    haystack.includes("advisor") ||
+    haystack.includes("leadership brief") ||
+    haystack.includes("leadership_brief") ||
+    (haystack.includes("advisor") && haystack.includes("brief")) ||
+    (haystack.includes("leadership") && haystack.includes("brief"))
   ) {
     return "student_success_review";
   }
@@ -96,7 +102,7 @@ export const EDUCATION_SCENARIO_CONTRIBUTORS: Record<
     "education.cognition.enrollment",
     "education.cognition.attendance",
     "education.cognition.progress",
-    "education.cognition.intervention",
+    "education.cognition.student_success",
   ],
   scholarship_review: [
     "education.cognition.enrollment",

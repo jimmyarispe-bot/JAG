@@ -7,6 +7,7 @@ import { createAttendanceContributor } from "../cognition/attendance";
 import { createEducationCognitiveContributor } from "../cognition";
 import { createEnrollmentContributor } from "../cognition/enrollment";
 import { createAcademicProgressContributor } from "../cognition/progress";
+import { createStudentSuccessContributor } from "../cognition/student-success";
 import { createEducationContextContributor } from "../context";
 import { createEducationEvidenceContributor } from "../evidence";
 import { createEducationExperienceContributor } from "../experience";
@@ -22,6 +23,7 @@ export interface EducationContributorSet {
   enrollmentCognition: ReturnType<typeof createEnrollmentContributor>;
   attendanceCognition: ReturnType<typeof createAttendanceContributor>;
   progressCognition: ReturnType<typeof createAcademicProgressContributor>;
+  studentSuccessCognition: ReturnType<typeof createStudentSuccessContributor>;
   experience: ReturnType<typeof createEducationExperienceContributor>;
   action: ReturnType<typeof createEducationActionContributor>;
   evidence: ReturnType<typeof createEducationEvidenceContributor>;
@@ -37,6 +39,7 @@ export function createEducationContributors(): EducationContributorSet {
     enrollmentCognition: createEnrollmentContributor(),
     attendanceCognition: createAttendanceContributor(),
     progressCognition: createAcademicProgressContributor(),
+    studentSuccessCognition: createStudentSuccessContributor(),
     experience: createEducationExperienceContributor(),
     action: createEducationActionContributor(),
     evidence: createEducationEvidenceContributor(),
@@ -54,6 +57,7 @@ export {
   createEducationActionContributor,
   createAttendanceContributor,
   createAcademicProgressContributor,
+  createStudentSuccessContributor,
   createEducationCognitiveContributor,
   createEnrollmentContributor,
   createEducationContextContributor,

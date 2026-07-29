@@ -4,6 +4,7 @@ import {
   ATTENDANCE_CONTRIBUTOR_ID,
   ENROLLMENT_CONTRIBUTOR_ID,
   PROGRESS_CONTRIBUTOR_ID,
+  STUDENT_SUCCESS_CONTRIBUTOR_ID,
   createEducationIntelligenceOrchestrator,
   executeEducationIntelligence,
   type AcademicProgressObservation,
@@ -175,7 +176,7 @@ describe("Education Intelligence Orchestrator (D2.6)", () => {
   });
 
   describe("multi-contributor execution", () => {
-    it("runs Enrollment, Attendance, and Progress for student success review", () => {
+    it("runs foundational contributors then Student Success synthesis", () => {
       const result = executeEducationIntelligence({
         intent: intent(
           "education.student_success.review",
@@ -194,6 +195,7 @@ describe("Education Intelligence Orchestrator (D2.6)", () => {
           ENROLLMENT_CONTRIBUTOR_ID,
           ATTENDANCE_CONTRIBUTOR_ID,
           PROGRESS_CONTRIBUTOR_ID,
+          STUDENT_SUCCESS_CONTRIBUTOR_ID,
         ])
       );
       expect(result.graphResult.consultedContributorIds).toEqual(
@@ -201,11 +203,13 @@ describe("Education Intelligence Orchestrator (D2.6)", () => {
           ENROLLMENT_CONTRIBUTOR_ID,
           ATTENDANCE_CONTRIBUTOR_ID,
           PROGRESS_CONTRIBUTOR_ID,
+          STUDENT_SUCCESS_CONTRIBUTOR_ID,
         ])
       );
       expect(result.telemetry.executedContributorIds.length).toBeGreaterThanOrEqual(
-        3
+        4
       );
+      expect(result.ok).toBe(true);
     });
   });
 

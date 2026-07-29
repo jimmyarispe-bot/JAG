@@ -16,6 +16,8 @@ export const EDUCATION_CONTRIBUTOR_IDS = {
   attendanceCognition: "education.cognition.attendance",
   /** Third real cognitive intelligence contributor (D4.0). */
   progressCognition: "education.cognition.progress",
+  /** First synthesis cognitive contributor (D4.1). */
+  studentSuccessCognition: "education.cognition.student_success",
   experience: "education.experience",
   action: "education.action",
   evidence: "education.evidence",

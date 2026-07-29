@@ -6,6 +6,7 @@ export const EDUCATION_GRAPH_NODE_KINDS = [
   "enrollment",
   "attendance",
   "progress",
+  "student_success",
   "scheduling",
   "intervention",
   "scholarship",
@@ -33,6 +34,7 @@ export const EDUCATION_GRAPH_NODE_LABELS: Record<
   enrollment: "Enrollment",
   attendance: "Attendance",
   progress: "Progress",
+  student_success: "Student Success",
   scheduling: "Scheduling",
   intervention: "Intervention",
   scholarship: "Scholarship",
@@ -46,6 +48,12 @@ export function nodeKindFromContributorId(
 ): EducationGraphNodeKind | null {
   if (contributorId.includes("enrollment")) return "enrollment";
   if (contributorId.includes("attendance")) return "attendance";
+  if (
+    contributorId.includes("student_success") ||
+    contributorId.includes("student-success")
+  ) {
+    return "student_success";
+  }
   if (contributorId.includes("progress")) return "progress";
   if (contributorId.includes("scheduling") || contributorId.includes("schedule"))
     return "scheduling";
