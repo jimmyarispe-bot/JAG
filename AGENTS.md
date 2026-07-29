@@ -1,3 +1,17 @@
+<!-- BEGIN:jag-constitution -->
+# JAG™ Constitutional Architecture (supreme)
+
+Before implementing **any** code:
+
+1. Read [`JAG_CONSTITUTION.md`](./JAG_CONSTITUTION.md)
+2. Read [`UNIVERSAL_ORGANIZATION_MODEL.md`](./UNIVERSAL_ORGANIZATION_MODEL.md)
+3. Ask: *Am I building another application, or extending the Organizational Intelligence Operating System?*
+
+If “another application” → **STOP. Redesign. Do not write code.**
+
+JAG is the product. Domain packages (Education/AcademyOS, Finance, HR, …) plug in. Experiences are composed — not separate portals. Next milestone: [JAG Experience Orchestrator™](./docs/jag-os/experience-orchestrator/01_OVERVIEW.md).
+<!-- END:jag-constitution -->
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 

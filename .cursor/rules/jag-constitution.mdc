@@ -1,0 +1,36 @@
+---
+description: Supreme JAG product architecture — read before any implementation
+alwaysApply: true
+---
+
+# JAG™ Constitutional Review (mandatory)
+
+Before implementing **any** code:
+
+1. Read `JAG_CONSTITUTION.md` (repo root).  
+2. Read `UNIVERSAL_ORGANIZATION_MODEL.md` (repo root).  
+3. Ask: *Am I building another application, or extending the Organizational Intelligence Operating System?*
+
+If the answer is **another application** — **STOP. Redesign. Do not write code.**
+
+## Non-negotiables
+
+- **JAG is the product.** AcademyOS, Finance, HR, Learning, etc. are domain intelligence packages — not products.  
+- **One operating environment.** Do not create new Parent/Teacher/Executive/HR/Finance “portals” as products. Compose **JAG → Context**.  
+- **Intelligence before interfaces.** Screens exist because JAG cannot yet answer automatically.  
+- **Compose experiences** from Identity + Role + Permissions + Intent + Context + Evidence + Memory + Twin + Domain Intelligence + Current State.  
+- **No speculative recommendations.** Evidence or “I don’t know.”  
+- **Never fork JAG** for a vertical — configure the Universal Organization Model.  
+- **Education-specific logic** belongs in the Education Intelligence package, not JAG Core.
+
+## Law 8 checklist (record in PR / plan)
+
+1. Why isn’t JAG doing this automatically?  
+2. Is this another intelligence engine? → stop  
+3. Is this only UI over an existing engine? → compose  
+4. Benefits orgs outside education? → JAG  
+5. Education-specific? → Education package only  
+
+## Preferred next milestone
+
+**JAG Experience Orchestrator™** (`docs/jag-os/experience-orchestrator/01_OVERVIEW.md`) — composition layer, not a new engine or portal.

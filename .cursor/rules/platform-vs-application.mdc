@@ -1,0 +1,32 @@
+---
+description: Governance — Academy-only work must not land in JAG platform modules
+alwaysApply: true
+---
+
+# Platform vs Application Governance
+
+**No code may be added to JAG (`src/lib/platform/`) if it solves only an AcademyOS problem.**
+
+Every proposed platform change must answer:
+
+1. Would HealthcareOS also benefit?
+2. Would ManufacturingOS also benefit?
+3. Is this a fundamental platform capability?
+
+If the answer is **no**, implement it under `src/applications/<app>/` (e.g. AcademyOS), not the platform.
+
+## Domain intelligence packages (constitutional language)
+
+Per `JAG_CONSTITUTION.md`: JAG is the **only product**. AcademyOS / Healthcare / Manufacturing / etc. are **domain intelligence packages** that plug into JAG — not peer products or portals.
+
+Engineering may still use pack registration under `src/applications/<pack>/` for packaging. Product intent: **compose JAG → Context**, never ship a second OS.
+
+```text
+JAG™ Organizational Intelligence Operating System
+├── Education Intelligence (AcademyOS pack)
+├── Healthcare Intelligence
+├── Manufacturing Intelligence
+└── Future domain packages
+```
+
+Packages register via SDK + framework registries. Platform modules must **never** import `@/applications/*`.
