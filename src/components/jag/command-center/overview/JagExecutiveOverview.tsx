@@ -33,13 +33,20 @@ export function JagExecutiveOverview({
         </p>
         <p className="pt-2 text-xs">
           <Link
+            href="/jag/chat"
+            className="text-[var(--jag-muted)] underline-offset-2 hover:text-[var(--jag-text)] hover:underline"
+          >
+            Executive Conversation
+          </Link>
+          {" · "}
+          <Link
             href="/jag/scenarios"
             className="text-[var(--jag-muted)] underline-offset-2 hover:text-[var(--jag-text)] hover:underline"
           >
-            Open Scenario Planner
+            Scenario Planner
           </Link>
           {" · "}
-          Model hypothetical changes before deciding.
+          Ask grounded questions or model hypothetical changes.
         </p>
       </header>
 

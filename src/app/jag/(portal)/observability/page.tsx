@@ -6,6 +6,7 @@ import {
   JagStatusBadge,
 } from "@/components/jag/command-center";
 import {
+  listConversationObservations,
   listJagAuditEvents,
   listPredictionObservations,
   listScenarioObservations,
@@ -14,7 +15,7 @@ import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 /**
- * Observability surfaces executive audit, prediction, and scenario runs.
+ * Observability surfaces executive audit, prediction, scenario, and conversation runs.
  * No fabricated telemetry.
  */
 export default async function JagObservabilityPage() {
@@ -26,6 +27,7 @@ export default async function JagObservabilityPage() {
   const events = listJagAuditEvents(40);
   const predictions = listPredictionObservations(20);
   const scenarios = listScenarioObservations(20);
+  const conversations = listConversationObservations(20);
 
   return (
     <div className="space-y-8">
@@ -178,6 +180,51 @@ export default async function JagObservabilityPage() {
                 </p>
                 <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px]">
                   org {s.organizationId} · kinds {s.kinds.join(", ")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </JagSection>
+
+      <JagSection
+        title="Conversation turns"
+        description="Every executive question records intent, duration, evidence used, contributors, confidence, and related objects."
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-xs text-[var(--jag-muted)]">
+            Evidence-backed answers only — not chatbot logs.
+          </p>
+          <JagStatusBadge
+            status={conversations.length > 0 ? "ready" : "empty"}
+          />
+        </div>
+
+        {conversations.length === 0 ? (
+          <JagEmptyState
+            title="No conversation turns yet"
+            description="Ask a question at /jag/chat to record a grounded turn."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {conversations.map((c) => (
+              <li
+                key={c.id}
+                className="rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-2 text-xs text-[var(--jag-muted)]"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted-2)]">
+                    {c.finishedAt}
+                  </p>
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[var(--jag-text)]">
+                    {c.durationMs}ms · {(c.confidence * 100).toFixed(0)}%
+                  </p>
+                </div>
+                <p className="mt-1 text-[var(--jag-text)]">{c.question}</p>
+                <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px]">
+                  intent {c.intent} · evidence {c.evidenceIds.length} ·
+                  contributors {c.contributorsConsulted.length}
+                  {c.insufficientData ? " · insufficient" : ""}
                 </p>
               </li>
             ))}

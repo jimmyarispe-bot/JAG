@@ -22,6 +22,7 @@ export * from "./audit";
 export * from "./notifications";
 export * from "./predictive";
 export * from "./scenarios";
+export * from "./conversation";
 export { loadJagSearchCatalog } from "./search-catalog";
 export {
   filterJagSearchCatalog,

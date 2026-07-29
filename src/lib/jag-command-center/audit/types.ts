@@ -16,6 +16,7 @@ export const JAG_AUDIT_ACTIONS = [
   "follow_up_scheduled",
   "prediction_run",
   "scenario_run",
+  "conversation_turn",
 ] as const;
 
 export type JagAuditAction = (typeof JAG_AUDIT_ACTIONS)[number];

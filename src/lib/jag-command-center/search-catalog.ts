@@ -22,6 +22,7 @@ export { filterJagSearchCatalog } from "./search-filter";
 /** Mirror of Command Center nav — kept in lib to avoid UI→lib cycles. */
 const NAV_SEED: readonly { id: string; label: string; href: string }[] = [
   { id: "overview", label: "Overview", href: "/jag" },
+  { id: "chat", label: "Conversation", href: "/jag/chat" },
   { id: "decisions", label: "Decision Center", href: "/jag/decisions" },
   { id: "briefings", label: "Executive Briefings", href: "/jag/briefings" },
   { id: "scenarios", label: "Scenario Planner", href: "/jag/scenarios" },
