@@ -45,6 +45,40 @@ export function JagDecisionDetailView({
         </div>
       </JagSection>
 
+      {detail.predictedConsequence ? (
+        <Panel title="Predicted consequence if no action">
+          <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--jag-muted-2)]">
+            Advisory forecast — not a fact
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--jag-text)]">
+            {detail.predictedConsequence.statement}
+          </p>
+          <dl className="mt-3 grid gap-2 sm:grid-cols-3 text-xs">
+            <Meta
+              label="Horizon"
+              value={detail.predictedConsequence.horizonLabel}
+            />
+            <Meta
+              label="Confidence"
+              value={`${(detail.predictedConsequence.confidence * 100).toFixed(0)}%`}
+              mono
+            />
+            <Meta
+              label="Risk"
+              value={detail.predictedConsequence.riskLevel.replace(/_/g, " ")}
+            />
+          </dl>
+          <p className="mt-3 text-xs text-[var(--jag-muted)]">
+            Related prediction:{" "}
+            {detail.predictedConsequence.relatedPredictionKind.replace(
+              /_/g,
+              " "
+            )}
+            . {detail.predictedConsequence.advisoryNotice}
+          </p>
+        </Panel>
+      ) : null}
+
       <Panel title="Assignment">
         <JagDecisionAssignmentForm
           decisionId={card.id}

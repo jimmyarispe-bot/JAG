@@ -62,6 +62,21 @@ export function JagDecisionCardView({
       <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-[var(--jag-muted)]">
         {decision.recommendedAction}
       </p>
+
+      {decision.predictedConsequence ? (
+        <p className="mt-2 line-clamp-3 rounded border border-[var(--jag-border)] bg-[var(--jag-bg)] px-2 py-1.5 text-[11px] leading-relaxed text-[var(--jag-muted)]">
+          <span className="text-[10px] uppercase tracking-[0.08em] text-[var(--jag-muted-2)]">
+            If no action
+          </span>
+          <span className="mt-0.5 block text-[var(--jag-text)]">
+            {decision.predictedConsequence.statement}
+          </span>
+          <span className="mt-1 block font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted-2)]">
+            Advisory · {(decision.predictedConsequence.confidence * 100).toFixed(0)}%
+            confidence · {decision.predictedConsequence.horizonLabel}
+          </span>
+        </p>
+      ) : null}
     </Link>
   );
 }

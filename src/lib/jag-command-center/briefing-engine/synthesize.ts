@@ -22,6 +22,7 @@ import {
   type JagStoredExecutiveBrief,
   type JagStoredSchoolHealth,
 } from "../intelligence-store";
+import { runForecastsForBriefing } from "../predictive/load-forecasts";
 import { computeExecutiveInsights } from "./insights";
 import {
   briefingKindLabel,
@@ -62,6 +63,7 @@ const SECTION_TITLES: Record<JagBriefingSectionId, string> = {
   decision_queue_summary: "Decision Queue Summary",
   completed_outcomes: "Completed Outcomes",
   emerging_trends: "Emerging Trends",
+  forecast: "Forecast",
   recommended_executive_actions: "Recommended Executive Actions",
   executive_insights: "Executive Insights",
   appendix: "Appendix",
@@ -217,6 +219,15 @@ export function synthesizeExecutiveBriefing(input: {
   byId.set(
     "emerging_trends",
     sectionEmergingTrends({ executions, health, ops, funding, student })
+  );
+  byId.set(
+    "forecast",
+    sectionForecast({
+      organizationId: primaryId,
+      organizationName: primaryName,
+      openDecisions,
+      recommendations,
+    })
   );
   byId.set(
     "recommended_executive_actions",
@@ -1174,6 +1185,118 @@ function sectionEmergingTrends(input: {
     recommendations: [],
     decisionIds: [],
     availableActions: NOTE_ACTIONS,
+  });
+}
+
+function sectionForecast(input: {
+  organizationId: string;
+  organizationName: string;
+  openDecisions: readonly JagDecisionCard[];
+  recommendations: readonly JagBriefingRecommendation[];
+}): JagBriefingSection {
+  const { predictions } = runForecastsForBriefing({
+    organizationId: input.organizationId,
+    organizationName: input.organizationName,
+    decisions: input.openDecisions,
+    horizon: "30_days",
+  });
+
+  const usable = predictions.filter((p) => !p.insufficientData);
+  if (usable.length === 0) {
+    return emptySection(
+      "forecast",
+      "Advisory forecast unavailable — bind contributor outputs to project what is likely to happen next.",
+      ["jag.predictive_intelligence"]
+    );
+  }
+
+  const bullets: string[] = [
+    "Advisory only — these are not facts. Review confidence, drivers, and assumptions before acting.",
+  ];
+  const evidence: JagBriefingEvidenceRef[] = [];
+  const contributors = new Set<string>(["jag.predictive_intelligence"]);
+  const confidences: number[] = [];
+  const preventative: JagBriefingRecommendation[] = [];
+
+  for (const p of usable.slice(0, 4)) {
+    confidences.push(p.confidence);
+    bullets.push(
+      `Likely next (${p.horizonLabel}): ${p.title} — ${p.predictedState.summary} (confidence ${(p.confidence * 100).toFixed(0)}%, trend ${p.trend}).`
+    );
+    bullets.push(
+      `Why: ${p.primaryDrivers
+        .slice(0, 2)
+        .map((d) => d.label)
+        .join("; ") || "see evidence"}.`
+    );
+    for (const e of p.evidence.slice(0, 2)) {
+      evidence.push({
+        id: e.id,
+        source: e.source,
+        summary: e.summary,
+      });
+      if (e.contributorId) contributors.add(e.contributorId);
+    }
+    for (const a of p.recommendedPreventiveActions.slice(0, 1)) {
+      const related =
+        input.openDecisions.find((d) =>
+          a.relatedDecisionKinds?.some((k) =>
+            d.actionKind.toLowerCase().includes(k)
+          )
+        ) ?? input.openDecisions[0];
+      preventative.push({
+        id: `forecast-action-${p.kind}-${a.id}`,
+        title: a.title,
+        rationale: `${a.rationale} (forecast: ${p.title})`,
+        decisionId: related?.id ?? null,
+        decisionHref: related ? decisionHref(related.id) : null,
+        organizationId: input.organizationId,
+        explainability: {
+          evidence: p.evidence.slice(0, 4).map((e) => ({
+            id: e.id,
+            source: e.source,
+            summary: e.summary,
+          })),
+          contributors: [...p.supportingContributors],
+          policies: p.assumptions.map((x) => x.statement),
+          confidence: p.confidence,
+          dependencies: [],
+          timeline: [],
+        },
+      });
+    }
+  }
+
+  const whyLine = usable
+    .flatMap((p) => p.primaryDrivers.slice(0, 1).map((d) => d.explanation))
+    .slice(0, 2)
+    .join(" ");
+
+  return section("forecast", {
+    narrative: [
+      "What is likely to happen next (advisory):",
+      usable.map((p) => p.narrative).join(" "),
+      whyLine ? `Why: ${whyLine}` : "",
+      `Confidence reflects evidence strength across ${usable.length} forecast(s), not certainty of outcome.`,
+      "Recommended preventative decisions appear below.",
+    ]
+      .filter(Boolean)
+      .join(" "),
+    bullets: uniqueStrings(bullets).slice(0, 14),
+    confidence: avg(confidences),
+    evidenceReferences: uniqueEvidence(evidence),
+    contributorSources: [...contributors],
+    policyReferences: usable.flatMap((p) =>
+      p.assumptions.slice(0, 2).map((a) => a.statement)
+    ),
+    recommendations: [
+      ...preventative,
+      ...input.recommendations.slice(0, 2),
+    ].slice(0, 6),
+    decisionIds: preventative
+      .map((r) => r.decisionId)
+      .filter((id): id is string => Boolean(id)),
+    availableActions: FULL_ACTIONS,
   });
 }
 

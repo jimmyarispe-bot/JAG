@@ -26,6 +26,8 @@ describe("Executive Overview (JAG-002)", () => {
     expect(model.capabilityPacks.length).toBeGreaterThanOrEqual(5);
     expect(model.domains.some((d) => d.id === "education")).toBe(true);
     expect(model.organizationHealth.status).toBe("empty");
+    expect(model.forecasts.status).toBe("empty");
+    expect(model.forecasts.advisoryNotice.toLowerCase()).toContain("advisory");
     expect(model.decisionExecution.openDecisions).toBe(0);
     expect(model.decisionExecution.outcomeSuccessRate).toBeNull();
     expect(model.decisionExecution.href).toBe("/jag/decisions");

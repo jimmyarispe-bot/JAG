@@ -3,6 +3,7 @@ import { JagCapabilityPacksSection } from "./JagCapabilityPacksSection";
 import { JagDecisionExecutionSection } from "./JagDecisionExecutionSection";
 import { JagDomainsSection } from "./JagDomainsSection";
 import { JagExecutiveBriefSection } from "./JagExecutiveBriefSection";
+import { JagForecastsSection } from "./JagForecastsSection";
 import { JagOrgHealthSection } from "./JagOrgHealthSection";
 import { JagPrioritiesSection } from "./JagPrioritiesSection";
 import { JagRecentIntelligenceSection } from "./JagRecentIntelligenceSection";
@@ -26,10 +27,13 @@ export function JagExecutiveOverview({
             : "Executive overview — select an organization when available."}
           {" · "}
           Real services only. Empty means unbound — never fabricated.
+          {" · "}
+          Forecasts are advisory.
         </p>
       </header>
 
       <JagOrgHealthSection health={model.organizationHealth} />
+      <JagForecastsSection forecasts={model.forecasts} />
       <JagDecisionExecutionSection metrics={model.decisionExecution} />
       <JagPrioritiesSection priorities={model.priorities} />
       <JagExecutiveBriefSection brief={model.executiveBrief} />

@@ -20,6 +20,7 @@ export * from "./decision-center";
 export * from "./briefing-engine";
 export * from "./audit";
 export * from "./notifications";
+export * from "./predictive";
 export { loadJagSearchCatalog } from "./search-catalog";
 export {
   filterJagSearchCatalog,
@@ -32,6 +33,8 @@ export type {
   JagDecisionGroupId,
   JagExecutiveBriefView,
   JagExecutiveOverviewModel,
+  JagForecastOverviewCard,
+  JagForecastsOverviewView,
   JagLoadedDomainView,
   JagOrgHealthView,
   JagPriorityItem,

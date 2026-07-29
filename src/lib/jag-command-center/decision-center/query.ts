@@ -8,6 +8,7 @@ import {
   getStoredExecution,
   listStoredExecutionsForOrganizations,
 } from "../intelligence-store";
+import { attachPredictedConsequences } from "../predictive/load-forecasts";
 import { decisionGroupLabel, resolveContributorCatalog } from "./catalog";
 import {
   getDecisionAssignment,
@@ -40,10 +41,11 @@ export function loadDecisionCenter(
   );
 
   const executions = listStoredExecutionsForOrganizations(orgIds, 500);
-  const all = projectDecisionsFromExecutions({
+  const projected = projectDecisionsFromExecutions({
     executions,
     organizationNames: orgNames,
   });
+  const all = attachPredictedConsequences(projected);
   const decisions = applyFilters(all, filters);
 
   const grouped = emptyGroups();
@@ -223,6 +225,7 @@ function buildDetail(card: JagDecisionCard): JagDecisionDetail {
       recommendationCount: recommendations.length,
       confidence: card.confidence,
     },
+    predictedConsequence: card.predictedConsequence ?? null,
   };
 }
 

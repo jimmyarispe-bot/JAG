@@ -26,12 +26,14 @@ import {
   listStoredActionProposals,
   listStoredExecutions,
 } from "./intelligence-store";
+import { loadForecastsView } from "./predictive/load-forecasts";
 import type {
   JagCapabilityPackView,
   JagDecisionExecutionDashboard,
   JagDecisionGroupId,
   JagExecutiveBriefView,
   JagExecutiveOverviewModel,
+  JagForecastsOverviewView,
   JagOrgHealthView,
   JagPriorityItem,
   JagRecommendedDecisionGroup,
@@ -63,6 +65,7 @@ export function loadExecutiveOverview(
     organizationId,
     organizationName: organization?.name ?? null,
     organizationHealth: loadOrgHealth(organizationId),
+    forecasts: loadForecastsForOverview(session, organizationId),
     decisionExecution: loadDecisionExecutionDashboard(session),
     priorities: loadPriorities(organizationId),
     executiveBrief: loadExecutiveBrief(organizationId),
@@ -81,6 +84,39 @@ export function loadExecutiveOverview(
         }))
       : [],
     recommendedDecisions: loadRecommendedDecisions(organizationId),
+  };
+}
+
+function loadForecastsForOverview(
+  session: JagPlatformSession,
+  organizationId: string | null
+): JagForecastsOverviewView {
+  if (!organizationId) {
+    return {
+      status: "empty",
+      advisoryNotice: "Advisory forecasts only — never facts.",
+      cards: [],
+      explanation:
+        "Select an organization to load predictive intelligence forecasts.",
+    };
+  }
+  const view = loadForecastsView(session, { organizationId });
+  return {
+    status: view.status,
+    advisoryNotice: view.advisoryNotice,
+    explanation: view.explanation,
+    cards: view.cards.map((c) => ({
+      id: c.id,
+      title: c.title,
+      horizonLabel: c.horizonLabel,
+      trend: c.trend,
+      confidence: c.confidence,
+      riskLevel: c.riskLevel,
+      drivers: c.drivers,
+      actions: c.actions,
+      predictedSummary: c.predictedSummary,
+      insufficientData: c.insufficientData,
+    })),
   };
 }
 

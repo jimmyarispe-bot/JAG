@@ -107,10 +107,32 @@ export type JagDecisionExecutionDashboard = {
   readonly href: string;
 };
 
+/** Advisory forecast cards for Executive Overview — Sprint 201. */
+export type JagForecastOverviewCard = {
+  readonly id: string;
+  readonly title: string;
+  readonly horizonLabel: string;
+  readonly trend: string;
+  readonly confidence: number;
+  readonly riskLevel: string;
+  readonly drivers: readonly string[];
+  readonly actions: readonly string[];
+  readonly predictedSummary: string;
+  readonly insufficientData: boolean;
+};
+
+export type JagForecastsOverviewView = {
+  readonly status: "ready" | "empty";
+  readonly advisoryNotice: string;
+  readonly cards: readonly JagForecastOverviewCard[];
+  readonly explanation: string;
+};
+
 export type JagExecutiveOverviewModel = {
   readonly organizationId: string | null;
   readonly organizationName: string | null;
   readonly organizationHealth: JagOrgHealthView;
+  readonly forecasts: JagForecastsOverviewView;
   readonly decisionExecution: JagDecisionExecutionDashboard;
   readonly priorities: readonly JagPriorityItem[];
   readonly executiveBrief: JagExecutiveBriefView;

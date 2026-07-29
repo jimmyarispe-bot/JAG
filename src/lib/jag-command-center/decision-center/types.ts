@@ -95,6 +95,16 @@ export type JagDecisionFeedback = {
   readonly recordedBy: string;
 };
 
+/** Advisory predicted consequence if no action — Sprint 201. */
+export type JagDecisionPredictedConsequence = {
+  readonly statement: string;
+  readonly confidence: number;
+  readonly riskLevel: string;
+  readonly horizonLabel: string;
+  readonly relatedPredictionKind: string;
+  readonly advisoryNotice: string;
+};
+
 export type JagDecisionCard = {
   readonly id: string;
   readonly title: string;
@@ -122,6 +132,8 @@ export type JagDecisionCard = {
   readonly assignment: JagDecisionAssignment | null;
   readonly isOverdue: boolean;
   readonly outcomeResult: JagDecisionOutcomeResult | null;
+  /** Present for open decisions when predictive engine can advise. */
+  readonly predictedConsequence?: JagDecisionPredictedConsequence | null;
 };
 
 export type JagDecisionTimelineEntry = {
@@ -172,6 +184,7 @@ export type JagDecisionDetail = {
     readonly recommendationCount: number;
     readonly confidence: number;
   };
+  readonly predictedConsequence: JagDecisionPredictedConsequence | null;
 };
 
 export type JagDecisionFilters = {
