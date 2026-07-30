@@ -3,6 +3,7 @@
  * Never invents metrics — empty / unbound states are stated explicitly.
  */
 
+import { MemoryService } from "@/lib/platform/intelligence/memory/index";
 import { filterJagSearchCatalog } from "../search-filter";
 import type { ConversationGroundingContext } from "./context";
 import type { RoutedIntent } from "./intents";
@@ -176,6 +177,8 @@ export function buildConversationAnswer(input: {
       return answerSearch(context, question, baseMeta);
     case "follow_up":
       return answerFollowUp(context, orgLabel, baseMeta, priorTopics);
+    case "historical_memory":
+      return answerHistoricalMemory(context, orgLabel, baseMeta, question, priorTopics);
     case "insufficient":
       return emptyAnswer("Ask an executive question about decisions, health, forecasts, or scenarios.");
     case "general_status":
@@ -1133,6 +1136,134 @@ const SUGGESTED_FROM_SEARCH = [
   "What should I decide today?",
   "Which forecasts deserve attention?",
 ];
+
+function answerHistoricalMemory(
+  ctx: ConversationGroundingContext,
+  orgLabel: string,
+  baseMeta: BaseMeta,
+  question: string,
+  priorTopics: readonly string[]
+): JagConversationAnswer {
+  if (!ctx.organizationId) {
+    return emptyAnswer("Select an organization to query institutional memory.", {
+      ...baseMeta,
+    });
+  }
+
+  const topicHint = priorTopics[priorTopics.length - 1] ?? "";
+  const similar = MemoryService.similarSituations(
+    {
+      organizationId: ctx.organizationId,
+      title: question,
+      description: `${orgLabel} ${topicHint}`,
+      tags: [topicHint, "decision", "outcome", "lesson"].filter(Boolean),
+    },
+    6
+  ).situations;
+  const search = MemoryService.search(ctx.organizationId, {});
+  const best = search.records
+    .filter((r) => r.outcome === "success")
+    .slice()
+    .sort((a, b) => b.confidence - a.confidence)[0];
+
+  if (similar.length === 0 && search.records.length === 0) {
+    return emptyAnswer(
+      `No institutional memories for ${orgLabel} yet. Complete decision outcomes or record lessons at /jag/memory.`,
+      {
+        ...baseMeta,
+        recommendedNextActions: [
+          "Record a lesson learned in Organizational Memory.",
+          "Complete outcome review on a Decision Center item.",
+        ],
+        suggestedFollowUps: [
+          "What should I decide today?",
+          "Which forecasts deserve attention?",
+        ],
+      }
+    );
+  }
+
+  const howOften = search.patterns[0];
+  const conf = avg([
+    ...similar.map((s) => s.confidence),
+    ...(best ? [best.confidence] : []),
+  ]);
+
+  return {
+    executiveSummary: [
+      similar.length
+        ? `Yes — ${similar.length} similar situation(s) in institutional memory for ${orgLabel}.`
+        : `Institutional memory exists for ${orgLabel} (${search.records.length} record(s)), but no close similarity match for this phrasing.`,
+      best
+        ? `Highest-confidence successful intervention on record: ${best.title}.`
+        : null,
+      howOften
+        ? `Recurrence signal: ${howOften.label} (${howOften.occurrenceCount}×).`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" "),
+    evidence: [
+      ...similar.slice(0, 4).map((s) => ({
+        id: `ev-mem-${s.memoryId}`,
+        source: s.title,
+        summary: `${s.outcomeSummary} · lessons: ${s.lessons[0] ?? "n/a"}`,
+        kind: "observed" as const,
+        href: s.href,
+        confidence: s.confidence,
+      })),
+      ...(best
+        ? [
+            {
+              id: `ev-best-${best.id}`,
+              source: best.title,
+              summary: best.outcomeSummary ?? best.description,
+              kind: "observed" as const,
+              href: `/jag/memory?org=${encodeURIComponent(ctx.organizationId)}&id=${encodeURIComponent(best.id)}`,
+              confidence: best.confidence,
+            },
+          ]
+        : []),
+    ],
+    confidence: Number((conf || 0.5).toFixed(3)),
+    confidenceBand: band(conf || 0.5),
+    confidenceExplanation:
+      "Confidence from institutional memory records and similarity scores — advisory historical reasoning.",
+    primaryDrivers: similar.slice(0, 3).map((s) => ({
+      label: s.title,
+      explanation: s.lessons[0] ?? s.outcomeSummary,
+    })),
+    supportingContributors: ["jag.organizational_memory"],
+    relatedPolicies: baseMeta.relatedPolicies,
+    relatedKnowledge: baseMeta.relatedKnowledge,
+    relatedDecisions: ctx.openDecisions.slice(0, 3).map(decisionLink),
+    forecasts: baseMeta.forecasts,
+    scenarios: baseMeta.scenarios,
+    recommendedNextActions: [
+      "Open Organizational Memory to review full timeline.",
+      best ? `Study successful case: ${best.title}` : "Record a lesson after the next outcome review.",
+    ],
+    suggestedFollowUps: [
+      "What happened last time?",
+      "Which intervention worked best?",
+      "What should I decide today?",
+    ],
+    reasoningChain: [
+      "Intent: historical_memory.",
+      "Queried MemoryService similarity + patterns.",
+      "Did not invent prior situations — only bound institutional records.",
+    ],
+    timeline: similar.slice(0, 4).map((s) => ({
+      at: s.date,
+      message: `${s.title} · ${s.outcome}`,
+    })),
+    policyTrace: [],
+    contributorTrace: ["jag.organizational_memory"],
+    dependencies: priorTopics,
+    insufficientData: false,
+    advisoryNotice: ADVISORY,
+  };
+}
 
 function answerFollowUp(
   ctx: ConversationGroundingContext,

@@ -79,6 +79,42 @@ export function JagDecisionDetailView({
         </Panel>
       ) : null}
 
+      <Panel title="Similar situations">
+        <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--jag-muted-2)]">
+          Institutional memory — advisory experience, not certainty
+        </p>
+        {detail.similarSituations.length === 0 ? (
+          <Empty text="No similar institutional memories yet. Outcomes and lessons will appear here as decisions complete." />
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {detail.similarSituations.map((s) => (
+              <li
+                key={s.memoryId}
+                className="rounded border border-[var(--jag-border)] bg-[var(--jag-bg)] px-3 py-2 text-xs"
+              >
+                <Link
+                  href={s.href}
+                  className="font-medium text-[var(--jag-text)] underline-offset-2 hover:underline"
+                >
+                  {s.title}
+                </Link>
+                <p className="mt-1 text-[var(--jag-muted)]">
+                  {s.date} · outcome {s.outcome} · similarity{" "}
+                  {(s.similarityScore * 100).toFixed(0)}% · confidence{" "}
+                  {(s.confidence * 100).toFixed(0)}%
+                </p>
+                <p className="mt-1 text-[var(--jag-muted)]">{s.outcomeSummary}</p>
+                <ul className="mt-1 space-y-0.5 text-[var(--jag-muted)]">
+                  {s.lessons.slice(0, 2).map((l) => (
+                    <li key={l}>– {l}</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
       <Panel title="Scenario what-if">
         <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--jag-muted-2)]">
           Advisory scenario projections — not certainty

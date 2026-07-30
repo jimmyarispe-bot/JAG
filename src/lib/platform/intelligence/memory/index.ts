@@ -282,3 +282,68 @@ export async function deleteMemory(
 ): Promise<boolean> {
   return getDefaultMemory().deleteMemory(id, options);
 }
+
+// --- Sprint 204 — Organizational Memory & Learning (institutional experience) ---
+
+export {
+  MEMORY_TYPES,
+  MEMORY_TYPE_LABELS,
+  type MemoryType,
+  type MemoryOutcomeKind,
+  type MemoryEvidenceRef,
+  type MemoryLesson,
+  type MemoryRecord,
+  type MemoryCreateInput,
+} from "./MemoryRecord";
+
+export {
+  buildMemoryTimeline,
+  type MemoryTimeline,
+  type MemoryTimelineEntry,
+} from "./MemoryTimeline";
+
+export {
+  MEMORY_PATTERN_KINDS,
+  detectMemoryPatterns,
+  type MemoryPatternKind,
+  type MemoryPattern,
+} from "./MemoryPattern";
+
+export {
+  scoreMemorySimilarity,
+  findSimilarMemories,
+  type MemorySimilarityQuery,
+  type MemorySimilarityHit,
+} from "./MemorySimilarity";
+
+export { searchMemories, type MemorySearchFilters } from "./MemorySearch";
+
+export {
+  buildMemoryInsights,
+  buildSimilarSituationViews,
+  type MemoryInsight,
+  type SimilarSituationView,
+} from "./MemoryInsights";
+
+export { MemoryRegistry, type MemoryTypeDefinition } from "./MemoryRegistry";
+
+export {
+  resetMemoryEngineForTests,
+  listMemoryRecords,
+  getMemoryRecord,
+  createMemoryRecord,
+  runMemoryEngine,
+} from "./MemoryEngine";
+
+export {
+  MemoryService,
+  type MemoryServiceSearchResult,
+} from "./MemoryService";
+
+export {
+  recordMemoryObservation,
+  listMemoryObservations,
+  clearMemoryObservationsForTests,
+  type MemoryObservation,
+  type MemoryObservationKind,
+} from "./observability";

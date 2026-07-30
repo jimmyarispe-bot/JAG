@@ -191,6 +191,20 @@ export type JagDecisionDetail = {
     readonly defer: JagDecisionScenarioWhatIf | null;
     readonly reject: JagDecisionScenarioWhatIf | null;
   };
+  /** Similar institutional situations — Sprint 204. */
+  readonly similarSituations: readonly JagSimilarSituation[];
+};
+
+export type JagSimilarSituation = {
+  readonly memoryId: string;
+  readonly title: string;
+  readonly date: string;
+  readonly outcome: string;
+  readonly outcomeSummary: string;
+  readonly lessons: readonly string[];
+  readonly confidence: number;
+  readonly similarityScore: number;
+  readonly href: string;
 };
 
 export type JagDecisionScenarioWhatIf = {

@@ -99,6 +99,18 @@ describe("Executive Conversation (Sprint 203)", () => {
     expect(
       routeConversationIntent("What happens if we delay this decision?").intent
     ).toBe("delay_decision");
+    expect(
+      routeConversationIntent("Have we seen this before?").intent
+    ).toBe("historical_memory");
+    expect(
+      routeConversationIntent("What happened last time?").intent
+    ).toBe("historical_memory");
+    expect(
+      routeConversationIntent("Which intervention worked best?").intent
+    ).toBe("historical_memory");
+    expect(
+      routeConversationIntent("How often has this occurred?").intent
+    ).toBe("historical_memory");
   });
 
   it("does not fabricate health when unbound", () => {

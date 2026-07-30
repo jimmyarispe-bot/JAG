@@ -8,10 +8,11 @@ import {
   getStoredExecution,
   listStoredExecutionsForOrganizations,
 } from "../intelligence-store";
+import { loadSimilarSituations } from "../memory/load-memory";
 import { attachPredictedConsequences } from "../predictive/load-forecasts";
 import { computeDecisionWhatIf } from "../scenarios/load-scenarios";
 import { decisionGroupLabel, resolveContributorCatalog } from "./catalog";
-import type { JagDecisionScenarioWhatIf } from "./types";
+import type { JagDecisionScenarioWhatIf, JagSimilarSituation } from "./types";
 import {
   getDecisionAssignment,
   getDecisionExecutionHistory,
@@ -229,7 +230,21 @@ function buildDetail(card: JagDecisionCard): JagDecisionDetail {
     },
     predictedConsequence: card.predictedConsequence ?? null,
     scenarioWhatIf: buildScenarioWhatIf(card),
+    similarSituations: buildSimilarSituations(card),
   };
+}
+
+function buildSimilarSituations(card: JagDecisionCard): JagSimilarSituation[] {
+  return loadSimilarSituations({
+    organizationId: card.organizationId,
+    title: card.title,
+    description: card.rationale,
+    tags: [card.category, card.actionKind, "decision"],
+    type: "outcome",
+    decisionId: card.id,
+    contributorIds: [card.contributorId],
+    limit: 5,
+  }).map((s) => ({ ...s }));
 }
 
 function buildScenarioWhatIf(card: JagDecisionCard): {

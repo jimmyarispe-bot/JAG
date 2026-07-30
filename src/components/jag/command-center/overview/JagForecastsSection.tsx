@@ -13,12 +13,20 @@ export function JagForecastsSection({
       title="Forecasts"
       description="Advisory predictions of likely future conditions. Not facts — confidence, drivers, and assumptions always apply."
       actions={
-        <Link
-          href="/jag/scenarios"
-          className="text-xs text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
-        >
-          Scenario Planner
-        </Link>
+        <div className="flex flex-wrap gap-3 text-xs">
+          <Link
+            href="/jag/scenarios"
+            className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+          >
+            Scenario Planner
+          </Link>
+          <Link
+            href="/jag/memory"
+            className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+          >
+            Similar memory
+          </Link>
+        </div>
       }
     >
       <div className="mb-3 flex items-center justify-between gap-3">

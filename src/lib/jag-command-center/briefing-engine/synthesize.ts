@@ -23,6 +23,7 @@ import {
   type JagStoredSchoolHealth,
 } from "../intelligence-store";
 import { runForecastsForBriefing } from "../predictive/load-forecasts";
+import { runHistoricalContextForBriefing } from "../memory/load-memory";
 import { runBriefingScenarioAnalysis } from "../scenarios/load-scenarios";
 import { computeExecutiveInsights } from "./insights";
 import {
@@ -66,6 +67,7 @@ const SECTION_TITLES: Record<JagBriefingSectionId, string> = {
   emerging_trends: "Emerging Trends",
   forecast: "Forecast",
   scenario_analysis: "Scenario Analysis",
+  historical_context: "Historical Context",
   recommended_executive_actions: "Recommended Executive Actions",
   executive_insights: "Executive Insights",
   appendix: "Appendix",
@@ -234,6 +236,13 @@ export function synthesizeExecutiveBriefing(input: {
   byId.set(
     "scenario_analysis",
     sectionScenarioAnalysis({
+      organizationId: primaryId,
+      organizationName: primaryName,
+    })
+  );
+  byId.set(
+    "historical_context",
+    sectionHistoricalContext({
       organizationId: primaryId,
       organizationName: primaryName,
     })
@@ -1394,6 +1403,88 @@ function sectionScenarioAnalysis(input: {
         },
       }))
     ).slice(0, 4),
+    decisionIds: [],
+    availableActions: NOTE_ACTIONS,
+  });
+}
+
+function sectionHistoricalContext(input: {
+  organizationId: string;
+  organizationName: string;
+}): JagBriefingSection {
+  const ctx = runHistoricalContextForBriefing({
+    organizationId: input.organizationId,
+    organizationName: input.organizationName,
+  });
+
+  if (
+    ctx.situations.length === 0 &&
+    ctx.lessons.length === 0 &&
+    ctx.patternSummaries.length === 0
+  ) {
+    return emptySection(
+      "historical_context",
+      "No institutional memory yet for this organization. Decision outcomes and lessons learned will populate Historical Context.",
+      ["jag.organizational_memory"]
+    );
+  }
+
+  const bullets = [
+    "Institutional memory — organizational experience, not chat history. Advisory when applying to current decisions.",
+    ...ctx.situations.slice(0, 4).map(
+      (s) =>
+        `Similar: ${s.title} (${s.date}) · outcome ${s.outcome} · ${(s.confidence * 100).toFixed(0)}% confidence`
+    ),
+    ...ctx.lessons.slice(0, 3).map(
+      (l) => `Lesson: ${l.title} — ${l.outcomeSummary ?? l.description}`
+    ),
+    ...ctx.patternSummaries,
+  ];
+
+  return section("historical_context", {
+    narrative: [
+      "Historical context from institutional memory:",
+      ctx.situations.length
+        ? `${ctx.situations.length} similar situation(s).`
+        : "No close similarity matches.",
+      ctx.lessons.length
+        ? `${ctx.lessons.length} lesson(s) on record.`
+        : "No structured lessons yet.",
+    ].join(" "),
+    bullets: uniqueStrings(bullets).slice(0, 14),
+    confidence: avg([
+      ...ctx.situations.map((s) => s.confidence),
+      ...ctx.lessons.map((l) => l.confidence),
+    ]),
+    evidenceReferences: ctx.situations.slice(0, 4).map((s) => ({
+      id: s.memoryId,
+      source: "Organizational Memory",
+      summary: s.outcomeSummary,
+    })),
+    contributorSources: ["jag.organizational_memory"],
+    policyReferences: [],
+    recommendations: ctx.situations.slice(0, 2).map((s) => ({
+      id: `mem-rec-${s.memoryId}`,
+      title: `Review prior situation: ${s.title}`,
+      rationale: s.lessons[0] ?? s.outcomeSummary,
+      decisionId: null,
+      decisionHref: s.href,
+      organizationId: input.organizationId,
+      explainability: {
+        evidence: [
+          {
+            id: s.memoryId,
+            source: "Organizational Memory",
+            summary: s.outcomeSummary,
+          },
+        ],
+        contributors: ["jag.organizational_memory"],
+        policies: [],
+        confidence: s.confidence,
+        dependencies: [],
+        timeline: [{ at: s.date, message: s.title }],
+      },
+    })),
     decisionIds: [],
     availableActions: NOTE_ACTIONS,
   });

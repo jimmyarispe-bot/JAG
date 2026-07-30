@@ -8,6 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { recordJagAuditEvent } from "../audit";
+import { recordDecisionOutcomeMemory } from "../memory/load-memory";
 import { pushJagNotification } from "../notifications";
 import {
   addExecutionUpdate,
@@ -16,6 +17,7 @@ import {
   recordDecisionOutcome,
 } from "./execution-store";
 import { setDecisionStatus } from "./status-store";
+import { getDecisionCenterDetail } from "./query";
 import {
   JAG_DECISION_STATUSES,
   type JagDecisionAssignmentTarget,
@@ -296,6 +298,27 @@ export async function recordDecisionCenterOutcome(input: {
     detail: `Outcome ${input.result}`,
     metadata: { result: input.result },
   });
+
+  const session = await getJagPlatformSession();
+  if (session) {
+    const detail = getDecisionCenterDetail(session, input.decisionId);
+    if (detail) {
+      recordDecisionOutcomeMemory({
+        session,
+        organizationId: detail.card.organizationId,
+        organizationName: detail.card.organizationName,
+        decisionId: detail.card.id,
+        decisionTitle: detail.card.title,
+        contributorId: detail.card.contributorId,
+        result: input.result,
+        expectedOutcome: input.expectedOutcome,
+        actualOutcome: input.actualOutcome,
+        lessonsLearned: input.lessonsLearned,
+        confidence: input.confidence,
+      });
+      revalidatePath("/jag/memory");
+    }
+  }
 
   revalidateDecision(input.decisionId);
   return { ok: true };

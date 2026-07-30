@@ -8,6 +8,7 @@ import {
 import {
   listConversationObservations,
   listJagAuditEvents,
+  listMemoryObservations,
   listPredictionObservations,
   listScenarioObservations,
 } from "@/lib/jag-command-center";
@@ -15,7 +16,7 @@ import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 /**
- * Observability surfaces executive audit, prediction, scenario, and conversation runs.
+ * Observability surfaces executive audit and intelligence runs.
  * No fabricated telemetry.
  */
 export default async function JagObservabilityPage() {
@@ -28,6 +29,7 @@ export default async function JagObservabilityPage() {
   const predictions = listPredictionObservations(20);
   const scenarios = listScenarioObservations(20);
   const conversations = listConversationObservations(20);
+  const memories = listMemoryObservations(20);
 
   return (
     <div className="space-y-8">
@@ -225,6 +227,47 @@ export default async function JagObservabilityPage() {
                   intent {c.intent} · evidence {c.evidenceIds.length} ·
                   contributors {c.contributorsConsulted.length}
                   {c.insufficientData ? " · insufficient" : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </JagSection>
+
+      <JagSection
+        title="Memory operations"
+        description="Memory creation, pattern detection, similarity searches, and retrieval."
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-xs text-[var(--jag-muted)]">
+            Institutional memory — not chat history.
+          </p>
+          <JagStatusBadge status={memories.length > 0 ? "ready" : "empty"} />
+        </div>
+        {memories.length === 0 ? (
+          <JagEmptyState
+            title="No memory operations yet"
+            description="Record outcomes, lessons, or open Organizational Memory to populate this log."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {memories.map((m) => (
+              <li
+                key={m.id}
+                className="rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-2 text-xs text-[var(--jag-muted)]"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted-2)]">
+                    {m.at}
+                  </p>
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[var(--jag-text)]">
+                    {m.durationMs}ms · {m.kind.replace(/_/g, " ")}
+                  </p>
+                </div>
+                <p className="mt-1 text-[var(--jag-text)]">{m.detail}</p>
+                <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px]">
+                  memories {m.memoryIds.length}
+                  {m.organizationId ? ` · org ${m.organizationId}` : ""}
                 </p>
               </li>
             ))}

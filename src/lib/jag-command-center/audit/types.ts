@@ -17,6 +17,8 @@ export const JAG_AUDIT_ACTIONS = [
   "prediction_run",
   "scenario_run",
   "conversation_turn",
+  "memory_created",
+  "memory_pattern_detected",
 ] as const;
 
 export type JagAuditAction = (typeof JAG_AUDIT_ACTIONS)[number];

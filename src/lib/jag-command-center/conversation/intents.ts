@@ -67,6 +67,17 @@ export function routeConversationIntent(
     };
   }
 
+  if (
+    /have we seen|seen this before|what happened last time|last time|how often has|which intervention worked|worked best|historical|institutional memory/i.test(
+      q
+    )
+  ) {
+    return {
+      intent: "historical_memory",
+      reasoning: "Question asks about institutional memory / prior experience.",
+      usesPriorContext: false,
+    };
+  }
   if (/delay|defer|if we (do nothing|wait)|what happens if/i.test(q)) {
     return {
       intent: "delay_decision",
@@ -209,6 +220,8 @@ export function intentToMemoryTopic(intent: JagConversationIntent): string | nul
     case "overdue_decisions":
     case "high_confidence_recommendations":
       return "decisions";
+    case "historical_memory":
+      return "institutional_memory";
     default:
       return null;
   }

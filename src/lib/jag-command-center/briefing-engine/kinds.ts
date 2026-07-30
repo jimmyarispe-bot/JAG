@@ -31,6 +31,7 @@ const BASE_ORDER: readonly JagBriefingSectionId[] = [
   "emerging_trends",
   "forecast",
   "scenario_analysis",
+  "historical_context",
   "recommended_executive_actions",
   "executive_insights",
   "appendix",
@@ -57,6 +58,7 @@ const KIND_PRIORITY: Partial<
     "completed_outcomes",
     "forecast",
     "scenario_analysis",
+    "historical_context",
     "decide_today",
   ],
   monthly_board_report: [

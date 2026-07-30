@@ -14,11 +14,13 @@ import {
   type ScenarioRunSpec,
   listScenarioObservations,
 } from "@/lib/platform/intelligence/scenarios";
+import type { SimilarSituationView } from "@/lib/platform/intelligence/memory/index";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { recordJagAuditEvent } from "../audit/store";
 import { projectDecisionsFromExecutions } from "../decision-center/project";
 import { listStoredExecutions } from "../intelligence-store";
+import { loadSimilarSituations } from "../memory/load-memory";
 import { buildScenarioBaseline } from "./build-baseline";
 
 export { listScenarioObservations };
@@ -33,6 +35,7 @@ export type JagScenarioPlannerModel = {
   readonly comparison: ScenarioComparison | null;
   readonly observationId: string | null;
   readonly explanation: string;
+  readonly similarSituations: readonly SimilarSituationView[];
 };
 
 function decisionsForOrg(organizationId: string, organizationName: string) {
@@ -71,6 +74,7 @@ export function loadScenarioPlanner(
       comparison: null,
       observationId: null,
       explanation: "Select an organization to plan scenarios.",
+      similarSituations: [],
     };
   }
 
@@ -87,6 +91,7 @@ export function loadScenarioPlanner(
       observationId: null,
       explanation:
         "Choose one or more scenario templates to model hypothetical changes. Comparison shows Current vs selected options side-by-side.",
+      similarSituations: [],
     };
   }
 
@@ -134,6 +139,18 @@ export function loadScenarioPlanner(
     });
   }
 
+  const first = response.results[0];
+  const similarSituations = first
+    ? loadSimilarSituations({
+        organizationId: organization.id,
+        title: first.title,
+        description: first.narrative,
+        tags: [first.kind, "scenario"],
+        type: "scenario",
+        limit: 4,
+      })
+    : [];
+
   return {
     organizationId: organization.id,
     organizationName: organization.name,
@@ -144,6 +161,7 @@ export function loadScenarioPlanner(
     comparison: response.comparison,
     observationId: response.observationId || null,
     explanation: `Ran ${response.results.length} advisory scenario(s) in ${response.durationMs}ms.`,
+    similarSituations,
   };
 }
 

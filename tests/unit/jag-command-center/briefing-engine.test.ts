@@ -68,11 +68,12 @@ describe("Executive Briefing Engine (JAG-005)", () => {
     expect("error" in result).toBe(false);
     if ("error" in result) return;
 
-    expect(result.sections.length).toBe(17);
+    expect(result.sections.length).toBe(18);
     const ids = result.sections.map((s) => s.id);
     expect(ids).toContain("what_happened");
     expect(ids).toContain("forecast");
     expect(ids).toContain("scenario_analysis");
+    expect(ids).toContain("historical_context");
     expect(ids).toContain("why_it_happened");
     expect(ids).toContain("decide_today");
     expect(ids).toContain("if_i_do_nothing");

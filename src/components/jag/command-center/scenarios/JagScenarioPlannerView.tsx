@@ -28,6 +28,12 @@ export function JagScenarioPlannerView({
             >
               Decision Center
             </Link>
+            <Link
+              href="/jag/memory"
+              className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+            >
+              Memory
+            </Link>
           </div>
         }
       >
@@ -156,6 +162,35 @@ export function JagScenarioPlannerView({
               </tbody>
             </table>
           </div>
+        </JagSection>
+      ) : null}
+
+      {model.similarSituations.length > 0 ? (
+        <JagSection
+          title="Similar situations"
+          description="Institutional memory matches for this scenario — advisory experience."
+        >
+          <ul className="space-y-2 text-xs">
+            {model.similarSituations.map((s) => (
+              <li
+                key={s.memoryId}
+                className="rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-2"
+              >
+                <Link
+                  href={s.href}
+                  className="font-medium text-[var(--jag-text)] underline-offset-2 hover:underline"
+                >
+                  {s.title}
+                </Link>
+                <p className="mt-1 text-[var(--jag-muted)]">
+                  {s.date} · {s.outcome} · similarity{" "}
+                  {(s.similarityScore * 100).toFixed(0)}% · confidence{" "}
+                  {(s.confidence * 100).toFixed(0)}%
+                </p>
+                <p className="mt-1 text-[var(--jag-muted)]">{s.outcomeSummary}</p>
+              </li>
+            ))}
+          </ul>
         </JagSection>
       ) : null}
 
