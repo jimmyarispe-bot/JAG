@@ -114,6 +114,9 @@ describe("Executive Conversation (Sprint 203)", () => {
     expect(
       routeConversationIntent("Are we accomplishing our mission?").intent
     ).toBe("strategic_alignment");
+    expect(
+      routeConversationIntent("What deserves my attention?").intent
+    ).toBe("executive_attention");
   });
 
   it("does not fabricate health when unbound", () => {

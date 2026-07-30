@@ -124,7 +124,18 @@ export function routeConversationIntent(
       usesPriorContext: false,
     };
   }
-  if (/changed|since last|what.?s new|overnight/i.test(q)) {
+  if (
+    /deserves? my attention|what deserves|attention right now|executive inbox|biggest emerging risk|emerging risk/i.test(
+      q
+    )
+  ) {
+    return {
+      intent: "executive_attention",
+      reasoning: "Question asks for proactive watcher / inbox attention items.",
+      usesPriorContext: false,
+    };
+  }
+  if (/changed|since last|what.?s new|overnight|changed today/i.test(q)) {
     return {
       intent: "what_changed",
       reasoning: "Change-since question.",
@@ -235,6 +246,8 @@ export function intentToMemoryTopic(intent: JagConversationIntent): string | nul
       return "institutional_memory";
     case "strategic_alignment":
       return "strategy";
+    case "executive_attention":
+      return "inbox";
     default:
       return null;
   }

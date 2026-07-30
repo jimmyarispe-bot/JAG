@@ -5,6 +5,8 @@
 
 import { MemoryService } from "@/lib/platform/intelligence/memory/index";
 import { StrategyService } from "@/lib/platform/intelligence/strategy/index";
+import { WatcherService } from "@/lib/platform/intelligence/watchers/index";
+import { buildWatcherEvaluationContext } from "../watchers/build-context";
 import { filterJagSearchCatalog } from "../search-filter";
 import type { ConversationGroundingContext } from "./context";
 import type { RoutedIntent } from "./intents";
@@ -182,6 +184,8 @@ export function buildConversationAnswer(input: {
       return answerHistoricalMemory(context, orgLabel, baseMeta, question, priorTopics);
     case "strategic_alignment":
       return answerStrategicAlignment(context, orgLabel, baseMeta, question);
+    case "executive_attention":
+      return answerExecutiveAttention(context, orgLabel, baseMeta, question);
     case "insufficient":
       return emptyAnswer("Ask an executive question about decisions, health, forecasts, or scenarios.");
     case "general_status":
@@ -451,52 +455,101 @@ function answerWhatChanged(
   baseMeta: BaseMeta
 ): JagConversationAnswer {
   const execs = ctx.recentExecutions;
-  if (execs.length === 0 && ctx.openDecisions.length === 0) {
+  const inboxAlerts =
+    ctx.organizationId
+      ? (() => {
+          WatcherService.evaluate(
+            buildWatcherEvaluationContext({
+              session: ctx.session,
+              organizationId: ctx.organizationId!,
+              organizationName: orgLabel,
+            })
+          );
+          return WatcherService.listOpen(ctx.organizationId).slice(0, 4);
+        })()
+      : [];
+
+  if (execs.length === 0 && ctx.openDecisions.length === 0 && inboxAlerts.length === 0) {
     return emptyAnswer(
-      `No bound contributor executions or decisions for ${orgLabel} to describe changes.`,
+      `No bound contributor executions, decisions, or watcher findings for ${orgLabel} to describe changes.`,
       { ...baseMeta }
     );
   }
-  const conf = avg(execs.map((e) => e.confidence));
+  const conf = avg([
+    ...execs.map((e) => e.confidence),
+    ...inboxAlerts.map((a) => a.confidence),
+  ]);
   return {
-    executiveSummary: `Since the latest bound signals for ${orgLabel}: ${execs.length} contributor execution(s), ${ctx.openDecisions.length} open decision(s), ${ctx.overview.decisionExecution.completedThisWeek} completed this week.`,
-    evidence: execs.slice(0, 6).map((e) => ({
-      id: `ev-ex-${e.id}`,
-      source: e.label,
-      summary: e.resultSummary,
-      kind: "observed" as const,
-      confidence: e.confidence,
-    })),
+    executiveSummary: [
+      `Since the latest bound signals for ${orgLabel}: ${execs.length} contributor execution(s), ${ctx.openDecisions.length} open decision(s), ${ctx.overview.decisionExecution.completedThisWeek} completed this week.`,
+      inboxAlerts.length
+        ? `${inboxAlerts.length} proactive inbox finding(s), led by ${inboxAlerts[0]!.title}.`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" "),
+    evidence: [
+      ...inboxAlerts.map((a) => ({
+        id: `ev-inbox-${a.id}`,
+        source: a.title,
+        summary: a.summary,
+        kind: "derived" as const,
+        href: `/jag/inbox?org=${encodeURIComponent(ctx.organizationId!)}&id=${encodeURIComponent(a.id)}`,
+        confidence: a.confidence,
+      })),
+      ...execs.slice(0, 6).map((e) => ({
+        id: `ev-ex-${e.id}`,
+        source: e.label,
+        summary: e.resultSummary,
+        kind: "observed" as const,
+        confidence: e.confidence,
+      })),
+    ],
     confidence: Number((conf || 0.5).toFixed(3)),
     confidenceBand: band(conf || 0.5),
     confidenceExplanation:
-      "Change narrative limited to bound executions and Decision Center metrics — no invented deltas.",
-    primaryDrivers: execs.slice(0, 3).map((e) => ({
-      label: e.label,
-      explanation: e.resultSummary,
-    })),
-    supportingContributors: execs.map((e) => e.contributorId),
+      "Change narrative from bound executions, Decision Center metrics, and watcher findings — no invented deltas.",
+    primaryDrivers: [
+      ...inboxAlerts.slice(0, 2).map((a) => ({
+        label: a.title,
+        explanation: a.summary,
+      })),
+      ...execs.slice(0, 3).map((e) => ({
+        label: e.label,
+        explanation: e.resultSummary,
+      })),
+    ],
+    supportingContributors: [
+      ...execs.map((e) => e.contributorId),
+      "jag.autonomous_executive_intelligence",
+    ],
     relatedPolicies: [],
     relatedKnowledge: [],
     relatedDecisions: ctx.openDecisions.slice(0, 4).map(decisionLink),
     forecasts: baseMeta.forecasts,
     scenarios: baseMeta.scenarios,
     recommendedNextActions: [
+      "Open Executive Inbox for proactive attention items.",
       "Generate a weekly executive briefing for a structured narrative.",
-      "Review Decision Center for new P1 items.",
     ],
     suggestedFollowUps: [
+      "What deserves my attention?",
       "What should I decide today?",
-      "Which forecasts deserve attention?",
     ],
     reasoningChain: [
       "Intent: what_changed.",
-      "Used recent intelligence-store executions + decision metrics only.",
+      "Used recent executions, decision metrics, and WatcherService findings.",
     ],
-    timeline: execs.slice(0, 6).map((e) => ({
-      at: e.analyzedAt,
-      message: `${e.label}: ${e.resultSummary}`,
-    })),
+    timeline: [
+      ...inboxAlerts.map((a) => ({
+        at: a.createdAt.slice(0, 10),
+        message: a.title,
+      })),
+      ...execs.slice(0, 6).map((e) => ({
+        at: e.analyzedAt,
+        message: `${e.label}: ${e.resultSummary}`,
+      })),
+    ],
     policyTrace: [],
     contributorTrace: execs.map((e) => e.contributorId),
     dependencies: [],
@@ -1139,6 +1192,109 @@ const SUGGESTED_FROM_SEARCH = [
   "What should I decide today?",
   "Which forecasts deserve attention?",
 ];
+
+function answerExecutiveAttention(
+  ctx: ConversationGroundingContext,
+  orgLabel: string,
+  baseMeta: BaseMeta,
+  question: string
+): JagConversationAnswer {
+  if (!ctx.organizationId) {
+    return emptyAnswer("Select an organization to evaluate executive attention.", {
+      ...baseMeta,
+    });
+  }
+
+  const evalCtx = buildWatcherEvaluationContext({
+    session: ctx.session,
+    organizationId: ctx.organizationId,
+    organizationName: orgLabel,
+  });
+  const run = WatcherService.evaluate(evalCtx);
+  const alerts = run.alerts;
+  const q = question.toLowerCase();
+  const focusAlerts = /emerging risk|biggest|critical|risk/.test(q)
+    ? alerts.filter(
+        (a) =>
+          a.severity === "critical" ||
+          a.severity === "high" ||
+          a.type.includes("risk")
+      )
+    : alerts;
+
+  if (focusAlerts.length === 0) {
+    return emptyAnswer(
+      `No material watcher findings for ${orgLabel} right now. Inbox stays quiet when signals do not clear quality thresholds.`,
+      {
+        ...baseMeta,
+        recommendedNextActions: [
+          "Open Executive Inbox after binding more contributor signals.",
+          "Review Decision Center and Strategy for latent risks.",
+        ],
+        suggestedFollowUps: [
+          "What's changed today?",
+          "Which goals are most at risk?",
+        ],
+      }
+    );
+  }
+
+  const top = focusAlerts[0]!;
+  const conf = avg(focusAlerts.slice(0, 5).map((a) => a.confidence));
+
+  return {
+    executiveSummary: [
+      `${focusAlerts.length} attention item(s) for ${orgLabel}.`,
+      `Top: ${top.title} (${top.severity}).`,
+      top.recommendedExecutiveAction,
+    ].join(" "),
+    evidence: focusAlerts.slice(0, 5).map((a) => ({
+      id: `ev-alert-${a.id}`,
+      source: a.title,
+      summary: a.summary,
+      kind: "derived" as const,
+      href: `/jag/inbox?org=${encodeURIComponent(ctx.organizationId!)}&id=${encodeURIComponent(a.id)}`,
+      confidence: a.confidence,
+    })),
+    confidence: Number((conf || 0.55).toFixed(3)),
+    confidenceBand: band(conf || 0.55),
+    confidenceExplanation:
+      "Confidence from watcher evaluations over strategy, decisions, forecasts, and memory — advisory only.",
+    primaryDrivers: top.primaryDrivers.slice(0, 4).map((d) => ({
+      label: d,
+      explanation: top.summary,
+    })),
+    supportingContributors: top.supportingContributors,
+    relatedPolicies: baseMeta.relatedPolicies,
+    relatedKnowledge: baseMeta.relatedKnowledge,
+    relatedDecisions: ctx.openDecisions.slice(0, 3).map(decisionLink),
+    forecasts: baseMeta.forecasts,
+    scenarios: baseMeta.scenarios,
+    recommendedNextActions: [
+      top.recommendedExecutiveAction,
+      "Open Executive Inbox to acknowledge or dismiss findings.",
+    ],
+    suggestedFollowUps: [
+      "What's changed today?",
+      "What is our biggest emerging risk?",
+      "Are we accomplishing our mission?",
+    ],
+    reasoningChain: [
+      "Intent: executive_attention.",
+      "Ran WatcherService.evaluate over bound Command Center signals.",
+      "JAG does not execute decisions — findings are for executive attention only.",
+    ],
+    timeline: focusAlerts.slice(0, 4).map((a) => ({
+      at: a.createdAt.slice(0, 10),
+      message: a.title,
+    })),
+    policyTrace: [],
+    contributorTrace: top.supportingContributors,
+    dependencies: [],
+    insufficientData: false,
+    advisoryNotice: top.advisoryNotice,
+  };
+}
 
 function answerStrategicAlignment(
   ctx: ConversationGroundingContext,

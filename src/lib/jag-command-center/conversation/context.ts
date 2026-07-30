@@ -20,6 +20,7 @@ import {
 import type { JagExecutiveOverviewModel } from "../types";
 
 export type ConversationGroundingContext = {
+  readonly session: JagPlatformSession;
   readonly organizationId: string | null;
   readonly organizationName: string | null;
   readonly overview: JagExecutiveOverviewModel;
@@ -91,6 +92,7 @@ export function gatherConversationContext(
   const healthBound = org ? Boolean(getStoredSchoolHealth(org.id)) : false;
 
   return {
+    session,
     organizationId: org?.id ?? null,
     organizationName: org?.name ?? null,
     overview,

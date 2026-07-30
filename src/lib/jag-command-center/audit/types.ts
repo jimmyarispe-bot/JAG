@@ -21,6 +21,9 @@ export const JAG_AUDIT_ACTIONS = [
   "memory_pattern_detected",
   "strategy_scorecard",
   "strategy_alignment",
+  "watcher_alert_acknowledged",
+  "watcher_alert_dismissed",
+  "watcher_alert_resolved",
 ] as const;
 
 export type JagAuditAction = (typeof JAG_AUDIT_ACTIONS)[number];

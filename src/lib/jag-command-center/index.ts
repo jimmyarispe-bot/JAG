@@ -25,6 +25,7 @@ export * from "./scenarios";
 export * from "./conversation";
 export * from "./memory";
 export * from "./strategy";
+export * from "./watchers";
 export { loadJagSearchCatalog } from "./search-catalog";
 export {
   filterJagSearchCatalog,

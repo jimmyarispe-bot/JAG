@@ -16,6 +16,11 @@ export const JAG_COMMAND_NAV: readonly JagNavItem[] = [
     href: "/jag/chat",
   },
   {
+    id: "inbox",
+    label: "Inbox",
+    href: "/jag/inbox",
+  },
+  {
     id: "decisions",
     label: "Decision Center",
     href: "/jag/decisions",

@@ -28,6 +28,7 @@ const NAV_SEED: readonly { id: string; label: string; href: string }[] = [
   { id: "scenarios", label: "Scenario Planner", href: "/jag/scenarios" },
   { id: "memory", label: "Organizational Memory", href: "/jag/memory" },
   { id: "strategy", label: "Strategic Intelligence", href: "/jag/strategy" },
+  { id: "inbox", label: "Executive Inbox", href: "/jag/inbox" },
   { id: "organizations", label: "Organizations", href: "/jag/organizations" },
   { id: "domains", label: "Domains", href: "/jag/domains" },
   {

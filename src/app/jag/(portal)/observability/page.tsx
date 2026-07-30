@@ -12,6 +12,7 @@ import {
   listPredictionObservations,
   listScenarioObservations,
   listStrategyObservations,
+  listWatcherObservations,
 } from "@/lib/jag-command-center";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
@@ -32,6 +33,7 @@ export default async function JagObservabilityPage() {
   const conversations = listConversationObservations(20);
   const memories = listMemoryObservations(20);
   const strategies = listStrategyObservations(20);
+  const watchers = listWatcherObservations(20);
 
   return (
     <div className="space-y-8">
@@ -229,6 +231,47 @@ export default async function JagObservabilityPage() {
                   intent {c.intent} · evidence {c.evidenceIds.length} ·
                   contributors {c.contributorsConsulted.length}
                   {c.insufficientData ? " · insufficient" : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </JagSection>
+
+      <JagSection
+        title="Watcher operations"
+        description="Watcher execution, alert generation, acknowledgements, dismissals, and resolutions."
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-xs text-[var(--jag-muted)]">
+            Autonomous executive intelligence — proactive findings, never decisions.
+          </p>
+          <JagStatusBadge status={watchers.length > 0 ? "ready" : "empty"} />
+        </div>
+        {watchers.length === 0 ? (
+          <JagEmptyState
+            title="No watcher operations yet"
+            description="Open Executive Inbox to evaluate watchers and populate this log."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {watchers.map((w) => (
+              <li
+                key={w.id}
+                className="rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-2 text-xs text-[var(--jag-muted)]"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted-2)]">
+                    {w.at}
+                  </p>
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[var(--jag-text)]">
+                    {w.durationMs}ms · {w.kind.replace(/_/g, " ")}
+                  </p>
+                </div>
+                <p className="mt-1 text-[var(--jag-text)]">{w.detail}</p>
+                <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px]">
+                  alerts {w.alertIds.length}
+                  {w.organizationId ? ` · org ${w.organizationId}` : ""}
                 </p>
               </li>
             ))}
