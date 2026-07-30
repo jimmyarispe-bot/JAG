@@ -78,7 +78,7 @@ export function createAdmissionsReportingService() {
       const dash = buildAdmissionsDashboard(organizationId);
       const summary = buildAdmissionsSummary(organizationId);
       let rows: Record<string, string | number>[] = [];
-      let title = kind;
+      let title: string = kind;
 
       switch (kind) {
         case "admissions_funnel":

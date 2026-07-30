@@ -1,6 +1,210 @@
+/**
+ * ProjectService ? projects + initiative linkage + progress roll-up.
+ */
+
+import { randomUUID } from "node:crypto";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
-import type { WorkHealthIndicator, WorkProject, WorkProjectStatus } from "@/lib/work/types";
 import { logWorkActivity, recordStatusHistory } from "@/lib/work/activity";
+import { createWorkProgress } from "@/lib/work/progress";
+import {
+  getProject,
+  listInitiativesForOrganization,
+  listProjectsForOrganization,
+  upsertInitiative,
+  upsertProject,
+} from "@/lib/work/store";
+import { createExecutionTimeline } from "@/lib/work/timeline";
+import { createWorkTwinService } from "@/lib/work/twin";
+import type {
+  JagInitiative,
+  JagProject,
+  WorkHealthIndicator,
+  WorkPriority,
+  WorkProject,
+  WorkProjectStatus,
+  WorkStatus,
+} from "@/lib/work/types";
+
+export type ProjectService = {
+  create(input: {
+    organizationId: string;
+    title: string;
+    description: string;
+    status?: WorkStatus;
+    priority?: WorkPriority;
+    owner?: string | null;
+    department?: string | null;
+    businessUnit?: string | null;
+    initiativeId?: string | null;
+    relatedGoalId?: string | null;
+    relatedDecisionId?: string | null;
+    relatedRiskId?: string | null;
+    startDate?: string | null;
+    dueDate?: string | null;
+    createdBy: string;
+  }): JagProject | { error: string };
+  get(organizationId: string, projectId: string): JagProject | null;
+  list(organizationId: string): readonly JagProject[];
+  update(input: {
+    organizationId: string;
+    projectId: string;
+    actor: string;
+    title?: string;
+    description?: string;
+    status?: WorkStatus;
+    priority?: WorkPriority;
+    owner?: string | null;
+    department?: string | null;
+    businessUnit?: string | null;
+    dueDate?: string | null;
+  }): JagProject | null;
+  refreshProgress(organizationId: string, projectId: string): JagProject | null;
+  createInitiative(input: {
+    organizationId: string;
+    title: string;
+    description: string;
+    owner?: string | null;
+    relatedGoalId?: string | null;
+    createdBy: string;
+  }): JagInitiative | { error: string };
+  listInitiatives(organizationId: string): readonly JagInitiative[];
+};
+
+export function createProjectService(): ProjectService {
+  const progress = createWorkProgress();
+  const timeline = createExecutionTimeline();
+  const twin = createWorkTwinService();
+
+  return {
+    create(input) {
+      if (!input.title.trim()) return { error: "Project title is required." };
+      const now = new Date().toISOString();
+      let project: JagProject = {
+        id: randomUUID(),
+        organizationId: input.organizationId,
+        title: input.title.trim(),
+        description: input.description.trim(),
+        status: input.status ?? "Planned",
+        priority: input.priority ?? "P2",
+        owner: input.owner ?? null,
+        department: input.department ?? null,
+        businessUnit: input.businessUnit ?? null,
+        initiativeId: input.initiativeId ?? null,
+        relatedGoalId: input.relatedGoalId ?? null,
+        relatedDecisionId: input.relatedDecisionId ?? null,
+        relatedRiskId: input.relatedRiskId ?? null,
+        startDate: input.startDate ?? null,
+        dueDate: input.dueDate ?? null,
+        progressPercent: 0,
+        twinEntityId: null,
+        createdAt: now,
+        updatedAt: now,
+        completedAt: null,
+        createdBy: input.createdBy,
+      };
+      upsertProject(project);
+      const twinId = twin.ensureProjectTwin(project, input.createdBy);
+      project = { ...project, twinEntityId: twinId };
+      upsertProject(project);
+      timeline.record({
+        organizationId: input.organizationId,
+        entityType: "project",
+        entityId: project.id,
+        kind: "created",
+        actor: input.createdBy,
+        message: "Project created.",
+      });
+      return project;
+    },
+
+    get: getProject,
+    list: listProjectsForOrganization,
+
+    update(input) {
+      const current = getProject(input.organizationId, input.projectId);
+      if (!current) return null;
+      const now = new Date().toISOString();
+      let next: JagProject = {
+        ...current,
+        title: input.title?.trim() ?? current.title,
+        description: input.description?.trim() ?? current.description,
+        status: input.status ?? current.status,
+        priority: input.priority ?? current.priority,
+        owner: input.owner !== undefined ? input.owner : current.owner,
+        department:
+          input.department !== undefined
+            ? input.department
+            : current.department,
+        businessUnit:
+          input.businessUnit !== undefined
+            ? input.businessUnit
+            : current.businessUnit,
+        dueDate: input.dueDate !== undefined ? input.dueDate : current.dueDate,
+        updatedAt: now,
+        completedAt:
+          input.status === undefined
+            ? current.completedAt
+            : input.status === "Completed"
+              ? now
+              : null,
+      };
+      next = {
+        ...next,
+        progressPercent: progress.projectProgress(
+          input.organizationId,
+          next
+        ),
+      };
+      upsertProject(next);
+      twin.ensureProjectTwin(next, input.actor);
+      if (input.status && input.status !== current.status) {
+        timeline.record({
+          organizationId: input.organizationId,
+          entityType: "project",
+          entityId: next.id,
+          kind: "status_changed",
+          actor: input.actor,
+          message: `${current.status} ? ${input.status}.`,
+        });
+      }
+      return next;
+    },
+
+    refreshProgress(organizationId, projectId) {
+      const current = getProject(organizationId, projectId);
+      if (!current) return null;
+      const next = {
+        ...current,
+        progressPercent: progress.projectProgress(organizationId, current),
+        updatedAt: new Date().toISOString(),
+      };
+      return upsertProject(next);
+    },
+
+    createInitiative(input) {
+      if (!input.title.trim()) return { error: "Initiative title is required." };
+      const now = new Date().toISOString();
+      return upsertInitiative({
+        id: randomUUID(),
+        organizationId: input.organizationId,
+        title: input.title.trim(),
+        description: input.description.trim(),
+        status: "Planned",
+        owner: input.owner ?? null,
+        relatedGoalId: input.relatedGoalId ?? null,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: input.createdBy,
+      });
+    },
+
+    listInitiatives: listInitiativesForOrganization,
+  };
+}
+
+
+/* ---- Legacy Supabase project CRUD (coexistence) ---- */
+
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -142,7 +346,7 @@ export async function updateProjectStatus(
     projectId,
     actorUserId,
     actionType: "status_changed",
-    summary: `Project status: ${project.status} → ${status}`,
+    summary: `Project status: ${project.status} G?? ${status}`,
     beforeState: { status: project.status },
     afterState: { status },
   });

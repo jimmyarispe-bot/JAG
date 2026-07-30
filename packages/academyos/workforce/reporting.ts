@@ -85,7 +85,7 @@ export function createWorkforceReportingService() {
       const generatedAt = new Date().toISOString();
       const summary = buildWorkforceSummary(organizationId);
       let rows: Record<string, string | number>[] = [];
-      let title = kind;
+      let title: string = kind;
 
       switch (kind) {
         case "employee_directory":

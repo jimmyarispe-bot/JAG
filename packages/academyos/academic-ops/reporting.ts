@@ -89,7 +89,7 @@ export function createAcademicOpsReportingService() {
       const teachers = listTeachers(organizationId);
       const attendance = createSisAttendanceService().list(organizationId);
       let rows: Record<string, string | number>[] = [];
-      let title = kind;
+      let title: string = kind;
 
       switch (kind) {
         case "teacher_schedules":

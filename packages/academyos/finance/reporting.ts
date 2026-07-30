@@ -81,7 +81,7 @@ export function createFinanceReportingService() {
       const invoices = listInvoices(organizationId);
       const payments = listPayments(organizationId);
       let rows: Record<string, string | number>[] = [];
-      let title = kind;
+      let title: string = kind;
 
       switch (kind) {
         case "ar_aging":

@@ -96,7 +96,7 @@ export function createLearningReportingService() {
       const generatedAt = new Date().toISOString();
       const summary = buildLearningProgressSummary(organizationId);
       let rows: Record<string, string | number>[] = [];
-      let title = kind;
+      let title: string = kind;
 
       switch (kind) {
         case "student_progress": {
@@ -108,7 +108,15 @@ export function createLearningReportingService() {
               studentId: s.id,
             });
             if ("error" in p) {
-              return { studentId: s.id, name: s.identity.preferredName };
+              return {
+                studentId: s.id,
+                name: s.identity.preferredName,
+                reading: "",
+                writing: "",
+                math: "",
+                structuredLiteracy: "",
+                growth: 0,
+              };
             }
             return {
               studentId: s.id,

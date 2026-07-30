@@ -28,6 +28,7 @@ export * from "./strategy";
 export * from "./watchers";
 export * from "./capabilities";
 export * from "./explain";
+export * from "./production-readiness";
 export { loadJagSearchCatalog } from "./search-catalog";
 export {
   filterJagSearchCatalog,

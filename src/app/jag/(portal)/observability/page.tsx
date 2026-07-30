@@ -45,12 +45,20 @@ export default async function JagObservabilityPage() {
         title="Observability"
         description="Executive action audit trail and predictive intelligence runs. No stack traces. No fabricated telemetry."
         actions={
-          <Link
-            href="/jag"
-            className="text-xs text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
-          >
-            Overview
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/jag/readiness"
+              className="text-xs text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+            >
+              Production readiness
+            </Link>
+            <Link
+              href="/jag"
+              className="text-xs text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+            >
+              Overview
+            </Link>
+          </div>
         }
       >
         <div className="mb-4 flex items-center justify-between gap-3">

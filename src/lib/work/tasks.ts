@@ -1,14 +1,60 @@
+/**
+ * TaskService — thin facade over WorkService for Task / Action typed items.
+ * Plus legacy Supabase task CRUD (coexistence for dashboard consumers).
+ */
+
 import type { createAuthClient } from "@/lib/supabase/server-auth";
-import type { WorkTask, WorkTaskStatus } from "@/lib/work/types";
-import { logWorkActivity, recordStatusHistory } from "@/lib/work/activity";
-import { updateProjectHealth } from "@/lib/work/projects";
 import { registerComplianceObligation } from "@/lib/compliance/registry";
 import { createMissionControlItem } from "@/lib/platform/automation/mission-control";
 import { writeTimelineEvent } from "@/lib/platform/automation/timeline";
+import { logWorkActivity, recordStatusHistory } from "@/lib/work/activity";
+import { updateProjectHealth } from "@/lib/work/projects";
+import { createWorkService, type WorkService } from "@/lib/work/service";
+import type {
+  CreateWorkItemInput,
+  JagWorkItem,
+  PatchWorkItemInput,
+  WorkItemType,
+  WorkTask,
+  WorkTaskStatus,
+} from "@/lib/work/types";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
-const today = () => new Date().toISOString().split("T")[0];
+const today = () => new Date().toISOString().split("T")[0]!;
+
+export type TaskService = {
+  create(
+    input: CreateWorkItemInput & { type?: WorkItemType }
+  ): JagWorkItem | { error: string };
+  list(organizationId: string, projectId?: string): readonly JagWorkItem[];
+  patch(input: PatchWorkItemInput): JagWorkItem | { error: string } | null;
+};
+
+export function createTaskService(
+  work: WorkService = createWorkService()
+): TaskService {
+  return {
+    create(input) {
+      return work.create({
+        ...input,
+        type: input.type ?? "Task",
+      });
+    },
+    list(organizationId, projectId) {
+      const all = work.list(organizationId);
+      const tasks = all.filter(
+        (w) =>
+          w.type === "Task" || w.type === "Action" || w.type === "Deliverable"
+      );
+      if (!projectId) return tasks;
+      return Object.freeze(tasks.filter((w) => w.projectId === projectId));
+    },
+    patch: work.patch,
+  };
+}
+
+/* ---- Legacy Supabase task CRUD (coexistence) ---- */
 
 export async function createTask(
   supabase: AuthClient,
@@ -132,7 +178,11 @@ export async function completeTask(
   taskId: string,
   actorUserId?: string | null
 ) {
-  const { data: task } = await supabase.from("work_tasks").select("*").eq("id", taskId).single();
+  const { data: task } = await supabase
+    .from("work_tasks")
+    .select("*")
+    .eq("id", taskId)
+    .single();
   if (!task) return { error: "Not found" };
 
   await supabase
@@ -160,8 +210,14 @@ export async function completeTask(
     .eq("is_resolved", false);
 
   if (task.compliance_obligation_id) {
-    const { completeObligationAndScheduleNext } = await import("@/lib/compliance/registry");
-    await completeObligationAndScheduleNext(supabase, task.compliance_obligation_id, actorUserId);
+    const { completeObligationAndScheduleNext } = await import(
+      "@/lib/compliance/registry"
+    );
+    await completeObligationAndScheduleNext(
+      supabase,
+      task.compliance_obligation_id,
+      actorUserId
+    );
   }
 
   if (task.student_id) {
@@ -197,7 +253,11 @@ export async function updateTaskStatus(
   status: WorkTaskStatus,
   actorUserId?: string | null
 ) {
-  const { data: task } = await supabase.from("work_tasks").select("status, project_id").eq("id", taskId).single();
+  const { data: task } = await supabase
+    .from("work_tasks")
+    .select("status, project_id")
+    .eq("id", taskId)
+    .single();
   if (!task) return { error: "Not found" };
 
   await supabase.from("work_tasks").update({ status }).eq("id", taskId);
@@ -236,7 +296,8 @@ export async function getTasks(
 
   if (filters?.schoolId) query = query.eq("school_id", filters.schoolId);
   if (filters?.projectId) query = query.eq("project_id", filters.projectId);
-  if (filters?.ownerUserId) query = query.eq("owner_user_id", filters.ownerUserId);
+  if (filters?.ownerUserId)
+    query = query.eq("owner_user_id", filters.ownerUserId);
   if (filters?.status) query = query.eq("status", filters.status);
 
   const { data } = await query;
@@ -248,7 +309,9 @@ export async function getTasks(
       .select("task_id")
       .eq("user_id", filters.assigneeUserId);
     const ids = new Set((assigned ?? []).map((a) => a.task_id));
-    tasks = tasks.filter((t) => ids.has(t.id) || t.owner_user_id === filters.assigneeUserId);
+    tasks = tasks.filter(
+      (t) => ids.has(t.id) || t.owner_user_id === filters.assigneeUserId
+    );
   }
 
   return tasks;

@@ -25,6 +25,7 @@ export { JagStrategyView } from "./strategy";
 export { JagInboxView } from "./inbox";
 export { JagCapabilitiesView } from "./capabilities";
 export { JagExplainPanel, JagGraphExplorerView } from "./explain";
+export { JagReadinessView } from "./readiness";
 export { JAG_COMMAND_NAV, isJagNavActive } from "./nav";
 export type { JagCardStatus, JagOverviewCardModel } from "./types";
 

@@ -38,7 +38,7 @@ export async function getTeacherExperienceHome(
     ...docDeadlines.slice(0, 5).map((d) => ({
       id: d.id,
       title: d.title,
-      href: d.action_href ?? "/dashboard/teacher/progress",
+      href: d.href ?? "/dashboard/teacher/progress",
     })),
     ...compliance.slice(0, 5).map((c, i) => ({
       id: `comp-${i}-${c.title}`,

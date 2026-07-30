@@ -80,7 +80,7 @@ export function createSisReportingService() {
       const attendanceDash =
         createSisAttendanceService().dashboard(organizationId);
       let rows: Record<string, string | number>[] = [];
-      let title = kind;
+      let title: string = kind;
 
       switch (kind) {
         case "student_roster":
