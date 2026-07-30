@@ -31,6 +31,7 @@ export * from "./explain";
 export * from "./production-readiness";
 export * from "./ga-certification";
 export * from "./branding";
+export * from "./onboarding";
 export { loadJagSearchCatalog } from "./search-catalog";
 export {
   filterJagSearchCatalog,

@@ -31,6 +31,7 @@ export {
   JagBrandPoweredBy,
   JagBrandingSettingsView,
 } from "./branding";
+export { JagOnboardingView } from "./onboarding";
 export { JAG_COMMAND_NAV, isJagNavActive } from "./nav";
 export type { JagCardStatus, JagOverviewCardModel } from "./types";
 

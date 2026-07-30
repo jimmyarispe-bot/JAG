@@ -72,6 +72,13 @@ export const SHELL_NAVIGATION: readonly CapabilityNavItem[] = [
   },
   { id: "runtime", label: "Runtime", href: "/jag/runtime", order: 91, group: "system" },
   {
+    id: "onboarding",
+    label: "Onboarding",
+    href: "/jag/onboarding",
+    order: 95,
+    group: "system",
+  },
+  {
     id: "settings",
     label: "Settings",
     href: "/jag/settings",
