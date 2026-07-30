@@ -4,7 +4,7 @@ import {
   runDiagnostics,
 } from "@academyos";
 import { evaluateAcademyOsRc3WithStudio } from "@studio";
-import { jsonOk, requireAcademyOsOrg, requireAcademyOsOrgBody } from "../../_lib";
+import { jsonOk, requireAcademyOsOrg, requireAcademyOsOrgBody } from "@/app/api/academyos/_lib";
 
 export async function GET(request: Request) {
   const gate = await requireAcademyOsOrg(request);
