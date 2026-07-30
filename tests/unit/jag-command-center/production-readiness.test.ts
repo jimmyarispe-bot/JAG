@@ -85,9 +85,13 @@ describe("Production readiness (Sprint 209)", () => {
     expect(report.advisoryNotice.toLowerCase()).toContain("readiness");
   });
 
-  it("loadReadinessWorkspace returns report and observations", () => {
-    const model = loadReadinessWorkspace();
+  it("loadReadinessWorkspace returns report and observations", async () => {
+    const model = await loadReadinessWorkspace();
     expect(model.report.workflow.links.length).toBe(WORKFLOW_MATRIX.length);
     expect(model.observations.length).toBeGreaterThan(0);
+    expect(typeof model.certification.overallScore).toBe("number");
+    expect(["GO", "GO_WITH_CONDITIONS", "NO_GO"]).toContain(
+      model.certification.recommendation
+    );
   });
 });

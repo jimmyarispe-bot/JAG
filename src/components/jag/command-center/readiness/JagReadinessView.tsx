@@ -23,10 +23,64 @@ export function JagReadinessView({
 }: {
   readonly model: JagReadinessWorkspaceModel;
 }) {
-  const { report, observations } = model;
+  const { report, observations, certification } = model;
 
   return (
     <div className="space-y-8">
+      <JagSection
+        title="GA Certification"
+        description="Sprint 210 release certification score and recommendation. Validation and defect detection only."
+      >
+        <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+          <div>
+            <dt className="text-[var(--jag-muted)]">Score</dt>
+            <dd className="mt-1 text-lg text-[var(--jag-text)]">
+              {certification.overallScore}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[var(--jag-muted)]">Recommendation</dt>
+            <dd className="mt-1 font-[family-name:var(--font-jag-mono)] text-sm text-[var(--jag-text)]">
+              {certification.recommendation}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[var(--jag-muted)]">Findings</dt>
+            <dd className="text-lg text-[var(--jag-text)]">
+              {certification.findingCount}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[var(--jag-muted)]">Blockers</dt>
+            <dd className="text-lg text-[var(--jag-text)]">
+              {certification.blockerCount}
+            </dd>
+          </div>
+        </dl>
+        {certification.topFindings.length > 0 ? (
+          <ul className="mt-4 space-y-2">
+            {certification.topFindings.map((finding) => (
+              <li
+                key={`${finding.severity}-${finding.title}`}
+                className="rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-2 text-xs text-[var(--jag-muted)]"
+              >
+                <p className="text-sm text-[var(--jag-text)]">
+                  <span className="font-[family-name:var(--font-jag-mono)] text-[10px] uppercase text-[var(--jag-muted-2)]">
+                    {finding.severity}
+                  </span>{" "}
+                  {finding.title}
+                </p>
+                <p className="mt-1">{finding.detail}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 text-xs text-[var(--jag-muted)]">
+            No certification findings.
+          </p>
+        )}
+      </JagSection>
+
       <JagSection
         title="Production readiness"
         description="GA validation of the executive workflow chain and Capability SDK health. Application-layer only — no new intelligence capabilities."
