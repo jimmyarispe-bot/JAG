@@ -2,9 +2,20 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { OrganizationBrand } from "@/lib/platform/branding";
+import { POWERED_BY_LINE } from "@/lib/platform/branding";
+import { JagBrandLogoMark } from "./branding/JagBrandChrome";
 import { isJagNavActive, JAG_COMMAND_NAV } from "./nav";
 
-export function JagSidebar({ pathname }: { readonly pathname: string }) {
+export function JagSidebar({
+  pathname,
+  brand,
+  pageTitle,
+}: {
+  readonly pathname: string;
+  readonly brand: OrganizationBrand;
+  readonly pageTitle: string;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,15 +47,16 @@ export function JagSidebar({ pathname }: { readonly pathname: string }) {
         }`}
       >
         <div className="border-b border-[var(--jag-border)] px-4 py-5">
-          <p className="font-[family-name:var(--font-jag-display)] text-xl font-semibold tracking-tight text-[var(--jag-text)]">
-            JAG
-          </p>
-          <p className="mt-1 text-[11px] leading-snug text-[var(--jag-muted)]">
-            Executive Command Center
+          <JagBrandLogoMark brand={brand} dark className="h-8 max-w-[11rem] object-contain" />
+          <p className="mt-2 text-[11px] leading-snug text-[var(--jag-muted)]">
+            {pageTitle}
           </p>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="JAG">
+        <nav
+          className="flex-1 overflow-y-auto px-2 py-3"
+          aria-label={`${brand.display_name} navigation`}
+        >
           <ul className="space-y-0.5">
             {JAG_COMMAND_NAV.map((item) => {
               const active = isJagNavActive(pathname, item.href);
@@ -66,6 +78,12 @@ export function JagSidebar({ pathname }: { readonly pathname: string }) {
             })}
           </ul>
         </nav>
+
+        <div className="border-t border-[var(--jag-border)] px-4 py-3">
+          {brand.powered_by_enabled ? (
+            <p className="text-[10px] text-[var(--jag-muted)]">{POWERED_BY_LINE}</p>
+          ) : null}
+        </div>
       </aside>
     </>
   );

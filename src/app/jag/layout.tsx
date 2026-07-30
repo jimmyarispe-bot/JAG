@@ -7,10 +7,13 @@ import "@/components/jag/command-center/command-center.css";
 import {
   countUnreadJagNotifications,
   listJagNotifications,
+  loadJagBrandForHost,
+  loadJagBrandForSession,
   loadJagCommandCenterOverview,
   loadJagSearchCatalog,
 } from "@/lib/jag-command-center";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
+import { themeToStyle, THE_JAG_MARK } from "@/lib/platform/branding";
 
 const jagSans = IBM_Plex_Sans({
   subsets: ["latin"],
@@ -27,9 +30,12 @@ const jagMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "JAG Executive Command Center",
+  title: {
+    default: "Executive Intelligence Platform",
+    template: `%s · Powered by ${THE_JAG_MARK}`,
+  },
   description:
-    "Executive Command Center for the JAG Organizational Intelligence Operating System.",
+    "Executive Intelligence Platform powered by The JAG™ Organizational Intelligence Operating System.",
 };
 
 /**
@@ -43,16 +49,20 @@ export default async function JagRootLayout({
 }) {
   const headerStore = await headers();
   const pathname = headerStore.get("x-pathname") ?? "/jag";
+  const host =
+    headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? undefined;
   const isLogin = pathname === "/jag/login" || pathname.startsWith("/jag/login/");
   const isSharedBriefing = pathname.startsWith("/jag/briefings/share/");
 
   if (isLogin || isSharedBriefing) {
+    const brandModel = loadJagBrandForHost(host);
     return (
       <div
         className={`${jagSans.variable} ${jagMono.variable}`}
         style={
           {
             "--font-jag-display": "var(--font-jag-sans)",
+            ...themeToStyle(brandModel.theme),
           } as CSSProperties
         }
       >
@@ -66,6 +76,7 @@ export default async function JagRootLayout({
     return children;
   }
 
+  const brandModel = loadJagBrandForSession(session, host);
   const overview = loadJagCommandCenterOverview(session);
   const searchCatalog = loadJagSearchCatalog(session);
   const notifications = listJagNotifications(20);
@@ -76,7 +87,16 @@ export default async function JagRootLayout({
       className={`${jagSans.variable} ${jagMono.variable}`}
       style={
         {
-          "--font-jag-display": "var(--font-jag-sans)",
+          "--font-jag-display": "var(--brand-heading-font, var(--font-jag-sans))",
+          fontFamily: "var(--brand-body-font, var(--font-jag-sans))",
+          ...themeToStyle(brandModel.theme),
+          ...(brandModel.brand.dashboard_background_url
+            ? {
+                backgroundImage: `url("${brandModel.brand.dashboard_background_url}")`,
+                backgroundSize: "cover",
+                backgroundAttachment: "fixed",
+              }
+            : {}),
         } as CSSProperties
       }
     >
@@ -88,6 +108,8 @@ export default async function JagRootLayout({
         searchCatalog={searchCatalog}
         notifications={notifications}
         unreadNotificationCount={unreadNotificationCount}
+        brand={brandModel.brand}
+        pageTitle={brandModel.pageTitle}
       >
         {children}
       </JagCommandShell>

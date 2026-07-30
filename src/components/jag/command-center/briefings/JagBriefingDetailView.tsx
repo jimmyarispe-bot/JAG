@@ -4,6 +4,7 @@ import type {
   JagBriefingSection,
   JagExecutiveBriefing,
 } from "@/lib/jag-command-center/briefing-engine/types";
+import { brandPdfForOrganization } from "@/lib/jag-command-center/branding";
 import { explainBriefingSectionForDetail } from "@/lib/jag-command-center/explain";
 import { JagExplainPanel } from "../explain";
 import { JagSection } from "../JagSection";
@@ -24,6 +25,9 @@ export function JagBriefingDetailView({
 }) {
   const board = mode === "board";
   const print = mode === "print" || mode === "board";
+  const pdfBrand = brandPdfForOrganization(
+    briefing.organizationId ?? briefing.organizationIds[0]
+  );
 
   return (
     <div
@@ -143,6 +147,22 @@ export function JagBriefingDetailView({
           readOnly={readOnly}
         />
       ))}
+
+      <footer className="border-t border-[var(--jag-border)] pt-4 text-xs text-[var(--jag-muted)]">
+        {pdfBrand.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- tenant CDN / data URLs
+          <img
+            src={pdfBrand.logoUrl}
+            alt=""
+            className="mb-2 h-6 max-w-[8rem] object-contain"
+          />
+        ) : null}
+        <p style={{ color: pdfBrand.primaryColor }}>{pdfBrand.title}</p>
+        <p className="mt-1">{pdfBrand.footerText}</p>
+        {pdfBrand.poweredBy && !pdfBrand.footerText.includes(pdfBrand.poweredBy) ? (
+          <p className="mt-0.5">{pdfBrand.poweredBy}</p>
+        ) : null}
+      </footer>
 
       <style>{`
         @media print {

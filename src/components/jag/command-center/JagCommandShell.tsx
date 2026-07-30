@@ -1,6 +1,7 @@
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import type { JagNotification } from "@/lib/jag-command-center/notifications";
 import type { JagSearchItem } from "@/lib/jag-command-center/search-filter";
+import type { OrganizationBrand } from "@/lib/platform/branding";
 import { JagHeader } from "./JagHeader";
 import { JagSidebar } from "./JagSidebar";
 
@@ -12,6 +13,8 @@ export function JagCommandShell({
   searchCatalog,
   notifications,
   unreadNotificationCount,
+  brand,
+  pageTitle,
   children,
 }: {
   readonly session: JagPlatformSession;
@@ -21,6 +24,8 @@ export function JagCommandShell({
   readonly searchCatalog: readonly JagSearchItem[];
   readonly notifications: readonly JagNotification[];
   readonly unreadNotificationCount: number;
+  readonly brand: OrganizationBrand;
+  readonly pageTitle: string;
   readonly children: React.ReactNode;
 }) {
   return (
@@ -28,7 +33,7 @@ export function JagCommandShell({
       <a href="#jag-main" className="jag-skip-link">
         Skip to main content
       </a>
-      <JagSidebar pathname={pathname} />
+      <JagSidebar pathname={pathname} brand={brand} pageTitle={pageTitle} />
       <div className="flex min-w-0 flex-1 flex-col">
         <JagHeader
           session={session}
@@ -37,6 +42,7 @@ export function JagCommandShell({
           searchCatalog={searchCatalog}
           notifications={notifications}
           unreadNotificationCount={unreadNotificationCount}
+          brand={brand}
         />
         <main
           id="jag-main"

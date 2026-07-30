@@ -1,6 +1,8 @@
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import type { JagNotification } from "@/lib/jag-command-center/notifications";
 import type { JagSearchItem } from "@/lib/jag-command-center/search-filter";
+import type { OrganizationBrand } from "@/lib/platform/branding";
+import { JagBrandLogoMark } from "./branding/JagBrandChrome";
 import { JagCommandPalette } from "./JagCommandPalette";
 import { JagNotificationBell } from "./JagNotificationBell";
 
@@ -11,6 +13,7 @@ export function JagHeader({
   searchCatalog,
   notifications,
   unreadNotificationCount,
+  brand,
 }: {
   readonly session: JagPlatformSession;
   readonly organizationOptions: readonly { id: string; label: string }[];
@@ -18,18 +21,17 @@ export function JagHeader({
   readonly searchCatalog: readonly JagSearchItem[];
   readonly notifications: readonly JagNotification[];
   readonly unreadNotificationCount: number;
+  readonly brand: OrganizationBrand;
 }) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--jag-border)] bg-[var(--jag-bg)] px-4 md:px-6">
       <div className="hidden min-w-0 items-center gap-2 md:flex">
-        <span className="font-[family-name:var(--font-jag-display)] text-sm font-semibold tracking-tight text-[var(--jag-text)]">
-          JAG
-        </span>
+        <JagBrandLogoMark brand={brand} dark className="h-6 max-w-[9rem] object-contain" />
         <span className="text-[var(--jag-border-strong)]" aria-hidden>
           /
         </span>
         <span className="truncate text-xs text-[var(--jag-muted)]">
-          Command Center
+          Executive Intelligence
         </span>
       </div>
 

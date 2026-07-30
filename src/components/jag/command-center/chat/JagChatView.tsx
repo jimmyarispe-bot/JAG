@@ -72,7 +72,7 @@ export function JagChatView({
           organizationId: model.organizationId,
         });
         if ("error" in fallback) {
-          setStreamText(fallback.error);
+          setStreamText(fallback.error ?? "Conversation request failed.");
         } else {
           setLocalAnswer(fallback.answer);
           setStreamText(fallback.answer.executiveSummary);
@@ -140,7 +140,7 @@ export function JagChatView({
                     organizationId: model.organizationId,
                     organizationName: model.organizationName,
                   });
-                  if ("conversation" in created) {
+                  if ("conversation" in created && created.conversation) {
                     router.push(`/jag/chat?c=${created.conversation.id}`);
                     router.refresh();
                   }
@@ -313,7 +313,7 @@ export function JagChatView({
               }`}
             >
               <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--jag-muted-2)]">
-                {turn.role === "executive" ? "Executive" : "JAG"}
+                {turn.role === "executive" ? "Executive" : "The JAG™"}
                 {turn.intent ? ` · ${turn.intent.replace(/_/g, " ")}` : ""}
                 {typeof turn.durationMs === "number"
                   ? ` · ${turn.durationMs}ms`

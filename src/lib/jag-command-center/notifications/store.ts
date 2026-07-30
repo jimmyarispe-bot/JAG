@@ -2,6 +2,7 @@
  * In-app notification store for the Executive Command Center.
  */
 
+import { brandEmailForOrganization } from "@/lib/jag-command-center/branding/documents";
 import type { JagNotification, JagNotificationKind } from "./types";
 
 const items: JagNotification[] = [];
@@ -9,6 +10,14 @@ const MAX = 100;
 
 export function resetJagNotificationStoreForTests(): void {
   items.length = 0;
+}
+
+function withBrandFooter(body: string, organizationId?: string | null): string {
+  const email = brandEmailForOrganization(organizationId, {
+    documentTitle: "Decision Notification",
+  });
+  if (body.includes(email.footerText)) return body;
+  return `${body}\n\n— ${email.footerText}`;
 }
 
 export function pushJagNotification(input: {
@@ -27,7 +36,7 @@ export function pushJagNotification(input: {
     kind: input.kind,
     at,
     title: input.title,
-    body: input.body,
+    body: withBrandFooter(input.body, input.organizationId),
     href: input.href ?? null,
     organizationId: input.organizationId ?? null,
     decisionId: input.decisionId ?? null,

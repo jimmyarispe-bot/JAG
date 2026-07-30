@@ -3,8 +3,16 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { JAG_PLATFORM_HOME_PATH } from "@/lib/jag-platform/auth";
+import {
+  POWERED_BY_LINE,
+  type OrganizationBrand,
+} from "@/lib/platform/branding";
 
-export function JagLoginForm() {
+export function JagLoginForm({
+  brand,
+}: {
+  readonly brand: OrganizationBrand;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? JAG_PLATFORM_HOME_PATH;
@@ -42,17 +50,33 @@ export function JagLoginForm() {
     router.refresh();
   };
 
+  const logoSrc = brand.light_logo_url || brand.dark_logo_url;
+
   return (
-    <main className="mx-auto mt-20 max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h1 className="text-2xl font-semibold text-slate-900">The JAG™</h1>
+    <main className="mx-auto mt-16 w-full max-w-md rounded-2xl border border-white/10 bg-white/95 p-8 shadow-lg backdrop-blur">
+      {logoSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element -- tenant CDN / data URLs
+        <img
+          src={logoSrc}
+          alt={brand.display_name}
+          className="mb-4 h-10 max-w-[12rem] object-contain"
+        />
+      ) : null}
+      <h1
+        className="text-2xl font-semibold text-slate-900"
+        style={{ fontFamily: "var(--brand-heading-font)" }}
+      >
+        {brand.display_name}
+      </h1>
       <p className="mt-1 text-sm text-slate-500">
-        Organizational Intelligence Operating System
-      </p>
-      <p className="mt-4 text-xs text-slate-500">
-        Platform sign-in — separate from AcademyOS.
+        {brand.display_name} Executive Intelligence Platform
       </p>
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-4" aria-label="Sign in to The JAG">
+      <form
+        onSubmit={onSubmit}
+        className="mt-6 space-y-4"
+        aria-label={`Sign in to ${brand.display_name}`}
+      >
         <label className="block text-sm">
           <span className="text-slate-700">Email</span>
           <input
@@ -83,11 +107,18 @@ export function JagLoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+          className="w-full rounded-md px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+          style={{ backgroundColor: brand.primary_color || "#0F172A" }}
         >
-          {loading ? "Signing in…" : "Sign in to The JAG"}
+          {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
+
+      {brand.powered_by_enabled ? (
+        <p className="mt-6 text-center text-xs text-slate-500">
+          {POWERED_BY_LINE}
+        </p>
+      ) : null}
     </main>
   );
 }

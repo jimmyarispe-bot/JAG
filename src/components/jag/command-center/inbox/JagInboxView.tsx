@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { brandEmailForOrganization } from "@/lib/jag-command-center/branding";
 import { explainAlertForDetail } from "@/lib/jag-command-center/explain";
 import type { JagInboxWorkspaceModel } from "@/lib/jag-command-center/watchers";
 import {
@@ -17,6 +18,9 @@ export function JagInboxView({
   readonly model: JagInboxWorkspaceModel;
 }) {
   const selected = model.selected;
+  const digestBrand = brandEmailForOrganization(model.organizationId, {
+    documentTitle: "Watcher Digest",
+  });
 
   return (
     <div className="space-y-8">
@@ -131,7 +135,10 @@ export function JagInboxView({
               ))}
             </form>
             {model.latestDigest ? (
-              <div className="mt-3 rounded border border-[var(--jag-border)] p-3 text-sm">
+              <div
+                className="mt-3 rounded border border-[var(--jag-border)] p-3 text-sm"
+                style={{ borderTopColor: digestBrand.accentColor, borderTopWidth: 3 }}
+              >
                 <p className="font-medium text-[var(--jag-text)]">
                   {model.latestDigest.title}
                 </p>
@@ -145,6 +152,9 @@ export function JagInboxView({
                     <li key={h}>{h}</li>
                   ))}
                 </ul>
+                <p className="mt-3 border-t border-[var(--jag-border)] pt-2 text-[11px] text-[var(--jag-muted)]">
+                  {digestBrand.footerText}
+                </p>
               </div>
             ) : (
               <p className="mt-2 text-xs text-[var(--jag-muted)]">
