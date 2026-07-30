@@ -3,6 +3,7 @@
  * Never invents metrics — empty / unbound states are stated explicitly.
  */
 
+import { ExplanationService } from "@/lib/platform/intelligence/explain/index";
 import { MemoryService } from "@/lib/platform/intelligence/memory/index";
 import { StrategyService } from "@/lib/platform/intelligence/strategy/index";
 import { WatcherService } from "@/lib/platform/intelligence/watchers/index";
@@ -186,6 +187,8 @@ export function buildConversationAnswer(input: {
       return answerStrategicAlignment(context, orgLabel, baseMeta, question);
     case "executive_attention":
       return answerExecutiveAttention(context, orgLabel, baseMeta, question);
+    case "explainability":
+      return answerExplainability(context, orgLabel, baseMeta, question);
     case "insufficient":
       return emptyAnswer("Ask an executive question about decisions, health, forecasts, or scenarios.");
     case "general_status":
@@ -1525,6 +1528,128 @@ function answerHistoricalMemory(
     dependencies: priorTopics,
     insufficientData: false,
     advisoryNotice: ADVISORY,
+  };
+}
+
+function answerExplainability(
+  ctx: ConversationGroundingContext,
+  orgLabel: string,
+  baseMeta: BaseMeta,
+  question: string
+): JagConversationAnswer {
+  const top = ctx.openDecisions
+    .slice()
+    .sort((a, b) => a.priorityRank - b.priorityRank)[0];
+  const alerts = WatcherService.listOpen(ctx.organizationId);
+  const alert = alerts[0] ?? null;
+
+  if (!top && !alert) {
+    return emptyAnswer(
+      `No bound recommendation or alert to explain for ${orgLabel}. Open Decision Center, Inbox, or Graph Explorer.`,
+      {
+        recommendedNextActions: [
+          "Open /jag/graph to explore the reasoning map.",
+          "Ask what should I decide today once decisions are bound.",
+        ],
+        suggestedFollowUps: [
+          "What should I decide today?",
+          "What deserves my attention?",
+        ],
+        reasoningChain: [
+          "Intent: explainability.",
+          "No decision or watcher alert was bound to ground a reasoning chain.",
+        ],
+      }
+    );
+  }
+
+  const subject = top
+    ? ExplanationService.explainDecision({
+        organizationId: ctx.organizationId,
+        decisionId: top.id,
+        title: top.title,
+        rationale: top.recommendedAction,
+        confidence: top.confidence,
+        contributorId: top.contributorLabel,
+      })
+    : ExplanationService.explainAlert({
+        organizationId: ctx.organizationId,
+        alertId: alert!.id,
+        title: alert!.title,
+        summary: alert!.summary,
+        confidence: alert!.confidence,
+        type: alert!.type,
+        drivers: alert!.primaryDrivers,
+        evidence: alert!.evidence,
+        memory: alert!.explanation.memory,
+        goals: alert!.relatedGoalIds,
+        decisions: alert!.relatedDecisionIds,
+        rulesFired: [alert!.watcherId, alert!.type],
+      });
+
+  const q = question.toLowerCase();
+  const focusAssumptions = /assumption/i.test(q);
+  const focusEvidence = /evidence/i.test(q);
+  const focusReasoning = /reasoning|why|how did/i.test(q);
+
+  const summaryParts = [
+    subject.summary,
+    focusAssumptions && subject.assumptions.length
+      ? `Assumptions: ${subject.assumptions.join("; ")}`
+      : null,
+    focusEvidence
+      ? `Evidence strength ${subject.confidence.evidenceStrength.toFixed(2)}; ${subject.evidence.length} item(s).`
+      : null,
+    focusReasoning
+      ? `Reasoning: ${subject.reasoningChain.map((s) => s.title).join(" → ")}`
+      : `Confidence ${(subject.confidence.score * 100).toFixed(0)}% (${subject.confidence.band}).`,
+  ].filter(Boolean);
+
+  return {
+    executiveSummary: summaryParts.join(" "),
+    evidence: subject.evidence.map((e) => ({
+      id: e.id,
+      source: e.source,
+      summary: e.summary,
+      kind: "derived" as const,
+      confidence: e.strength,
+    })),
+    confidence: subject.confidence.score,
+    confidenceBand: subject.confidence.band,
+    confidenceExplanation: subject.confidence.explanation,
+    primaryDrivers: subject.reasoningChain.slice(0, 4).map((s) => ({
+      label: s.title,
+      explanation: s.detail,
+    })),
+    supportingContributors: subject.contributors,
+    relatedPolicies: baseMeta.relatedPolicies,
+    relatedKnowledge: baseMeta.relatedKnowledge,
+    relatedDecisions: top
+      ? [decisionLink(top)]
+      : ctx.openDecisions.slice(0, 3).map(decisionLink),
+    forecasts: baseMeta.forecasts,
+    scenarios: baseMeta.scenarios,
+    recommendedNextActions: [
+      "Open Intelligence Graph for the full reasoning map.",
+      "Review evidence and assumptions before acting.",
+    ],
+    suggestedFollowUps: [
+      "Show the reasoning.",
+      "What evidence supports this?",
+      "What assumptions were made?",
+      "What changed since last week?",
+    ],
+    reasoningChain: [
+      "Intent: explainability.",
+      ...subject.reasoningChain.map((s) => `${s.title}: ${s.detail}`),
+      "Opened via ExplanationService — advisory chain only.",
+    ],
+    timeline: subject.timeline.map((t) => ({ at: t.at, message: t.message })),
+    policyTrace: subject.policies,
+    contributorTrace: subject.contributors,
+    dependencies: subject.relatedNodeIds.slice(0, 8),
+    insufficientData: subject.confidence.missingInformation.length > 2,
+    advisoryNotice: subject.advisoryNotice,
   };
 }
 

@@ -14,6 +14,7 @@ import {
   listStrategyObservations,
   listWatcherObservations,
   listCapabilityObservations,
+  listExplainObservations,
 } from "@/lib/jag-command-center";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
@@ -36,6 +37,7 @@ export default async function JagObservabilityPage() {
   const strategies = listStrategyObservations(20);
   const watchers = listWatcherObservations(20);
   const capabilities = listCapabilityObservations(20);
+  const explanations = listExplainObservations(20);
 
   return (
     <div className="space-y-8">
@@ -275,6 +277,49 @@ export default async function JagObservabilityPage() {
                 <p className="mt-1 text-[var(--jag-text)]">{c.detail}</p>
                 <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px]">
                   {c.capabilityId ?? "registry"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </JagSection>
+
+      <JagSection
+        title="Explainability operations"
+        description="Explanation generation, graph queries, reasoning traversal, evidence lookup, and dependency resolution."
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-xs text-[var(--jag-muted)]">
+            Intelligence Graph Explorer — advisory reasoning telemetry.
+          </p>
+          <JagStatusBadge
+            status={explanations.length > 0 ? "ready" : "empty"}
+          />
+        </div>
+        {explanations.length === 0 ? (
+          <JagEmptyState
+            title="No explainability operations yet"
+            description="Open /jag/graph or select Explain on a decision, alert, goal, or briefing to populate this log."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {explanations.map((e) => (
+              <li
+                key={e.id}
+                className="rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-2 text-xs text-[var(--jag-muted)]"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted-2)]">
+                    {e.at}
+                  </p>
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[var(--jag-text)]">
+                    {e.durationMs}ms · {e.kind.replace(/_/g, " ")}
+                  </p>
+                </div>
+                <p className="mt-1 text-[var(--jag-text)]">{e.detail}</p>
+                <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px]">
+                  {e.subjectId ?? "graph"}
+                  {e.organizationId ? ` · org ${e.organizationId}` : ""}
                 </p>
               </li>
             ))}

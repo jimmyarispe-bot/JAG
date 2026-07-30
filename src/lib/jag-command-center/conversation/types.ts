@@ -22,6 +22,7 @@ export const JAG_CONVERSATION_INTENTS = [
   "historical_memory",
   "strategic_alignment",
   "executive_attention",
+  "explainability",
   "general_status",
   "insufficient",
 ] as const;

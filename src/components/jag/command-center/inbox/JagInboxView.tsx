@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { explainAlertForDetail } from "@/lib/jag-command-center/explain";
 import type { JagInboxWorkspaceModel } from "@/lib/jag-command-center/watchers";
 import {
   jagAcknowledgeAlertAction,
   jagDismissAlertAction,
   jagResolveAlertAction,
 } from "@/lib/jag-command-center/watchers";
+import { JagExplainPanel } from "../explain";
 import { JagEmptyState } from "../JagEmptyState";
 import { JagSection } from "../JagSection";
 import { JagStatusBadge } from "../JagStatusBadge";
@@ -28,6 +30,12 @@ export function JagInboxView({
               className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
             >
               Ask Conversation
+            </Link>
+            <Link
+              href="/jag/graph"
+              className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+            >
+              Graph
             </Link>
             <Link
               href="/jag/strategy"
@@ -273,6 +281,27 @@ export function JagInboxView({
                     </button>
                   </form>
                 </div>
+                <JagExplainPanel
+                  explanation={explainAlertForDetail({
+                    organizationId: selected.organizationId,
+                    alertId: selected.id,
+                    title: selected.title,
+                    summary: selected.summary,
+                    confidence: selected.confidence,
+                    type: selected.type,
+                    drivers: selected.primaryDrivers,
+                    evidence: selected.evidence,
+                    memory: selected.explanation.memory,
+                    goals: selected.relatedGoalIds,
+                    decisions: selected.relatedDecisionIds,
+                    rulesFired: [
+                      selected.watcherId,
+                      selected.type,
+                      ...selected.primaryDrivers.slice(0, 3),
+                    ],
+                  })}
+                  graphHref={`/jag/graph?org=${encodeURIComponent(selected.organizationId)}&focus=${encodeURIComponent(`alert:${selected.id}`)}`}
+                />
                 <p className="text-[11px] text-[var(--jag-muted)]">
                   {selected.advisoryNotice}
                 </p>

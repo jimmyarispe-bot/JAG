@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { explainGoalForDetail } from "@/lib/jag-command-center/explain";
 import type { JagStrategyWorkspaceModel } from "@/lib/jag-command-center/strategy";
+import { JagExplainPanel } from "../explain";
 import { JagEmptyState } from "../JagEmptyState";
 import { JagSection } from "../JagSection";
 import { JagStatusBadge } from "../JagStatusBadge";
@@ -23,6 +25,12 @@ export function JagStrategyView({
               className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
             >
               Ask Conversation
+            </Link>
+            <Link
+              href="/jag/graph"
+              className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+            >
+              Graph
             </Link>
             <Link
               href="/jag/memory"
@@ -139,6 +147,10 @@ export function JagStrategyView({
             <ul className="space-y-3">
               {bundle.goals.map((g) => {
                 const ev = bundle.evaluations.find((e) => e.goalId === g.id);
+                const health = ev?.health ?? g.health;
+                const initiativeTitles = bundle.initiatives
+                  .filter((i) => i.goalId === g.id)
+                  .map((i) => i.title);
                 return (
                   <li
                     key={g.id}
@@ -147,7 +159,7 @@ export function JagStrategyView({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-medium text-[var(--jag-text)]">{g.title}</p>
                       <span className="text-xs uppercase tracking-wide text-[var(--jag-muted)]">
-                        {ev?.health ?? g.health}
+                        {health}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-[var(--jag-muted)]">
@@ -157,6 +169,26 @@ export function JagStrategyView({
                     <p className="mt-1 text-xs text-[var(--jag-muted)]">
                       {ev?.summary ?? g.description}
                     </p>
+                    {model.organizationId ? (
+                      <div className="mt-2">
+                        <JagExplainPanel
+                          explanation={explainGoalForDetail({
+                            organizationId: model.organizationId,
+                            goalId: g.id,
+                            title: g.title,
+                            summary:
+                              health === "at_risk" || health === "blocked"
+                                ? `Why at risk: ${ev?.summary ?? g.description}`
+                                : ev?.summary ?? g.description,
+                            confidence: g.confidence,
+                            health,
+                            decisionTitles: g.relatedDecisionIds,
+                            initiativeTitles,
+                          })}
+                          graphHref={`/jag/graph?org=${encodeURIComponent(model.organizationId)}&focus=${encodeURIComponent(`goal:${g.id}`)}`}
+                        />
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}

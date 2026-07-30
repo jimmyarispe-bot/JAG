@@ -33,11 +33,12 @@ describe("Capability SDK Command Center (Sprint 207)", () => {
     expect(hrefs).toContain("/jag/inbox");
     expect(hrefs).toContain("/jag/strategy");
     expect(hrefs).toContain("/jag/capabilities");
+    expect(hrefs).toContain("/jag/graph");
   });
 
   it("loads capabilities workspace", () => {
     const model = loadCapabilitiesWorkspace();
-    expect(model.capabilities.length).toBeGreaterThanOrEqual(8);
+    expect(model.capabilities.length).toBeGreaterThanOrEqual(9);
     expect(model.selectedId).toBeTruthy();
     expect(model.healthDashboard.length).toBe(model.capabilities.length);
   });

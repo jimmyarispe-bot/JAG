@@ -135,6 +135,27 @@ export const loadJagSearchCatalog = cache(function loadJagSearchCatalog(
       title: "Education Policy Registry",
       subtitle: "Policies",
       href: "/jag/policies",
+    },
+    {
+      id: "reasoning:graph",
+      kind: "reasoning",
+      title: "Reasoning chains",
+      subtitle: "Explainability · Graph Explorer",
+      href: "/jag/graph",
+    },
+    {
+      id: "evidence:graph",
+      kind: "evidence",
+      title: "Evidence",
+      subtitle: "Explainability · evidence nodes",
+      href: "/jag/graph?kind=evidence",
+    },
+    {
+      id: "goal:strategy",
+      kind: "goal",
+      title: "Strategic goals",
+      subtitle: "Strategy · goals",
+      href: "/jag/strategy",
     }
   );
 

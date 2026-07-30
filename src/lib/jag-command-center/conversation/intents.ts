@@ -68,6 +68,17 @@ export function routeConversationIntent(
   }
 
   if (
+    /why did you recommend|show the reasoning|what evidence supports|what assumptions|how did (you|jag) (reach|conclude)|explain (this|the|why)|reasoning chain/i.test(
+      q
+    )
+  ) {
+    return {
+      intent: "explainability",
+      reasoning: "Question asks for reasoning, evidence, or assumptions.",
+      usesPriorContext: false,
+    };
+  }
+  if (
     /have we seen|seen this before|what happened last time|last time|how often has|which intervention worked|worked best|historical|institutional memory/i.test(
       q
     )
@@ -248,6 +259,8 @@ export function intentToMemoryTopic(intent: JagConversationIntent): string | nul
       return "strategy";
     case "executive_attention":
       return "inbox";
+    case "explainability":
+      return "explainability";
     default:
       return null;
   }

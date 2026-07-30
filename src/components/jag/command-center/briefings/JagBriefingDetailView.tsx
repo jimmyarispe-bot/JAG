@@ -4,6 +4,8 @@ import type {
   JagBriefingSection,
   JagExecutiveBriefing,
 } from "@/lib/jag-command-center/briefing-engine/types";
+import { explainBriefingSectionForDetail } from "@/lib/jag-command-center/explain";
+import { JagExplainPanel } from "../explain";
 import { JagSection } from "../JagSection";
 import {
   JagBriefingToolbar,
@@ -135,6 +137,7 @@ export function JagBriefingDetailView({
         <BriefingSectionBlock
           key={section.id}
           briefingId={briefing.id}
+          organizationId={briefing.organizationId}
           section={section}
           board={board}
           readOnly={readOnly}
@@ -165,15 +168,33 @@ export function JagBriefingDetailView({
 
 function BriefingSectionBlock({
   briefingId,
+  organizationId,
   section,
   board,
   readOnly,
 }: {
   readonly briefingId: string;
+  readonly organizationId: string;
   readonly section: JagBriefingSection;
   readonly board: boolean;
   readonly readOnly?: boolean;
 }) {
+  const sectionExplanation = explainBriefingSectionForDetail({
+    organizationId,
+    briefingId,
+    sectionId: section.id,
+    title: section.title,
+    narrative: section.narrative,
+    confidence: section.confidence ?? 0.5,
+    evidence: section.evidenceReferences.map((e) => ({
+      id: e.id,
+      source: e.source,
+      summary: e.summary || e.code || e.id,
+    })),
+    contributors: section.contributorSources,
+    policies: section.policyReferences,
+  });
+
   return (
     <section className="rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] p-4">
       <div className="mb-3 flex items-baseline justify-between gap-3">
@@ -247,6 +268,13 @@ function BriefingSectionBlock({
               : section.confidence.toFixed(2)}
           </p>
         </div>
+      </div>
+
+      <div className="mt-3 print:hidden">
+        <JagExplainPanel
+          explanation={sectionExplanation}
+          graphHref={`/jag/graph?org=${encodeURIComponent(organizationId)}&focus=${encodeURIComponent(`briefing:${briefingId}:${section.id}`)}`}
+        />
       </div>
 
       <div className="print:hidden">

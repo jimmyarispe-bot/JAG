@@ -10,7 +10,10 @@ export type JagSearchItemKind =
   | "domain"
   | "contributor"
   | "knowledge"
-  | "policy";
+  | "policy"
+  | "reasoning"
+  | "evidence"
+  | "goal";
 
 export type JagSearchItem = {
   readonly id: string;

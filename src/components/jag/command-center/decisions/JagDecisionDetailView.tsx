@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { JagDecisionDetail } from "@/lib/jag-command-center/decision-center/types";
+import { explainDecisionForDetail } from "@/lib/jag-command-center/explain";
+import { JagExplainPanel } from "../explain";
 import { JagSection } from "../JagSection";
 import { JagDecisionAssignmentForm } from "./JagDecisionAssignmentForm";
 import { JagDecisionExecutionForm } from "./JagDecisionExecutionForm";
@@ -12,6 +14,16 @@ export function JagDecisionDetailView({
   readonly detail: JagDecisionDetail;
 }) {
   const { card } = detail;
+  const explanation = explainDecisionForDetail({
+    organizationId: card.organizationId,
+    decisionId: card.id,
+    title: card.title,
+    rationale: card.recommendedAction,
+    confidence: card.confidence,
+    contributorId: card.contributorLabel,
+    goalTitles: detail.strategicAlignment?.goalTitles,
+    memoryTitles: detail.similarSituations.map((s) => s.title),
+  });
 
   return (
     <div className="space-y-6">
@@ -21,12 +33,20 @@ export function JagDecisionDetailView({
           card.isOverdue ? " · Overdue" : ""
         }`}
         actions={
-          <Link
-            href="/jag/decisions"
-            className="text-xs text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
-          >
-            Queue
-          </Link>
+          <div className="flex flex-wrap gap-3 text-xs">
+            <Link
+              href={`/jag/graph?org=${encodeURIComponent(card.organizationId)}&focus=${encodeURIComponent(`decision:${card.id}`)}`}
+              className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+            >
+              Graph
+            </Link>
+            <Link
+              href="/jag/decisions"
+              className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+            >
+              Queue
+            </Link>
+          </div>
         }
       >
         <div className="space-y-4 rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] p-4">
@@ -42,6 +62,12 @@ export function JagDecisionDetailView({
             {card.recommendedAction}
           </p>
           <JagDecisionStatusForm decisionId={card.id} status={card.status} />
+          <div className="mt-4">
+            <JagExplainPanel
+              explanation={explanation}
+              graphHref={`/jag/graph?org=${encodeURIComponent(card.organizationId)}&focus=${encodeURIComponent(`decision:${card.id}`)}`}
+            />
+          </div>
         </div>
       </JagSection>
 

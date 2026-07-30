@@ -436,6 +436,78 @@ export const EXECUTIVE_BRIEFINGS_MANIFEST: CapabilityManifest = {
   },
 };
 
+export const EXPLAINABILITY_GRAPH_MANIFEST: CapabilityManifest = {
+  id: "jag.intelligence.explainability",
+  name: "Explainability & Graph Explorer",
+  version: v("1.0.0"),
+  description:
+    "Reasoning chains, evidence, confidence, and the Intelligence Graph Explorer.",
+  category: "intelligence",
+  enabled: true,
+  routes: [
+    { id: "graph", path: "/jag/graph", label: "Intelligence Graph" },
+  ],
+  navigation: [
+    {
+      id: "graph",
+      label: "Graph",
+      href: "/jag/graph",
+      order: 18,
+      group: "intelligence",
+    },
+  ],
+  permissions: readPerms,
+  dependencies: [
+    { capabilityId: "jag.intelligence.strategy", versionRange: ">=1.0.0", optional: true },
+    { capabilityId: "jag.intelligence.memory", versionRange: ">=1.0.0", optional: true },
+    { capabilityId: "jag.intelligence.watchers", versionRange: ">=1.0.0", optional: true },
+    { capabilityId: "jag.decisions.center", versionRange: ">=1.0.0", optional: true },
+  ],
+  providers: {
+    conversation: {
+      intents: ["explainability"],
+      description: "Why / evidence / assumptions / reasoning questions.",
+    },
+    observability: {
+      surfaceLabel: "Explainability operations",
+      description: "Explanation generation, graph queries, evidence lookup.",
+    },
+    health: healthy("Explainability and graph explorer available."),
+    search: {
+      listItems: () => [
+        {
+          id: "cap-search-graph",
+          title: "Intelligence Graph",
+          subtitle: "Explainability · reasoning map",
+          href: "/jag/graph",
+          kind: "navigation",
+        },
+        {
+          id: "cap-search-reasoning",
+          title: "Reasoning chains",
+          subtitle: "Explainability",
+          href: "/jag/graph",
+          kind: "navigation",
+        },
+        {
+          id: "cap-search-evidence-explain",
+          title: "Evidence explorer",
+          subtitle: "Explainability · evidence",
+          href: "/jag/graph?kind=evidence",
+          kind: "navigation",
+        },
+      ],
+    },
+  },
+  featureFlags: { graphEnabled: true, explainPanelEnabled: true },
+  metadata: {
+    tags: ["explainability", "graph", "reasoning", "evidence"],
+    owner: "jag-intelligence",
+    sprint: "208",
+    docsHref: "/docs/jag/208_EXPLAINABILITY_GRAPH_EXPLORER.md",
+  },
+};
+
 export const PHASE_II_INTELLIGENCE_MANIFESTS: readonly CapabilityManifest[] = [
   PREDICTIVE_INTELLIGENCE_MANIFEST,
   SCENARIO_PLANNING_MANIFEST,
@@ -445,4 +517,5 @@ export const PHASE_II_INTELLIGENCE_MANIFESTS: readonly CapabilityManifest[] = [
   AUTONOMOUS_WATCHERS_MANIFEST,
   DECISION_CENTER_MANIFEST,
   EXECUTIVE_BRIEFINGS_MANIFEST,
+  EXPLAINABILITY_GRAPH_MANIFEST,
 ];

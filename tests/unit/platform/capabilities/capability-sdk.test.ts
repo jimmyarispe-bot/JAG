@@ -30,7 +30,7 @@ describe("Intelligence Capability SDK (Sprint 207)", () => {
   it("bootstraps Phase II intelligence capabilities", () => {
     ensureCapabilitiesRegistered();
     const list = CapabilityRegistry.list();
-    expect(list.length).toBeGreaterThanOrEqual(8);
+    expect(list.length).toBeGreaterThanOrEqual(9);
     expect(
       list.some((c) => c.manifest.id === "jag.intelligence.watchers")
     ).toBe(true);
@@ -114,7 +114,7 @@ describe("Intelligence Capability SDK (Sprint 207)", () => {
 
   it("builds capability explorer model", () => {
     const explorer = CapabilityService.explorer();
-    expect(explorer.capabilities.length).toBeGreaterThanOrEqual(8);
+    expect(explorer.capabilities.length).toBeGreaterThanOrEqual(9);
     expect(explorer.navigation.some((n) => n.href === "/jag/capabilities")).toBe(
       true
     );
