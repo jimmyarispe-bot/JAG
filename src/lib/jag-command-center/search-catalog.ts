@@ -1,8 +1,13 @@
 /**
  * Global Command Center search catalog — application layer only.
+ * Navigation + capability search items discovered via Capability SDK.
  */
 
 import { cache } from "react";
+import {
+  CapabilityLoader,
+  ensureCapabilitiesRegistered,
+} from "@/lib/platform/capabilities";
 import {
   EDUCATION_DOMAIN_ID,
   EDUCATION_DOMAIN_NAME,
@@ -19,47 +24,25 @@ import type { JagSearchItem } from "./search-filter";
 export type { JagSearchItem, JagSearchItemKind } from "./search-filter";
 export { filterJagSearchCatalog } from "./search-filter";
 
-/** Mirror of Command Center nav — kept in lib to avoid UI→lib cycles. */
-const NAV_SEED: readonly { id: string; label: string; href: string }[] = [
-  { id: "overview", label: "Overview", href: "/jag" },
-  { id: "chat", label: "Conversation", href: "/jag/chat" },
-  { id: "decisions", label: "Decision Center", href: "/jag/decisions" },
-  { id: "briefings", label: "Executive Briefings", href: "/jag/briefings" },
-  { id: "scenarios", label: "Scenario Planner", href: "/jag/scenarios" },
-  { id: "memory", label: "Organizational Memory", href: "/jag/memory" },
-  { id: "strategy", label: "Strategic Intelligence", href: "/jag/strategy" },
-  { id: "inbox", label: "Executive Inbox", href: "/jag/inbox" },
-  { id: "organizations", label: "Organizations", href: "/jag/organizations" },
-  { id: "domains", label: "Domains", href: "/jag/domains" },
-  {
-    id: "capability-packs",
-    label: "Capability Packs",
-    href: "/jag/capability-packs",
-  },
-  { id: "knowledge", label: "Knowledge", href: "/jag/knowledge" },
-  { id: "policies", label: "Policies", href: "/jag/policies" },
-  {
-    id: "intelligence-graph",
-    label: "Intelligence Graph",
-    href: "/jag/intelligence-graph",
-  },
-  { id: "observability", label: "Observability", href: "/jag/observability" },
-  { id: "runtime", label: "Runtime", href: "/jag/runtime" },
-  { id: "settings", label: "Settings", href: "/jag/settings" },
-];
-
 export const loadJagSearchCatalog = cache(function loadJagSearchCatalog(
   session: JagPlatformSession
 ): readonly JagSearchItem[] {
+  ensureCapabilitiesRegistered();
   const items: JagSearchItem[] = [];
 
-  for (const nav of NAV_SEED) {
+  for (const discovered of CapabilityLoader.discoverSearchItems()) {
+    const kind: JagSearchItem["kind"] =
+      discovered.kind === "capability"
+        ? "capability"
+        : discovered.kind === "navigation"
+          ? "navigation"
+          : "navigation";
     items.push({
-      id: `nav:${nav.id}`,
-      kind: "navigation",
-      title: nav.label,
-      subtitle: "Navigation",
-      href: nav.href,
+      id: discovered.id,
+      kind,
+      title: discovered.title,
+      subtitle: discovered.subtitle ?? "Capability",
+      href: discovered.href,
     });
   }
 

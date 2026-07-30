@@ -13,6 +13,7 @@ import {
   listScenarioObservations,
   listStrategyObservations,
   listWatcherObservations,
+  listCapabilityObservations,
 } from "@/lib/jag-command-center";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
@@ -34,6 +35,7 @@ export default async function JagObservabilityPage() {
   const memories = listMemoryObservations(20);
   const strategies = listStrategyObservations(20);
   const watchers = listWatcherObservations(20);
+  const capabilities = listCapabilityObservations(20);
 
   return (
     <div className="space-y-8">
@@ -231,6 +233,48 @@ export default async function JagObservabilityPage() {
                   intent {c.intent} · evidence {c.evidenceIds.length} ·
                   contributors {c.contributorsConsulted.length}
                   {c.insufficientData ? " · insufficient" : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </JagSection>
+
+      <JagSection
+        title="Capability operations"
+        description="Capability registration, initialization, health changes, and dependency failures."
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-xs text-[var(--jag-muted)]">
+            Intelligence Capability SDK — self-describing module registry.
+          </p>
+          <JagStatusBadge
+            status={capabilities.length > 0 ? "ready" : "empty"}
+          />
+        </div>
+        {capabilities.length === 0 ? (
+          <JagEmptyState
+            title="No capability operations yet"
+            description="Open Capabilities to bootstrap the registry and populate this log."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {capabilities.map((c) => (
+              <li
+                key={c.id}
+                className="rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-2 text-xs text-[var(--jag-muted)]"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted-2)]">
+                    {c.at}
+                  </p>
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[var(--jag-text)]">
+                    {c.kind.replace(/_/g, " ")}
+                  </p>
+                </div>
+                <p className="mt-1 text-[var(--jag-text)]">{c.detail}</p>
+                <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px]">
+                  {c.capabilityId ?? "registry"}
                 </p>
               </li>
             ))}

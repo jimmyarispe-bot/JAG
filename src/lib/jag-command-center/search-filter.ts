@@ -6,6 +6,7 @@ export type JagSearchItemKind =
   | "briefing"
   | "organization"
   | "capability_pack"
+  | "capability"
   | "domain"
   | "contributor"
   | "knowledge"

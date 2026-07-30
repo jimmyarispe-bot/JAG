@@ -1,0 +1,1 @@
+export { JagCapabilitiesView } from "./JagCapabilitiesView";

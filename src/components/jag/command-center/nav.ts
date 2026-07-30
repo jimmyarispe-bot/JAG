@@ -1,6 +1,12 @@
 /**
- * Executive Command Center navigation — UI catalog only.
+ * Executive Command Center navigation — discovered from Capability SDK.
+ * Shell + capability manifests. No duplicated hard-coded intelligence routes.
  */
+
+import {
+  CapabilityLoader,
+  ensureCapabilitiesRegistered,
+} from "@/lib/platform/capabilities";
 
 export type JagNavItem = {
   readonly id: string;
@@ -8,69 +14,15 @@ export type JagNavItem = {
   readonly href: string;
 };
 
-export const JAG_COMMAND_NAV: readonly JagNavItem[] = [
-  { id: "overview", label: "Overview", href: "/jag" },
-  {
-    id: "chat",
-    label: "Conversation",
-    href: "/jag/chat",
-  },
-  {
-    id: "inbox",
-    label: "Inbox",
-    href: "/jag/inbox",
-  },
-  {
-    id: "decisions",
-    label: "Decision Center",
-    href: "/jag/decisions",
-  },
-  {
-    id: "briefings",
-    label: "Executive Briefings",
-    href: "/jag/briefings",
-  },
-  {
-    id: "scenarios",
-    label: "Scenario Planner",
-    href: "/jag/scenarios",
-  },
-  {
-    id: "memory",
-    label: "Memory",
-    href: "/jag/memory",
-  },
-  {
-    id: "strategy",
-    label: "Strategy",
-    href: "/jag/strategy",
-  },
-  {
-    id: "organizations",
-    label: "Organizations",
-    href: "/jag/organizations",
-  },
-  { id: "domains", label: "Domains", href: "/jag/domains" },
-  {
-    id: "capability-packs",
-    label: "Capability Packs",
-    href: "/jag/capability-packs",
-  },
-  { id: "knowledge", label: "Knowledge", href: "/jag/knowledge" },
-  { id: "policies", label: "Policies", href: "/jag/policies" },
-  {
-    id: "intelligence-graph",
-    label: "Intelligence Graph",
-    href: "/jag/intelligence-graph",
-  },
-  {
-    id: "observability",
-    label: "Observability",
-    href: "/jag/observability",
-  },
-  { id: "runtime", label: "Runtime", href: "/jag/runtime" },
-  { id: "settings", label: "Settings", href: "/jag/settings" },
-] as const;
+ensureCapabilitiesRegistered();
+
+/** Discovered navigation — capabilities register once; workspace reads registry. */
+export const JAG_COMMAND_NAV: readonly JagNavItem[] =
+  CapabilityLoader.discoverNavigation().map((item) => ({
+    id: item.id,
+    label: item.label,
+    href: item.href,
+  }));
 
 export function isJagNavActive(pathname: string, href: string): boolean {
   if (href === "/jag") {
