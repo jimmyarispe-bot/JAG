@@ -165,6 +165,37 @@ export function JagScenarioPlannerView({
         </JagSection>
       ) : null}
 
+      {model.strategicImpact ? (
+        <JagSection
+          title="Strategic impact"
+          description="Goal impact, mission impact, and strategic trade-offs — advisory."
+        >
+          <p className="text-sm text-[var(--jag-text)]">
+            {model.strategicImpact.goalImpact}
+          </p>
+          <p className="mt-2 text-sm text-[var(--jag-muted)]">
+            {model.strategicImpact.missionImpact}
+          </p>
+          <p className="mt-2 text-xs text-[var(--jag-muted)]">
+            Alignment score{" "}
+            {(model.strategicImpact.alignmentScore * 100).toFixed(0)}%
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-[var(--jag-muted)]">
+            {model.strategicImpact.tradeOffs.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+          {model.organizationId ? (
+            <Link
+              href={`/jag/strategy?org=${encodeURIComponent(model.organizationId)}`}
+              className="mt-3 inline-block text-xs text-[var(--jag-text)] underline-offset-2 hover:underline"
+            >
+              Open Strategic Intelligence
+            </Link>
+          ) : null}
+        </JagSection>
+      ) : null}
+
       {model.similarSituations.length > 0 ? (
         <JagSection
           title="Similar situations"

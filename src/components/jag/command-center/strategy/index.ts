@@ -1,0 +1,1 @@
+export { JagStrategyView } from "./JagStrategyView";

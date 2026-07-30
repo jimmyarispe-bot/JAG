@@ -193,6 +193,20 @@ export type JagDecisionDetail = {
   };
   /** Similar institutional situations — Sprint 204. */
   readonly similarSituations: readonly JagSimilarSituation[];
+  /** Strategic goal / mission alignment — Sprint 205. */
+  readonly strategicAlignment: JagDecisionStrategicAlignment | null;
+};
+
+export type JagDecisionStrategicAlignment = {
+  readonly goalIds: readonly string[];
+  readonly goalTitles: readonly string[];
+  readonly pillarIds: readonly string[];
+  readonly pillarLabels: readonly string[];
+  readonly missionAlignment: number;
+  readonly impact: "positive" | "negative" | "unknown";
+  readonly rationale: string;
+  readonly confidence: number;
+  readonly href: string;
 };
 
 export type JagSimilarSituation = {

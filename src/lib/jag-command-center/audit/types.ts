@@ -19,6 +19,8 @@ export const JAG_AUDIT_ACTIONS = [
   "conversation_turn",
   "memory_created",
   "memory_pattern_detected",
+  "strategy_scorecard",
+  "strategy_alignment",
 ] as const;
 
 export type JagAuditAction = (typeof JAG_AUDIT_ACTIONS)[number];

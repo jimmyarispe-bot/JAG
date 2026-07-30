@@ -36,6 +36,11 @@ export const JAG_COMMAND_NAV: readonly JagNavItem[] = [
     href: "/jag/memory",
   },
   {
+    id: "strategy",
+    label: "Strategy",
+    href: "/jag/strategy",
+  },
+  {
     id: "organizations",
     label: "Organizations",
     href: "/jag/organizations",

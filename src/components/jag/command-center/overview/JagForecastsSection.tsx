@@ -26,6 +26,12 @@ export function JagForecastsSection({
           >
             Similar memory
           </Link>
+          <Link
+            href="/jag/strategy"
+            className="text-[var(--jag-muted)] hover:text-[var(--jag-text)]"
+          >
+            Goal forecasts
+          </Link>
         </div>
       }
     >

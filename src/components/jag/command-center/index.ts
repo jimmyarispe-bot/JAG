@@ -21,6 +21,7 @@ export {
 export { JagScenarioPlannerView } from "./scenarios";
 export { JagChatView } from "./chat";
 export { JagMemoryView } from "./memory";
+export { JagStrategyView } from "./strategy";
 export { JAG_COMMAND_NAV, isJagNavActive } from "./nav";
 export type { JagCardStatus, JagOverviewCardModel } from "./types";
 

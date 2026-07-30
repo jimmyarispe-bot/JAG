@@ -24,6 +24,7 @@ import {
 } from "../intelligence-store";
 import { runForecastsForBriefing } from "../predictive/load-forecasts";
 import { runHistoricalContextForBriefing } from "../memory/load-memory";
+import { runStrategicAlignmentForBriefing } from "../strategy/load-strategy";
 import { runBriefingScenarioAnalysis } from "../scenarios/load-scenarios";
 import { computeExecutiveInsights } from "./insights";
 import {
@@ -68,6 +69,7 @@ const SECTION_TITLES: Record<JagBriefingSectionId, string> = {
   forecast: "Forecast",
   scenario_analysis: "Scenario Analysis",
   historical_context: "Historical Context",
+  strategic_alignment: "Strategic Alignment",
   recommended_executive_actions: "Recommended Executive Actions",
   executive_insights: "Executive Insights",
   appendix: "Appendix",
@@ -243,6 +245,13 @@ export function synthesizeExecutiveBriefing(input: {
   byId.set(
     "historical_context",
     sectionHistoricalContext({
+      organizationId: primaryId,
+      organizationName: primaryName,
+    })
+  );
+  byId.set(
+    "strategic_alignment",
+    sectionStrategicAlignment({
       organizationId: primaryId,
       organizationName: primaryName,
     })
@@ -1483,6 +1492,78 @@ function sectionHistoricalContext(input: {
         confidence: s.confidence,
         dependencies: [],
         timeline: [{ at: s.date, message: s.title }],
+      },
+    })),
+    decisionIds: [],
+    availableActions: NOTE_ACTIONS,
+  });
+}
+
+function sectionStrategicAlignment(input: {
+  organizationId: string;
+  organizationName: string;
+}): JagBriefingSection {
+  const ctx = runStrategicAlignmentForBriefing({
+    organizationId: input.organizationId,
+    organizationName: input.organizationName,
+  });
+  const sc = ctx.scorecard;
+
+  const bullets = [
+    `Mission alignment score ${(sc.alignmentScore * 100).toFixed(0)}% · forecast trend ${ctx.forecastTrend}.`,
+    sc.goalsImproving.length
+      ? `Goals improving: ${sc.goalsImproving.slice(0, 4).join("; ")}`
+      : "No clearly improving goals yet.",
+    sc.goalsDeclining.length
+      ? `Goals declining: ${sc.goalsDeclining.slice(0, 4).join("; ")}`
+      : "No declining goals flagged.",
+    sc.goalsAtRisk.length
+      ? `Goals at risk: ${sc.goalsAtRisk.slice(0, 4).join("; ")}`
+      : "No goals currently at risk.",
+    sc.initiativesBehind.length
+      ? `Initiatives behind schedule: ${sc.initiativesBehind.slice(0, 4).join("; ")}`
+      : "No initiatives behind schedule.",
+    `Mission: ${sc.missionSummary}`,
+    ...ctx.strategicRisks.slice(0, 3),
+  ];
+
+  return section("strategic_alignment", {
+    narrative: [
+      "Strategic alignment — whether today's work advances the mission.",
+      `Alignment ${(sc.alignmentScore * 100).toFixed(0)}%.`,
+      `Vision: ${sc.visionSummary}`,
+    ].join(" "),
+    bullets: uniqueStrings(bullets).slice(0, 14),
+    confidence: Math.min(0.9, 0.45 + sc.alignmentScore * 0.4),
+    evidenceReferences: [
+      {
+        id: `strategy-${input.organizationId}`,
+        source: "Strategic Intelligence",
+        summary: sc.missionSummary.slice(0, 160),
+      },
+    ],
+    contributorSources: ["jag.strategic_intelligence"],
+    policyReferences: [],
+    recommendations: sc.goalsAtRisk.slice(0, 2).map((title, idx) => ({
+      id: `strategy-rec-${idx}`,
+      title: `Stabilize at-risk goal: ${title}`,
+      rationale: "Goal health indicates strategic risk this period.",
+      decisionId: null,
+      decisionHref: `/jag/strategy?org=${encodeURIComponent(input.organizationId)}`,
+      organizationId: input.organizationId,
+      explainability: {
+        evidence: [
+          {
+            id: `strategy-ev-${idx}`,
+            source: "Strategic Intelligence",
+            summary: title,
+          },
+        ],
+        contributors: ["jag.strategic_intelligence"],
+        policies: [],
+        confidence: 0.7,
+        dependencies: [],
+        timeline: [],
       },
     })),
     decisionIds: [],

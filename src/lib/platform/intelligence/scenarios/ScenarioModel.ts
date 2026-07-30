@@ -34,6 +34,8 @@ const DIMENSION_LABELS: Record<ScenarioImpactDimension, string> = {
   enrollment: "Enrollment",
   compliance_risk: "Compliance Risk",
   decision_pressure: "Decision Pressure",
+  goal_progress: "Goal Progress",
+  mission_alignment: "Mission Alignment",
 };
 
 function clamp01(n: number): number {
@@ -205,7 +207,21 @@ export function computeScenarioModel(input: ScenarioModelComputeInput): Omit<
       : template.title;
   const timelineDays = Math.max(1, inputs.timelineDays ?? 90);
   const currentScore = baselineScore(baseline);
-  const effects = kindEffects(kind, inputs);
+  const baseEffects = kindEffects(kind, inputs);
+  const effects: Partial<Record<ScenarioImpactDimension, number>> = {
+    ...baseEffects,
+    goal_progress:
+      (baseEffects.student_success ?? 0) * 0.35 +
+      (baseEffects.organization_health ?? 0) * 0.35 +
+      (baseEffects.funding_readiness ?? 0) * 0.15 +
+      (baseEffects.operational_readiness ?? 0) * 0.15,
+    mission_alignment:
+      (baseEffects.organization_health ?? 0) * 0.4 +
+      (baseEffects.student_success ?? 0) * 0.25 +
+      (baseEffects.funding_readiness ?? 0) * 0.15 +
+      (baseEffects.compliance_risk ?? 0) * -0.1 +
+      (baseEffects.decision_pressure ?? 0) * -0.1,
+  };
 
   const dimensions: ScenarioDimensionImpact[] = (
     Object.keys(DIMENSION_LABELS) as ScenarioImpactDimension[]

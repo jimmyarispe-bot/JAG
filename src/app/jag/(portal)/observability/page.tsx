@@ -11,6 +11,7 @@ import {
   listMemoryObservations,
   listPredictionObservations,
   listScenarioObservations,
+  listStrategyObservations,
 } from "@/lib/jag-command-center";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
@@ -30,6 +31,7 @@ export default async function JagObservabilityPage() {
   const scenarios = listScenarioObservations(20);
   const conversations = listConversationObservations(20);
   const memories = listMemoryObservations(20);
+  const strategies = listStrategyObservations(20);
 
   return (
     <div className="space-y-8">
@@ -227,6 +229,47 @@ export default async function JagObservabilityPage() {
                   intent {c.intent} · evidence {c.evidenceIds.length} ·
                   contributors {c.contributorsConsulted.length}
                   {c.insufficientData ? " · insufficient" : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </JagSection>
+
+      <JagSection
+        title="Strategy operations"
+        description="Goal evaluations, alignment calculations, scorecard generation, and mission updates."
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-xs text-[var(--jag-muted)]">
+            Strategic intelligence — mission alignment telemetry.
+          </p>
+          <JagStatusBadge status={strategies.length > 0 ? "ready" : "empty"} />
+        </div>
+        {strategies.length === 0 ? (
+          <JagEmptyState
+            title="No strategy operations yet"
+            description="Open Strategic Intelligence or review a decision to populate this log."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {strategies.map((s) => (
+              <li
+                key={s.id}
+                className="rounded-md border border-[var(--jag-border)] bg-[var(--jag-panel)] px-3 py-2 text-xs text-[var(--jag-muted)]"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[10px] text-[var(--jag-muted-2)]">
+                    {s.at}
+                  </p>
+                  <p className="font-[family-name:var(--font-jag-mono)] text-[var(--jag-text)]">
+                    {s.durationMs}ms · {s.kind.replace(/_/g, " ")}
+                  </p>
+                </div>
+                <p className="mt-1 text-[var(--jag-text)]">{s.detail}</p>
+                <p className="mt-1 font-[family-name:var(--font-jag-mono)] text-[10px]">
+                  entities {s.entityIds.length}
+                  {s.organizationId ? ` · org ${s.organizationId}` : ""}
                 </p>
               </li>
             ))}

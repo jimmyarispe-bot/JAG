@@ -32,6 +32,7 @@ const BASE_ORDER: readonly JagBriefingSectionId[] = [
   "forecast",
   "scenario_analysis",
   "historical_context",
+  "strategic_alignment",
   "recommended_executive_actions",
   "executive_insights",
   "appendix",
@@ -72,6 +73,7 @@ const KIND_PRIORITY: Partial<
   ],
   quarterly_strategic_review: [
     "executive_summary",
+    "strategic_alignment",
     "emerging_trends",
     "forecast",
     "opportunities",

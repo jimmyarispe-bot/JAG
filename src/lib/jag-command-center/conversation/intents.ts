@@ -78,6 +78,17 @@ export function routeConversationIntent(
       usesPriorContext: false,
     };
   }
+  if (
+    /accomplishing our mission|mission\??$|goals? (are |most )?at risk|initiatives? drive|progressing this quarter|strategic alignment|which goals/i.test(
+      q
+    )
+  ) {
+    return {
+      intent: "strategic_alignment",
+      reasoning: "Question asks about mission, goals, or strategic progress.",
+      usesPriorContext: false,
+    };
+  }
   if (/delay|defer|if we (do nothing|wait)|what happens if/i.test(q)) {
     return {
       intent: "delay_decision",
@@ -222,6 +233,8 @@ export function intentToMemoryTopic(intent: JagConversationIntent): string | nul
       return "decisions";
     case "historical_memory":
       return "institutional_memory";
+    case "strategic_alignment":
+      return "strategy";
     default:
       return null;
   }

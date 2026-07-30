@@ -11,8 +11,14 @@ import {
 import { loadSimilarSituations } from "../memory/load-memory";
 import { attachPredictedConsequences } from "../predictive/load-forecasts";
 import { computeDecisionWhatIf } from "../scenarios/load-scenarios";
+import { loadDecisionStrategicAlignment } from "../strategy/load-strategy";
+import { StrategyService } from "@/lib/platform/intelligence/strategy/index";
 import { decisionGroupLabel, resolveContributorCatalog } from "./catalog";
-import type { JagDecisionScenarioWhatIf, JagSimilarSituation } from "./types";
+import type {
+  JagDecisionScenarioWhatIf,
+  JagDecisionStrategicAlignment,
+  JagSimilarSituation,
+} from "./types";
 import {
   getDecisionAssignment,
   getDecisionExecutionHistory,
@@ -231,6 +237,38 @@ function buildDetail(card: JagDecisionCard): JagDecisionDetail {
     predictedConsequence: card.predictedConsequence ?? null,
     scenarioWhatIf: buildScenarioWhatIf(card),
     similarSituations: buildSimilarSituations(card),
+    strategicAlignment: buildStrategicAlignment(card),
+  };
+}
+
+function buildStrategicAlignment(
+  card: JagDecisionCard
+): JagDecisionStrategicAlignment | null {
+  const alignment = loadDecisionStrategicAlignment({
+    organizationId: card.organizationId,
+    organizationName: card.organizationName,
+    decisionId: card.id,
+    title: card.title,
+    description: card.rationale,
+    tags: [card.category, card.actionKind, "decision"],
+    contributorIds: [card.contributorId],
+  });
+  const goals = StrategyService.listGoals(card.organizationId);
+  const pillars = StrategyService.listPillars(card.organizationId);
+  return {
+    goalIds: alignment.goalIds,
+    goalTitles: goals
+      .filter((g) => alignment.goalIds.includes(g.id))
+      .map((g) => g.title),
+    pillarIds: alignment.pillarIds,
+    pillarLabels: pillars
+      .filter((p) => alignment.pillarIds.includes(p.id))
+      .map((p) => p.label),
+    missionAlignment: alignment.missionAlignment,
+    impact: alignment.impact,
+    rationale: alignment.rationale,
+    confidence: alignment.confidence,
+    href: `/jag/strategy?org=${encodeURIComponent(card.organizationId)}`,
   };
 }
 

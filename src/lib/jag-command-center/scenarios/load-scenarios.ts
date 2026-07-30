@@ -21,9 +21,17 @@ import { recordJagAuditEvent } from "../audit/store";
 import { projectDecisionsFromExecutions } from "../decision-center/project";
 import { listStoredExecutions } from "../intelligence-store";
 import { loadSimilarSituations } from "../memory/load-memory";
+import { scenarioStrategicImpact } from "../strategy/load-strategy";
 import { buildScenarioBaseline } from "./build-baseline";
 
 export { listScenarioObservations };
+
+export type JagScenarioStrategicImpact = {
+  readonly goalImpact: string;
+  readonly missionImpact: string;
+  readonly tradeOffs: readonly string[];
+  readonly alignmentScore: number;
+};
 
 export type JagScenarioPlannerModel = {
   readonly organizationId: string | null;
@@ -36,6 +44,7 @@ export type JagScenarioPlannerModel = {
   readonly observationId: string | null;
   readonly explanation: string;
   readonly similarSituations: readonly SimilarSituationView[];
+  readonly strategicImpact: JagScenarioStrategicImpact | null;
 };
 
 function decisionsForOrg(organizationId: string, organizationName: string) {
@@ -75,6 +84,7 @@ export function loadScenarioPlanner(
       observationId: null,
       explanation: "Select an organization to plan scenarios.",
       similarSituations: [],
+      strategicImpact: null,
     };
   }
 
@@ -92,6 +102,7 @@ export function loadScenarioPlanner(
       explanation:
         "Choose one or more scenario templates to model hypothetical changes. Comparison shows Current vs selected options side-by-side.",
       similarSituations: [],
+      strategicImpact: null,
     };
   }
 
@@ -151,6 +162,15 @@ export function loadScenarioPlanner(
       })
     : [];
 
+  const strategicImpact = first
+    ? scenarioStrategicImpact({
+        organizationId: organization.id,
+        organizationName: organization.name,
+        scenarioTitle: first.title,
+        scenarioSummary: first.narrative,
+      })
+    : null;
+
   return {
     organizationId: organization.id,
     organizationName: organization.name,
@@ -162,6 +182,7 @@ export function loadScenarioPlanner(
     observationId: response.observationId || null,
     explanation: `Ran ${response.results.length} advisory scenario(s) in ${response.durationMs}ms.`,
     similarSituations,
+    strategicImpact,
   };
 }
 

@@ -48,6 +48,7 @@ export const JAG_BRIEFING_SECTION_IDS = [
   "forecast",
   "scenario_analysis",
   "historical_context",
+  "strategic_alignment",
   "recommended_executive_actions",
   "executive_insights",
   "appendix",

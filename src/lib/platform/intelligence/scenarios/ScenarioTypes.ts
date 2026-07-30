@@ -95,4 +95,6 @@ export type ScenarioImpactDimension =
   | "student_success"
   | "enrollment"
   | "compliance_risk"
-  | "decision_pressure";
+  | "decision_pressure"
+  | "goal_progress"
+  | "mission_alignment";

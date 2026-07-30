@@ -4,6 +4,7 @@
  */
 
 import { MemoryService } from "@/lib/platform/intelligence/memory/index";
+import { StrategyService } from "@/lib/platform/intelligence/strategy/index";
 import { filterJagSearchCatalog } from "../search-filter";
 import type { ConversationGroundingContext } from "./context";
 import type { RoutedIntent } from "./intents";
@@ -179,6 +180,8 @@ export function buildConversationAnswer(input: {
       return answerFollowUp(context, orgLabel, baseMeta, priorTopics);
     case "historical_memory":
       return answerHistoricalMemory(context, orgLabel, baseMeta, question, priorTopics);
+    case "strategic_alignment":
+      return answerStrategicAlignment(context, orgLabel, baseMeta, question);
     case "insufficient":
       return emptyAnswer("Ask an executive question about decisions, health, forecasts, or scenarios.");
     case "general_status":
@@ -1136,6 +1139,110 @@ const SUGGESTED_FROM_SEARCH = [
   "What should I decide today?",
   "Which forecasts deserve attention?",
 ];
+
+function answerStrategicAlignment(
+  ctx: ConversationGroundingContext,
+  orgLabel: string,
+  baseMeta: BaseMeta,
+  question: string
+): JagConversationAnswer {
+  if (!ctx.organizationId) {
+    return emptyAnswer("Select an organization to assess mission alignment.", {
+      ...baseMeta,
+    });
+  }
+
+  StrategyService.ensureOrganization(ctx.organizationId, orgLabel);
+  const workspace = StrategyService.workspace(ctx.organizationId, orgLabel);
+  const sc = workspace.scorecard;
+  const q = question.toLowerCase();
+  const conf = workspace.forecast.confidence;
+
+  let focus = `Alignment score ${(sc.alignmentScore * 100).toFixed(0)}%. Mission trend ${workspace.forecast.missionProgressTrend}.`;
+  if (/at risk|risk/.test(q)) {
+    focus = sc.goalsAtRisk.length
+      ? `Goals most at risk: ${sc.goalsAtRisk.join("; ")}.`
+      : "No goals currently flagged at risk.";
+  } else if (/initiative|impact/.test(q)) {
+    const top = [...workspace.initiatives]
+      .sort((a, b) => b.impactScore - a.impactScore)
+      .slice(0, 3);
+    focus = top.length
+      ? `Highest-impact initiatives: ${top.map((i) => `${i.title} (${i.impactScore.toFixed(2)})`).join("; ")}.`
+      : "No initiatives recorded.";
+  } else if (/quarter|progressing/.test(q)) {
+    focus = `This period: ${sc.goalsImproving.length} improving, ${sc.goalsDeclining.length} declining, ${sc.initiativesBehind.length} initiative(s) behind.`;
+  } else if (/mission/.test(q)) {
+    focus = `Mission progress trend: ${workspace.forecast.missionProgressTrend}. ${sc.missionSummary}`;
+  }
+
+  return {
+    executiveSummary: focus,
+    evidence: [
+      {
+        id: `ev-strategy-${ctx.organizationId}`,
+        source: "Strategic Intelligence",
+        summary: focus,
+        kind: "derived",
+        href: `/jag/strategy?org=${encodeURIComponent(ctx.organizationId)}`,
+        confidence: conf,
+      },
+      ...workspace.goals.slice(0, 4).map((g) => ({
+        id: `ev-goal-${g.id}`,
+        source: g.title,
+        summary: `${g.health} · ${(g.progress * 100).toFixed(0)}% · owner ${g.owner}`,
+        kind: "derived" as const,
+        href: `/jag/strategy?org=${encodeURIComponent(ctx.organizationId!)}`,
+        confidence: g.confidence,
+      })),
+    ],
+    confidence: Number(conf.toFixed(3)),
+    confidenceBand: band(conf),
+    confidenceExplanation:
+      "Confidence from strategic goal health and advisory mission forecast — not certainty.",
+    primaryDrivers: [
+      ...sc.goalsAtRisk.slice(0, 3).map((t) => ({
+        label: t,
+        explanation: "Goal health indicates strategic risk.",
+      })),
+      ...sc.initiativesBehind.slice(0, 2).map((t) => ({
+        label: t,
+        explanation: "Initiative behind schedule.",
+      })),
+    ],
+    supportingContributors: ["jag.strategic_intelligence"],
+    relatedPolicies: baseMeta.relatedPolicies,
+    relatedKnowledge: baseMeta.relatedKnowledge,
+    relatedDecisions: ctx.openDecisions.slice(0, 3).map(decisionLink),
+    forecasts: baseMeta.forecasts,
+    scenarios: baseMeta.scenarios,
+    recommendedNextActions: [
+      "Open Strategic Intelligence to review goal health.",
+      sc.goalsAtRisk[0]
+        ? `Prioritize remediation for: ${sc.goalsAtRisk[0]}`
+        : "Review upcoming strategic review cadence.",
+    ],
+    suggestedFollowUps: [
+      "Which goals are most at risk?",
+      "Which initiatives drive the most impact?",
+      "How are we progressing this quarter?",
+    ],
+    reasoningChain: [
+      "Intent: strategic_alignment.",
+      "Queried StrategyService workspace (mission, goals, initiatives, forecast).",
+      "Did not invent strategy — used seeded/org-bound strategic records.",
+    ],
+    timeline: workspace.timeline.entries.slice(0, 4).map((e) => ({
+      at: e.at.slice(0, 10),
+      message: e.title,
+    })),
+    policyTrace: [],
+    contributorTrace: ["jag.strategic_intelligence"],
+    dependencies: [],
+    insufficientData: false,
+    advisoryNotice: workspace.advisoryNotice,
+  };
+}
 
 function answerHistoricalMemory(
   ctx: ConversationGroundingContext,

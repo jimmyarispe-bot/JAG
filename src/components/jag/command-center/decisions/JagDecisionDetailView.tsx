@@ -79,6 +79,38 @@ export function JagDecisionDetailView({
         </Panel>
       ) : null}
 
+      {detail.strategicAlignment ? (
+        <Panel title="Strategic alignment">
+          <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--jag-muted-2)]">
+            Mission · pillars · goals — advisory impact
+          </p>
+          <p className="mt-2 text-sm text-[var(--jag-text)]">
+            Mission fit{" "}
+            {(detail.strategicAlignment.missionAlignment * 100).toFixed(0)}% ·
+            impact {detail.strategicAlignment.impact}
+          </p>
+          <p className="mt-1 text-xs text-[var(--jag-muted)]">
+            {detail.strategicAlignment.rationale}
+          </p>
+          {detail.strategicAlignment.goalTitles.length > 0 ? (
+            <p className="mt-2 text-xs text-[var(--jag-muted)]">
+              Goals: {detail.strategicAlignment.goalTitles.join("; ")}
+            </p>
+          ) : null}
+          {detail.strategicAlignment.pillarLabels.length > 0 ? (
+            <p className="mt-1 text-xs text-[var(--jag-muted)]">
+              Pillars: {detail.strategicAlignment.pillarLabels.join("; ")}
+            </p>
+          ) : null}
+          <Link
+            href={detail.strategicAlignment.href}
+            className="mt-2 inline-block text-xs text-[var(--jag-text)] underline-offset-2 hover:underline"
+          >
+            Open Strategic Intelligence
+          </Link>
+        </Panel>
+      ) : null}
+
       <Panel title="Similar situations">
         <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--jag-muted-2)]">
           Institutional memory — advisory experience, not certainty
