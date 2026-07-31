@@ -175,6 +175,7 @@ export {
 } from "./finance";
 export {
   ASSESSMENT_KINDS,
+  INTERVENTION_KINDS,
   DEFAULT_MASTERY_SCALE,
   MASTERY_LEVELS,
   buildLearningProgressSummary,

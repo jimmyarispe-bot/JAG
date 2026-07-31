@@ -1,4 +1,8 @@
-/** Learning Intelligence™ — curriculum, mastery, assessments, interventions. */
+/**
+ * AcademyOS learning SoR — curriculum, mastery, assessments, interventions.
+ * Shared entry point: `@learning-intelligence` (P-015) integrates this pack;
+ * do not fork a parallel mastery model in the platform package.
+ */
 
 export const CURRICULUM_STATUSES = ["Draft", "Published", "Archived"] as const;
 export type CurriculumStatus = (typeof CURRICULUM_STATUSES)[number];
