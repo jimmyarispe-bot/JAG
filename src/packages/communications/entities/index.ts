@@ -1,0 +1,16 @@
+export {
+  COMMUNICATIONS_ENTITY_DEFINITIONS,
+  CampaignEntity,
+  CommunicationAttachmentRefEntity,
+  CommunicationChannelEntity,
+  CommunicationMessageEntity,
+  CommunicationNotificationEntity,
+  CommunicationPreferenceEntity,
+  CommunicationRecipientEntity,
+  CommunicationSubscriptionEntity,
+  CommunicationTemplateEntity,
+  CommunicationTypeEntity,
+  ConversationEntity,
+  ConversationParticipantEntity,
+  DeliveryPolicyEntity,
+} from "@/packages/communications/entities/definitions";

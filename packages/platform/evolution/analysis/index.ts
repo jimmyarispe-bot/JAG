@@ -1,0 +1,1 @@
+export { analyzeUnderstanding } from "./understand";

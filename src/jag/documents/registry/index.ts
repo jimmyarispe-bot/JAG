@@ -1,0 +1,15 @@
+export {
+  DocumentRegistry,
+  assertDocumentRegistered,
+  getDocumentCategory,
+  getDocumentDefinition,
+  getDocumentTemplate,
+  listDocumentCategories,
+  listDocumentDefinitions,
+  listDocumentTemplates,
+  registerDocument,
+  registerDocumentCategory,
+  registerDocumentTemplate,
+  resetDocumentRegistryForTests,
+  validateDocumentRegistryDependencies,
+} from "@/jag/documents/registry/document-registry";

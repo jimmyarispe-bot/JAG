@@ -63,7 +63,7 @@ export function FounderIntelligenceDashboard({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ProductionRealtimeBadge topic="founder_dashboard" label="Insights" />
-          <ProductionRealtimeBadge topic="insight_updates" label="JAG" />
+          <ProductionRealtimeBadge topic="insight_updates" label="The JAG™" />
           {canDecide ? (
             <form action={refreshFounderIntelligenceAction}>
               <input type="hidden" name="organization_id" value={organizationId ?? ""} />
@@ -373,7 +373,7 @@ export function FounderIntelligenceDashboard({
               href="/exec"
               className="text-xs text-slate-600 underline hover:text-slate-900"
             >
-              JAG Command Center
+              The JAG™ Command Center
             </Link>
           </div>
         </Section>

@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       coaTemplate: body.coaTemplate,
     });
     if ("error" in result) {
-      return jsonError(JagErrors.validation(result.error));
+      return jsonError(JagErrors.validation(result.error ?? "Bootstrap failed"));
     }
     return jsonOk(
       { ...result },

@@ -1,0 +1,128 @@
+import { f, perms, schema } from "@/applications/academyos/schemas/_helpers";
+import type { PlatformSchema } from "@/lib/platform/schema";
+
+export const ACADEMICS_SCHEMAS: PlatformSchema[] = [
+  schema({
+    entityType: "Course",
+    label: "Course",
+    fields: [
+      f.text("displayName", "Course name", true),
+      f.text("code", "Course code", true),
+      f.ref("programId", "Program", "Program"),
+      f.select("status", "Status", true),
+    ],
+    permissions: perms("learning", ["read", "create", "update", "export"]),
+    forms: [{ formId: "academyos.course.create", role: "create" }],
+  }),
+  schema({
+    entityType: "Section",
+    label: "Section",
+    fields: [
+      f.text("displayName", "Section name", true),
+      f.ref("courseId", "Course", "Course", true),
+      f.ref("termId", "Term", "Term"),
+      f.ref("teacherId", "Teacher", "Teacher"),
+      f.ref("classroomId", "Classroom", "Classroom"),
+      f.select("status", "Status", true),
+    ],
+    permissions: perms("learning", ["read", "create", "update"]),
+    forms: [{ formId: "academyos.section.create", role: "create" }],
+  }),
+  schema({
+    entityType: "Class",
+    label: "Class",
+    description: "Legacy/compatible class grouping — prefer Section for scheduling",
+    fields: [
+      f.text("displayName", "Class name", true),
+      f.ref("schoolId", "School", "School"),
+      f.ref("programId", "Program", "Program"),
+      f.ref("teacherId", "Teacher", "Teacher"),
+      f.ref("sectionId", "Section", "Section"),
+      f.select("term", "Term"),
+      f.select("status", "Status", true),
+    ],
+    permissions: perms("learning", ["read", "create", "update"]),
+    forms: [{ formId: "academyos.class.create", role: "create" }],
+  }),
+  schema({
+    entityType: "Enrollment",
+    label: "Enrollment",
+    fields: [
+      f.ref("studentId", "Student", "Student", true),
+      f.ref("sectionId", "Section", "Section"),
+      f.ref("classId", "Class", "Class"),
+      f.ref("programId", "Program", "Program"),
+      f.date("startDate", "Start date", true),
+      f.select("status", "Status", true),
+    ],
+    permissions: perms("enrollment", ["read", "create", "update", "approve", "export"]),
+    forms: [{ formId: "academyos.enrollment.create", role: "create" }],
+    workflows: [{ workflowId: "academyos.enrollment", role: "primary" }],
+  }),
+  schema({
+    entityType: "AttendanceCode",
+    label: "Attendance Code",
+    fields: [
+      f.text("code", "Code", true),
+      f.text("displayName", "Label", true),
+      f.select("category", "Category", true),
+      f.bool("countsPresent", "Counts as present"),
+      f.bool("excused", "Excused"),
+    ],
+    permissions: perms("attendance", ["read", "update"]),
+  }),
+  schema({
+    entityType: "AttendanceRecord",
+    label: "Attendance Record",
+    fields: [
+      f.ref("studentId", "Student", "Student", true),
+      f.ref("sectionId", "Section", "Section"),
+      f.ref("classId", "Class", "Class"),
+      f.date("attendanceDate", "Date", true),
+      f.ref("attendanceCodeId", "Code", "AttendanceCode"),
+      f.select("status", "Status", true),
+      f.text("notes", "Notes"),
+    ],
+    permissions: perms("attendance", ["read", "create", "update", "export"]),
+    forms: [{ formId: "academyos.attendance.create", role: "create" }],
+    intelligence: {
+      reportableFields: ["attendanceDate", "status", "studentId"],
+    },
+  }),
+  schema({
+    entityType: "Assessment",
+    label: "Assessment",
+    fields: [
+      f.text("displayName", "Assessment name", true),
+      f.ref("studentId", "Student", "Student"),
+      f.ref("sectionId", "Section", "Section"),
+      f.date("administeredOn", "Date"),
+      f.number("score", "Score"),
+      f.select("status", "Status", true),
+    ],
+    permissions: perms("assessments", ["read", "create", "update", "export"]),
+    forms: [{ formId: "academyos.assessment.create", role: "create" }],
+  }),
+  schema({
+    entityType: "Gradebook",
+    label: "Gradebook",
+    fields: [
+      f.text("displayName", "Gradebook name", true),
+      f.ref("sectionId", "Section", "Section", true),
+      f.ref("termId", "Term", "Term"),
+      f.select("status", "Status", true),
+    ],
+    permissions: perms("learning", ["read", "create", "update"]),
+  }),
+  schema({
+    entityType: "Transcript",
+    label: "Transcript",
+    fields: [
+      f.ref("studentId", "Student", "Student", true),
+      f.ref("academicYearId", "Academic year", "AcademicYear"),
+      f.select("status", "Status", true),
+      f.date("issuedOn", "Issued on"),
+    ],
+    permissions: perms("learning", ["read", "update", "export", "approve"]),
+  }),
+];

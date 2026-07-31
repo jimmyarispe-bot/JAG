@@ -1,0 +1,12 @@
+/**
+ * Re-export admissions documents from the package documents ownership home.
+ */
+
+export {
+  ACADEMY_ADMISSIONS_DOCUMENT_CATEGORY,
+  ACADEMY_ADMISSIONS_DOCUMENT_CATEGORY_ID,
+  ACADEMY_ADMISSIONS_DOCUMENT_DEFINITION_IDS,
+  ACADEMY_ADMISSIONS_DOCUMENT_DEFINITIONS,
+  ACADEMY_ADMISSIONS_DOCUMENT_IDS,
+  ACADEMY_ADMISSIONS_REQUIRED_DOCUMENT_IDS,
+} from "@/packages/academy/documents/admissions";

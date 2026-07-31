@@ -1,0 +1,20 @@
+/** Logical AcademyOS persistence tables (owned by the application plug-in). */
+export const ACADEMYOS_TABLES = {
+  students: "academyos_students",
+  guardians: "academyos_guardians",
+  enrollments: "academyos_enrollments",
+  attendance: "academyos_attendance_records",
+  employees: "academyos_employees",
+  invoices: "academyos_invoices",
+  payments: "academyos_payments",
+  scholarships: "academyos_scholarships",
+  inquiries: "academyos_inquiries",
+  applications: "academyos_applications",
+  courses: "academyos_courses",
+  sections: "academyos_sections",
+  assessments: "academyos_assessments",
+  messages: "academyos_messages",
+  announcements: "academyos_announcements",
+  schools: "academyos_schools",
+  programs: "academyos_programs",
+} as const;
