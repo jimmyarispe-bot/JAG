@@ -37,7 +37,13 @@
       "@cfo": ["./packages/platform/cfo/index.ts"],
       "@cfo/*": ["./packages/platform/cfo/*"],
       "@knowledge": ["./packages/platform/knowledge/index.ts"],
-      "@knowledge/*": ["./packages/platform/knowledge/*"]
+      "@knowledge/*": ["./packages/platform/knowledge/*"],
+      "@learning-intelligence": [
+        "./packages/platform/learning-intelligence/index.ts"
+      ],
+      "@learning-intelligence/*": [
+        "./packages/platform/learning-intelligence/*"
+      ]
     }
   },
   "include": [

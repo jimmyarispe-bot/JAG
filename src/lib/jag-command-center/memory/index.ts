@@ -7,4 +7,7 @@ export {
   listMemoryObservations,
   type JagMemoryWorkspaceModel,
 } from "./load-memory";
-export { jagRecordLessonAction } from "./actions";
+export {
+  jagRecordLessonAction,
+  jagRecordLessonFormAction,
+} from "./actions";

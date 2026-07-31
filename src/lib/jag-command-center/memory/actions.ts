@@ -47,3 +47,19 @@ export async function jagRecordLessonAction(input: {
   revalidatePath("/jag");
   return { memoryId: record.id };
 }
+
+/** FormData entrypoint for Client Component forms (no inline "use server"). */
+export async function jagRecordLessonFormAction(formData: FormData): Promise<void> {
+  await jagRecordLessonAction({
+    organizationId: String(formData.get("organizationId") ?? ""),
+    organizationName: String(formData.get("organizationName") ?? ""),
+    title: String(formData.get("title") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    whatWorked: String(formData.get("whatWorked") ?? ""),
+    whatFailed: String(formData.get("whatFailed") ?? ""),
+    unexpected: String(formData.get("unexpected") ?? ""),
+    recommendations: String(formData.get("recommendations") ?? ""),
+    relatedDecisionId:
+      String(formData.get("relatedDecisionId") ?? "") || undefined,
+  });
+}

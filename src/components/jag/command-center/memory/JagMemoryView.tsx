@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { JagMemoryWorkspaceModel } from "@/lib/jag-command-center/memory";
-import { jagRecordLessonAction } from "@/lib/jag-command-center/memory";
+import { jagRecordLessonFormAction } from "@/lib/jag-command-center/memory";
 import { JagEmptyState } from "../JagEmptyState";
 import { JagSection } from "../JagSection";
 import { JagStatusBadge } from "../JagStatusBadge";
@@ -252,21 +252,7 @@ export function JagMemoryView({
           description="What worked, what failed, unexpected outcomes, recommendations for the future."
         >
           <form
-            action={async (formData) => {
-              "use server";
-              await jagRecordLessonAction({
-                organizationId: String(formData.get("organizationId") ?? ""),
-                organizationName: String(formData.get("organizationName") ?? ""),
-                title: String(formData.get("title") ?? ""),
-                description: String(formData.get("description") ?? ""),
-                whatWorked: String(formData.get("whatWorked") ?? ""),
-                whatFailed: String(formData.get("whatFailed") ?? ""),
-                unexpected: String(formData.get("unexpected") ?? ""),
-                recommendations: String(formData.get("recommendations") ?? ""),
-                relatedDecisionId:
-                  String(formData.get("relatedDecisionId") ?? "") || undefined,
-              });
-            }}
+            action={jagRecordLessonFormAction}
             className="grid gap-3 text-xs sm:grid-cols-2"
           >
             <input type="hidden" name="organizationId" value={model.organizationId} />

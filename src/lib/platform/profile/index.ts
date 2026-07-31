@@ -1,9 +1,5 @@
 /** Side-effect: register platform profile kinds (Student, Employee, Family, …). */
-import "@/lib/students/profile/register";
-import "@/lib/students/profile/contributions";
-import "@/lib/employees/profile/register";
-import "@/lib/families/profile/register";
-import "@/lib/admissions/profile/register";
+import "@/lib/platform/profile/register-kinds";
 
 export {
   buildProfileEnvelopeBase,
