@@ -1,14 +1,21 @@
 /**
  * Security surface probes — Sprint 210.
  * Middleware JAG protection + guard module export resolution.
+ *
+ * File probes join process.cwd() with literal path segments so Turbopack
+ * does not treat the call as a whole-project scan.
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { SecurityCheck } from "./types";
 
-function fileOk(relativePath: string): boolean {
-  return existsSync(join(process.cwd(), relativePath));
+function filePresent(absolutePath: string): boolean {
+  return existsSync(/* turbopackIgnore: true */ absolutePath);
+}
+
+function readText(absolutePath: string): string {
+  return readFileSync(/* turbopackIgnore: true */ absolutePath, "utf8");
 }
 
 async function moduleExports(
@@ -41,7 +48,7 @@ export async function runSecurityValidation(): Promise<readonly SecurityCheck[]>
   const checks: SecurityCheck[] = [];
 
   const middlewarePath = join(process.cwd(), "middleware.ts");
-  const mwExists = existsSync(middlewarePath);
+  const mwExists = filePresent(middlewarePath);
   if (!mwExists) {
     checks.push({
       id: "security.middleware",
@@ -50,7 +57,7 @@ export async function runSecurityValidation(): Promise<readonly SecurityCheck[]>
       detail: "middleware.ts missing — cannot verify JAG protection.",
     });
   } else {
-    const mw = readFileSync(middlewarePath, "utf8");
+    const mw = readText(middlewarePath);
     const hasJagPortal =
       mw.includes("isJagPortalPath") || mw.includes('"/jag"');
     const hasJagSession =
@@ -112,26 +119,42 @@ export async function runSecurityValidation(): Promise<readonly SecurityCheck[]>
     detail: jagApi.detail,
   });
 
-  const healthRoutes: { id: string; label: string; path: string }[] = [
+  const healthRoutes: {
+    id: string;
+    label: string;
+    path: string;
+    absolute: string;
+  }[] = [
     {
       id: "security.health.liveness",
       label: "Health route /api/health",
       path: "src/app/api/health/route.ts",
+      absolute: join(process.cwd(), "src", "app", "api", "health", "route.ts"),
     },
     {
       id: "security.health.ready",
       label: "Ready route /api/ready",
       path: "src/app/api/ready/route.ts",
+      absolute: join(process.cwd(), "src", "app", "api", "ready", "route.ts"),
     },
     {
       id: "security.health.jag-platform",
       label: "JAG platform health route",
       path: "src/app/api/jag-platform/health/route.ts",
+      absolute: join(
+        process.cwd(),
+        "src",
+        "app",
+        "api",
+        "jag-platform",
+        "health",
+        "route.ts"
+      ),
     },
   ];
 
   for (const route of healthRoutes) {
-    const ok = fileOk(route.path);
+    const ok = filePresent(route.absolute);
     checks.push({
       id: route.id,
       label: route.label,

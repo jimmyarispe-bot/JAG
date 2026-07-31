@@ -83,8 +83,15 @@ export function runRoleValidation(): readonly RoleCheck[] {
   });
 
   const landingModule = "src/applications/academyos/workspace/landing.ts";
-  const landingPath = join(process.cwd(), landingModule);
-  const landingOk = existsSync(landingPath);
+  const landingPath = join(
+    process.cwd(),
+    "src",
+    "applications",
+    "academyos",
+    "workspace",
+    "landing.ts"
+  );
+  const landingOk = existsSync(/* turbopackIgnore: true */ landingPath);
   checks.push({
     id: "role.landing-resolver",
     label: "Landing resolver module",
@@ -95,7 +102,7 @@ export function runRoleValidation(): readonly RoleCheck[] {
   });
 
   if (landingOk) {
-    const src = readFileSync(landingPath, "utf8");
+    const src = readFileSync(/* turbopackIgnore: true */ landingPath, "utf8");
     for (const [role, home] of Object.entries(ROLE_HOME_PATHS)) {
       if (
         role === "FOUNDER_PLATFORM" ||
@@ -127,7 +134,7 @@ export function runRoleValidation(): readonly RoleCheck[] {
   }
 
   const middlewarePath = join(process.cwd(), "middleware.ts");
-  const middlewareOk = existsSync(middlewarePath);
+  const middlewareOk = existsSync(/* turbopackIgnore: true */ middlewarePath);
   checks.push({
     id: "role.middleware.exists",
     label: "middleware.ts present",
@@ -138,7 +145,7 @@ export function runRoleValidation(): readonly RoleCheck[] {
   });
 
   if (middlewareOk) {
-    const mw = readFileSync(middlewarePath, "utf8");
+    const mw = readFileSync(/* turbopackIgnore: true */ middlewarePath, "utf8");
     for (const prefix of MIDDLEWARE_PREFIXES) {
       const ok = mw.includes(`"${prefix}"`) || mw.includes(`'${prefix}'`);
       checks.push({

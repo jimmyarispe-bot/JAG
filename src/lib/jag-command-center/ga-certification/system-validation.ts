@@ -1,68 +1,78 @@
 /**
  * System / ops file presence probes — Sprint 210.
+ *
+ * Each probe joins process.cwd() with literal path segments (no dynamic
+ * relativePath) so Turbopack does not treat the call as a whole-project scan.
  */
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { SystemCheck } from "./types";
 
-const SYSTEM_PATHS: readonly {
-  readonly id: string;
-  readonly label: string;
-  readonly path: string;
-}[] = [
-  {
-    id: "system.health",
-    label: "Liveness health route",
-    path: "src/app/api/health/route.ts",
-  },
-  {
-    id: "system.ready",
-    label: "Readiness route",
-    path: "src/app/api/ready/route.ts",
-  },
-  {
-    id: "system.env-schema",
-    label: "Env schema",
-    path: "src/lib/platform/env/schema.ts",
-  },
-  {
-    id: "system.not-found",
-    label: "Root not-found page",
-    path: "src/app/not-found.tsx",
-  },
-  {
-    id: "system.error",
-    label: "Root error boundary",
-    path: "src/app/error.tsx",
-  },
-  {
-    id: "system.global-error",
-    label: "Global error boundary",
-    path: "src/app/global-error.tsx",
-  },
-  {
-    id: "system.jag-error",
-    label: "JAG error boundary",
-    path: "src/app/jag/error.tsx",
-  },
-] as const;
+function probe(
+  id: string,
+  label: string,
+  relativePath: string,
+  absolutePath: string
+): SystemCheck {
+  const ok = existsSync(/* turbopackIgnore: true */ absolutePath);
+  return {
+    id,
+    label,
+    ok,
+    path: relativePath,
+    detail: ok
+      ? `Present: ${relativePath}`
+      : `Missing system file: ${relativePath}`,
+  };
+}
 
 /**
  * Check presence of health/ready, env schema, and error/404 pages via fs.existsSync.
  */
 export function runSystemValidation(): readonly SystemCheck[] {
-  return SYSTEM_PATHS.map((entry) => {
-    const absolute = join(process.cwd(), entry.path);
-    const ok = existsSync(absolute);
-    return {
-      id: entry.id,
-      label: entry.label,
-      ok,
-      path: entry.path,
-      detail: ok
-        ? `Present: ${entry.path}`
-        : `Missing system file: ${entry.path}`,
-    };
-  });
+  return [
+    probe(
+      "system.health",
+      "Liveness health route",
+      "src/app/api/health/route.ts",
+      join(process.cwd(), "src", "app", "api", "health", "route.ts")
+    ),
+    probe(
+      "system.ready",
+      "Readiness route",
+      "src/app/api/ready/route.ts",
+      join(process.cwd(), "src", "app", "api", "ready", "route.ts")
+    ),
+    probe(
+      "system.env-schema",
+      "Env schema",
+      "src/lib/platform/env/schema.ts",
+      join(process.cwd(), "src", "lib", "platform", "env", "schema.ts")
+    ),
+    probe(
+      "system.not-found",
+      "Root not-found page",
+      "src/app/not-found.tsx",
+      join(process.cwd(), "src", "app", "not-found.tsx")
+    ),
+    probe(
+      "system.error",
+      "Root error boundary",
+      "src/app/error.tsx",
+      join(process.cwd(), "src", "app", "error.tsx")
+    ),
+    probe(
+      "system.global-error",
+      "Global error boundary",
+      "src/app/global-error.tsx",
+      join(process.cwd(), "src", "app", "global-error.tsx")
+    ),
+    probe(
+      "system.jag-error",
+      "JAG error boundary",
+      "src/app/jag/error.tsx",
+      join(process.cwd(), "src", "app", "jag", "error.tsx")
+    ),
+  ];
 }

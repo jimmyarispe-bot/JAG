@@ -19,23 +19,25 @@ const PER_ROW =
 
 function discoverPerFiles(root: string): { pack: string; path: string }[] {
   const found: { pack: string; path: string }[] = [];
-  const docs = join(root, "docs");
-  if (!existsSync(docs)) return found;
+  const docs = join(/* turbopackIgnore: true */ root, "docs");
+  if (!existsSync(/* turbopackIgnore: true */ docs)) return found;
 
-  for (const name of readdirSync(docs)) {
-    const dir = join(docs, name);
+  for (const name of readdirSync(/* turbopackIgnore: true */ docs)) {
+    const dir = join(/* turbopackIgnore: true */ docs, name);
     try {
-      if (!statSync(dir).isDirectory()) continue;
+      if (!statSync(/* turbopackIgnore: true */ dir).isDirectory()) continue;
     } catch {
       continue;
     }
     const candidates = [
-      join(dir, "06_PLATFORM_ENHANCEMENT_REQUESTS.md"),
-      join(dir, "PER.md"),
-      join(dir, "pers.md"),
+      join(/* turbopackIgnore: true */ dir, "06_PLATFORM_ENHANCEMENT_REQUESTS.md"),
+      join(/* turbopackIgnore: true */ dir, "PER.md"),
+      join(/* turbopackIgnore: true */ dir, "pers.md"),
     ];
     for (const c of candidates) {
-      if (existsSync(c)) found.push({ pack: name, path: c });
+      if (existsSync(/* turbopackIgnore: true */ c)) {
+        found.push({ pack: name, path: c });
+      }
     }
   }
   return found;
@@ -81,7 +83,7 @@ export function syncPersFromRepository(root?: string): StudioPer[] {
   for (const f of files) {
     let content = "";
     try {
-      content = readFileSync(f.path, "utf8");
+      content = readFileSync(/* turbopackIgnore: true */ f.path, "utf8");
     } catch {
       continue;
     }

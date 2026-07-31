@@ -129,7 +129,7 @@ function walk(
   if (depth > maxDepth) return;
   let entries: string[];
   try {
-    entries = readdirSync(absDir);
+    entries = readdirSync(/* turbopackIgnore: true */ absDir);
   } catch {
     return;
   }
@@ -143,10 +143,10 @@ function walk(
     ) {
       continue;
     }
-    const abs = join(absDir, name);
+    const abs = join(/* turbopackIgnore: true */ absDir, name);
     let st;
     try {
-      st = statSync(abs);
+      st = statSync(/* turbopackIgnore: true */ abs);
     } catch {
       continue;
     }
@@ -200,8 +200,8 @@ export function scanRepository(root?: string): RepositoryScanResult {
   const rootsFound: string[] = [];
 
   for (const r of SCAN_ROOTS) {
-    const abs = join(repoRoot, r);
-    if (!existsSync(abs)) continue;
+    const abs = join(/* turbopackIgnore: true */ repoRoot, r);
+    if (!existsSync(/* turbopackIgnore: true */ abs)) continue;
     rootsFound.push(r);
     const maxDepth =
       r === "docs" || r === "tests" || r.startsWith("src/")
@@ -213,11 +213,11 @@ export function scanRepository(root?: string): RepositoryScanResult {
   }
 
   // Also index top-level packages/* package.json
-  const packagesDir = join(repoRoot, "packages");
-  if (existsSync(packagesDir)) {
-    for (const name of readdirSync(packagesDir)) {
-      const pkgJson = join(packagesDir, name, "package.json");
-      if (!existsSync(pkgJson)) continue;
+  const packagesDir = join(/* turbopackIgnore: true */ repoRoot, "packages");
+  if (existsSync(/* turbopackIgnore: true */ packagesDir)) {
+    for (const name of readdirSync(/* turbopackIgnore: true */ packagesDir)) {
+      const pkgJson = join(/* turbopackIgnore: true */ packagesDir, name, "package.json");
+      if (!existsSync(/* turbopackIgnore: true */ pkgJson)) continue;
       const rel = `packages/${name}/package.json`;
       if (!entries.some((e) => e.path === rel)) {
         entries.push({

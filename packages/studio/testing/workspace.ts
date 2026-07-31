@@ -12,16 +12,16 @@ function walkTests(absDir: string, root: string, files: string[], depth: number)
   if (depth > 6) return;
   let names: string[];
   try {
-    names = readdirSync(absDir);
+    names = readdirSync(/* turbopackIgnore: true */ absDir);
   } catch {
     return;
   }
   for (const name of names) {
     if (name === "node_modules") continue;
-    const abs = join(absDir, name);
+    const abs = join(/* turbopackIgnore: true */ absDir, name);
     let st;
     try {
-      st = statSync(abs);
+      st = statSync(/* turbopackIgnore: true */ abs);
     } catch {
       continue;
     }
@@ -92,8 +92,10 @@ const SUITE_DEFS: {
 export function buildTestingWorkspace(root?: string): TestingWorkspaceView {
   const repoRoot = root ?? process.cwd();
   const files: string[] = [];
-  const testsDir = join(repoRoot, "tests");
-  if (existsSync(testsDir)) walkTests(testsDir, repoRoot, files, 0);
+  const testsDir = join(/* turbopackIgnore: true */ repoRoot, "tests");
+  if (existsSync(/* turbopackIgnore: true */ testsDir)) {
+    walkTests(testsDir, repoRoot, files, 0);
+  }
 
   const runs = listTestRuns();
   const suites: TestSuiteSummary[] = SUITE_DEFS.map((def) => {

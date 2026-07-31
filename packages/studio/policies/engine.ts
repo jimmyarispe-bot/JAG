@@ -94,9 +94,14 @@ function evaluateOne(
       };
     }
     case "required_accessibility_review": {
-      const a11yPath = join(root, "docs/academyos/rc2");
+      const a11yPath = join(
+        /* turbopackIgnore: true */ root,
+        "docs",
+        "academyos",
+        "rc2"
+      );
       const hasA11y =
-        existsSync(a11yPath) ||
+        existsSync(/* turbopackIgnore: true */ a11yPath) ||
         testing.suites.some((s) => /a11y|accessib/i.test(s.name));
       return {
         policyId: policy.id,
@@ -112,8 +117,20 @@ function evaluateOne(
     }
     case "required_performance_baseline": {
       const hasPerf =
-        existsSync(join(root, "perf-bundle-budget-report.json")) ||
-        existsSync(join(root, "docs/academyos/rc2")) ||
+        existsSync(
+          /* turbopackIgnore: true */ join(
+            /* turbopackIgnore: true */ root,
+            "perf-bundle-budget-report.json"
+          )
+        ) ||
+        existsSync(
+          /* turbopackIgnore: true */ join(
+            /* turbopackIgnore: true */ root,
+            "docs",
+            "academyos",
+            "rc2"
+          )
+        ) ||
         testing.suites.some((s) => /perf|performance|budget/i.test(s.name));
       return {
         policyId: policy.id,
@@ -133,7 +150,18 @@ function evaluateOne(
       const securitySuites = testing.suites.some((s) =>
         /security|hardening/i.test(s.name)
       );
-      const passed = critical.length === 0 && (productId !== "academyos" || securitySuites || existsSync(join(root, "docs/academyos/rc2")));
+      const passed =
+        critical.length === 0 &&
+        (productId !== "academyos" ||
+          securitySuites ||
+          existsSync(
+            /* turbopackIgnore: true */ join(
+              /* turbopackIgnore: true */ root,
+              "docs",
+              "academyos",
+              "rc2"
+            )
+          ));
       return {
         policyId: policy.id,
         passed,

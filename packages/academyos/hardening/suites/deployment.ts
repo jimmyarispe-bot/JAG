@@ -1,5 +1,8 @@
 /**
  * Deployment readiness — env/docs/health/seed/connectors.
+ *
+ * Path probes use literal segments + turbopackIgnore so Turbopack does not
+ * treat repositoryRoot joins as a whole-project file pattern.
  */
 
 import { existsSync } from "node:fs";
@@ -11,38 +14,100 @@ import {
 import { installAcademyOsIndustryPack } from "../../install";
 import type { HardeningSuiteDefinition } from "../harness";
 
+function present(absolutePath: string): boolean {
+  return existsSync(/* turbopackIgnore: true */ absolutePath);
+}
+
 export const deploymentSuite: HardeningSuiteDefinition = {
   id: "deployment",
   name: "Deployment Readiness",
   run(ctx) {
     const root = ctx.repositoryRoot;
-    const requiredDocs = [
-      "docs/academyos/rc2/05_DEPLOYMENT.md",
-      "docs/academyos/rc2/04_OPERATIONS.md",
-      "docs/academyos/rc2/01_SECURITY.md",
-    ];
-    for (const doc of requiredDocs) {
-      ctx.assert(
-        `deploy.doc.${doc.split("/").pop()}`,
-        existsSync(join(root, doc)),
-        `missing ${doc}`,
-        doc.includes("DEPLOYMENT") ? "critical" : "major"
-      );
-    }
+
+    const deploymentDoc = join(
+      /* turbopackIgnore: true */ root,
+      "docs",
+      "academyos",
+      "rc2",
+      "05_DEPLOYMENT.md"
+    );
+    const operationsDoc = join(
+      /* turbopackIgnore: true */ root,
+      "docs",
+      "academyos",
+      "rc2",
+      "04_OPERATIONS.md"
+    );
+    const securityDoc = join(
+      /* turbopackIgnore: true */ root,
+      "docs",
+      "academyos",
+      "rc2",
+      "01_SECURITY.md"
+    );
+
+    ctx.assert(
+      "deploy.doc.05_DEPLOYMENT.md",
+      present(deploymentDoc),
+      "missing docs/academyos/rc2/05_DEPLOYMENT.md",
+      "critical"
+    );
+    ctx.assert(
+      "deploy.doc.04_OPERATIONS.md",
+      present(operationsDoc),
+      "missing docs/academyos/rc2/04_OPERATIONS.md",
+      "major"
+    );
+    ctx.assert(
+      "deploy.doc.01_SECURITY.md",
+      present(securityDoc),
+      "missing docs/academyos/rc2/01_SECURITY.md",
+      "major"
+    );
 
     ctx.assert(
       "deploy.health_route",
-      existsSync(join(root, "src/app/api/academyos/health/route.ts")),
+      present(
+        join(
+          /* turbopackIgnore: true */ root,
+          "src",
+          "app",
+          "api",
+          "academyos",
+          "health",
+          "route.ts"
+        )
+      ),
       undefined,
       "critical"
     );
     ctx.assert(
       "deploy.validation_api",
-      existsSync(join(root, "src/app/api/academyos/validation/route.ts"))
+      present(
+        join(
+          /* turbopackIgnore: true */ root,
+          "src",
+          "app",
+          "api",
+          "academyos",
+          "validation",
+          "route.ts"
+        )
+      )
     );
     ctx.assert(
       "deploy.hardening_api",
-      existsSync(join(root, "src/app/api/academyos/hardening/route.ts")),
+      present(
+        join(
+          /* turbopackIgnore: true */ root,
+          "src",
+          "app",
+          "api",
+          "academyos",
+          "hardening",
+          "route.ts"
+        )
+      ),
       "hardening API route should exist",
       "major"
     );
@@ -72,7 +137,7 @@ export const deploymentSuite: HardeningSuiteDefinition = {
     );
     ctx.assert(
       "deploy.secrets_documented",
-      existsSync(join(root, "docs/academyos/rc2/05_DEPLOYMENT.md")),
+      present(deploymentDoc),
       "required secrets documented in deployment guide"
     );
   },

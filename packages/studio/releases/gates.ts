@@ -5,6 +5,12 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { buildArchitectureView } from "../architecture/analyzer";
+
+function pathExists(root: string, ...segments: string[]): boolean {
+  return existsSync(
+    /* turbopackIgnore: true */ join(/* turbopackIgnore: true */ root, ...segments)
+  );
+}
 import { analyzeDependencies } from "../dependencies/analyzer";
 import type { DependencyReport } from "../dependencies/analyzer";
 import { buildDocumentationIntelligence } from "../documentation/intelligence";
@@ -190,8 +196,8 @@ export function evaluateReleaseGates(input: {
     category: "Documentation",
     name: "Release notes complete",
     passed:
-      existsSync(join(root, `docs/${input.productId}`)) ||
-      existsSync(join(root, "docs/studio/04_RELEASES.md")),
+      pathExists(root, "docs", input.productId) ||
+      pathExists(root, "docs", "studio", "04_RELEASES.md"),
     required: stageRank(target) >= stageRank("RC-2"),
     detail: "Release notes / pack docs present",
     evidence: Object.freeze([`docs/${input.productId}`]),
@@ -202,8 +208,8 @@ export function evaluateReleaseGates(input: {
     category: "Documentation",
     name: "Upgrade guide complete",
     passed:
-      existsSync(join(root, "docs/academyos/rc3/06_UPGRADES.md")) ||
-      existsSync(join(root, `docs/${input.productId}`)) ||
+      pathExists(root, "docs", "academyos", "rc3", "06_UPGRADES.md") ||
+      pathExists(root, "docs", input.productId) ||
       docs.coveragePercent >= 60,
     required: stageRank(target) >= stageRank("RC-3"),
     detail: "Upgrade path documentation inferred from pack docs",
@@ -237,7 +243,7 @@ export function evaluateReleaseGates(input: {
         (e) =>
           e.policyId === "policy.security.validation" && e.passed
       ) ||
-      existsSync(join(root, "docs/academyos/rc2")),
+      pathExists(root, "docs", "academyos", "rc2"),
     required: stageRank(target) >= stageRank("RC-2"),
     detail: "Security / permission validation evidence",
     evidence: Object.freeze(["policy.security.validation"]),
@@ -249,10 +255,19 @@ export function evaluateReleaseGates(input: {
     category: "Operations",
     name: "Deployment validated",
     passed:
-      existsSync(join(root, "docs/academyos/rc3/01_DEPLOYMENT.md")) ||
-      existsSync(join(root, "src/app/api/academyos/operations/deployment/route.ts")) ||
-      existsSync(join(root, "docs/academyos/rc2")) ||
-      existsSync(join(root, "docs/release")) ||
+      pathExists(root, "docs", "academyos", "rc3", "01_DEPLOYMENT.md") ||
+      pathExists(
+        root,
+        "src",
+        "app",
+        "api",
+        "academyos",
+        "operations",
+        "deployment",
+        "route.ts"
+      ) ||
+      pathExists(root, "docs", "academyos", "rc2") ||
+      pathExists(root, "docs", "release") ||
       stageRank(target) < stageRank("RC-3"),
     required: stageRank(target) >= stageRank("RC-3"),
     detail: "Deployment validation docs/API present or not yet required",
@@ -268,7 +283,7 @@ export function evaluateReleaseGates(input: {
     category: "Operations",
     name: "Rollback documented",
     passed:
-      existsSync(join(root, "docs/academyos/rc2")) ||
+      pathExists(root, "docs", "academyos", "rc2") ||
       stageRank(target) < stageRank("RC-4"),
     required: stageRank(target) >= stageRank("RC-4"),
     detail: "Rollback documentation present or not yet required",
@@ -280,7 +295,7 @@ export function evaluateReleaseGates(input: {
     category: "Operations",
     name: "Backups verified",
     passed:
-      existsSync(join(root, "docs/academyos/rc2")) ||
+      pathExists(root, "docs", "academyos", "rc2") ||
       stageRank(target) < stageRank("Certified"),
     required: stageRank(target) >= stageRank("Certified"),
     detail: "Backup verification evidence",

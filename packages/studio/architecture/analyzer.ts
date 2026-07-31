@@ -56,8 +56,8 @@ export function buildArchitectureView(root?: string): ArchitectureView {
   const violations: ArchitectureViolation[] = [];
 
   for (const [id, def] of Object.entries(LAYER_PATHS)) {
-    const abs = join(repoRoot, def.path);
-    const healthy = existsSync(abs);
+    const abs = join(/* turbopackIgnore: true */ repoRoot, def.path);
+    const healthy = existsSync(/* turbopackIgnore: true */ abs);
     nodes.push({
       id,
       label: def.layer === "Industry Packs" && id === "academyos"

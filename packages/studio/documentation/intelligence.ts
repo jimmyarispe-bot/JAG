@@ -30,15 +30,15 @@ function walkDocs(absDir: string, root: string, out: DocIndexEntry[], depth: num
   if (depth > 6) return;
   let names: string[];
   try {
-    names = readdirSync(absDir);
+    names = readdirSync(/* turbopackIgnore: true */ absDir);
   } catch {
     return;
   }
   for (const name of names) {
-    const abs = join(absDir, name);
+    const abs = join(/* turbopackIgnore: true */ absDir, name);
     let st;
     try {
-      st = statSync(abs);
+      st = statSync(/* turbopackIgnore: true */ abs);
     } catch {
       continue;
     }
@@ -50,7 +50,7 @@ function walkDocs(absDir: string, root: string, out: DocIndexEntry[], depth: num
     const rel = relative(root, abs).split(sep).join("/");
     let content = "";
     try {
-      content = readFileSync(abs, "utf8");
+      content = readFileSync(/* turbopackIgnore: true */ abs, "utf8");
     } catch {
       content = "";
     }
@@ -90,6 +90,10 @@ const EXPECTED_STUDIO_DOCS = [
   "docs/studio/23_GRAPH_HEALTH.md",
   "docs/studio/24_RELEASE_REASONING.md",
   "docs/studio/25_ENGINEERING_RECOMMENDATIONS.md",
+  "docs/studio/26_DECISION_CENTER.md",
+  "docs/studio/27_RISK_CENTER.md",
+  "docs/studio/28_ACTIVITY_FEED.md",
+  "docs/studio/29_TIMELINE.md",
 ];
 
 export function buildDocumentationIntelligence(
@@ -97,12 +101,15 @@ export function buildDocumentationIntelligence(
 ): DocumentationIntelligence {
   const repoRoot = root ?? process.cwd();
   const docs: DocIndexEntry[] = [];
-  const docsDir = join(repoRoot, "docs");
-  if (existsSync(docsDir)) walkDocs(docsDir, repoRoot, docs, 0);
+  const docsDir = join(/* turbopackIgnore: true */ repoRoot, "docs");
+  if (existsSync(/* turbopackIgnore: true */ docsDir)) {
+    walkDocs(docsDir, repoRoot, docs, 0);
+  }
 
-  const missingDocumentation = EXPECTED_STUDIO_DOCS.filter(
-    (p) => !existsSync(join(repoRoot, p))
-  );
+  const missingDocumentation = EXPECTED_STUDIO_DOCS.filter((p) => {
+    const abs = join(/* turbopackIgnore: true */ repoRoot, p);
+    return !existsSync(/* turbopackIgnore: true */ abs);
+  });
 
   const outdatedDocumentation = docs
     .filter((d) => d.title.toLowerCase().includes("todo") || d.title.toLowerCase().includes("wip"))

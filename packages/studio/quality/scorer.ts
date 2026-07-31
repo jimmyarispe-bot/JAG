@@ -64,11 +64,29 @@ export function computeProductQualityScore(input: {
   ).length;
 
   const hasPerf =
-    existsSync(join(root, "perf-bundle-budget-report.json")) ||
-    existsSync(join(root, "docs/academyos/rc2"));
+    existsSync(
+      /* turbopackIgnore: true */ join(
+        /* turbopackIgnore: true */ root,
+        "perf-bundle-budget-report.json"
+      )
+    ) ||
+    existsSync(
+      /* turbopackIgnore: true */ join(
+        /* turbopackIgnore: true */ root,
+        "docs",
+        "academyos",
+        "rc2"
+      )
+    );
   const hasA11y =
-    existsSync(join(root, "docs/academyos/rc2")) ||
-    testing.suites.some((s) => /a11y|accessib/i.test(s.name));
+    existsSync(
+      /* turbopackIgnore: true */ join(
+        /* turbopackIgnore: true */ root,
+        "docs",
+        "academyos",
+        "rc2"
+      )
+    ) || testing.suites.some((s) => /a11y|accessib/i.test(s.name));
 
   const critical = deps.issues.filter((i) => i.severity === "Critical").length;
   const securityScore = clamp(

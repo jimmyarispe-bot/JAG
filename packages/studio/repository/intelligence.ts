@@ -48,7 +48,7 @@ export type RepositoryIntelligenceReport = {
 
 function readSafe(abs: string): string {
   try {
-    return readFileSync(abs, "utf8");
+    return readFileSync(/* turbopackIgnore: true */ abs, "utf8");
   } catch {
     return "";
   }
@@ -64,8 +64,11 @@ function enrichFromContent(
     packageId: string | null;
   }[]
 ): Record<string, string> {
-  const abs = join(root, entry.path);
-  if (!existsSync(abs) || !/\.(ts|tsx|mts|json)$/.test(entry.path)) {
+  const abs = join(/* turbopackIgnore: true */ root, entry.path);
+  if (
+    !existsSync(/* turbopackIgnore: true */ abs) ||
+    !/\.(ts|tsx|mts|json)$/.test(entry.path)
+  ) {
     return {};
   }
   const content = readSafe(abs);
@@ -169,8 +172,8 @@ function parsePackageJson(
   packageId: string,
   relPath: string
 ): PackageDependencyGraph | null {
-  const abs = join(root, relPath);
-  if (!existsSync(abs)) return null;
+  const abs = join(/* turbopackIgnore: true */ root, relPath);
+  if (!existsSync(/* turbopackIgnore: true */ abs)) return null;
   try {
     const json = JSON.parse(readSafe(abs)) as {
       dependencies?: Record<string, string>;

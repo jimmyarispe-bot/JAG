@@ -16,7 +16,7 @@ const EXTRA_ROOTS = ["supabase", "connectors"] as const;
 
 function readSafe(abs: string): string {
   try {
-    return readFileSync(abs, "utf8");
+    return readFileSync(/* turbopackIgnore: true */ abs, "utf8");
   } catch {
     return "";
   }
@@ -92,16 +92,16 @@ function walkExtra(
   if (depth > 5) return;
   let names: string[];
   try {
-    names = readdirSync(absDir);
+    names = readdirSync(/* turbopackIgnore: true */ absDir);
   } catch {
     return;
   }
   for (const name of names) {
     if (name === "node_modules" || name === ".git") continue;
-    const abs = join(absDir, name);
+    const abs = join(/* turbopackIgnore: true */ absDir, name);
     let st;
     try {
-      st = statSync(abs);
+      st = statSync(/* turbopackIgnore: true */ abs);
     } catch {
       continue;
     }
@@ -267,8 +267,10 @@ export function indexRepositoryCatalog(input?: {
                 : "export";
     const id = `${kind}:${sym.path}:${sym.name}`;
     if (byPath.has(id)) continue;
-    const abs = join(root, sym.path);
-    const content = existsSync(abs) ? readSafe(abs) : "";
+    const abs = join(/* turbopackIgnore: true */ root, sym.path);
+    const content = existsSync(/* turbopackIgnore: true */ abs)
+      ? readSafe(abs)
+      : "";
     const entry: CatalogEntry = {
       id,
       kind,
@@ -471,8 +473,8 @@ export function indexRepositoryCatalog(input?: {
 
   // Extra roots: supabase/, connectors/
   for (const r of EXTRA_ROOTS) {
-    const abs = join(root, r);
-    if (!existsSync(abs)) continue;
+    const abs = join(/* turbopackIgnore: true */ root, r);
+    if (!existsSync(/* turbopackIgnore: true */ abs)) continue;
     walkExtra(abs, root, r === "supabase" ? "migration" : "connector", entries, 0);
   }
   for (const e of entries) byPath.set(e.id, e);
