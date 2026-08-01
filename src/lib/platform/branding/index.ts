@@ -7,6 +7,7 @@ export {
   THE_JAG_MARK,
   POWERED_BY_LINE,
   DEFAULT_ROOT_DOMAIN,
+  CANONICAL_JAG_PRODUCTION_ORIGIN,
   type OrganizationBrand,
   type BrandTheme,
   type BrandThemeIcons,
@@ -28,6 +29,7 @@ export {
   resolveDefault,
   resolveFromCustomDomain,
   extractSubdomainFromHost,
+  isJagPlatformApexHost,
 } from "./BrandResolver";
 
 export {

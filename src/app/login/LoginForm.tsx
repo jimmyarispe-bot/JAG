@@ -69,7 +69,7 @@ export default function LoginForm({ branding }: LoginFormProps) {
       </a>
       <h1 className="text-2xl font-bold text-slate-900">{signInTitle}</h1>
       <p className="mt-1 text-sm text-slate-500">
-        Staff dashboard and parent application portal
+        {branding.productTagline}
       </p>
 
       <form id="login-form" onSubmit={handleLogin} className="mt-6 space-y-4" aria-label="Sign in form">

@@ -28,7 +28,8 @@ export const ENV_VAR_DEFINITIONS: readonly EnvVarDefinition[] = [
   },
   {
     name: "NEXT_PUBLIC_APP_URL",
-    description: "Public application base URL used in links and merge fields",
+    description:
+      "Public application base URL used in auth links and merge fields. Production for The JAG™ must be https://www.thejag.org (apex redirects at the edge).",
     format: "url",
     requiredIn: ["preview", "production"],
     optionalIn: ["development"],
@@ -92,6 +93,25 @@ export const ENV_VAR_DEFINITIONS: readonly EnvVarDefinition[] = [
     name: "GOOGLE_WORKSPACE_CLIENT_SECRET",
     description: "OAuth client secret for Google Workspace tenant connect (RC-2.01)",
     secret: true,
+    requiredIn: [],
+    optionalIn: ["development", "preview", "production"],
+  },
+  {
+    name: "QUICKBOOKS_CLIENT_ID",
+    description: "OAuth client ID for QuickBooks Online Connector™ (JAG Sprint 003B)",
+    requiredIn: [],
+    optionalIn: ["development", "preview", "production"],
+  },
+  {
+    name: "QUICKBOOKS_CLIENT_SECRET",
+    description: "OAuth client secret for QuickBooks Online Connector™",
+    secret: true,
+    requiredIn: [],
+    optionalIn: ["development", "preview", "production"],
+  },
+  {
+    name: "QUICKBOOKS_ENVIRONMENT",
+    description: "QuickBooks API environment: sandbox | production (default sandbox)",
     requiredIn: [],
     optionalIn: ["development", "preview", "production"],
   },

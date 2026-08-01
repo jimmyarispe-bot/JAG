@@ -33,6 +33,18 @@ function parseHostInput(host: string): { hostname: string; search: string } {
 }
 
 /**
+ * True for the JAG platform apex / www hosts (`thejag.org`, `www.thejag.org`).
+ * Tenant subdomains (`academy.thejag.org`) and localhost/preview are false.
+ */
+export function isJagPlatformApexHost(host: string | null | undefined): boolean {
+  if (!host?.trim()) return false;
+  const { hostname: bare } = parseHostInput(host);
+  if (!bare) return false;
+  const root = DEFAULT_ROOT_DOMAIN;
+  return bare === root || bare === `www.${root}`;
+}
+
+/**
  * Extract tenant subdomain from `*.thejag.org` hosts,
  * or from `?subdomain=` / `?org=` on localhost.
  */
@@ -41,7 +53,7 @@ export function extractSubdomainFromHost(host: string): string | null {
   if (!bare) return null;
 
   const root = DEFAULT_ROOT_DOMAIN;
-  if (bare === root || bare === `www.${root}`) return null;
+  if (isJagPlatformApexHost(bare)) return null;
 
   if (bare.endsWith(`.${root}`)) {
     const sub = bare.slice(0, -(root.length + 1));
@@ -112,4 +124,5 @@ export const BrandResolver = {
   resolveDefault,
   resolveFromCustomDomain,
   extractSubdomainFromHost,
+  isJagPlatformApexHost,
 };

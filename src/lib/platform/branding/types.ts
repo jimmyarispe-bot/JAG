@@ -7,6 +7,15 @@ export const THE_JAG_MARK = "The JAG™" as const;
 export const POWERED_BY_LINE = "Powered by The JAG™" as const;
 export const DEFAULT_ROOT_DOMAIN = "thejag.org" as const;
 
+/**
+ * Canonical public origin for The JAG™ production deployment.
+ * Apex (`https://thejag.org`) redirects at the edge to this www origin.
+ * Runtime links still resolve via `NEXT_PUBLIC_APP_URL` — do not hard-code this
+ * into every call site; use it for docs, validation, and operator guidance.
+ */
+export const CANONICAL_JAG_PRODUCTION_ORIGIN =
+  "https://www.thejag.org" as const;
+
 /** Persisted / registry organization brand record. */
 export type OrganizationBrand = {
   organization_id: string;
