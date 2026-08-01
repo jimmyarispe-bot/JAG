@@ -61,7 +61,8 @@ export interface PlatformConnector {
   sync(ctx: PlatformConnectorContext): Promise<PlatformConnectorSyncResult>;
   health(ctx: PlatformConnectorContext): Promise<SdkConnectorHealth>;
   capabilities(): ConnectorCapabilities;
-  entityMappings(): TwinEntityMapping[];
+  /** Read-only twin mapping descriptors — callers must not mutate the returned array. */
+  entityMappings(): readonly TwinEntityMapping[];
   permissions(): PermissionDefinition[];
 }
 
