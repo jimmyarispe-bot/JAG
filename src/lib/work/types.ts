@@ -344,7 +344,7 @@ export const WORK_TABS = [
   { href: "/dashboard/work?view=meetings", label: "Meetings", value: "meetings" },
 ] as const;
 
-/** AI readiness hooks GÇö architecture only, no implementation */
+/** AI readiness hooks - architecture only, no implementation */
 export const WORK_AI_CAPABILITIES = [
   "project_summaries",
   "task_prioritization",
