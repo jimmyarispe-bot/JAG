@@ -10,13 +10,18 @@ import type {
   FinancialOperationsSummary,
 } from "./types";
 
+/** Mutable scratch pad for aging totals — not the public AgingBucket contract. */
+type AgingBucketAccumulator = {
+  -readonly [K in keyof AgingBucket]: number;
+};
+
 function agingBuckets(
   organizationId: string,
   asOf = new Date()
 ): AgingBucket {
   const today = asOf.toISOString().slice(0, 10);
   const todayMs = new Date(`${today}T00:00:00.000Z`).getTime();
-  const buckets: AgingBucket = {
+  const buckets: AgingBucketAccumulator = {
     current: 0,
     days1to30: 0,
     days31to60: 0,
@@ -43,13 +48,14 @@ function agingBuckets(
     else buckets.days90Plus += inv.balanceDue;
   }
 
-  return {
+  const result: AgingBucket = {
     current: Math.round(buckets.current * 100) / 100,
     days1to30: Math.round(buckets.days1to30 * 100) / 100,
     days31to60: Math.round(buckets.days31to60 * 100) / 100,
     days61to90: Math.round(buckets.days61to90 * 100) / 100,
     days90Plus: Math.round(buckets.days90Plus * 100) / 100,
   };
+  return result;
 }
 
 export function buildFinancialOperationsSummary(
