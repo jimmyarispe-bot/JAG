@@ -5,12 +5,18 @@ export type AcademySchool = AcademyOsEntityBase & {
   readonly code: string;
 };
 
+/** Authoritative student lifecycle statuses for AcademyOS domain students. */
+export type AcademyStudentStatus = "Active" | "Inactive" | "Withdrawn";
+
+/** Default status for newly created domain students (typed, not widened to string). */
+export const ACADEMY_STUDENT_STATUS_ACTIVE: AcademyStudentStatus = "Active";
+
 export type AcademyStudent = AcademyOsEntityBase & {
   readonly firstName: string;
   readonly lastName: string;
   readonly schoolId: string | null;
   readonly gradeLevel: string | null;
-  readonly status: "Active" | "Inactive" | "Withdrawn";
+  readonly status: AcademyStudentStatus;
 };
 
 export type AcademyGuardian = AcademyOsEntityBase & {
@@ -38,16 +44,35 @@ export type AcademyCourse = AcademyOsEntityBase & {
   readonly schoolId: string | null;
 };
 
+export type AcademyEnrollmentStatus =
+  | "Applied"
+  | "Enrolled"
+  | "Completed"
+  | "Withdrawn";
+
+export const ACADEMY_ENROLLMENT_STATUS_ENROLLED: AcademyEnrollmentStatus =
+  "Enrolled";
+
 export type AcademyEnrollment = AcademyOsEntityBase & {
   readonly studentId: string;
   readonly courseId: string;
-  readonly status: "Applied" | "Enrolled" | "Completed" | "Withdrawn";
+  readonly status: AcademyEnrollmentStatus;
   readonly schoolYear: string;
 };
 
+export type AcademyAdmissionStatus =
+  | "Draft"
+  | "Submitted"
+  | "Accepted"
+  | "Denied"
+  | "Waitlisted";
+
+export const ACADEMY_ADMISSION_STATUS_SUBMITTED: AcademyAdmissionStatus =
+  "Submitted";
+
 export type AcademyAdmission = AcademyOsEntityBase & {
   readonly applicantName: string;
-  readonly status: "Draft" | "Submitted" | "Accepted" | "Denied" | "Waitlisted";
+  readonly status: AcademyAdmissionStatus;
   readonly schoolId: string | null;
 };
 
@@ -78,22 +103,36 @@ export type AcademyTranscript = AcademyOsEntityBase & {
   readonly issuedAt: string;
 };
 
+export type AcademyIepStatus = "Draft" | "Active" | "Review" | "Archived";
+
+export const ACADEMY_IEP_STATUS_ACTIVE: AcademyIepStatus = "Active";
+
 export type AcademyIep = AcademyOsEntityBase & {
   readonly studentId: string;
   readonly title: string;
-  readonly status: "Draft" | "Active" | "Review" | "Archived";
+  readonly status: AcademyIepStatus;
 };
+
+export type AcademyScholarshipStatus = "Open" | "Awarded" | "Closed";
+
+export const ACADEMY_SCHOLARSHIP_STATUS_OPEN: AcademyScholarshipStatus = "Open";
+export const ACADEMY_SCHOLARSHIP_STATUS_AWARDED: AcademyScholarshipStatus =
+  "Awarded";
 
 export type AcademyScholarship = AcademyOsEntityBase & {
   readonly name: string;
   readonly amount: number;
   readonly studentId: string | null;
-  readonly status: "Open" | "Awarded" | "Closed";
+  readonly status: AcademyScholarshipStatus;
 };
+
+export type AcademyInvoiceStatus = "Draft" | "Open" | "Paid" | "Void";
+
+export const ACADEMY_INVOICE_STATUS_OPEN: AcademyInvoiceStatus = "Open";
 
 export type AcademyInvoice = AcademyOsEntityBase & {
   readonly studentId: string;
   readonly amount: number;
-  readonly status: "Draft" | "Open" | "Paid" | "Void";
+  readonly status: AcademyInvoiceStatus;
   readonly dueDate: string | null;
 };

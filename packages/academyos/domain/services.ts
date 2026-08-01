@@ -16,11 +16,21 @@ import type {
   AcademyIep,
   AcademyInvoice,
   AcademyScholarship,
+  AcademyScholarshipStatus,
   AcademySchool,
   AcademySession,
   AcademyStaff,
   AcademyStudent,
   AcademyTranscript,
+} from "./types";
+import {
+  ACADEMY_ADMISSION_STATUS_SUBMITTED,
+  ACADEMY_ENROLLMENT_STATUS_ENROLLED,
+  ACADEMY_IEP_STATUS_ACTIVE,
+  ACADEMY_INVOICE_STATUS_OPEN,
+  ACADEMY_SCHOLARSHIP_STATUS_AWARDED,
+  ACADEMY_SCHOLARSHIP_STATUS_OPEN,
+  ACADEMY_STUDENT_STATUS_ACTIVE,
 } from "./types";
 
 function requireNonEmpty(value: string, label: string): string | { error: string } {
@@ -52,7 +62,12 @@ export function createSchoolsService() {
         actor: input.createdBy,
         metadata: { code },
       });
-      return upsertEntity("schools", { ...base, name, code, twinEntityId: twinId });
+      return upsertEntity<AcademySchool>("schools", {
+        ...base,
+        name,
+        code,
+        twinEntityId: twinId,
+      });
     },
     list: (organizationId: string) =>
       listEntities<AcademySchool>("schools", organizationId),
@@ -90,13 +105,13 @@ export function createStudentsService() {
           schoolId: input.schoolId ?? "",
         },
       });
-      return upsertEntity("students", {
+      return upsertEntity<AcademyStudent>("students", {
         ...base,
         firstName,
         lastName,
         schoolId: input.schoolId ?? null,
         gradeLevel: input.gradeLevel ?? null,
-        status: "Active",
+        status: ACADEMY_STUDENT_STATUS_ACTIVE,
         twinEntityId: twinId,
       });
     },
@@ -130,7 +145,7 @@ export function createGuardiansService() {
         kind: "guardian",
         actor: input.createdBy,
       });
-      return upsertEntity("guardians", {
+      return upsertEntity<AcademyGuardian>("guardians", {
         ...base,
         firstName,
         lastName,
@@ -157,7 +172,7 @@ export function createStaffService() {
       if (typeof firstName !== "string") return firstName;
       const lastName = requireNonEmpty(input.lastName, "Last name");
       if (typeof lastName !== "string") return lastName;
-      const role = input.role ?? "Teacher";
+      const role: AcademyStaff["role"] = input.role ?? "Teacher";
       const base = baseEntity(input.organizationId, input.createdBy);
       const twinId = projectAcademyEntityToTwin({
         organizationId: input.organizationId,
@@ -168,7 +183,7 @@ export function createStaffService() {
         kind: role === "Teacher" ? "teacher" : role.toLowerCase(),
         actor: input.createdBy,
       });
-      return upsertEntity("staff", {
+      return upsertEntity<AcademyStaff>("staff", {
         ...base,
         firstName,
         lastName,
@@ -205,7 +220,7 @@ export function createClassroomsService() {
         actor: input.createdBy,
         metadata: { schoolId: input.schoolId },
       });
-      return upsertEntity("classrooms", {
+      return upsertEntity<AcademyClassroom>("classrooms", {
         ...base,
         name,
         schoolId: input.schoolId,
@@ -242,7 +257,7 @@ export function createCoursesService() {
         actor: input.createdBy,
         metadata: { code },
       });
-      return upsertEntity("courses", {
+      return upsertEntity<AcademyCourse>("courses", {
         ...base,
         title,
         code,
@@ -281,11 +296,11 @@ export function createEnrollmentService() {
           actor: input.createdBy,
         });
       }
-      return upsertEntity("enrollments", {
+      return upsertEntity<AcademyEnrollment>("enrollments", {
         ...base,
         studentId: input.studentId,
         courseId: input.courseId,
-        status: "Enrolled",
+        status: ACADEMY_ENROLLMENT_STATUS_ENROLLED,
         schoolYear: input.schoolYear.trim() || "2026-2027",
         twinEntityId: null,
       });
@@ -306,10 +321,10 @@ export function createAdmissionsService() {
       const applicantName = requireNonEmpty(input.applicantName, "Applicant name");
       if (typeof applicantName !== "string") return applicantName;
       const base = baseEntity(input.organizationId, input.createdBy);
-      return upsertEntity("admissions", {
+      return upsertEntity<AcademyAdmission>("admissions", {
         ...base,
         applicantName,
-        status: "Submitted",
+        status: ACADEMY_ADMISSION_STATUS_SUBMITTED,
         schoolId: input.schoolId ?? null,
         twinEntityId: null,
       });
@@ -343,7 +358,7 @@ export function createSchedulingService() {
         actor: input.createdBy,
         metadata: { courseId: input.courseId },
       });
-      return upsertEntity("sessions", {
+      return upsertEntity<AcademySession>("sessions", {
         ...base,
         courseId: input.courseId,
         classroomId: input.classroomId ?? null,
@@ -385,7 +400,7 @@ export function createAttendanceService() {
           status: input.status,
         },
       });
-      return upsertEntity("attendance", {
+      return upsertEntity<AcademyAttendance>("attendance", {
         ...base,
         studentId: input.studentId,
         sessionId: input.sessionId,
@@ -425,7 +440,7 @@ export function createGradingService() {
           term: input.term,
         },
       });
-      return upsertEntity("grades", {
+      return upsertEntity<AcademyGrade>("grades", {
         ...base,
         studentId: input.studentId,
         courseId: input.courseId,
@@ -460,7 +475,7 @@ export function createTranscriptsService() {
         actor: input.createdBy,
         metadata: { studentId: input.studentId },
       });
-      return upsertEntity("transcripts", {
+      return upsertEntity<AcademyTranscript>("transcripts", {
         ...base,
         studentId: input.studentId,
         title,
@@ -494,11 +509,11 @@ export function createIepService() {
         actor: input.createdBy,
         metadata: { studentId: input.studentId },
       });
-      return upsertEntity("ieps", {
+      return upsertEntity<AcademyIep>("ieps", {
         ...base,
         studentId: input.studentId,
         title,
-        status: "Active",
+        status: ACADEMY_IEP_STATUS_ACTIVE,
         twinEntityId: twinId,
       });
     },
@@ -530,12 +545,15 @@ export function createScholarshipsService() {
         actor: input.createdBy,
         metadata: { amount: String(input.amount) },
       });
-      return upsertEntity("scholarships", {
+      const status: AcademyScholarshipStatus = input.studentId
+        ? ACADEMY_SCHOLARSHIP_STATUS_AWARDED
+        : ACADEMY_SCHOLARSHIP_STATUS_OPEN;
+      return upsertEntity<AcademyScholarship>("scholarships", {
         ...base,
         name,
         amount: input.amount,
         studentId: input.studentId ?? null,
-        status: input.studentId ? "Awarded" : "Open",
+        status,
         twinEntityId: twinId,
       });
     },
@@ -555,11 +573,11 @@ export function createBillingService() {
     }): AcademyInvoice | { error: string } {
       if (!(input.amount >= 0)) return { error: "Amount must be >= 0." };
       const base = baseEntity(input.organizationId, input.createdBy);
-      return upsertEntity("invoices", {
+      return upsertEntity<AcademyInvoice>("invoices", {
         ...base,
         studentId: input.studentId,
         amount: input.amount,
-        status: "Open",
+        status: ACADEMY_INVOICE_STATUS_OPEN,
         dueDate: input.dueDate ?? null,
         twinEntityId: null,
       });
