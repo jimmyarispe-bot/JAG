@@ -9,6 +9,7 @@
 
 import { randomUUID } from "node:crypto";
 import { createQuickBooksRuntime } from "@/lib/connectors/orchestrator/adapters/quickbooks";
+import { QBO_CONNECTOR_ID } from "@/lib/connectors/quickbooks";
 import { emitFinanceEvent } from "./events";
 import {
   listCredits,
@@ -28,7 +29,8 @@ export type FinanceQuickBooksSyncResult = {
   readonly synced: number;
   readonly failed: number;
   readonly message: string;
-  readonly records: readonly ReturnType<typeof listQbSync>;
+  /** listQbSync already returns readonly QuickBooksSyncRecord[]. */
+  readonly records: ReturnType<typeof listQbSync>;
 };
 
 export function createFinanceQuickBooksService() {
@@ -46,6 +48,8 @@ export function createFinanceQuickBooksService() {
       const ctx = {
         organizationId: input.organizationId,
         organizationName: input.organizationName ?? input.organizationId,
+        connectorId: QBO_CONNECTOR_ID,
+        installationId: "demo-qbo-installation",
         actorUserId: input.actorUserId,
         actorDisplayName: input.actorDisplayName ?? input.actorUserId,
         demo: input.demo ?? true,
