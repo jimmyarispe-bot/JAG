@@ -78,7 +78,8 @@ export const ENV_VAR_DEFINITIONS: readonly EnvVarDefinition[] = [
   },
   {
     name: "OAUTH_STATE_SECRET",
-    description: "HMAC secret for signed OAuth state (falls back to VAULT_ENCRYPTION_KEY / CRON_SECRET)",
+    description:
+      "HMAC secret for signed OAuth state and JAG platform session cookies (falls back to VAULT_ENCRYPTION_KEY / CRON_SECRET)",
     secret: true,
     requiredIn: [],
     optionalIn: ["development", "preview", "production"],

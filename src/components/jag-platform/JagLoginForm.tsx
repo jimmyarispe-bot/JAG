@@ -1,8 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { JAG_PLATFORM_HOME_PATH } from "@/lib/jag-platform/auth";
+import {
+  JAG_PLATFORM_FORGOT_PASSWORD_PATH,
+  JAG_PLATFORM_HOME_PATH,
+} from "@/lib/jag-platform/auth";
 import {
   POWERED_BY_LINE,
   type OrganizationBrand,
@@ -30,16 +34,27 @@ export function JagLoginForm({
     const response = await fetch("/api/jag-platform/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, next: nextPath }),
     });
     const payload = (await response.json()) as {
       ok?: boolean;
       error?: string;
+      requiresMfa?: boolean;
+      requiresPasswordReset?: boolean;
+      redirectTo?: string;
     };
 
     if (!response.ok || !payload.ok) {
       setMessage(payload.error ?? "Sign-in failed.");
       setLoading(false);
+      return;
+    }
+
+    if (
+      (payload.requiresMfa || payload.requiresPasswordReset) &&
+      payload.redirectTo?.startsWith("/")
+    ) {
+      window.location.href = payload.redirectTo;
       return;
     }
 
@@ -99,9 +114,23 @@ export function JagLoginForm({
             autoComplete="current-password"
           />
         </label>
+        <p className="text-right text-sm">
+          <Link
+            href={JAG_PLATFORM_FORGOT_PASSWORD_PATH}
+            className="font-medium hover:underline"
+            style={{ color: brand.primary_color || "#0F172A" }}
+          >
+            Forgot password?
+          </Link>
+        </p>
         {message ? (
           <p className="text-sm text-red-600" role="alert">
             {message}
+          </p>
+        ) : null}
+        {searchParams.get("reset") === "success" ? (
+          <p className="text-sm text-emerald-700" role="status">
+            Password updated. Sign in with your new password.
           </p>
         ) : null}
         <button

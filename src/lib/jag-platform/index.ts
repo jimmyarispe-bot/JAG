@@ -10,22 +10,35 @@ export {
 
 export {
   JAG_PLATFORM_SESSION_COOKIE,
+  JAG_PLATFORM_SESSION_COOKIE_LEGACY,
   encodeJagPlatformSession,
   decodeJagPlatformSession,
   jagPlatformSessionCookieOptions,
   hasJagPlatformSessionCookie,
+  clearJagPlatformSessionCookies,
   type JagPlatformSession,
 } from "@/lib/jag-platform/session";
 
 export {
   JAG_PLATFORM_DEMO_ACCOUNTS,
   authenticateJagPlatform,
+  tryAuthenticateJagPlatformDemo,
+  isJagPlatformDemoAuthEnabled,
+  GENERIC_JAG_AUTH_FAILURE,
   JAG_PLATFORM_LOGIN_PATH,
+  JAG_PLATFORM_FORGOT_PASSWORD_PATH,
+  JAG_PLATFORM_RESET_PASSWORD_PATH,
   JAG_PLATFORM_HOME_PATH,
   ACADEMYOS_LAUNCH_PATH,
   type JagPlatformCredentials,
   type JagPlatformAuthResult,
 } from "@/lib/jag-platform/auth";
+
+export {
+  authenticateJagPlatformLogin,
+  completeJagAuthorization,
+  JAG_SESSION_ESTABLISH_PATH,
+} from "@/lib/jag-platform/login";
 
 export {
   JAG_PLATFORM_NAV,

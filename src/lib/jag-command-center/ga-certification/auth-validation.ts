@@ -107,6 +107,21 @@ export function runAuthValidation(): readonly AuthCheck[] {
       )
     ),
     probe(
+      "auth.jag-establish-api",
+      "JAG session establish API",
+      "src/app/api/jag-platform/auth/establish/route.ts",
+      join(
+        process.cwd(),
+        "src",
+        "app",
+        "api",
+        "jag-platform",
+        "auth",
+        "establish",
+        "route.ts"
+      )
+    ),
+    probe(
       "auth.jag-login-ui",
       "JAG login UI",
       "src/app/jag/login/page.tsx",

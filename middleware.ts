@@ -30,6 +30,7 @@ function isJagPublicPath(pathname: string): boolean {
     pathname.startsWith("/jag/briefings/share/") ||
     pathname === "/api/jag-platform/auth/login" ||
     pathname === "/api/jag-platform/auth/logout" ||
+    pathname === "/api/jag-platform/auth/establish" ||
     pathname === "/api/jag-business/provision"
   );
 }
@@ -101,7 +102,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/jag-business/")
   ) {
     if (!isJagPublicPath(pathname) && isJagPortalPath(pathname)) {
-      const session = decodeJagPlatformSession(
+      const session = await decodeJagPlatformSession(
         req.cookies.get(JAG_PLATFORM_SESSION_COOKIE)?.value
       );
       if (!session) {

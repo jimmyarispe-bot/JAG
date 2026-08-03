@@ -1,4 +1,8 @@
 import { PASSWORD_RESET_PATH } from "@/lib/auth/must-reset-password";
+import {
+  JAG_PLATFORM_FORGOT_PASSWORD_PATH,
+  JAG_PLATFORM_RESET_PASSWORD_PATH,
+} from "@/lib/jag-platform/auth";
 
 /** First-time invite activation (distinct from password recovery). */
 export const ACCOUNT_ACTIVATE_PATH = "/login/activate";
@@ -22,6 +26,10 @@ export function isPasswordSetupExemptPath(pathname: string): boolean {
     pathname === PASSWORD_RESET_PATH ||
     pathname.startsWith(`${PASSWORD_RESET_PATH}/`) ||
     pathname === "/login/forgot" ||
-    pathname.startsWith("/login/forgot/")
+    pathname.startsWith("/login/forgot/") ||
+    pathname === JAG_PLATFORM_FORGOT_PASSWORD_PATH ||
+    pathname.startsWith(`${JAG_PLATFORM_FORGOT_PASSWORD_PATH}/`) ||
+    pathname === JAG_PLATFORM_RESET_PASSWORD_PATH ||
+    pathname.startsWith(`${JAG_PLATFORM_RESET_PASSWORD_PATH}/`)
   );
 }

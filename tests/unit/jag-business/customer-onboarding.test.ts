@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  authenticateJagPlatform,
   JAG_PLATFORM_HOME_PATH,
   JAG_PLATFORM_LOGIN_PATH,
 } from "@/lib/jag-platform";
@@ -142,21 +141,24 @@ describe("JAG Business — provisioning & login", () => {
     expect(second.ok).toBe(false);
   });
 
-  it("authenticates the provisioned founder and lists their organization", () => {
+  it("lists the provisioned founder organization from a server-derived session", () => {
     const provisioned = provisionOrganization(VALID_WIZARD);
     expect(provisioned.ok).toBe(true);
     if (!provisioned.ok) return;
 
-    const auth = authenticateJagPlatform({
-      email: VALID_WIZARD.email,
-      password: VALID_WIZARD.password,
-    });
-    expect(auth.ok).toBe(true);
-    if (!auth.ok) return;
-    expect(auth.session.role).toBe("FOUNDER");
-    expect(auth.session.email).toBe("ada@northwind.test");
+    // Provisioned plaintext passwords are no longer a login authority.
+    // Org listing uses a session shaped like post-Supabase JAG entitlement.
+    const session: JagPlatformSession = {
+      userId: provisioned.organization.founder.userId,
+      email: provisioned.organization.founder.email,
+      displayName: `${provisioned.organization.founder.firstName} ${provisioned.organization.founder.lastName}`.trim(),
+      role: "FOUNDER",
+      issuedAt: new Date().toISOString(),
+      exp: Date.now() + 60 * 60 * 1000,
+    };
+    expect(session.email).toBe("ada@northwind.test");
 
-    const orgs = listOrganizationsForSession(auth.session);
+    const orgs = listOrganizationsForSession(session);
     expect(orgs).toHaveLength(1);
     expect(orgs[0]?.name).toBe("Northwind Academy");
     expect(orgs[0]?.id).toBe(provisioned.organization.organizationId);
@@ -187,31 +189,37 @@ describe("JAG Business — provisioning & login", () => {
       displayName: "Ada Lovelace",
       role: "FOUNDER",
       issuedAt: new Date().toISOString(),
+      exp: Date.now() + 60 * 60 * 1000,
     };
     const orgs = listOrganizationsForSession(session);
     expect(orgs.some((o) => o.name === "Northwind Academy")).toBe(true);
   });
 
   it("keeps seeded Academy Way for demo accounts only", () => {
-    provisionOrganization(VALID_WIZARD);
+    const provisioned = provisionOrganization(VALID_WIZARD);
+    expect(provisioned.ok).toBe(true);
+    if (!provisioned.ok) return;
+
     const demoSession: JagPlatformSession = {
       userId: "jag-user-founder",
       email: "founder@jag.platform",
       displayName: "JAG Founder",
       role: "FOUNDER",
       issuedAt: new Date().toISOString(),
+      exp: Date.now() + 60 * 60 * 1000,
     };
     const demoOrgs = listOrganizationsForSession(demoSession);
     expect(demoOrgs.some((o) => o.name === "The Academy Way")).toBe(true);
     expect(demoOrgs.some((o) => o.name === "Northwind Academy")).toBe(true);
 
-    const founderAuth = authenticateJagPlatform({
-      email: VALID_WIZARD.email,
-      password: VALID_WIZARD.password,
+    const founderOrgs = listOrganizationsForSession({
+      userId: provisioned.organization.founder.userId,
+      email: provisioned.organization.founder.email,
+      displayName: "Ada Lovelace",
+      role: "FOUNDER",
+      issuedAt: new Date().toISOString(),
+      exp: Date.now() + 60 * 60 * 1000,
     });
-    expect(founderAuth.ok).toBe(true);
-    if (!founderAuth.ok) return;
-    const founderOrgs = listOrganizationsForSession(founderAuth.session);
     expect(founderOrgs.some((o) => o.name === "The Academy Way")).toBe(false);
     expect(founderOrgs).toHaveLength(1);
   });

@@ -1,12 +1,22 @@
 /**
- * JAG Platform session cookie — separate from AcademyOS / Supabase auth.
- * Edge-safe encoding (middleware + Node).
+ * JAG Platform session cookie — HMAC integrity-protected.
+ * Separate from AcademyOS / Supabase auth cookies.
+ * Edge-safe (Web Crypto) for middleware verification.
  */
 
 import type { JagPlatformRole } from "@/lib/jag-platform/roles";
 import { isJagPlatformRole } from "@/lib/jag-platform/roles";
+import { resolveJagSessionSigningSecret } from "@/lib/jag-platform/session-secret";
 
-export const JAG_PLATFORM_SESSION_COOKIE = "jag_platform_session" as const;
+/** Versioned cookie name — legacy unsigned `jag_platform_session` is ignored. */
+export const JAG_PLATFORM_SESSION_COOKIE = "jag_platform_session_v2" as const;
+
+/** Previous unsigned cookie — cleared on logout so it cannot linger. */
+export const JAG_PLATFORM_SESSION_COOKIE_LEGACY = "jag_platform_session" as const;
+
+const SESSION_TOKEN_PREFIX = "v1" as const;
+
+export const JAG_PLATFORM_SESSION_MAX_AGE_SECONDS = 60 * 60 * 12;
 
 export type JagPlatformSession = {
   readonly userId: string;
@@ -14,6 +24,17 @@ export type JagPlatformSession = {
   readonly displayName: string;
   readonly role: JagPlatformRole;
   readonly issuedAt: string;
+  /** Unix ms expiry — required on signed cookie tokens; optional for in-memory fixtures. */
+  readonly exp?: number;
+};
+
+type SessionPayload = {
+  userId: string;
+  email: string;
+  displayName: string;
+  role: JagPlatformRole;
+  issuedAt: string;
+  exp: number;
 };
 
 function toBase64Url(value: string): string {
@@ -37,38 +58,122 @@ function fromBase64Url(raw: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-export function encodeJagPlatformSession(session: JagPlatformSession): string {
-  return toBase64Url(JSON.stringify(session));
+function bytesToBase64Url(bytes: ArrayBuffer): string {
+  const view = new Uint8Array(bytes);
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(view).toString("base64url");
+  }
+  let binary = "";
+  for (const byte of view) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-export function decodeJagPlatformSession(
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) {
+    out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return out === 0;
+}
+
+async function hmacSign(secret: string, payloadB64: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(payloadB64)
+  );
+  return bytesToBase64Url(sig);
+}
+
+function isValidPayload(parsed: Partial<SessionPayload>): parsed is SessionPayload {
+  return (
+    typeof parsed.userId === "string" &&
+    typeof parsed.email === "string" &&
+    typeof parsed.displayName === "string" &&
+    isJagPlatformRole(parsed.role) &&
+    typeof parsed.issuedAt === "string" &&
+    typeof parsed.exp === "number" &&
+    Number.isFinite(parsed.exp)
+  );
+}
+
+/**
+ * Build a signed session token. Fails closed when no signing secret is configured.
+ */
+export async function encodeJagPlatformSession(
+  session: Omit<JagPlatformSession, "exp"> & { exp?: number },
+  maxAgeSeconds = JAG_PLATFORM_SESSION_MAX_AGE_SECONDS
+): Promise<string | null> {
+  const secret = resolveJagSessionSigningSecret();
+  if (!secret) return null;
+
+  const issuedAt = session.issuedAt || new Date().toISOString();
+  const exp =
+    typeof session.exp === "number"
+      ? session.exp
+      : Date.now() + maxAgeSeconds * 1000;
+
+  const payload: SessionPayload = {
+    userId: session.userId,
+    email: session.email,
+    displayName: session.displayName,
+    role: session.role,
+    issuedAt,
+    exp,
+  };
+
+  const payloadB64 = toBase64Url(JSON.stringify(payload));
+  const sig = await hmacSign(secret, payloadB64);
+  return `${SESSION_TOKEN_PREFIX}.${payloadB64}.${sig}`;
+}
+
+/**
+ * Verify signature + expiry. Malformed, unsigned, tampered, or expired → null.
+ */
+export async function decodeJagPlatformSession(
   raw: string | undefined | null
-): JagPlatformSession | null {
+): Promise<JagPlatformSession | null> {
   if (!raw) return null;
+  const secret = resolveJagSessionSigningSecret();
+  if (!secret) return null;
+
   try {
-    const parsed = JSON.parse(fromBase64Url(raw)) as Partial<JagPlatformSession>;
-    if (
-      typeof parsed.userId !== "string" ||
-      typeof parsed.email !== "string" ||
-      typeof parsed.displayName !== "string" ||
-      !isJagPlatformRole(parsed.role) ||
-      typeof parsed.issuedAt !== "string"
-    ) {
-      return null;
-    }
+    const parts = raw.split(".");
+    if (parts.length !== 3) return null;
+    const [prefix, payloadB64, sig] = parts;
+    if (prefix !== SESSION_TOKEN_PREFIX || !payloadB64 || !sig) return null;
+
+    const expected = await hmacSign(secret, payloadB64);
+    if (!safeEqual(expected, sig)) return null;
+
+    const parsed = JSON.parse(fromBase64Url(payloadB64)) as Partial<SessionPayload>;
+    if (!isValidPayload(parsed)) return null;
+    if (Date.now() > parsed.exp) return null;
+
     return {
       userId: parsed.userId,
       email: parsed.email,
       displayName: parsed.displayName,
       role: parsed.role,
       issuedAt: parsed.issuedAt,
+      exp: parsed.exp,
     };
   } catch {
     return null;
   }
 }
 
-export function jagPlatformSessionCookieOptions(maxAgeSeconds = 60 * 60 * 12) {
+export function jagPlatformSessionCookieOptions(
+  maxAgeSeconds = JAG_PLATFORM_SESSION_MAX_AGE_SECONDS
+) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
@@ -78,8 +183,27 @@ export function jagPlatformSessionCookieOptions(maxAgeSeconds = 60 * 60 * 12) {
   };
 }
 
-export function hasJagPlatformSessionCookie(
+export async function hasJagPlatformSessionCookie(
   cookieValue: string | undefined
-): boolean {
-  return decodeJagPlatformSession(cookieValue) !== null;
+): Promise<boolean> {
+  return (await decodeJagPlatformSession(cookieValue)) !== null;
+}
+
+/** Clear both v2 and legacy unsigned cookie names. */
+export function clearJagPlatformSessionCookies(
+  setCookie: (
+    name: string,
+    value: string,
+    options: ReturnType<typeof jagPlatformSessionCookieOptions> & { maxAge: number }
+  ) => void
+): void {
+  const cleared = {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  };
+  setCookie(JAG_PLATFORM_SESSION_COOKIE, "", cleared);
+  setCookie(JAG_PLATFORM_SESSION_COOKIE_LEGACY, "", cleared);
 }

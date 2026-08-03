@@ -7,6 +7,7 @@ import {
   PASSWORD_RESET_PATH,
   userMustResetPassword,
 } from "@/lib/auth/must-reset-password";
+import { JAG_PLATFORM_RESET_PASSWORD_PATH } from "@/lib/jag-platform/auth";
 
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 
@@ -59,9 +60,17 @@ function isPasswordSetupDestination(path: string): boolean {
   return (
     path === PASSWORD_RESET_PATH ||
     path.startsWith(`${PASSWORD_RESET_PATH}/`) ||
+    path === JAG_PLATFORM_RESET_PASSWORD_PATH ||
+    path.startsWith(`${JAG_PLATFORM_RESET_PASSWORD_PATH}/`) ||
     path === ACCOUNT_ACTIVATE_PATH ||
     path.startsWith(`${ACCOUNT_ACTIVATE_PATH}/`)
   );
+}
+
+function passwordResetPathForNext(nextPath: string): string {
+  return nextPath.startsWith("/jag")
+    ? JAG_PLATFORM_RESET_PASSWORD_PATH
+    : PASSWORD_RESET_PATH;
 }
 
 /**
@@ -83,9 +92,10 @@ export function resolveAuthCallbackRedirect(input: {
     return `${ACCOUNT_ACTIVATE_PATH}?next=${encodeURIComponent(destinationAfterPassword)}`;
   }
 
-  // Recovery / forced password change → reset-required.
+  // Recovery / forced password change → AcademyOS or JAG reset UI.
   if (isRecoveryAuthType(input.type) || userMustResetPassword(input.user)) {
-    return `${PASSWORD_RESET_PATH}?next=${encodeURIComponent(destinationAfterPassword)}`;
+    const resetPath = passwordResetPathForNext(destinationAfterPassword);
+    return `${resetPath}?next=${encodeURIComponent(destinationAfterPassword)}`;
   }
 
   return safeNext;

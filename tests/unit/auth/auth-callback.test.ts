@@ -70,6 +70,26 @@ describe("auth-callback helpers", () => {
     ).toBe(`${PASSWORD_RESET_PATH}?next=${encodeURIComponent("/dashboard")}`);
   });
 
+  it("routes JAG recovery next to JAG password reset UI", () => {
+    expect(
+      resolveAuthCallbackRedirect({
+        type: "recovery",
+        next: "/jag/login",
+        user: userWith({}),
+      })
+    ).toBe(`/jag/login/reset?next=${encodeURIComponent("/jag/login")}`);
+  });
+
+  it("E. JAG recovery callback does not mint a JAG portal path as final destination", () => {
+    const path = resolveAuthCallbackRedirect({
+      type: "recovery",
+      next: "/jag/login",
+      user: userWith({}),
+    });
+    expect(path.startsWith("/jag/login/reset")).toBe(true);
+    expect(path.startsWith("/jag?") || path === "/jag").toBe(false);
+  });
+
   it("routes invite_activation metadata to activation even without type", () => {
     expect(
       resolveAuthCallbackRedirect({
