@@ -12,6 +12,10 @@ function safeNextPath(raw: string | null): string {
   return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/dashboard";
 }
 
+function loginPathForNext(nextPath: string): string {
+  return nextPath.startsWith("/jag") ? "/jag/login" : "/login";
+}
+
 export default function MfaRequiredForm() {
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
@@ -34,7 +38,8 @@ export default function MfaRequiredForm() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        window.location.href = `/login?next=${encodeURIComponent(nextPath)}`;
+        const login = loginPathForNext(nextPath);
+        window.location.href = `${login}?next=${encodeURIComponent(nextPath)}`;
         return;
       }
 
@@ -154,7 +159,7 @@ export default function MfaRequiredForm() {
         </p>
         <div className="mt-6">
           <Link
-            href="/login"
+            href={loginPathForNext(nextPath)}
             className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
           >
             Return to login
@@ -238,7 +243,10 @@ export default function MfaRequiredForm() {
       )}
 
       <div className="mt-6">
-        <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+        <Link
+          href={loginPathForNext(nextPath)}
+          className="text-sm font-medium text-slate-600 hover:text-slate-900"
+        >
           Return to login
         </Link>
       </div>

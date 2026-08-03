@@ -215,6 +215,33 @@ export function renderPasswordResetEmail(input: {
   });
 }
 
+/**
+ * JAG portal password reset — fixed JAG product copy (not AcademyOS / tenant school branding).
+ */
+export function renderJagPasswordResetEmail(input: {
+  brand: OrganizationEmailBrand;
+  actionUrl: string;
+  recipientName?: string | null;
+}): RenderedAuthEmail {
+  const g = greeting(input.recipientName);
+  return renderShell({
+    kind: "password_reset",
+    brand: input.brand,
+    subject: "Reset your The JAG™ password",
+    title: "Reset your password",
+    paragraphs: [
+      escapeHtml(g),
+      "A password reset was requested for your The JAG™ Executive Intelligence Platform account.",
+      "Use the button below to choose a new password. This link expires for your security.",
+      "After you reset your password, sign in again on The JAG™ login page. Resetting your password does not grant platform access by itself.",
+    ],
+    ctaLabel: "Reset password",
+    ctaHref: input.actionUrl,
+    footerNote:
+      "If you did not request this, you can ignore this email.",
+  });
+}
+
 export function renderVerifyEmail(input: {
   brand: OrganizationEmailBrand;
   actionUrl: string;

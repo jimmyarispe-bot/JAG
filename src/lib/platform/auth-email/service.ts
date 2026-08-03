@@ -1,4 +1,5 @@
 import {
+  jagPlatformPasswordResetEmailBrand,
   loadEmailBrandForUserEmail,
   loadOrganizationEmailBrand,
   platformDefaultEmailBrand,
@@ -14,6 +15,7 @@ import {
   renderAccountActivatedEmail,
   renderEmailChangedEmail,
   renderInvitationEmail,
+  renderJagPasswordResetEmail,
   renderPasswordResetEmail,
   renderVerifyEmail,
 } from "@/lib/platform/auth-email/templates";
@@ -199,6 +201,11 @@ export async function requestPasswordResetViaAuthEmail(input: {
   /** Explicit trusted app origin (already validated) or raw client origin hint. */
   appUrl?: string | null;
   originHint?: string | null;
+  /**
+   * `jag` — JAG portal recovery branding/copy (The JAG™ Executive Intelligence Platform).
+   * Default — existing AcademyOS / tenant org branding (unchanged).
+   */
+  brandProfile?: "default" | "jag";
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const email = input.email.trim().toLowerCase();
   if (!email.includes("@")) {
@@ -256,18 +263,22 @@ export async function requestPasswordResetViaAuthEmail(input: {
       next,
     });
 
-    const brand = await loadEmailBrandForUserEmail(email);
+    const recipientName =
+      profile.full_name ||
+      (authUser.userMetadata.full_name as string | undefined) ||
+      null;
+    const brand =
+      input.brandProfile === "jag"
+        ? jagPlatformPasswordResetEmailBrand()
+        : await loadEmailBrandForUserEmail(email);
+    const rendered =
+      input.brandProfile === "jag"
+        ? renderJagPasswordResetEmail({ brand, actionUrl, recipientName })
+        : renderPasswordResetEmail({ brand, actionUrl, recipientName });
     const mail = await deliver({
       brand,
       to: recoveryEmail,
-      rendered: renderPasswordResetEmail({
-        brand,
-        actionUrl,
-        recipientName:
-          profile.full_name ||
-          (authUser.userMetadata.full_name as string | undefined) ||
-          null,
-      }),
+      rendered,
     });
 
     if (!mail.success) {

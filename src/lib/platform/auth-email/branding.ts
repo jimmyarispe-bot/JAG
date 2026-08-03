@@ -216,3 +216,29 @@ export async function loadEmailBrandForUserEmail(
 
 /** @internal test helper — platform name constant for docs/assertions */
 export const AUTH_EMAIL_PLATFORM_NAME = PLATFORM_NAME;
+
+/** Product label for JAG portal password-recovery mail (not AcademyOS). */
+export const JAG_EXECUTIVE_PLATFORM_EMAIL_LABEL =
+  "The JAG™ Executive Intelligence Platform" as const;
+
+/**
+ * Explicit JAG portal email brand for forgot-password from /jag/login/forgot.
+ * Does not load tenant AcademyOS org branding (avoids AcademyOS copy/logo).
+ */
+export function jagPlatformPasswordResetEmailBrand(): OrganizationEmailBrand {
+  const fromAddress = resolveEmailFrom();
+  return {
+    applicationKey: "jag",
+    applicationName: JAG_EXECUTIVE_PLATFORM_EMAIL_LABEL,
+    organizationId: "platform-jag",
+    displayName: JAG_EXECUTIVE_PLATFORM_EMAIL_LABEL,
+    logoUrl: "",
+    primaryColor: PLATFORM_PRIMARY,
+    secondaryColor: "#334155",
+    replyTo: null,
+    fromName: "The JAG™",
+    fromAddress,
+    supportEmail: fromAddress,
+    website: "https://www.thejag.org",
+  };
+}

@@ -2,8 +2,13 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
+import {
+  isAal2RequiredErrorMessage,
+  jagPasswordResetMfaRequiredPath,
+  passwordUpdateRequiresMfaStepUp,
+} from "@/lib/jag-platform/password-reset-mfa";
 import {
   POWERED_BY_LINE,
   type OrganizationBrand,
@@ -15,7 +20,6 @@ export function JagResetPasswordForm({
 }: {
   readonly brand: OrganizationBrand;
 }) {
-  const supabase = createClient();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? JAG_PLATFORM_LOGIN_PATH;
 
@@ -23,6 +27,38 @@ export function JagResetPasswordForm({
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [checkingMfa, setCheckingMfa] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled) return;
+
+      if (!user) {
+        window.location.href = JAG_PLATFORM_LOGIN_PATH;
+        return;
+      }
+
+      const needsStepUp = await passwordUpdateRequiresMfaStepUp(supabase);
+      if (cancelled) return;
+
+      if (needsStepUp) {
+        // Preserve recovery cookies; existing MFA UI upgrades AAL then returns here.
+        window.location.href = jagPasswordResetMfaRequiredPath(nextPath);
+        return;
+      }
+
+      setCheckingMfa(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [nextPath]);
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -38,12 +74,24 @@ export function JagResetPasswordForm({
     }
 
     setLoading(true);
+    const supabase = createClient();
+
+    const needsStepUp = await passwordUpdateRequiresMfaStepUp(supabase);
+    if (needsStepUp) {
+      window.location.href = jagPasswordResetMfaRequiredPath(nextPath);
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({
       password,
       data: { must_reset_password: false },
     });
 
     if (error) {
+      if (isAal2RequiredErrorMessage(error.message)) {
+        window.location.href = jagPasswordResetMfaRequiredPath(nextPath);
+        return;
+      }
       setMessage(error.message);
       setLoading(false);
       return;
@@ -62,6 +110,14 @@ export function JagResetPasswordForm({
 
   const logoSrc = brand.light_logo_url || brand.dark_logo_url;
   const accent = brand.primary_color || "#0F172A";
+
+  if (checkingMfa) {
+    return (
+      <main className="mx-auto mt-16 w-full max-w-md rounded-2xl border border-white/10 bg-white/95 p-8 shadow-lg backdrop-blur">
+        <p className="text-sm text-slate-600">Checking security requirements…</p>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto mt-16 w-full max-w-md rounded-2xl border border-white/10 bg-white/95 p-8 shadow-lg backdrop-blur">

@@ -50,5 +50,6 @@ export async function requestJagPasswordResetAction(input: {
     email,
     next: JAG_PLATFORM_LOGIN_PATH,
     originHint: input.originHint,
+    brandProfile: "jag",
   });
 }
