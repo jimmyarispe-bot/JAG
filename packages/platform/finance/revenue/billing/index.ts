@@ -50,10 +50,7 @@ export function billCustomer(input: {
     subscriptionId: input.subscriptionId,
     fundingSourceId: input.fundingSourceId,
     dueAt: input.dueAt,
-    deferredAmount:
-      input.mode === "subscription" || input.mode === "recurring"
-        ? amount
-        : 0,
+    deferredAmount: input.mode === "recurring" ? amount : 0,
   });
 }
 

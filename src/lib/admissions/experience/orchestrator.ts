@@ -307,10 +307,17 @@ export function createAdmissionsExperienceOrchestrator() {
         first_name: string;
         last_name: string;
         email?: string | null;
+        relationship?: string;
       }[];
       organizationName?: string;
     }) {
-      const result = await inviteParentPortalGuardians(input);
+      const result = await inviteParentPortalGuardians({
+        ...input,
+        guardians: input.guardians.map((g) => ({
+          ...g,
+          relationship: g.relationship ?? "parent",
+        })),
+      });
       publishAdmissionsExperienceEvent({
         type: "admissions.parent_onboarding",
         organizationId: input.organizationId,

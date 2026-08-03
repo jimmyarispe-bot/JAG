@@ -43,6 +43,7 @@ export function createResendEmailProvider(apiKey: string): EmailProvider {
           to: recipients,
           subject: params.subject,
           html: asHtml(params.body),
+          ...(params.text?.trim() ? { text: params.text } : {}),
           ...(params.replyTo ? { replyTo: params.replyTo } : {}),
         });
 

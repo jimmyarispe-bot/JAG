@@ -24,7 +24,9 @@ import {
 } from "../aos";
 import type { DemoOrganizationSeed, OperationsRunOptions } from "../types";
 
-function ok<T extends object>(value: T | { error: string }): value is T {
+function ok<T extends object>(
+  value: T | null | undefined
+): value is Exclude<T, { error: string }> {
   return value != null && !("error" in value);
 }
 

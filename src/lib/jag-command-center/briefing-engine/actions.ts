@@ -32,7 +32,7 @@ export type GenerateBriefingResult =
   | { ok: true; briefingId: string }
   | { ok: false; error: string };
 
-type ActionResult<T = void> =
+type ActionResult<T extends object = object> =
   | ({ ok: true } & T)
   | { ok: false; error: string };
 

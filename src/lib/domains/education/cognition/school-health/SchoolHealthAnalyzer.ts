@@ -12,7 +12,7 @@ import type {
   SchoolHealthStance,
 } from "./SchoolHealthTypes";
 
-export interface UpstreamSlice {
+interface UpstreamSlice {
   contributorId: string;
   readiness: EducationContributorResult["readiness"];
   confidence: number;
@@ -163,17 +163,14 @@ export function analyzeSchoolHealth(
   }
 
   const readyCount = present.filter((p) => p.readiness === "ready").length;
-  const healthScore =
-    stance === "insufficient"
-      ? 0
-      : Math.max(
-          0,
-          Math.min(
-            1,
-            readyCount / Math.max(present.length, 1) -
-              (stance === "critical" ? 0.45 : stance === "at_risk" ? 0.25 : 0)
-          )
-        );
+  const healthScore = Math.max(
+    0,
+    Math.min(
+      1,
+      readyCount / Math.max(present.length, 1) -
+        (stance === "critical" ? 0.45 : stance === "at_risk" ? 0.25 : 0)
+    )
+  );
 
   const healthIndicators = [
     `stance:${stance}`,

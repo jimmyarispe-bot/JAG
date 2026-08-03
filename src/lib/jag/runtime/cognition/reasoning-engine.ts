@@ -4,7 +4,10 @@ import {
   type ProviderFailedPayload,
   type ReasoningCompletedPayload,
 } from "./cognition-events";
-import type { CognitiveProvider } from "./cognitive-provider";
+import type {
+  CognitiveProvider,
+  CognitiveRecommendationDraft,
+} from "./cognitive-provider";
 import type { CognitiveConflictResolver } from "./conflict-resolver";
 import { createConflictResolver } from "./conflict-resolver";
 import type { EvidenceCollector } from "./evidence-collector";
@@ -135,7 +138,9 @@ export class ReasoningEngine {
       at: new Date().toISOString(),
     });
 
-    const drafts: Parameters<RecommendationEngine["normalize"]>[0] = [];
+    const drafts: (CognitiveRecommendationDraft & {
+      sourceProviderId: string;
+    })[] = [];
     for (const provider of providers) {
       if (request.signal?.aborted) break;
       if (provider.supports && !provider.supports(request)) continue;

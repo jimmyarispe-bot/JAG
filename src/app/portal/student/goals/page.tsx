@@ -53,7 +53,13 @@ function GoalSection({
   goals,
 }: {
   title: string;
-  goals: { id: string; title: string; description?: string | null; progress_pct?: number | null; status?: string | null }[];
+  goals: {
+    id: string;
+    title: string;
+    description?: string | null;
+    progress_pct?: string | number | null;
+    status?: string | null;
+  }[];
 }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">

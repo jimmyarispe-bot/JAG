@@ -12,7 +12,7 @@ import type {
   OperationalReadinessStance,
 } from "./OperationalReadinessTypes";
 
-export interface UpstreamSlice {
+interface UpstreamSlice {
   contributorId: string;
   readiness: EducationContributorResult["readiness"];
   confidence: number;

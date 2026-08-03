@@ -36,6 +36,6 @@ async function ReadinessContent() {
   const session = await getJagPlatformSession();
   if (!session) redirect(JAG_PLATFORM_LOGIN_PATH);
 
-  const model = loadReadinessWorkspace();
+  const model = await loadReadinessWorkspace();
   return <JagReadinessView model={model} />;
 }

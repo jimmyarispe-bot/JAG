@@ -1540,7 +1540,8 @@ function answerExplainability(
   const top = ctx.openDecisions
     .slice()
     .sort((a, b) => a.priorityRank - b.priorityRank)[0];
-  const alerts = WatcherService.listOpen(ctx.organizationId);
+  const orgId = ctx.organizationId ?? undefined;
+  const alerts = WatcherService.listOpen(orgId);
   const alert = alerts[0] ?? null;
 
   if (!top && !alert) {
@@ -1563,9 +1564,10 @@ function answerExplainability(
     );
   }
 
+  const organizationId = ctx.organizationId ?? "";
   const subject = top
     ? ExplanationService.explainDecision({
-        organizationId: ctx.organizationId,
+        organizationId,
         decisionId: top.id,
         title: top.title,
         rationale: top.recommendedAction,
@@ -1573,7 +1575,7 @@ function answerExplainability(
         contributorId: top.contributorLabel,
       })
     : ExplanationService.explainAlert({
-        organizationId: ctx.organizationId,
+        organizationId,
         alertId: alert!.id,
         title: alert!.title,
         summary: alert!.summary,

@@ -18,7 +18,7 @@ export interface EducationRelationshipDefinition {
   predicate: string;
   /** Optional inverse predicate. */
   inversePredicate?: string;
-  cardinality?: "one_to_one" | "one_to_many" | "many_to_many";
+  cardinality?: "one_to_one" | "one_to_many" | "many_to_one" | "many_to_many";
 }
 
 export const EDUCATION_RELATIONSHIP_IDS = {

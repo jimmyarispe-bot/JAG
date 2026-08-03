@@ -357,7 +357,10 @@ export function ingestKnowledgeSources(input?: {
       if (
         svc.ownerPackage &&
         svc.ownerPackage === api.ownerPackage &&
-        (api.path.toLowerCase().includes(svc.label.toLowerCase().replace(/service$/i, "")) ||
+        api.path != null &&
+        (api.path
+          .toLowerCase()
+          .includes(svc.label.toLowerCase().replace(/service$/i, "")) ||
           api.keywords.some((k) => svc.keywords.includes(k)))
       ) {
         addE(

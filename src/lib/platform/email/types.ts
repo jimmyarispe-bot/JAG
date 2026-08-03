@@ -18,6 +18,8 @@ export type SendEmailParams = {
   subject: string;
   /** HTML or plain text; newlines become <br> when treated as plain. */
   body: string;
+  /** Optional plain-text multipart fallback (auth-email / AcademyOS). */
+  text?: string;
   from?: string;
   fromName?: string;
   replyTo?: string;

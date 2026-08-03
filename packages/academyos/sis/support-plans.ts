@@ -117,7 +117,7 @@ export function createSupportPlansService() {
       if (
         !input.status &&
         input.reviewDate &&
-        Date.parse(input.reviewDate) < now.getTime()
+        Date.parse(input.reviewDate) < Date.parse(now)
       ) {
         status = "Review Due";
       }

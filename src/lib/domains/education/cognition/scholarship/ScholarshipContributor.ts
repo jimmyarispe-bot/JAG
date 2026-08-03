@@ -72,7 +72,7 @@ export function runScholarshipIntelligence(
   );
   return {
     ...result,
-    studentId: result.subjectId,
+    subjectId: result.subjectId,
     eligibleCount: analysis.eligibleIds.length,
     renewalRiskCount: analysis.renewalRiskIds.length,
   };

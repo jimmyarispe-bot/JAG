@@ -134,8 +134,8 @@ function roundMs(n: number): number {
 }
 
 export function isOk<T extends object>(
-  value: T | { error: string } | null | undefined
-): value is T {
+  value: T | null | undefined
+): value is Exclude<T, { error: string }> {
   if (value == null) return false;
   return !("error" in value);
 }

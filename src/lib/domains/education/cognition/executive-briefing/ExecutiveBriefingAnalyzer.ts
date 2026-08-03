@@ -12,7 +12,7 @@ import type {
   ExecutiveBriefingStance,
 } from "./ExecutiveBriefingTypes";
 
-export interface UpstreamSlice {
+interface UpstreamSlice {
   contributorId: string;
   readiness: EducationContributorResult["readiness"];
   confidence: number;

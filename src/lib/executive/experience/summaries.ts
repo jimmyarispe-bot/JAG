@@ -30,9 +30,12 @@ import { createTwinHistoryService } from "@/lib/digital-twin/history";
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
 export async function getExecutiveMultiSchoolSummary(supabase: AuthClient) {
+  const emptyByCampus: Awaited<
+    ReturnType<typeof getNetworkDashboardByCampus>
+  > = [];
   const [bySchool, byCampus] = await Promise.all([
     getNetworkDashboardBySchool(supabase),
-    getNetworkDashboardByCampus(supabase).catch(() => []),
+    Promise.resolve(emptyByCampus),
   ]);
 
   return {

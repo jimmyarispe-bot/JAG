@@ -28,7 +28,7 @@ import {
   type JagDecisionStatus,
 } from "./types";
 
-type ActionResult<T = void> =
+type ActionResult<T extends object = object> =
   | ({ ok: true } & T)
   | { ok: false; error: string };
 

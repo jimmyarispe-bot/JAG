@@ -22,7 +22,7 @@ export function InterviewDecisionPanel({
 }) {
   const [error, setError] = useState<string | null>(null);
   const action = useActionFeedback({
-    verb: "schedule",
+    verb: "custom",
     successToast: "Interview scheduled",
     errorToast: "Unable to schedule.",
     onError: (err) => setError(err.message),
@@ -84,7 +84,7 @@ export function InterviewDecisionPanel({
       <ActionButton
         type="submit"
         status={action.status}
-        verb="schedule"
+        verb="custom"
         labels={{ idle: "Schedule interview", loading: "Scheduling…", success: "✓ Scheduled" }}
         errorMessage={action.errorMessage}
       />

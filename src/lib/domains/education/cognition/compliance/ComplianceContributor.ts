@@ -73,7 +73,7 @@ export function runComplianceIntelligence(
   );
   return {
     ...result,
-    studentId: result.subjectId,
+    subjectId: result.subjectId,
     violationCount: analysis.violatedObligationIds.length,
     outstandingCount: analysis.outstandingObligationIds.length,
   };

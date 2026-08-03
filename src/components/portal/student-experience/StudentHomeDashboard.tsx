@@ -133,7 +133,7 @@ export function StudentHomeDashboard({
 
       <StudentAssignmentsDeadlinesWidget
         dueToday={deadlines.today}
-        dueTomorrow={deadlines.dueTomorrow}
+        dueTomorrow={deadlines.dueTomorrow ?? []}
         upcoming={deadlines.upcoming ?? [...deadlines.thisWeek, ...deadlines.next30Days]}
         overdue={deadlines.overdue}
         completed={deadlines.completed ?? []}

@@ -4,9 +4,16 @@
 
 import type { MonitoringReport, OperationsDashboard } from "./types";
 
+type MonitorTrendPoint = {
+  at: string;
+  errorRate: number;
+  apiLatencyMs: number;
+  overallStatus: MonitoringReport["trend"][number]["overallStatus"];
+};
+
 const g = globalThis as typeof globalThis & {
   __jagAcademyOsOpsDashboard?: OperationsDashboard | null;
-  __jagAcademyOsOpsMonitorTrend?: MonitoringReport["trend"];
+  __jagAcademyOsOpsMonitorTrend?: MonitorTrendPoint[];
 };
 
 export function resetOperationsStoreForTests(): void {

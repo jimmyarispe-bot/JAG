@@ -3,8 +3,11 @@
  * Maps the product descriptor onto Platform SDK ExtensionManifest.
  */
 
-import type { ExtensionManifest } from "@/lib/platform-sdk";
-import type { PermissionDefinition } from "@/lib/platform-sdk";
+import type {
+  ExtensionConfigSchema,
+  ExtensionManifest,
+  PermissionDefinition,
+} from "@/lib/platform-sdk";
 
 export const ACADEMYOS_PACK_ID = "academyos" as const;
 export const ACADEMYOS_PACK_VERSION = "1.0.0" as const;
@@ -97,6 +100,22 @@ export const ACADEMYOS_TWIN_ENTITY_LABELS = [
   "AcademyOS Session (Event)",
 ] as const;
 
+const ACADEMYOS_CONFIGURATION_SCHEMA: ExtensionConfigSchema = {
+  type: "object",
+  properties: {
+    schoolYear: {
+      type: "string",
+      description: "Default school year label (e.g. 2026-2027)",
+      required: false,
+    },
+    timezone: {
+      type: "string",
+      description: "Default school timezone",
+      required: false,
+    },
+  },
+};
+
 export const ACADEMYOS_EXTENSION_MANIFEST: ExtensionManifest = Object.freeze({
   id: ACADEMYOS_PACK_ID,
   name: "AcademyOS",
@@ -127,19 +146,5 @@ export const ACADEMYOS_EXTENSION_MANIFEST: ExtensionManifest = Object.freeze({
     "academyos.billing",
     "academyos.intelligence",
   ],
-  configurationSchema: {
-    type: "object",
-    properties: {
-      schoolYear: {
-        type: "string",
-        description: "Default school year label (e.g. 2026-2027)",
-        required: false,
-      },
-      timezone: {
-        type: "string",
-        description: "Default school timezone",
-        required: false,
-      },
-    },
-  },
+  configurationSchema: ACADEMYOS_CONFIGURATION_SCHEMA,
 });

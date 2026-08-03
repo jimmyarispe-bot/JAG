@@ -72,6 +72,7 @@ export type {
   AdjustmentKind,
   ApproverStage,
   MatchCardinality,
+  ReconciliationAccountKind,
   ReconciliationException,
   ReconciliationMatch,
   ReconciliationPeriod,

@@ -12,7 +12,7 @@ export default function AdmissionsExperienceHubPage() {
     <div className="space-y-8 p-6">
       <PageHeader
         title="Admissions Experience"
-        description="Wave 1.1 product orchestration over Identity, Knowledge, Finance, Workflow, Learning Intelligence, Twin, Evidence, and Memory — no parallel engines."
+        subtitle="Wave 1.1 product orchestration over Identity, Knowledge, Finance, Workflow, Learning Intelligence, Twin, Evidence, and Memory — no parallel engines."
       />
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">

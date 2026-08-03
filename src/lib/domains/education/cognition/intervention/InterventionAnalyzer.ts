@@ -37,7 +37,7 @@ export interface InterventionAnalysis {
   };
 }
 
-export interface UpstreamSlice {
+interface UpstreamSlice {
   contributorId: string;
   readiness: EducationContributorResult["readiness"];
   confidence: number;

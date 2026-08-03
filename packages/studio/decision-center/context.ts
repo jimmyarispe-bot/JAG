@@ -101,16 +101,11 @@ export function buildDecisionEvidenceContext(
     productId: "academyos",
     targetStage: "RC-3",
     root: resolved,
-    gates: academyGates,
-    coverage,
-    policies,
   });
 
   const academyRecommendations = generateKnowledgeRecommendations({
     root: resolved,
     productId: "academyos",
-    coverage,
-    readiness: academyReadiness,
   });
 
   // Quality proxy from shared evidence (avoid re-scanning via computeProductQualityScore).

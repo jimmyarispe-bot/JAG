@@ -1,5 +1,8 @@
-import type { ExtensionManifest } from "@/lib/platform-sdk";
-import type { PermissionDefinition } from "@/lib/platform-sdk";
+import type {
+  ExtensionConfigSchema,
+  ExtensionManifest,
+  PermissionDefinition,
+} from "@/lib/platform-sdk";
 
 export const STUDIO_PACK_ID = "jag-studio" as const;
 export const STUDIO_PACK_VERSION = "1.0.0" as const;
@@ -51,6 +54,17 @@ const PERMISSIONS: readonly PermissionDefinition[] = Object.freeze([
   },
 ]);
 
+const STUDIO_CONFIGURATION_SCHEMA: ExtensionConfigSchema = {
+  type: "object",
+  properties: {
+    repositoryRoot: {
+      type: "string",
+      required: false,
+      description: "Absolute path override for repository scanning",
+    },
+  },
+};
+
 export const STUDIO_EXTENSION_MANIFEST: ExtensionManifest = Object.freeze({
   id: STUDIO_PACK_ID,
   name: "JAG Studio",
@@ -65,14 +79,5 @@ export const STUDIO_EXTENSION_MANIFEST: ExtensionManifest = Object.freeze({
   digitalTwinEntities: [],
   connectorDependencies: [],
   featureFlags: ["studio.enabled"],
-  configurationSchema: {
-    type: "object",
-    properties: {
-      repositoryRoot: {
-        type: "string",
-        required: false,
-        description: "Absolute path override for repository scanning",
-      },
-    },
-  },
+  configurationSchema: STUDIO_CONFIGURATION_SCHEMA,
 });

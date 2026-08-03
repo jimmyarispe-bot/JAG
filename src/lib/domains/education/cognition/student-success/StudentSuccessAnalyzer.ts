@@ -37,7 +37,7 @@ export interface StudentSuccessAnalysis {
   };
 }
 
-export interface UpstreamSlice {
+interface UpstreamSlice {
   contributorId: string;
   readiness: EducationContributorResult["readiness"];
   confidence: number;
@@ -322,6 +322,6 @@ function knowledgeRefs() {
   };
 }
 
-function unique(values: string[]): string[] {
+function unique<T extends string>(values: T[]): T[] {
   return [...new Set(values)];
 }
