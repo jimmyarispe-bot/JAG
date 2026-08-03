@@ -7,6 +7,7 @@ import {
   JAG_PLATFORM_FORGOT_PASSWORD_PATH,
   JAG_PLATFORM_HOME_PATH,
 } from "@/lib/jag-platform/auth";
+import { requestJagMagicLinkAction } from "@/lib/platform/identity/magic-link-actions";
 import {
   POWERED_BY_LINE,
   type OrganizationBrand,
@@ -25,8 +26,10 @@ export function JagLoginForm({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [mode, setMode] = useState<"password" | "magic">("password");
+  const [magicSent, setMagicSent] = useState(false);
 
-  const onSubmit = async (event: React.FormEvent) => {
+  const onPasswordSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
     setMessage("");
@@ -65,7 +68,27 @@ export function JagLoginForm({
     router.refresh();
   };
 
+  const onMagicSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    const result = await requestJagMagicLinkAction({
+      email: email.trim(),
+      originHint: window.location.origin,
+      next: nextPath.startsWith("/jag") ? nextPath : JAG_PLATFORM_HOME_PATH,
+    });
+
+    setLoading(false);
+    if (!result.ok) {
+      setMessage(result.error);
+      return;
+    }
+    setMagicSent(true);
+  };
+
   const logoSrc = brand.light_logo_url || brand.dark_logo_url;
+  const accent = brand.primary_color || "#0F172A";
 
   return (
     <main className="mx-auto mt-16 w-full max-w-md rounded-2xl border border-white/10 bg-white/95 p-8 shadow-lg backdrop-blur">
@@ -87,61 +110,151 @@ export function JagLoginForm({
         {brand.display_name} Executive Intelligence Platform
       </p>
 
-      <form
-        onSubmit={onSubmit}
-        className="mt-6 space-y-4"
-        aria-label={`Sign in to ${brand.display_name}`}
-      >
-        <label className="block text-sm">
-          <span className="text-slate-700">Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            required
-            autoComplete="username"
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-slate-700">Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            required
-            autoComplete="current-password"
-          />
-        </label>
-        <p className="text-right text-sm">
-          <Link
-            href={JAG_PLATFORM_FORGOT_PASSWORD_PATH}
-            className="font-medium hover:underline"
-            style={{ color: brand.primary_color || "#0F172A" }}
-          >
-            Forgot password?
-          </Link>
+      {searchParams.get("error") === "auth_callback_failed" ? (
+        <p className="mt-4 text-sm text-red-600" role="alert">
+          That sign-in link is invalid or expired. Request a new magic link or
+          sign in with your password.
         </p>
-        {message ? (
-          <p className="text-sm text-red-600" role="alert">
-            {message}
-          </p>
-        ) : null}
-        {searchParams.get("reset") === "success" ? (
-          <p className="text-sm text-emerald-700" role="status">
-            Password updated. Sign in with your new password.
-          </p>
-        ) : null}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60"
-          style={{ backgroundColor: brand.primary_color || "#0F172A" }}
+      ) : null}
+
+      {mode === "password" ? (
+        <form
+          onSubmit={onPasswordSubmit}
+          className="mt-6 space-y-4"
+          aria-label={`Sign in to ${brand.display_name}`}
         >
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
+          <label className="block text-sm">
+            <span className="text-slate-700">Email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              required
+              autoComplete="username"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-slate-700">Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              required
+              autoComplete="current-password"
+            />
+          </label>
+          <p className="text-right text-sm">
+            <Link
+              href={JAG_PLATFORM_FORGOT_PASSWORD_PATH}
+              className="font-medium hover:underline"
+              style={{ color: accent }}
+            >
+              Forgot password?
+            </Link>
+          </p>
+          {message ? (
+            <p className="text-sm text-red-600" role="alert">
+              {message}
+            </p>
+          ) : null}
+          {searchParams.get("reset") === "success" ? (
+            <p className="text-sm text-emerald-700" role="status">
+              Password updated. Sign in with your new password.
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-md px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+            style={{ backgroundColor: accent }}
+          >
+            {loading ? "Signing in…" : "Sign in"}
+          </button>
+          <p className="text-center text-sm text-slate-600">
+            <button
+              type="button"
+              className="font-medium hover:underline"
+              style={{ color: accent }}
+              onClick={() => {
+                setMode("magic");
+                setMessage("");
+                setMagicSent(false);
+              }}
+            >
+              Send a magic link
+            </button>
+          </p>
+        </form>
+      ) : magicSent ? (
+        <div className="mt-6 space-y-4">
+          <p className="text-sm text-slate-700" role="status">
+            If an account exists for that email, a sign-in link has been sent.
+            Check your inbox and open the link to continue.
+          </p>
+          <button
+            type="button"
+            className="w-full rounded-md border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-800"
+            onClick={() => {
+              setMode("password");
+              setMagicSent(false);
+              setMessage("");
+            }}
+          >
+            Back to password sign in
+          </button>
+        </div>
+      ) : (
+        <form
+          onSubmit={onMagicSubmit}
+          className="mt-6 space-y-4"
+          aria-label="Send a magic link"
+        >
+          <p className="text-sm text-slate-600">
+            We&apos;ll email a one-time sign-in link for The JAG™ Executive
+            Intelligence Platform. You may still need multi-factor authentication
+            after opening the link.
+          </p>
+          <label className="block text-sm">
+            <span className="text-slate-700">Email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              required
+              autoComplete="username"
+            />
+          </label>
+          {message ? (
+            <p className="text-sm text-red-600" role="alert">
+              {message}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-md px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+            style={{ backgroundColor: accent }}
+          >
+            {loading ? "Sending…" : "Send a magic link"}
+          </button>
+          <p className="text-center text-sm text-slate-600">
+            <button
+              type="button"
+              className="font-medium hover:underline"
+              style={{ color: accent }}
+              onClick={() => {
+                setMode("password");
+                setMessage("");
+              }}
+            >
+              Sign in with password
+            </button>
+          </p>
+        </form>
+      )}
 
       {brand.powered_by_enabled ? (
         <p className="mt-6 text-center text-xs text-slate-500">

@@ -7,7 +7,13 @@ import {
   PASSWORD_RESET_PATH,
   userMustResetPassword,
 } from "@/lib/auth/must-reset-password";
-import { JAG_PLATFORM_RESET_PASSWORD_PATH } from "@/lib/jag-platform/auth";
+import {
+  JAG_PLATFORM_HOME_PATH,
+  JAG_PLATFORM_RESET_PASSWORD_PATH,
+} from "@/lib/jag-platform/auth";
+
+/** Keep in sync with `JAG_SESSION_ESTABLISH_PATH` in jag-platform/login.ts */
+const JAG_SESSION_ESTABLISH_PATH = "/api/jag-platform/auth/establish" as const;
 
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 
@@ -56,6 +62,41 @@ export function isRecoveryAuthType(type: string | null | undefined): boolean {
   return type === "recovery";
 }
 
+export function isMagicLinkAuthType(type: string | null | undefined): boolean {
+  return type === "magiclink";
+}
+
+/**
+ * Explicit JAG portal context on auth callback `next` (never inferred from host alone).
+ * Used so magic-link / shared callback can branch without converting AcademyOS defaults.
+ */
+export function isJagAuthCallbackContext(
+  next: string | null | undefined
+): boolean {
+  if (!next) return false;
+  const trimmed = next.trim();
+  if (
+    !trimmed.startsWith("/") ||
+    trimmed.startsWith("//") ||
+    trimmed.includes("://")
+  ) {
+    return false;
+  }
+  return trimmed.startsWith("/jag");
+}
+
+/** After magiclink verify: entitlement + MFA via establish (no JAG cookie yet). */
+export function jagMagicLinkEstablishPath(
+  next: string | null | undefined
+): string {
+  const safe = safeInternalPath(next, JAG_PLATFORM_HOME_PATH);
+  const destination =
+    safe.startsWith("/jag") && !safe.startsWith("//")
+      ? safe
+      : JAG_PLATFORM_HOME_PATH;
+  return `${JAG_SESSION_ESTABLISH_PATH}?next=${encodeURIComponent(destination)}`;
+}
+
 function isPasswordSetupDestination(path: string): boolean {
   return (
     path === PASSWORD_RESET_PATH ||
@@ -96,6 +137,14 @@ export function resolveAuthCallbackRedirect(input: {
   if (isRecoveryAuthType(input.type) || userMustResetPassword(input.user)) {
     const resetPath = passwordResetPathForNext(destinationAfterPassword);
     return `${resetPath}?next=${encodeURIComponent(destinationAfterPassword)}`;
+  }
+
+  // JAG magic link → establish (JAG_ACCESS + MFA + session). Never /dashboard.
+  if (
+    isMagicLinkAuthType(input.type) &&
+    isJagAuthCallbackContext(input.next)
+  ) {
+    return jagMagicLinkEstablishPath(input.next);
   }
 
   return safeNext;

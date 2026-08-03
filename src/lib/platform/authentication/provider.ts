@@ -63,6 +63,12 @@ export interface AuthenticationProvider {
     options?: GenerateLinkOptions
   ): Promise<AuthResult<GenerateLinkResult>>;
 
+  /** Admin: magic-link token (no email send). */
+  generateMagicLink(
+    email: string,
+    options?: GenerateLinkOptions
+  ): Promise<AuthResult<GenerateLinkResult>>;
+
   createUser(input: CreateAuthUserInput): Promise<AuthResult<AuthUser>>;
 
   deleteUser(userId: string): Promise<AuthResult<null>>;

@@ -11,6 +11,7 @@ export type {
 export {
   AUTH_EMAIL_PLATFORM_NAME,
   JAG_EXECUTIVE_PLATFORM_EMAIL_LABEL,
+  jagPlatformAuthEmailBrand,
   jagPlatformPasswordResetEmailBrand,
   loadEmailBrandForUserEmail,
   loadOrganizationEmailBrand,
@@ -33,12 +34,14 @@ export {
   renderAccountActivatedEmail,
   renderEmailChangedEmail,
   renderInvitationEmail,
+  renderJagMagicLinkEmail,
   renderJagPasswordResetEmail,
   renderPasswordResetEmail,
   renderVerifyEmail,
 } from "@/lib/platform/auth-email/templates";
 
 export {
+  requestJagMagicLinkViaAuthEmail,
   requestPasswordResetViaAuthEmail,
   sendAuthAccountActivatedEmail,
   sendAuthEmailChangedEmail,

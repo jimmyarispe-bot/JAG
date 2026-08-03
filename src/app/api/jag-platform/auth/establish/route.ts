@@ -79,6 +79,13 @@ export async function GET(request: NextRequest) {
   });
 
   if (!result.ok) {
+    // Entitlement failure: clear Supabase session — magic-link/password
+    // identity alone must not leave an AcademyOS-usable cookie.
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore — still deny JAG
+    }
     return failRedirect();
   }
 

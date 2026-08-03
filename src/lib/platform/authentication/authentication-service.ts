@@ -72,6 +72,10 @@ export class AuthenticationService {
     return this.provider.generateRecovery(email, options);
   }
 
+  generateMagicLink(email: string, options?: GenerateLinkOptions) {
+    return this.provider.generateMagicLink(email, options);
+  }
+
   createUser(input: CreateAuthUserInput) {
     return this.provider.createUser(input);
   }

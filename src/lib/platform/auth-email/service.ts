@@ -1,4 +1,5 @@
 import {
+  jagPlatformAuthEmailBrand,
   jagPlatformPasswordResetEmailBrand,
   loadEmailBrandForUserEmail,
   loadOrganizationEmailBrand,
@@ -15,10 +16,12 @@ import {
   renderAccountActivatedEmail,
   renderEmailChangedEmail,
   renderInvitationEmail,
+  renderJagMagicLinkEmail,
   renderJagPasswordResetEmail,
   renderPasswordResetEmail,
   renderVerifyEmail,
 } from "@/lib/platform/auth-email/templates";
+import { JAG_PLATFORM_HOME_PATH } from "@/lib/jag-platform/auth";
 import type {
   AuthEmailKind,
   OrganizationEmailBrand,
@@ -36,6 +39,8 @@ function mapKind(kind: AuthEmailKind): EmailKind {
       return "invitation";
     case "password_reset":
       return "password_reset";
+    case "magic_link":
+      return "transactional";
     case "verify_email":
       return "verification";
     default:
@@ -288,6 +293,112 @@ export async function requestPasswordResetViaAuthEmail(input: {
   } catch (err) {
     console.error(
       "[auth-email] requestPasswordResetViaAuthEmail",
+      err instanceof Error ? err.message : err
+    );
+    return { ok: true };
+  }
+}
+
+/**
+ * JAG portal magic-link sign-in:
+ * Admin generateLink(type=magiclink) — no Supabase SMTP —
+ * deliver JAG-branded email via Resend.
+ *
+ * Always returns success to the client to avoid account enumeration
+ * (except invalid email format / service unavailable).
+ *
+ * Callback `next` is a safe `/jag…` path. `/auth/callback` routes
+ * magiclink + JAG context through establish → entitlement → MFA → session.
+ */
+export async function requestJagMagicLinkViaAuthEmail(input: {
+  email: string;
+  /** Post-auth JAG destination (e.g. `/jag`). Validated; must stay under `/jag`. */
+  next?: string | null;
+  appUrl?: string | null;
+  originHint?: string | null;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const email = input.email.trim().toLowerCase();
+  if (!email.includes("@")) {
+    return { ok: false, error: "Enter a valid email address." };
+  }
+
+  let admin: ReturnType<typeof createServiceRoleClient>;
+  try {
+    admin = createServiceRoleClient();
+  } catch {
+    return { ok: false, error: "Magic link sign-in is temporarily unavailable." };
+  }
+
+  const appUrl = input.appUrl
+    ? resolveTrustedAuthAppUrl(input.appUrl)
+    : resolveTrustedAuthAppUrl(input.originHint);
+
+  const requestedNext = safeAuthEmailNext(input.next) ?? JAG_PLATFORM_HOME_PATH;
+  const next = requestedNext.startsWith("/jag")
+    ? requestedNext
+    : JAG_PLATFORM_HOME_PATH;
+
+  const authAdmin = getAdminAuthenticationService();
+
+  try {
+    const { data: profile } = await admin
+      .from("users")
+      .select("id, full_name, email")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (!profile?.id) {
+      return { ok: true };
+    }
+
+    const userResult = await authAdmin.getUserById(profile.id);
+    if (!userResult.ok || !userResult.data?.email) {
+      return { ok: true };
+    }
+    const authUser = userResult.data;
+    const magicEmail = authUser.email;
+    if (!magicEmail) {
+      return { ok: true };
+    }
+
+    const linkResult = await authAdmin.generateMagicLink(magicEmail, {
+      redirectTo: authEmailRedirectTo(appUrl),
+    });
+    if (!linkResult.ok) {
+      console.error("[auth-email] magiclink generateLink failed", linkResult.error);
+      return { ok: true };
+    }
+
+    const actionUrl = buildAuthEmailCallbackLink({
+      tokenHash: linkResult.data.tokenHash,
+      type: "magiclink",
+      appUrl,
+      next,
+    });
+
+    const recipientName =
+      profile.full_name ||
+      (authUser.userMetadata.full_name as string | undefined) ||
+      null;
+    const brand = jagPlatformAuthEmailBrand();
+    const rendered = renderJagMagicLinkEmail({
+      brand,
+      actionUrl,
+      recipientName,
+    });
+    const mail = await deliver({
+      brand,
+      to: magicEmail,
+      rendered,
+    });
+
+    if (!mail.success) {
+      console.error("[auth-email] magiclink delivery failed", mail.error);
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error(
+      "[auth-email] requestJagMagicLinkViaAuthEmail",
       err instanceof Error ? err.message : err
     );
     return { ok: true };

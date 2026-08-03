@@ -222,7 +222,7 @@ export const JAG_EXECUTIVE_PLATFORM_EMAIL_LABEL =
   "The JAG™ Executive Intelligence Platform" as const;
 
 /**
- * Explicit JAG portal email brand for forgot-password from /jag/login/forgot.
+ * Explicit JAG portal email brand for forgot-password / magic-link from /jag/login.
  * Does not load tenant AcademyOS org branding (avoids AcademyOS copy/logo).
  */
 export function jagPlatformPasswordResetEmailBrand(): OrganizationEmailBrand {
@@ -242,3 +242,6 @@ export function jagPlatformPasswordResetEmailBrand(): OrganizationEmailBrand {
     website: "https://www.thejag.org",
   };
 }
+
+/** Alias — same JAG product brand for magic-link and other portal auth mail. */
+export const jagPlatformAuthEmailBrand = jagPlatformPasswordResetEmailBrand;

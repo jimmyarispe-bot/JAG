@@ -156,6 +156,8 @@ export function authEmailSubject(
       return `You've been invited to ${org}`;
     case "password_reset":
       return `Reset your password for ${org}`;
+    case "magic_link":
+      return `Your ${org} sign-in link`;
     case "verify_email":
       return `Verify your email for ${org}`;
     case "email_changed":
@@ -236,6 +238,33 @@ export function renderJagPasswordResetEmail(input: {
       "After you reset your password, sign in again on The JAG™ login page. Resetting your password does not grant platform access by itself.",
     ],
     ctaLabel: "Reset password",
+    ctaHref: input.actionUrl,
+    footerNote:
+      "If you did not request this, you can ignore this email.",
+  });
+}
+
+/**
+ * JAG portal magic-link sign-in — fixed JAG product copy (not AcademyOS / Supabase).
+ */
+export function renderJagMagicLinkEmail(input: {
+  brand: OrganizationEmailBrand;
+  actionUrl: string;
+  recipientName?: string | null;
+}): RenderedAuthEmail {
+  const g = greeting(input.recipientName);
+  return renderShell({
+    kind: "magic_link",
+    brand: input.brand,
+    subject: "Your The JAG™ sign-in link",
+    title: "Sign in to The JAG™",
+    paragraphs: [
+      escapeHtml(g),
+      "Use the button below to sign in to The JAG™ Executive Intelligence Platform.",
+      "This link expires for your security. After you open it, you may still need to complete multi-factor authentication.",
+      "This sign-in link does not grant platform access by itself — entitlement is verified separately.",
+    ],
+    ctaLabel: "Sign in to The JAG™",
     ctaHref: input.actionUrl,
     footerNote:
       "If you did not request this, you can ignore this email.",

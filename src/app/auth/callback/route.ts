@@ -2,12 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import {
   exchangeAuthCallbackParams,
+  isJagAuthCallbackContext,
+  isMagicLinkAuthType,
   resolveAuthCallbackRedirect,
 } from "@/lib/auth/auth-callback";
+import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 
 /**
- * Supabase SSR auth callback — invite, recovery, and PKCE code exchange.
- * Establishes cookie session, then routes invited/recovery users to password setup.
+ * Supabase SSR auth callback — invite, recovery, magiclink, and PKCE code exchange.
+ * Establishes cookie session, then routes by type + explicit `next` context.
+ * JAG magic-link failures never dump users onto AcademyOS `/login`.
  */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -16,7 +20,13 @@ export async function GET(request: NextRequest) {
   const type = requestUrl.searchParams.get("type");
   const next = requestUrl.searchParams.get("next");
 
-  const loginErrorUrl = new URL("/login", requestUrl.origin);
+  const jagMagicLinkFailure =
+    isMagicLinkAuthType(type) && isJagAuthCallbackContext(next);
+
+  const loginErrorUrl = new URL(
+    jagMagicLinkFailure ? JAG_PLATFORM_LOGIN_PATH : "/login",
+    requestUrl.origin
+  );
   loginErrorUrl.searchParams.set("error", "auth_callback_failed");
 
   if (!code && !(tokenHash && type)) {

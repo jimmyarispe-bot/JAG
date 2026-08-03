@@ -77,7 +77,7 @@ function mapFactor(f: {
 
 async function generateLink(
   admin: AnySupabase,
-  type: "invite" | "recovery",
+  type: "invite" | "recovery" | "magiclink",
   email: string,
   options?: GenerateLinkOptions
 ): Promise<AuthResult<GenerateLinkResult>> {
@@ -195,6 +195,10 @@ export function createSupabaseAuthenticationProvider(
 
     async generateRecovery(email: string, options?: GenerateLinkOptions) {
       return generateLink(getAdminClient(), "recovery", email, options);
+    },
+
+    async generateMagicLink(email: string, options?: GenerateLinkOptions) {
+      return generateLink(getAdminClient(), "magiclink", email, options);
     },
 
     async createUser(input: CreateAuthUserInput) {

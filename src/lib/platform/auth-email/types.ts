@@ -5,6 +5,7 @@ import type { EmailDeliveryResult } from "@/lib/platform/email/types";
 export type AuthEmailKind =
   | "invitation"
   | "password_reset"
+  | "magic_link"
   | "verify_email"
   | "email_changed"
   | "account_activated"
