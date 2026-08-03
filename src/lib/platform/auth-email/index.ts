@@ -21,6 +21,8 @@ export {
   buildAuthEmailCallbackLink,
   buildLoginLink,
   resolveAuthAppUrl,
+  resolveTrustedAuthAppUrl,
+  safeAuthEmailNext,
   type AuthEmailLinkType,
 } from "@/lib/platform/auth-email/links";
 

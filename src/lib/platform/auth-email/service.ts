@@ -7,7 +7,8 @@ import {
   authEmailRedirectTo,
   buildAuthEmailCallbackLink,
   buildLoginLink,
-  resolveAuthAppUrl,
+  resolveTrustedAuthAppUrl,
+  safeAuthEmailNext,
 } from "@/lib/platform/auth-email/links";
 import {
   renderAccountActivatedEmail,
@@ -184,10 +185,20 @@ export async function sendAuthAccountActivatedEmail(input: {
  * generate recovery token via Supabase Admin (no Supabase SMTP),
  * deliver branded email via Resend.
  *
- * Always returns success to the client to avoid account enumeration.
+ * Always returns success to the client to avoid account enumeration
+ * (except invalid email format / service unavailable).
+ *
+ * Optional `next` is validated to an app-relative path (e.g. `/jag/login`).
+ * Optional `appUrl` / `originHint` selects the email link host via
+ * {@link resolveTrustedAuthAppUrl} (Preview-safe; rejects arbitrary hosts).
  */
 export async function requestPasswordResetViaAuthEmail(input: {
   email: string;
+  /** Post-callback destination (e.g. `/jag/login`). Validated; never external. */
+  next?: string | null;
+  /** Explicit trusted app origin (already validated) or raw client origin hint. */
+  appUrl?: string | null;
+  originHint?: string | null;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const email = input.email.trim().toLowerCase();
   if (!email.includes("@")) {
@@ -201,7 +212,10 @@ export async function requestPasswordResetViaAuthEmail(input: {
     return { ok: false, error: "Password reset is temporarily unavailable." };
   }
 
-  const appUrl = resolveAuthAppUrl();
+  const appUrl = input.appUrl
+    ? resolveTrustedAuthAppUrl(input.appUrl)
+    : resolveTrustedAuthAppUrl(input.originHint);
+  const next = safeAuthEmailNext(input.next);
   const authAdmin = getAdminAuthenticationService();
 
   try {
@@ -239,6 +253,7 @@ export async function requestPasswordResetViaAuthEmail(input: {
       tokenHash: linkResult.data.tokenHash,
       type: "recovery",
       appUrl,
+      next,
     });
 
     const brand = await loadEmailBrandForUserEmail(email);

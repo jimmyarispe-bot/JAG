@@ -2,20 +2,18 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { AUTH_CALLBACK_PATH } from "@/lib/auth/auth-callback";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
+import { requestJagPasswordResetAction } from "@/lib/platform/identity/password-reset-actions";
 import {
   POWERED_BY_LINE,
   type OrganizationBrand,
 } from "@/lib/platform/branding";
-import { createClient } from "@/lib/supabase/client";
 
 export function JagForgotPasswordForm({
   brand,
 }: {
   readonly brand: OrganizationBrand;
 }) {
-  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -26,21 +24,17 @@ export function JagForgotPasswordForm({
     setLoading(true);
     setMessage("");
 
-    const origin = window.location.origin;
-    const redirectTo = new URL(`${origin}${AUTH_CALLBACK_PATH}`);
-    // next=/jag/login → callback routes recovery to /jag/login/reset, then back here.
-    redirectTo.searchParams.set("next", JAG_PLATFORM_LOGIN_PATH);
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: redirectTo.toString(),
+    const result = await requestJagPasswordResetAction({
+      email: email.trim(),
+      originHint: window.location.origin,
     });
 
     setLoading(false);
-    if (error) {
-      setMessage(error.message);
+    if (!result.ok) {
+      // Format / availability only — never account existence or delivery details.
+      setMessage(result.error);
       return;
     }
-    // Neutral response — do not disclose whether the email exists.
     setSent(true);
   };
 
