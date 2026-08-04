@@ -134,43 +134,78 @@ export async function userBelongsToOrganization(
   return Boolean(data);
 }
 
-/** Per-request dedupe — branding, config, and hierarchy all resolve the primary org. */
-const resolvePrimaryOrganizationIdCached = cache(
-  async (userId: string | null): Promise<string | null> => {
-    const client = await createAuthClient();
+export type ResolveOrganizationIdOptions = {
+  /**
+   * When false (default for JAG), never fall back to The Academy Way seed
+   * or "first org in the database". Membership/ownership only.
+   * When true, preserve legacy AcademyOS soft-default behavior.
+   */
+  readonly allowSeedFallback?: boolean;
+};
 
-    if (userId) {
-      const membership = await getPrimaryOrganizationMembership(userId, client);
-      if (membership?.organizationId) return membership.organizationId;
+/**
+ * Resolve organization id for a user.
+ *
+ * Default (`allowSeedFallback: false`): membership → ownership → null.
+ * Legacy AcademyOS (`allowSeedFallback: true`): then seed slug → first org.
+ */
+export async function resolveOrganizationIdForUser(
+  userId: string | null | undefined,
+  options?: ResolveOrganizationIdOptions,
+  supabase?: AuthClient
+): Promise<string | null> {
+  const allowSeedFallback = options?.allowSeedFallback === true;
+  const client = supabase ?? (await createAuthClient());
 
-      const { data: owned } = await client
-        .from("org_organizations")
-        .select("id")
-        .eq("owner_user_id", userId)
-        .eq("status", "active")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (owned?.id) return owned.id;
-    }
+  if (userId) {
+    const membership = await getPrimaryOrganizationMembership(userId, client);
+    if (membership?.organizationId) return membership.organizationId;
 
-    const { data: seed } = await client
+    const { data: owned } = await client
       .from("org_organizations")
       .select("id")
-      .eq("slug", "the-academy-way")
-      .maybeSingle();
-    if (seed?.id) return seed.id;
-
-    const { data: first } = await client
-      .from("org_organizations")
-      .select("id")
+      .eq("owner_user_id", userId)
+      .eq("status", "active")
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    return first?.id ?? null;
+    if (owned?.id) return owned.id;
+  }
+
+  if (!allowSeedFallback) {
+    return null;
+  }
+
+  const { data: seed } = await client
+    .from("org_organizations")
+    .select("id")
+    .eq("slug", "the-academy-way")
+    .maybeSingle();
+  if (seed?.id) return seed.id;
+
+  const { data: first } = await client
+    .from("org_organizations")
+    .select("id")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return first?.id ?? null;
+}
+
+/** Per-request dedupe — AcademyOS branding/config soft-default (seed fallback ON). */
+const resolvePrimaryOrganizationIdCached = cache(
+  async (userId: string | null): Promise<string | null> => {
+    return resolveOrganizationIdForUser(userId, { allowSeedFallback: true });
   }
 );
 
+/**
+ * Legacy primary org resolver used by AcademyOS branding/config.
+ * Soft-defaults to The Academy Way when the user has no membership.
+ *
+ * JAG auth / isolation must use {@link resolveOrganizationIdForUser} with
+ * `allowSeedFallback: false` (or {@link resolveJagOrganizationContext}).
+ */
 export async function resolvePrimaryOrganizationId(
   userId?: string | null,
   _supabase?: AuthClient

@@ -23,6 +23,7 @@ import { authorizeJagEntry } from "@/lib/platform/identity/founder-protection";
 import { buildAuthzSnapshot } from "@/lib/platform/identity/authorization-service";
 import * as loadAuthz from "@/lib/platform/identity/load-authz-snapshot";
 import * as mfaGate from "@/lib/jag-platform/mfa-gate";
+import * as orgContext from "@/lib/jag-platform/org-context";
 
 const SIGNING_SECRET = "test-jag-session-signing-secret-32chars!!";
 
@@ -83,6 +84,8 @@ describe("JAG session HMAC protection", () => {
       email: "founder@example.com",
       displayName: "Founder",
       role: "FOUNDER",
+      authority: "platform",
+      organizationId: "org-academy",
       issuedAt: new Date().toISOString(),
     };
     const token = await encodeJagPlatformSession(session);
@@ -90,6 +93,8 @@ describe("JAG session HMAC protection", () => {
     const decoded = await decodeJagPlatformSession(token);
     expect(decoded?.userId).toBe("u1");
     expect(decoded?.role).toBe("FOUNDER");
+    expect(decoded?.authority).toBe("platform");
+    expect(decoded?.organizationId).toBe("org-academy");
     expect(decoded?.exp).toBeTypeOf("number");
   });
 
@@ -99,6 +104,8 @@ describe("JAG session HMAC protection", () => {
       email: "founder@example.com",
       displayName: "Founder",
       role: "FOUNDER",
+      authority: "platform",
+      organizationId: null,
       issuedAt: new Date().toISOString(),
     });
     expect(token).toBeTruthy();
@@ -117,6 +124,8 @@ describe("JAG session HMAC protection", () => {
       email: "founder@example.com",
       displayName: "Founder",
       role: "FOUNDER",
+      authority: "platform",
+      organizationId: null,
       issuedAt: new Date().toISOString(),
       exp: Date.now() - 1000,
     });
@@ -146,6 +155,21 @@ describe("JAG session HMAC protection", () => {
       email: "a@b.c",
       displayName: "X",
       role: "FOUNDER",
+      authority: "platform",
+      organizationId: null,
+      issuedAt: new Date().toISOString(),
+    });
+    expect(token).toBeNull();
+  });
+
+  it("rejects organization authority without organizationId", async () => {
+    const token = await encodeJagPlatformSession({
+      userId: "u1",
+      email: "admin@customer.org",
+      displayName: "Admin",
+      role: "ORG_OWNER",
+      authority: "organization",
+      organizationId: null,
       issuedAt: new Date().toISOString(),
     });
     expect(token).toBeNull();
@@ -170,6 +194,11 @@ describe("JAG entitlement + Supabase login orchestration", () => {
     vi.spyOn(loadAuthz, "loadAuthzSnapshot").mockResolvedValue(
       buildAuthzSnapshot(user.id, ["FOUNDER"])
     );
+    vi.spyOn(orgContext, "resolveJagOrganizationContext").mockResolvedValue({
+      authority: "platform",
+      organizationId: "org-academy",
+      membershipRole: "owner",
+    });
     vi.spyOn(mfaGate, "evaluateJagMfaGate").mockResolvedValue({
       applies: true,
       blocked: false,
@@ -187,6 +216,8 @@ describe("JAG entitlement + Supabase login orchestration", () => {
     if (!result.ok || result.requiresMfa || !result.session) return;
     expect(result.session.userId).toBe(user.id);
     expect(result.session.role).toBe("FOUNDER");
+    expect(result.session.authority).toBe("platform");
+    expect(result.session.organizationId).toBe("org-academy");
   });
 
   it("B. valid Supabase identity without JAG_ACCESS is denied (no session)", async () => {
@@ -255,6 +286,11 @@ describe("JAG entitlement + Supabase login orchestration", () => {
     vi.spyOn(loadAuthz, "loadAuthzSnapshot").mockResolvedValue(
       buildAuthzSnapshot(user.id, ["FOUNDER"])
     );
+    vi.spyOn(orgContext, "resolveJagOrganizationContext").mockResolvedValue({
+      authority: "platform",
+      organizationId: "org-academy",
+      membershipRole: "owner",
+    });
     vi.spyOn(mfaGate, "evaluateJagMfaGate").mockResolvedValue({
       applies: true,
       blocked: true,

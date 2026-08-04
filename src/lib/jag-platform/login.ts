@@ -1,7 +1,8 @@
 /**
- * JAG login reconciliation — Supabase identity + JAG_ACCESS entitlement + MFA gate.
+ * JAG login reconciliation — Supabase identity + org-scoped entitlement + MFA gate.
  *
- * Supabase Auth verifies the password. JAG_ACCESS is a separate fail-closed gate.
+ * Supabase Auth verifies the password. JAG entry is a separate fail-closed gate
+ * (JAG_ACCESS for platform stewards, JAG_ORG_ACCESS for customer org admins).
  * A valid Supabase account alone never grants a JAG session.
  */
 
@@ -10,6 +11,7 @@ import { authorizeJagEntry } from "@/lib/platform/identity/founder-protection";
 import { loadAuthzSnapshot } from "@/lib/platform/identity/load-authz-snapshot";
 import type { JagPlatformRole } from "@/lib/jag-platform/roles";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
+import { resolveJagOrganizationContext } from "@/lib/jag-platform/org-context";
 import {
   evaluateJagMfaGate,
   jagMfaRequiredPath,
@@ -20,6 +22,7 @@ import {
   isJagPlatformDemoAuthEnabled,
   tryAuthenticateJagPlatformDemo,
 } from "@/lib/jag-platform/auth";
+import type { JagAuthorityKind } from "@/lib/platform/identity/jag-authority";
 
 export const JAG_SESSION_ESTABLISH_PATH =
   "/api/jag-platform/auth/establish" as const;
@@ -87,18 +90,27 @@ function displayNameForUser(user: User): string {
 
 /** Map verified authz roles to a JAG platform role claim (server-derived only). */
 export function resolveJagPlatformRoleFromAuthz(
-  roles: readonly string[]
+  roles: readonly string[],
+  authority: JagAuthorityKind
 ): JagPlatformRole {
+  if (authority === "organization") {
+    if (roles.includes("JAG_ORG_ADMIN") || roles.includes("ORG_OWNER")) {
+      return "ORG_OWNER";
+    }
+    return "ORG_OWNER";
+  }
   if (roles.includes("FOUNDER")) return "FOUNDER";
   if (roles.includes("PLATFORM_OWNER")) return "PLATFORM_OWNER";
   if (roles.includes("PLATFORM_ADMIN")) return "PLATFORM_ADMIN";
-  // JAG_ACCESS is Founder-mapped; default claim for entitled users.
-  return "FOUNDER";
+  // Platform-level JAG_ACCESS without a more specific role claim.
+  return "PLATFORM_OWNER";
 }
 
 export function buildJagSessionFromUser(
   user: User,
   role: JagPlatformRole,
+  authority: JagAuthorityKind,
+  organizationId: string | null,
   maxAgeSeconds = 60 * 60 * 12
 ): Omit<JagPlatformSession, "exp"> & { exp: number } {
   const issuedAt = new Date().toISOString();
@@ -107,26 +119,48 @@ export function buildJagSessionFromUser(
     email: (user.email ?? "").toLowerCase(),
     displayName: displayNameForUser(user),
     role,
+    authority,
+    organizationId,
     issuedAt,
     exp: Date.now() + maxAgeSeconds * 1000,
   };
 }
 
 /**
- * After Supabase identity is verified: entitlement → MFA → session claims.
+ * After Supabase identity is verified: entitlement → org context → MFA → session claims.
  * Does not set cookies — caller applies the signed JAG cookie when ok && !requiresMfa.
  */
 export async function completeJagAuthorization(
   supabase: AuthClient,
   user: User,
-  options?: { nextPath?: string }
+  options?: { nextPath?: string; preferredOrganizationId?: string | null }
 ): Promise<JagLoginSuccess | JagLoginMfaRequired | JagLoginFailure> {
   const snapshot = await loadAuthzSnapshot(supabase as SupabaseClient, user.id);
   if (!authorizeJagEntry(snapshot)) {
     return { ok: false, error: GENERIC_JAG_AUTH_FAILURE };
   }
 
-  const mfa = await evaluateJagMfaGate(supabase as SupabaseClient, user.id, snapshot.roles);
+  const orgContext = await resolveJagOrganizationContext(
+    supabase as SupabaseClient,
+    user.id,
+    snapshot,
+    options?.preferredOrganizationId
+  );
+  if (!orgContext) {
+    return { ok: false, error: GENERIC_JAG_AUTH_FAILURE };
+  }
+  if (
+    orgContext.authority === "organization" &&
+    !orgContext.organizationId
+  ) {
+    return { ok: false, error: GENERIC_JAG_AUTH_FAILURE };
+  }
+
+  const mfa = await evaluateJagMfaGate(
+    supabase as SupabaseClient,
+    user.id,
+    snapshot.roles
+  );
   const establishNext = `${JAG_SESSION_ESTABLISH_PATH}?next=${encodeURIComponent(
     options?.nextPath && options.nextPath.startsWith("/jag")
       ? options.nextPath
@@ -142,11 +176,19 @@ export async function completeJagAuthorization(
     };
   }
 
-  const role = resolveJagPlatformRoleFromAuthz(snapshot.roles);
+  const role = resolveJagPlatformRoleFromAuthz(
+    snapshot.roles,
+    orgContext.authority
+  );
   return {
     ok: true,
     requiresMfa: false,
-    session: buildJagSessionFromUser(user, role),
+    session: buildJagSessionFromUser(
+      user,
+      role,
+      orgContext.authority,
+      orgContext.organizationId
+    ),
   };
 }
 
@@ -156,7 +198,7 @@ export async function completeJagAuthorization(
 export async function authenticateJagPlatformLogin(
   supabase: AuthClient,
   credentials: { email: string; password: string },
-  options?: { nextPath?: string }
+  options?: { nextPath?: string; preferredOrganizationId?: string | null }
 ): Promise<JagLoginResult> {
   const email = credentials.email.trim().toLowerCase();
   const password = credentials.password;
@@ -171,7 +213,6 @@ export async function authenticateJagPlatformLogin(
 
   if (!error && data.user) {
     if (data.user.user_metadata?.must_reset_password === true) {
-      // Identity ok but must reset — do not mint JAG session.
       const next =
         options?.nextPath && options.nextPath.startsWith("/jag")
           ? options.nextPath
@@ -189,8 +230,6 @@ export async function authenticateJagPlatformLogin(
       data.user,
       options
     );
-    // Entitlement failure: clear Supabase cookies so a denied JAG attempt
-    // does not leave an unexpected AcademyOS session.
     if (!authorized.ok) {
       try {
         await supabase.auth.signOut();
@@ -201,15 +240,19 @@ export async function authenticateJagPlatformLogin(
     return authorized;
   }
 
-  // Never fall back to demo/plaintext after a Supabase failure in production paths.
   if (isJagPlatformDemoAuthEnabled()) {
     const demo = tryAuthenticateJagPlatformDemo({ email, password });
     if (demo.ok) {
+      const authority: JagAuthorityKind =
+        demo.session.role === "ORG_OWNER" ? "organization" : "platform";
       return {
         ok: true,
         requiresMfa: false,
         session: {
           ...demo.session,
+          authority,
+          organizationId:
+            authority === "organization" ? "org.demo-bound" : null,
           exp: Date.now() + 60 * 60 * 12 * 1000,
         },
       };

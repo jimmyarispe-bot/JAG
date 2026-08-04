@@ -8,6 +8,8 @@
 
 export const PERMISSION_CATALOG = [
   "JAG_ACCESS",
+  "JAG_PLATFORM_ADMIN",
+  "JAG_ORG_ACCESS",
   "ACADEMYOS_ACCESS",
   "FINANCE_ACCESS",
   "BANKING_ACCESS",
@@ -39,7 +41,20 @@ export const PERMISSION_CATALOG_DEFINITIONS: {
   JAG_ACCESS: {
     id: "JAG_ACCESS",
     label: "JAG Access",
-    description: "Access to the JAG application and executive intelligence surfaces.",
+    description:
+      "Platform-level access to The JAG™ (Founder / platform steward). Not for customer org admins.",
+  },
+  JAG_PLATFORM_ADMIN: {
+    id: "JAG_PLATFORM_ADMIN",
+    label: "JAG Platform Admin",
+    description:
+      "JAG platform control-plane administration across customer organizations.",
+  },
+  JAG_ORG_ACCESS: {
+    id: "JAG_ORG_ACCESS",
+    label: "JAG Organization Access",
+    description:
+      "Org-scoped JAG workspace access for a customer organization administrator.",
   },
   ACADEMYOS_ACCESS: {
     id: "ACADEMYOS_ACCESS",

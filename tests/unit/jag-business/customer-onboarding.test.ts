@@ -152,7 +152,9 @@ describe("JAG Business — provisioning & login", () => {
       userId: provisioned.organization.founder.userId,
       email: provisioned.organization.founder.email,
       displayName: `${provisioned.organization.founder.firstName} ${provisioned.organization.founder.lastName}`.trim(),
-      role: "FOUNDER",
+      role: "ORG_OWNER",
+      authority: "organization",
+      organizationId: provisioned.organization.organizationId,
       issuedAt: new Date().toISOString(),
       exp: Date.now() + 60 * 60 * 1000,
     };
@@ -187,7 +189,9 @@ describe("JAG Business — provisioning & login", () => {
       userId: provisioned.organization.founder.userId,
       email: provisioned.organization.founder.email,
       displayName: "Ada Lovelace",
-      role: "FOUNDER",
+      role: "ORG_OWNER",
+      authority: "organization",
+      organizationId: provisioned.organization.organizationId,
       issuedAt: new Date().toISOString(),
       exp: Date.now() + 60 * 60 * 1000,
     };
@@ -205,6 +209,8 @@ describe("JAG Business — provisioning & login", () => {
       email: "founder@jag.platform",
       displayName: "JAG Founder",
       role: "FOUNDER",
+      authority: "platform",
+      organizationId: null,
       issuedAt: new Date().toISOString(),
       exp: Date.now() + 60 * 60 * 1000,
     };
@@ -216,7 +222,9 @@ describe("JAG Business — provisioning & login", () => {
       userId: provisioned.organization.founder.userId,
       email: provisioned.organization.founder.email,
       displayName: "Ada Lovelace",
-      role: "FOUNDER",
+      role: "ORG_OWNER",
+      authority: "organization",
+      organizationId: provisioned.organization.organizationId,
       issuedAt: new Date().toISOString(),
       exp: Date.now() + 60 * 60 * 1000,
     });

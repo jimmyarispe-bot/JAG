@@ -123,6 +123,8 @@ export function isAdminOnlyNavRole(role: JagPlatformRole): boolean {
     email: "",
     displayName: "",
     role,
+    authority: "platform",
+    organizationId: null,
     issuedAt: "",
   });
 }

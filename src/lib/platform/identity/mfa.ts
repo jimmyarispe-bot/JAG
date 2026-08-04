@@ -30,6 +30,8 @@ export const MFA_REQUIRED_PERMISSIONS = [
   "AUDIT_ACCESS",
   "USER_MANAGEMENT_ACCESS",
   "JAG_ACCESS",
+  "JAG_PLATFORM_ADMIN",
+  "JAG_ORG_ACCESS",
 ] as const;
 
 /** @deprecated Use MFA_REQUIRED_PERMISSIONS — role lists are not authorization inputs. */

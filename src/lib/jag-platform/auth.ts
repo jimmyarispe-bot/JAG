@@ -109,6 +109,8 @@ export function tryAuthenticateJagPlatformDemo(
   if (!account) {
     return { ok: false, error: GENERIC_JAG_AUTH_FAILURE };
   }
+  const authority =
+    account.role === "ORG_OWNER" ? ("organization" as const) : ("platform" as const);
   return {
     ok: true,
     session: {
@@ -116,6 +118,8 @@ export function tryAuthenticateJagPlatformDemo(
       email: account.email,
       displayName: account.displayName,
       role: account.role,
+      authority,
+      organizationId: authority === "organization" ? "org.demo-bound" : null,
       issuedAt: new Date().toISOString(),
     },
   };

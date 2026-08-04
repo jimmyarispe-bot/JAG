@@ -43,6 +43,7 @@ export const PERMISSION_GROUP_DEFINITIONS: PermissionGroupMap = {
     description: PERMISSION_CATALOG_DEFINITIONS.JAG_ACCESS.description,
     permissions: [
       "JAG_ACCESS",
+      "JAG_PLATFORM_ADMIN",
       "mission_control.access",
       "executive.dashboard",
       "executive.intelligence",
@@ -54,6 +55,40 @@ export const PERMISSION_GROUP_DEFINITIONS: PermissionGroupMap = {
       "edi.view",
       "edi.executive",
       "ai.executive",
+      "search.global",
+    ],
+  },
+  JAG_PLATFORM_ADMIN: {
+    id: "JAG_PLATFORM_ADMIN",
+    gate: "JAG_PLATFORM_ADMIN",
+    label: PERMISSION_CATALOG_DEFINITIONS.JAG_PLATFORM_ADMIN.label,
+    description: PERMISSION_CATALOG_DEFINITIONS.JAG_PLATFORM_ADMIN.description,
+    permissions: [
+      "JAG_PLATFORM_ADMIN",
+      "JAG_ACCESS",
+      "org.view",
+      "org.manage",
+      "users.view",
+      "users.manage",
+      "mission_control.access",
+      "executive.dashboard",
+      "executive.intelligence",
+      "search.global",
+    ],
+  },
+  JAG_ORG_ACCESS: {
+    id: "JAG_ORG_ACCESS",
+    gate: "JAG_ORG_ACCESS",
+    label: PERMISSION_CATALOG_DEFINITIONS.JAG_ORG_ACCESS.label,
+    description: PERMISSION_CATALOG_DEFINITIONS.JAG_ORG_ACCESS.description,
+    permissions: [
+      "JAG_ORG_ACCESS",
+      "mission_control.access",
+      "executive.dashboard",
+      "executive.intelligence",
+      "executive.risk_view",
+      "org.view",
+      "directory.view",
       "search.global",
     ],
   },
@@ -435,6 +470,24 @@ export const ROLE_PERMISSION_GROUPS = {
   BOARD_MEMBER: ["ACADEMYOS_ACCESS", "REPORTING_ACCESS"],
   /** Default role for newly provisioned authenticated users. */
   TEAM_MEMBER: ["ACADEMYOS_ACCESS"],
+  /**
+   * JAG platform control-plane steward (not a customer org admin).
+   * Cross-tenant visibility only for platform operators.
+   */
+  PLATFORM_OWNER: [
+    "JAG_ACCESS",
+    "JAG_PLATFORM_ADMIN",
+    "SYSTEM_ADMIN_ACCESS",
+    "USER_MANAGEMENT_ACCESS",
+    "AUDIT_ACCESS",
+    "ACADEMYOS_ACCESS",
+    "REPORTING_ACCESS",
+  ],
+  /**
+   * Customer organization administrator — org-scoped JAG only.
+   * Must never receive JAG_ACCESS / JAG_PLATFORM_ADMIN / FOUNDER.
+   */
+  JAG_ORG_ADMIN: ["JAG_ORG_ACCESS", "ACADEMYOS_ACCESS", "REPORTING_ACCESS"],
 } as const satisfies Partial<Record<EduRoleName, readonly PermissionGroupId[]>> &
   Record<OfficialPlatformRole, readonly PermissionGroupId[]>;
 

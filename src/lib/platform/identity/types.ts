@@ -149,6 +149,10 @@ export const PERMISSION_KEYS = [
   "schools.access_all",
   // Sprint 004 — official permission catalog (coarse access gates)
   "JAG_ACCESS",
+  /** Platform control-plane steward (all orgs). Distinct from customer org JAG access. */
+  "JAG_PLATFORM_ADMIN",
+  /** Customer organization JAG workspace access (org-scoped; never global). */
+  "JAG_ORG_ACCESS",
   "ACADEMYOS_ACCESS",
   "FINANCE_ACCESS",
   "BANKING_ACCESS",

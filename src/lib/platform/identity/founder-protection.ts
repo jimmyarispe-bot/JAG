@@ -1,35 +1,38 @@
 /**
- * Sprint 007 — Founder Protection.
+ * Founder / JAG entry protection.
  *
- * Only identities with JAG_ACCESS may enter JAG.
- * JAG_ACCESS is granted solely via role→permission mapping (FOUNDER).
+ * Platform stewards enter via JAG_ACCESS.
+ * Customer organization administrators enter via JAG_ORG_ACCESS.
  * Call sites must never check role names — use authorize()/hasPermission().
  *
- * Everyone else is redirected into AcademyOS.
+ * Denied callers are redirected into AcademyOS (not left on a JAG URL).
  */
 
 import {
-  authorize,
-  hasPermission,
   toAuthzSnapshot,
   type AuthzSnapshot,
   type AuthzSubject,
 } from "@/lib/platform/identity/authorization-service";
+import {
+  authorizeJagWorkspaceEntry,
+  canEnterJagWorkspace,
+  JAG_PLATFORM_ENTRY_PERMISSION,
+} from "@/lib/platform/identity/jag-authority";
 
-/** Catalog gate for the JAG application. */
-export const JAG_ENTRY_PERMISSION = "JAG_ACCESS" as const;
+/** @deprecated Prefer authorizeJagWorkspaceEntry — kept for import stability. */
+export const JAG_ENTRY_PERMISSION = JAG_PLATFORM_ENTRY_PERMISSION;
 
 /** AcademyOS home — redirect target when JAG entry is denied. */
 export const ACADEMYOS_HOME_PATH = "/dashboard" as const;
 
-/** True when the subject may enter JAG (permission-based only). */
+/** True when the subject may enter JAG (platform or org-scoped). */
 export function canEnterJag(subject: AuthzSubject): boolean {
-  return hasPermission(subject, JAG_ENTRY_PERMISSION);
+  return canEnterJagWorkspace(subject);
 }
 
 /** Authorize JAG entry against a preloaded authz snapshot. */
 export function authorizeJagEntry(snapshot: AuthzSnapshot): boolean {
-  return authorize(snapshot, JAG_ENTRY_PERMISSION);
+  return authorizeJagWorkspaceEntry(snapshot);
 }
 
 /**

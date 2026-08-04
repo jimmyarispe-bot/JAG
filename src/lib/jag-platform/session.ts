@@ -2,10 +2,14 @@
  * JAG Platform session cookie — HMAC integrity-protected.
  * Separate from AcademyOS / Supabase auth cookies.
  * Edge-safe (Web Crypto) for middleware verification.
+ *
+ * Organization-bound: platform stewards may have null organizationId;
+ * customer org operators must carry their bound organizationId.
  */
 
 import type { JagPlatformRole } from "@/lib/jag-platform/roles";
 import { isJagPlatformRole } from "@/lib/jag-platform/roles";
+import type { JagAuthorityKind } from "@/lib/platform/identity/jag-authority";
 import { resolveJagSessionSigningSecret } from "@/lib/jag-platform/session-secret";
 
 /** Versioned cookie name — legacy unsigned `jag_platform_session` is ignored. */
@@ -24,6 +28,13 @@ export type JagPlatformSession = {
   readonly displayName: string;
   readonly role: JagPlatformRole;
   readonly issuedAt: string;
+  /** Platform steward vs customer organization operator. */
+  readonly authority: JagAuthorityKind;
+  /**
+   * Bound organization UUID.
+   * Required for authority=organization; optional for platform stewards.
+   */
+  readonly organizationId: string | null;
   /** Unix ms expiry — required on signed cookie tokens; optional for in-memory fixtures. */
   readonly exp?: number;
 };
@@ -34,6 +45,8 @@ type SessionPayload = {
   displayName: string;
   role: JagPlatformRole;
   issuedAt: string;
+  authority: JagAuthorityKind;
+  organizationId: string | null;
   exp: number;
 };
 
@@ -93,6 +106,10 @@ async function hmacSign(secret: string, payloadB64: string): Promise<string> {
   return bytesToBase64Url(sig);
 }
 
+function isAuthority(value: unknown): value is JagAuthorityKind {
+  return value === "platform" || value === "organization";
+}
+
 function isValidPayload(parsed: Partial<SessionPayload>): parsed is SessionPayload {
   return (
     typeof parsed.userId === "string" &&
@@ -100,8 +117,12 @@ function isValidPayload(parsed: Partial<SessionPayload>): parsed is SessionPaylo
     typeof parsed.displayName === "string" &&
     isJagPlatformRole(parsed.role) &&
     typeof parsed.issuedAt === "string" &&
+    isAuthority(parsed.authority) &&
+    (parsed.organizationId === null || typeof parsed.organizationId === "string") &&
     typeof parsed.exp === "number" &&
-    Number.isFinite(parsed.exp)
+    Number.isFinite(parsed.exp) &&
+    // Org operators must be organization-bound.
+    !(parsed.authority === "organization" && !parsed.organizationId)
   );
 }
 
@@ -115,6 +136,10 @@ export async function encodeJagPlatformSession(
   const secret = resolveJagSessionSigningSecret();
   if (!secret) return null;
 
+  if (session.authority === "organization" && !session.organizationId) {
+    return null;
+  }
+
   const issuedAt = session.issuedAt || new Date().toISOString();
   const exp =
     typeof session.exp === "number"
@@ -127,6 +152,8 @@ export async function encodeJagPlatformSession(
     displayName: session.displayName,
     role: session.role,
     issuedAt,
+    authority: session.authority,
+    organizationId: session.organizationId,
     exp,
   };
 
@@ -164,6 +191,8 @@ export async function decodeJagPlatformSession(
       displayName: parsed.displayName,
       role: parsed.role,
       issuedAt: parsed.issuedAt,
+      authority: parsed.authority,
+      organizationId: parsed.organizationId,
       exp: parsed.exp,
     };
   } catch {

@@ -52,8 +52,9 @@ function isSeededPlatformAccount(email: string): boolean {
 
 /**
  * Organizations visible to the signed-in JAG user.
- * Seeded platform accounts see The Academy Way + all provisioned orgs.
- * New founders see organizations they created.
+ *
+ * Platform stewards: Academy Way seed card + in-memory provisioned orgs.
+ * Organization operators: only orgs they own/created (never global seed dump).
  */
 export function listOrganizationsForSession(
   session: JagPlatformSession
@@ -61,15 +62,29 @@ export function listOrganizationsForSession(
   const provisioned = listProvisionedOrganizations().map(provisionedToCard);
   const seed = getAcademyWayOrganization();
 
-  if (isSeededPlatformAccount(session.email)) {
-    return Object.freeze([seed, ...provisioned]);
-  }
-
   const owned = listProvisionedOrganizations()
     .filter(
       (o) => o.founder.email.toLowerCase() === session.email.toLowerCase()
     )
     .map(provisionedToCard);
 
+  // Seeded platform demo accounts: Academy Way + all in-memory provisioned orgs.
+  if (
+    session.authority === "platform" &&
+    isSeededPlatformAccount(session.email)
+  ) {
+    return Object.freeze([seed, ...provisioned]);
+  }
+
+  // Customer org operator — never expose the Academy seed by default.
+  if (session.authority === "organization") {
+    if (session.organizationId) {
+      const bound = owned.filter((o) => o.id === session.organizationId);
+      if (bound.length > 0) return Object.freeze(bound);
+    }
+    return Object.freeze(owned);
+  }
+
+  // Non-demo platform steward: owned in-memory orgs only until DB control plane lands.
   return Object.freeze(owned);
 }
