@@ -17,6 +17,8 @@ import {
   listExplainObservations,
 } from "@/lib/jag-command-center";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
+import { filterObservationsForSession } from "@/lib/jag-platform/data-plane";
+import { sessionCanAccessOrganization } from "@/lib/jag-platform/org-context";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 /**
@@ -29,15 +31,50 @@ export default async function JagObservabilityPage() {
     redirect(JAG_PLATFORM_LOGIN_PATH);
   }
 
-  const events = listJagAuditEvents(40);
-  const predictions = listPredictionObservations(20);
-  const scenarios = listScenarioObservations(20);
-  const conversations = listConversationObservations(20);
-  const memories = listMemoryObservations(20);
-  const strategies = listStrategyObservations(20);
-  const watchers = listWatcherObservations(20);
-  const capabilities = listCapabilityObservations(20);
-  const explanations = listExplainObservations(20);
+  const events = listJagAuditEvents(40, {
+    canAccessOrganization: (organizationId) =>
+      sessionCanAccessOrganization(session, organizationId),
+    allowUnbound: session.authority === "platform",
+  });
+  // Pull a wider window then filter — org operators must not see foreign rows.
+  const predictions = filterObservationsForSession(
+    session,
+    listPredictionObservations(100),
+    20
+  );
+  const scenarios = filterObservationsForSession(
+    session,
+    listScenarioObservations(100),
+    20
+  );
+  const conversations = filterObservationsForSession(
+    session,
+    listConversationObservations(100),
+    20
+  );
+  const memories = filterObservationsForSession(
+    session,
+    listMemoryObservations(100),
+    20
+  );
+  const strategies = filterObservationsForSession(
+    session,
+    listStrategyObservations(100),
+    20
+  );
+  const watchers = filterObservationsForSession(
+    session,
+    listWatcherObservations(100),
+    20
+  );
+  // Capability observations are platform-scoped (no organizationId).
+  const capabilities =
+    session.authority === "platform" ? listCapabilityObservations(20) : [];
+  const explanations = filterObservationsForSession(
+    session,
+    listExplainObservations(100),
+    20
+  );
 
   return (
     <div className="space-y-8">

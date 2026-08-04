@@ -3,6 +3,8 @@
  */
 
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
+import { sessionCanAccessOrganization } from "@/lib/jag-platform/org-context";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { getBriefing, getBriefingByShareToken, listBriefings } from "./store";
 import {
@@ -21,16 +23,12 @@ export function loadBriefingList(
 ): JagBriefingListModel {
   const organizations = listOrganizationsForSession(session);
   const selectedOrganizationId =
-    options?.organizationId &&
-    organizations.some((o) => o.id === options.organizationId)
-      ? options.organizationId
-      : organizations[0]?.id ?? null;
+    resolveSessionOrganization(session, options?.organizationId)?.id ?? null;
 
-  const briefings = listBriefings(
-    selectedOrganizationId
-      ? { organizationId: selectedOrganizationId }
-      : undefined
-  );
+  // Fail closed: never dump the global briefing store when org scope is null.
+  const briefings = selectedOrganizationId
+    ? listBriefings({ organizationId: selectedOrganizationId })
+    : [];
 
   return {
     briefings,
@@ -48,11 +46,10 @@ export function getBriefingDetail(
 ): JagExecutiveBriefing | null {
   const briefing = getBriefing(briefingId);
   if (!briefing) return null;
-  const orgs = listOrganizationsForSession(session);
-  const allowed = new Set(orgs.map((o) => o.id));
-  if (!briefing.organizationIds.some((id) => allowed.has(id))) {
-    return null;
-  }
+  const allowed = briefing.organizationIds.some((id) =>
+    sessionCanAccessOrganization(session, id)
+  );
+  if (!allowed) return null;
   return briefing;
 }
 

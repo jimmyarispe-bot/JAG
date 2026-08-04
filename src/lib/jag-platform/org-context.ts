@@ -78,18 +78,43 @@ export async function resolveJagOrganizationContext(
 
   if (isJagOrganizationOperator(snapshot)) {
     if (memberships.length === 0) return null;
-    const chosen =
-      memberships.find((m) => m.organization_id === preferred) ??
-      memberships.find((m) => m.is_primary) ??
-      memberships[0]!;
-    return {
-      authority: "organization",
-      organizationId: chosen.organization_id,
-      membershipRole: asMembershipRole(chosen.membership_role),
-    };
+
+    // Explicit preferred membership wins (must already be validated above).
+    if (preferred) {
+      const chosen = memberships.find((m) => m.organization_id === preferred)!;
+      return {
+        authority: "organization",
+        organizationId: chosen.organization_id,
+        membershipRole: asMembershipRole(chosen.membership_role),
+      };
+    }
+
+    const primaries = memberships.filter((m) => m.is_primary);
+    if (primaries.length === 1) {
+      const chosen = primaries[0]!;
+      return {
+        authority: "organization",
+        organizationId: chosen.organization_id,
+        membershipRole: asMembershipRole(chosen.membership_role),
+      };
+    }
+
+    // Single membership — unambiguous bind.
+    if (memberships.length === 1) {
+      const chosen = memberships[0]!;
+      return {
+        authority: "organization",
+        organizationId: chosen.organization_id,
+        membershipRole: asMembershipRole(chosen.membership_role),
+      };
+    }
+
+    // Multi-org without preferred/unique primary — fail closed (no silent first pick).
+    return null;
   }
 
-  // Platform steward — bind preferred/primary membership when present; else unbound.
+  // Platform steward — bind preferred/unique primary when present; else unbound.
+  // Never silently pick memberships[0] when multiple orgs are ambiguous.
   if (isJagPlatformSteward(snapshot)) {
     if (memberships.length === 0) {
       return {
@@ -98,14 +123,46 @@ export async function resolveJagOrganizationContext(
         membershipRole: null,
       };
     }
-    const chosen =
-      memberships.find((m) => m.organization_id === preferred) ??
-      memberships.find((m) => m.is_primary) ??
-      memberships[0]!;
+
+    if (preferred) {
+      const chosen = memberships.find((m) => m.organization_id === preferred);
+      if (!chosen) {
+        return {
+          authority: "platform",
+          organizationId: null,
+          membershipRole: null,
+        };
+      }
+      return {
+        authority: "platform",
+        organizationId: chosen.organization_id,
+        membershipRole: asMembershipRole(chosen.membership_role),
+      };
+    }
+
+    const primaries = memberships.filter((m) => m.is_primary);
+    if (primaries.length === 1) {
+      const chosen = primaries[0]!;
+      return {
+        authority: "platform",
+        organizationId: chosen.organization_id,
+        membershipRole: asMembershipRole(chosen.membership_role),
+      };
+    }
+
+    if (memberships.length === 1) {
+      const chosen = memberships[0]!;
+      return {
+        authority: "platform",
+        organizationId: chosen.organization_id,
+        membershipRole: asMembershipRole(chosen.membership_role),
+      };
+    }
+
     return {
       authority: "platform",
-      organizationId: chosen.organization_id,
-      membershipRole: asMembershipRole(chosen.membership_role),
+      organizationId: null,
+      membershipRole: null,
     };
   }
 

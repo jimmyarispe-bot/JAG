@@ -6,10 +6,17 @@
  */
 
 import { revalidatePath } from "next/cache";
+import {
+  assertSessionCanAccessOrganization,
+  filterAccessibleOrganizationIds,
+} from "@/lib/jag-platform/data-plane";
+import { sessionCanAccessOrganization } from "@/lib/jag-platform/org-context";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { recordJagAuditEvent } from "../audit";
+import { getDecisionCenterDetail } from "../decision-center/query";
 import { setDecisionStatus } from "../decision-center/status-store";
 import { pushJagNotification } from "../notifications";
+import { briefingReferencesDecision } from "./access";
 import {
   addBriefingNote,
   enableBriefingShare,
@@ -26,6 +33,7 @@ import {
   type JagBriefingScope,
   type JagBriefingSectionId,
   type JagBriefingTimeline,
+  type JagExecutiveBriefing,
 } from "./types";
 
 export type GenerateBriefingResult =
@@ -57,6 +65,21 @@ async function requireActor(): Promise<
   return { ok: true, actor: session.displayName || session.email, session };
 }
 
+function requireBriefingAccess(
+  session: NonNullable<Awaited<ReturnType<typeof getJagPlatformSession>>>,
+  briefingId: string
+):
+  | { ok: true; briefing: JagExecutiveBriefing }
+  | { ok: false; error: string } {
+  const briefing = getBriefing(briefingId);
+  if (!briefing) return { ok: false, error: "Briefing not found." };
+  const allowed = briefing.organizationIds.some((id) =>
+    sessionCanAccessOrganization(session, id)
+  );
+  if (!allowed) return { ok: false, error: "Organization access denied." };
+  return { ok: true, briefing };
+}
+
 export async function generateExecutiveBriefing(input: {
   scope: string;
   organizationId?: string;
@@ -81,11 +104,28 @@ export async function generateExecutiveBriefing(input: {
     return { ok: false, error: "Invalid timeline." };
   }
 
+  if (input.organizationId) {
+    const denied = assertSessionCanAccessOrganization(
+      auth.session,
+      input.organizationId
+    );
+    if (denied) return { ok: false, error: denied };
+  }
+  const organizationIds = input.organizationIds
+    ? [...filterAccessibleOrganizationIds(auth.session, input.organizationIds)]
+    : undefined;
+  if (
+    input.organizationIds?.length &&
+    (!organizationIds || organizationIds.length === 0)
+  ) {
+    return { ok: false, error: "Organization access denied." };
+  }
+
   const result = synthesizeExecutiveBriefing({
     session: auth.session,
     scope: input.scope as JagBriefingScope,
     organizationId: input.organizationId,
-    organizationIds: input.organizationIds,
+    organizationIds,
     kind: input.kind as JagBriefingKind,
     timeline: input.timeline as JagBriefingTimeline,
     customStart: input.customStart,
@@ -128,12 +168,40 @@ export async function approveBriefingDecision(input: {
 }): Promise<ActionResult> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
-  const briefing = getBriefing(input.briefingId);
-  if (!briefing) {
-    return { ok: false, error: "Briefing not found." };
+  const access = requireBriefingAccess(auth.session, input.briefingId);
+  if (!access.ok) return access;
+  const { briefing } = access;
+
+  if (!input.decisionId.trim()) {
+    return { ok: false, error: "Decision id is required." };
   }
+
+  // Decision ACL from stored Decision Center record — never trust client org.
+  const detail = getDecisionCenterDetail(auth.session, input.decisionId);
+  if (!detail) {
+    return { ok: false, error: "Decision not found." };
+  }
+  if (
+    !sessionCanAccessOrganization(auth.session, detail.card.organizationId)
+  ) {
+    return { ok: false, error: "Organization access denied." };
+  }
+  if (!briefingReferencesDecision(briefing, input.decisionId)) {
+    return {
+      ok: false,
+      error: "Decision is not part of this briefing.",
+    };
+  }
+  // Decision org must intersect briefing org scope (same-tenant approval).
+  if (
+    !briefing.organizationIds.includes(detail.card.organizationId) &&
+    briefing.organizationId !== detail.card.organizationId
+  ) {
+    return { ok: false, error: "Organization access denied." };
+  }
+
   setDecisionStatus({
-    decisionId: input.decisionId,
+    decisionId: detail.card.id,
     status: "Approved",
     actor: auth.actor,
     message: `Approved from briefing ${input.briefingId}`,
@@ -143,8 +211,8 @@ export async function approveBriefingDecision(input: {
     action: "decision_approved",
     actorUserId: auth.session.userId,
     actorLabel: auth.actor,
-    organizationId: briefing.organizationId,
-    decisionId: input.decisionId,
+    organizationId: detail.card.organizationId,
+    decisionId: detail.card.id,
     briefingId: input.briefingId,
     detail: "Approved from executive briefing",
   });
@@ -153,14 +221,14 @@ export async function approveBriefingDecision(input: {
     kind: "decision_approved",
     title: "Decision approved",
     body: "Approved from briefing actions.",
-    href: `/jag/decisions/${input.decisionId}`,
-    organizationId: briefing.organizationId,
-    decisionId: input.decisionId,
+    href: `/jag/decisions/${detail.card.id}`,
+    organizationId: detail.card.organizationId,
+    decisionId: detail.card.id,
     briefingId: input.briefingId,
   });
 
   revalidateBriefing(input.briefingId);
-  revalidatePath(`/jag/decisions/${input.decisionId}`);
+  revalidatePath(`/jag/decisions/${detail.card.id}`);
   return { ok: true };
 }
 
@@ -174,7 +242,8 @@ export async function addExecutiveBriefingNote(input: {
   if (!input.text.trim()) {
     return { ok: false, error: "Note text is required." };
   }
-  const briefing = getBriefing(input.briefingId);
+  const access = requireBriefingAccess(auth.session, input.briefingId);
+  if (!access.ok) return access;
   const note = addBriefingNote({
     briefingId: input.briefingId,
     actor: auth.actor,
@@ -187,7 +256,7 @@ export async function addExecutiveBriefingNote(input: {
     action: "brief_note_added",
     actorUserId: auth.session.userId,
     actorLabel: auth.actor,
-    organizationId: briefing?.organizationId,
+    organizationId: access.briefing.organizationId,
     briefingId: input.briefingId,
     detail: "Executive note added",
   });
@@ -206,7 +275,8 @@ export async function scheduleBriefingFollowUpReview(input: {
   if (!input.at.trim()) {
     return { ok: false, error: "Review date is required." };
   }
-  const briefing = getBriefing(input.briefingId);
+  const access = requireBriefingAccess(auth.session, input.briefingId);
+  if (!access.ok) return access;
   const review = scheduleBriefingReview({
     briefingId: input.briefingId,
     actor: auth.actor,
@@ -219,7 +289,7 @@ export async function scheduleBriefingFollowUpReview(input: {
     action: "brief_review_scheduled",
     actorUserId: auth.session.userId,
     actorLabel: auth.actor,
-    organizationId: briefing?.organizationId,
+    organizationId: access.briefing.organizationId,
     briefingId: input.briefingId,
     detail: `Review scheduled for ${input.at.slice(0, 10)}`,
   });
@@ -229,7 +299,7 @@ export async function scheduleBriefingFollowUpReview(input: {
     title: "Follow-up scheduled",
     body: `Review on ${input.at.slice(0, 10)}`,
     href: `/jag/briefings/${input.briefingId}`,
-    organizationId: briefing?.organizationId,
+    organizationId: access.briefing.organizationId,
     briefingId: input.briefingId,
   });
 
@@ -242,7 +312,8 @@ export async function createBriefingShareLink(input: {
 }): Promise<ActionResult<{ sharePath: string; token: string }>> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
-  const briefing = getBriefing(input.briefingId);
+  const access = requireBriefingAccess(auth.session, input.briefingId);
+  if (!access.ok) return access;
   const token = enableBriefingShare(input.briefingId);
   if (!token) return { ok: false, error: "Briefing not found." };
 
@@ -250,7 +321,7 @@ export async function createBriefingShareLink(input: {
     action: "brief_share_created",
     actorUserId: auth.session.userId,
     actorLabel: auth.actor,
-    organizationId: briefing?.organizationId,
+    organizationId: access.briefing.organizationId,
     briefingId: input.briefingId,
     detail: "Read-only share link created",
   });
@@ -269,8 +340,9 @@ export async function createFollowUpBriefing(input: {
 }): Promise<GenerateBriefingResult> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
-  const source = getBriefing(input.sourceBriefingId);
-  if (!source) return { ok: false, error: "Source briefing not found." };
+  const access = requireBriefingAccess(auth.session, input.sourceBriefingId);
+  if (!access.ok) return { ok: false, error: access.error };
+  const source = access.briefing;
   if (!JAG_BRIEFING_KINDS.includes(input.kind as JagBriefingKind)) {
     return { ok: false, error: "Invalid follow-up briefing type." };
   }

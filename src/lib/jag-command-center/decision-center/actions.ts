@@ -6,6 +6,7 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { assertSessionCanAccessOrganization } from "@/lib/jag-platform/data-plane";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { recordJagAuditEvent } from "../audit";
 import { recordDecisionOutcomeMemory } from "../memory/load-memory";
@@ -47,6 +48,7 @@ async function requireActor(): Promise<
       ok: true;
       actor: string;
       userId: string;
+      session: NonNullable<Awaited<ReturnType<typeof getJagPlatformSession>>>;
     }
   | { ok: false; error: string }
 > {
@@ -56,7 +58,29 @@ async function requireActor(): Promise<
     ok: true,
     actor: session.displayName || session.email,
     userId: session.userId,
+    session,
   };
+}
+
+/**
+ * Authorize against the decision resource's owning org — never trust client
+ * organizationId alone (omit/mismatch must not fail open).
+ */
+function requireDecisionAccess(
+  session: NonNullable<Awaited<ReturnType<typeof getJagPlatformSession>>>,
+  decisionId: string
+):
+  | { ok: true; organizationId: string }
+  | { ok: false; error: string } {
+  if (!decisionId.trim()) {
+    return { ok: false, error: "Decision id is required." };
+  }
+  const detail = getDecisionCenterDetail(session, decisionId);
+  if (!detail) {
+    return { ok: false, error: "Decision not found." };
+  }
+  // getDecisionCenterDetail already enforces sessionCanAccessOrganization.
+  return { ok: true, organizationId: detail.card.organizationId };
 }
 
 export async function updateDecisionCenterStatus(input: {
@@ -67,13 +91,12 @@ export async function updateDecisionCenterStatus(input: {
 }): Promise<UpdateDecisionStatusResult> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
+  const access = requireDecisionAccess(auth.session, input.decisionId);
+  if (!access.ok) return access;
   if (
     !JAG_DECISION_STATUSES.includes(input.status as JagDecisionStatus)
   ) {
     return { ok: false, error: "Invalid status." };
-  }
-  if (!input.decisionId.trim()) {
-    return { ok: false, error: "Decision id is required." };
   }
 
   const status = setDecisionStatus({
@@ -94,7 +117,7 @@ export async function updateDecisionCenterStatus(input: {
     action,
     actorUserId: auth.userId,
     actorLabel: auth.actor,
-    organizationId: input.organizationId,
+    organizationId: access.organizationId,
     decisionId: input.decisionId,
     detail: `Decision status → ${status}`,
     metadata: { status },
@@ -106,7 +129,7 @@ export async function updateDecisionCenterStatus(input: {
       title: "Decision approved",
       body: `Decision ${input.decisionId.slice(0, 8)}… marked Approved.`,
       href: `/jag/decisions/${input.decisionId}`,
-      organizationId: input.organizationId,
+      organizationId: access.organizationId,
       decisionId: input.decisionId,
     });
   }
@@ -128,12 +151,22 @@ export async function assignDecisionCenterOwner(input: {
 }): Promise<ActionResult<{ summary: string }>> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
-  if (!input.decisionId.trim()) {
-    return { ok: false, error: "Decision id is required." };
-  }
+  const access = requireDecisionAccess(auth.session, input.decisionId);
+  if (!access.ok) return access;
 
   if (input.targetType === "organization" && !input.organizationId?.trim()) {
     return { ok: false, error: "Organization is required." };
+  }
+  if (
+    input.targetType === "organization" &&
+    input.organizationId &&
+    input.organizationId !== access.organizationId
+  ) {
+    const denied = assertSessionCanAccessOrganization(
+      auth.session,
+      input.organizationId
+    );
+    if (denied) return { ok: false, error: denied };
   }
   if (input.targetType === "role" && !input.role?.trim()) {
     return { ok: false, error: "Role is required." };
@@ -150,7 +183,7 @@ export async function assignDecisionCenterOwner(input: {
     decisionId: input.decisionId,
     actor: auth.actor,
     targetType: input.targetType,
-    organizationId: input.organizationId,
+    organizationId: input.organizationId ?? access.organizationId,
     organizationName: input.organizationName,
     role: input.role,
     userId: input.userId,
@@ -163,7 +196,7 @@ export async function assignDecisionCenterOwner(input: {
     action: "decision_assigned",
     actorUserId: auth.userId,
     actorLabel: auth.actor,
-    organizationId: input.organizationId,
+    organizationId: access.organizationId,
     decisionId: input.decisionId,
     detail: `Assigned to ${assignment.summary}`,
     metadata: {
@@ -179,7 +212,7 @@ export async function assignDecisionCenterOwner(input: {
       assignment.dueDate ? ` · due ${assignment.dueDate.slice(0, 10)}` : ""
     }`,
     href: `/jag/decisions/${input.decisionId}`,
-    organizationId: input.organizationId,
+    organizationId: access.organizationId,
     decisionId: input.decisionId,
   });
 
@@ -192,7 +225,7 @@ export async function assignDecisionCenterOwner(input: {
       title: "Decision overdue",
       body: `Assignment due date ${assignment.dueDate.slice(0, 10)} is already past.`,
       href: `/jag/decisions/${input.decisionId}`,
-      organizationId: input.organizationId,
+      organizationId: access.organizationId,
       decisionId: input.decisionId,
     });
   }
@@ -214,9 +247,8 @@ export async function addDecisionCenterExecutionUpdate(input: {
 }): Promise<ActionResult> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
-  if (!input.decisionId.trim()) {
-    return { ok: false, error: "Decision id is required." };
-  }
+  const access = requireDecisionAccess(auth.session, input.decisionId);
+  if (!access.ok) return access;
   if (!input.message.trim()) {
     return { ok: false, error: "Update message is required." };
   }
@@ -237,7 +269,7 @@ export async function addDecisionCenterExecutionUpdate(input: {
         : "decision_execution_updated",
     actorUserId: auth.userId,
     actorLabel: auth.actor,
-    organizationId: input.organizationId,
+    organizationId: access.organizationId,
     decisionId: input.decisionId,
     detail: `${input.kind}: ${input.message.trim()}`,
     metadata: { kind: input.kind },
@@ -261,14 +293,18 @@ export async function recordDecisionCenterOutcome(input: {
 }): Promise<ActionResult> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
-  if (!input.decisionId.trim()) {
-    return { ok: false, error: "Decision id is required." };
-  }
+  const access = requireDecisionAccess(auth.session, input.decisionId);
+  if (!access.ok) return access;
   if (!input.expectedOutcome.trim() || !input.actualOutcome.trim()) {
     return { ok: false, error: "Expected and actual outcomes are required." };
   }
   if (input.result !== "success" && input.result !== "failure") {
     return { ok: false, error: "Outcome result must be success or failure." };
+  }
+
+  const detail = getDecisionCenterDetail(auth.session, input.decisionId);
+  if (!detail) {
+    return { ok: false, error: "Decision not found." };
   }
 
   recordDecisionOutcome({
@@ -293,32 +329,26 @@ export async function recordDecisionCenterOutcome(input: {
     action: "decision_outcome_reviewed",
     actorUserId: auth.userId,
     actorLabel: auth.actor,
-    organizationId: input.organizationId,
+    organizationId: access.organizationId,
     decisionId: input.decisionId,
     detail: `Outcome ${input.result}`,
     metadata: { result: input.result },
   });
 
-  const session = await getJagPlatformSession();
-  if (session) {
-    const detail = getDecisionCenterDetail(session, input.decisionId);
-    if (detail) {
-      recordDecisionOutcomeMemory({
-        session,
-        organizationId: detail.card.organizationId,
-        organizationName: detail.card.organizationName,
-        decisionId: detail.card.id,
-        decisionTitle: detail.card.title,
-        contributorId: detail.card.contributorId,
-        result: input.result,
-        expectedOutcome: input.expectedOutcome,
-        actualOutcome: input.actualOutcome,
-        lessonsLearned: input.lessonsLearned,
-        confidence: input.confidence,
-      });
-      revalidatePath("/jag/memory");
-    }
-  }
+  recordDecisionOutcomeMemory({
+    session: auth.session,
+    organizationId: detail.card.organizationId,
+    organizationName: detail.card.organizationName,
+    decisionId: detail.card.id,
+    decisionTitle: detail.card.title,
+    contributorId: detail.card.contributorId,
+    result: input.result,
+    expectedOutcome: input.expectedOutcome,
+    actualOutcome: input.actualOutcome,
+    lessonsLearned: input.lessonsLearned,
+    confidence: input.confidence,
+  });
+  revalidatePath("/jag/memory");
 
   revalidateDecision(input.decisionId);
   return { ok: true };

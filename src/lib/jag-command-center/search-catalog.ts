@@ -96,7 +96,23 @@ export const loadJagSearchCatalog = cache(function loadJagSearchCatalog(
     });
   }
 
-  for (const b of listBriefings({ limit: 40 })) {
+  // Organization-owned briefings — never dump the global store.
+  // Customer with no accessible orgs → zero briefing entries.
+  // Platform sees only briefings for session-listed orgs (demo seed list),
+  // not an unfiltered cross-tenant dump.
+  const orgIds = orgs.map((o) => o.id);
+  const briefingById = new Map<
+    string,
+    ReturnType<typeof listBriefings>[number]
+  >();
+  for (const orgId of orgIds) {
+    for (const b of listBriefings({ organizationId: orgId, limit: 40 })) {
+      briefingById.set(b.id, b);
+    }
+  }
+  for (const b of [...briefingById.values()]
+    .sort((a, b) => b.generatedAt.localeCompare(a.generatedAt))
+    .slice(0, 40)) {
     items.push({
       id: `briefing:${b.id}`,
       kind: "briefing",
@@ -106,7 +122,6 @@ export const loadJagSearchCatalog = cache(function loadJagSearchCatalog(
     });
   }
 
-  const orgIds = orgs.map((o) => o.id);
   const executions = listStoredExecutionsForOrganizations(orgIds, 80);
   const seenContributors = new Set<string>();
   for (const e of executions) {

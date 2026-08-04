@@ -3,6 +3,7 @@ export {
   listWatcherObservations,
   type JagInboxWorkspaceModel,
 } from "./load-inbox";
+export { getAccessibleWatcherAlert } from "./access";
 export { buildWatcherEvaluationContext } from "./build-context";
 export {
   jagAcknowledgeAlertAction,

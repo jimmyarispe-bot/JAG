@@ -3,7 +3,7 @@
  */
 
 import { listBriefings } from "@/lib/jag-command-center/briefing-engine/store";
-import { listJagNotifications } from "@/lib/jag-command-center/notifications";
+import { listJagNotificationsForOrganization } from "@/lib/jag-command-center/notifications";
 import { TenantRegistry } from "./TenantRegistry";
 import type { TenantUsageMetrics } from "./types";
 import { defaultUsage } from "./defaults";
@@ -15,10 +15,10 @@ export const UsageService = {
 
     // Live overlays from in-memory CC stores where available.
     const briefings = listBriefings({ organizationId, limit: 500 }).length;
-    const watcherAlerts = listJagNotifications(200).filter(
-      (n) =>
-        n.organizationId === organizationId ||
-        (n.organizationId == null && organizationId)
+    // Exact org match only — null-org notifications must not inflate tenant metrics.
+    const watcherAlerts = listJagNotificationsForOrganization(
+      organizationId,
+      200
     ).length;
 
     return {

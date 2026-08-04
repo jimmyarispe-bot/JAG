@@ -3,6 +3,7 @@
  */
 
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import {
   FeatureFlagService,
@@ -47,22 +48,26 @@ export type JagTenantAdminWorkspace = {
   readonly brandingHref: string;
 };
 
+/**
+ * Load tenant admin for an accessible organization only.
+ * Returns null when the session has no accessible org (fail-closed —
+ * never falls back to The Academy Way seed).
+ */
 export function loadTenantAdminWorkspace(
   session: JagPlatformSession,
   organizationId?: string
-): JagTenantAdminWorkspace {
+): JagTenantAdminWorkspace | null {
   const orgs = listOrganizationsForSession(session).map((o) => ({
     id: o.id,
     label: o.name,
   }));
 
-  const selectedId =
-    (organizationId && orgs.some((o) => o.id === organizationId)
-      ? organizationId
-      : orgs[0]?.id) ?? "org.the-academy-way";
+  const selected = resolveSessionOrganization(session, organizationId);
+  if (!selected) return null;
 
+  const selectedId = selected.id;
   const label =
-    orgs.find((o) => o.id === selectedId)?.label ?? "Organization";
+    orgs.find((o) => o.id === selectedId)?.label ?? selected.name;
 
   const tenant = TenantService.ensureTenant({
     organizationId: selectedId,

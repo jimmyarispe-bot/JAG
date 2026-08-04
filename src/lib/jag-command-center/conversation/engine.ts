@@ -3,6 +3,7 @@
  */
 
 import { recordJagAuditEvent } from "../audit/store";
+import { sessionCanAccessConversation } from "./access";
 import { buildConversationAnswer } from "./answer";
 import { gatherConversationContext } from "./context";
 import { intentToMemoryTopic, routeConversationIntent } from "./intents";
@@ -43,12 +44,23 @@ export function askExecutiveConversation(
   const started = Date.now();
   const question = input.question.trim();
 
+  const existing = input.conversationId
+    ? getConversation(input.conversationId)
+    : null;
+  // Defense in depth: never append turns to an inaccessible conversation.
+  const accessibleExisting =
+    existing && sessionCanAccessConversation(input.session, existing)
+      ? existing
+      : null;
+
   let conversation =
-    (input.conversationId
-      ? getConversation(input.conversationId)
-      : null) ??
+    accessibleExisting ??
     createConversation({
-      organizationId: input.organizationId ?? null,
+      organizationId:
+        input.organizationId ??
+        (input.session.authority === "organization"
+          ? input.session.organizationId
+          : null),
       organizationName: null,
       title: question.slice(0, 64) || "New conversation",
     });

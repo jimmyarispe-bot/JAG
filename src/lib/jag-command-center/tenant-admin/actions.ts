@@ -14,6 +14,7 @@ import {
   type TenantSubscription,
 } from "@/lib/platform/tenant";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
+import { assertSessionCanAccessOrganization } from "@/lib/jag-platform/data-plane";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 type ActionResult<T> =
@@ -35,6 +36,15 @@ async function requireActor() {
   };
 }
 
+function requireOrgAccess(
+  session: NonNullable<Awaited<ReturnType<typeof getJagPlatformSession>>>,
+  organizationId: string
+): { ok: true } | { ok: false; error: string } {
+  const denied = assertSessionCanAccessOrganization(session, organizationId);
+  if (denied) return { ok: false, error: denied };
+  return { ok: true };
+}
+
 function revalidateAdmin(organizationId?: string) {
   revalidatePath("/jag/settings");
   revalidatePath("/jag/settings/organization");
@@ -53,6 +63,8 @@ export async function saveOrganizationProfileAction(
 ): Promise<ActionResult<OrganizationProfile>> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
+  const access = requireOrgAccess(auth.session, organizationId);
+  if (!access.ok) return access;
   try {
     const data = TenantService.updateOrganization(
       organizationId,
@@ -76,6 +88,8 @@ export async function setTenantFeatureFlagAction(
 ): Promise<ActionResult<TenantFeatureFlags>> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
+  const access = requireOrgAccess(auth.session, organizationId);
+  if (!access.ok) return access;
   try {
     const data = FeatureFlagService.setFlag(
       organizationId,
@@ -105,6 +119,8 @@ export async function updateTenantSubscriptionAction(
 ): Promise<ActionResult<TenantSubscription>> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
+  const access = requireOrgAccess(auth.session, organizationId);
+  if (!access.ok) return access;
   try {
     const data = SubscriptionService.updateSubscription(
       organizationId,
@@ -127,6 +143,8 @@ export async function exportOrganizationConfigAction(
 ): Promise<ActionResult<OrganizationConfigExport>> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
+  const access = requireOrgAccess(auth.session, organizationId);
+  if (!access.ok) return access;
   try {
     const data = TenantService.exportConfiguration(organizationId, auth.actor);
     revalidateAdmin(organizationId);
@@ -144,6 +162,8 @@ export async function exportBrandConfigAction(
 ): Promise<ActionResult<{ exportedAt: string; brand: unknown }>> {
   const auth = await requireActor();
   if (!auth.ok) return auth;
+  const access = requireOrgAccess(auth.session, organizationId);
+  if (!access.ok) return access;
   try {
     const data = TenantService.exportBrand(organizationId, auth.actor);
     revalidateAdmin(organizationId);
@@ -166,6 +186,8 @@ export async function exportCapabilityInventoryAction(
 > {
   const auth = await requireActor();
   if (!auth.ok) return auth;
+  const access = requireOrgAccess(auth.session, organizationId);
+  if (!access.ok) return access;
   try {
     const data = TenantService.exportCapabilityInventory(
       organizationId,

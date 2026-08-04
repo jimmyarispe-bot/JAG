@@ -36,6 +36,10 @@ export {
   type JagConversationWorkspaceModel,
 } from "./query";
 export {
+  getAccessibleConversation,
+  sessionCanAccessConversation,
+} from "./access";
+export {
   listConversationObservations,
   clearConversationObservationsForTests,
   type ConversationObservation,

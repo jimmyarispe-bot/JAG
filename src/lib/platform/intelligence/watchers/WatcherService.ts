@@ -353,3 +353,8 @@ export function resetWatcherServiceForTests(): void {
   obsSeq = 0;
   WatcherRegistry.resetForTests();
 }
+
+/** Test-only seed — production paths must still authorize via session ACL. */
+export function seedWatcherAlertForTests(alert: WatcherAlert): void {
+  alerts.unshift(alert);
+}

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { JagSection } from "@/components/jag/command-center";
 import { getDecisionDetail } from "@/lib/executive-intelligence";
-import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
+import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 export default async function JagPriorityDetailPage({
@@ -20,9 +20,7 @@ export default async function JagPriorityDetailPage({
 
   const { id } = await params;
   const query = await searchParams;
-  const organizations = listOrganizationsForSession(session);
-  const organization =
-    organizations.find((o) => o.id === query.org) ?? organizations[0] ?? null;
+  const organization = resolveSessionOrganization(session, query.org);
 
   if (!organization) {
     return (

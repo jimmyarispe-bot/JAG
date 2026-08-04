@@ -55,6 +55,7 @@ export { evaluateWatchers } from "./WatcherEngine";
 export {
   WatcherService,
   resetWatcherServiceForTests,
+  seedWatcherAlertForTests,
 } from "./WatcherService";
 
 export {

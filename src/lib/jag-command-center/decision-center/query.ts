@@ -3,6 +3,7 @@
  */
 
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+import { sessionCanAccessOrganization } from "@/lib/jag-platform/org-context";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import {
   getStoredExecution,
@@ -111,8 +112,11 @@ export function getDecisionCenterDetail(
   const model = loadDecisionCenter(session, {});
   const card = model.decisions.find((d) => d.id === decisionId);
   if (!card) {
-    // May be filtered out of empty org set — scan all stored executions.
+    // May be filtered out of empty org set — scan session-accessible orgs only.
     return findDetailAcrossOrgs(session, decisionId);
+  }
+  if (!sessionCanAccessOrganization(session, card.organizationId)) {
+    return null;
   }
   return buildDetail(card);
 }
@@ -137,7 +141,12 @@ function findDetailAcrossOrgs(
         organizationName:
           orgNames[execution.organizationId] ?? execution.organizationId,
       });
-      if (card.id === decisionId) return buildDetail(card);
+      if (card.id === decisionId) {
+        if (!sessionCanAccessOrganization(session, card.organizationId)) {
+          return null;
+        }
+        return buildDetail(card);
+      }
     }
   }
   return null;

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { assertSessionCanAccessOrganization } from "@/lib/jag-platform/data-plane";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { recordLessonLearnedMemory } from "./load-memory";
 
@@ -17,6 +18,11 @@ export async function jagRecordLessonAction(input: {
 }) {
   const session = await getJagPlatformSession();
   if (!session) return { error: "Unauthorized" as const };
+  const denied = assertSessionCanAccessOrganization(
+    session,
+    input.organizationId
+  );
+  if (denied) return { error: denied };
   if (!input.title.trim()) return { error: "Title required" as const };
 
   const split = (s: string) =>

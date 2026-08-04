@@ -49,11 +49,22 @@ export function saveConversation(record: JagConversationRecord): JagConversation
 export function listConversations(options?: {
   includeArchived?: boolean;
   query?: string;
+  /** When set, only conversations bound to these org ids are returned. */
+  organizationIds?: readonly string[];
+  /** When false, conversations with null organizationId are excluded. */
+  allowUnbound?: boolean;
 }): readonly JagConversationListItem[] {
   const q = options?.query?.trim().toLowerCase() ?? "";
   let items = [...byId.values()];
   if (!options?.includeArchived) {
     items = items.filter((c) => !c.archived);
+  }
+  if (options?.organizationIds) {
+    const allowed = new Set(options.organizationIds);
+    items = items.filter((c) => {
+      if (!c.organizationId) return options.allowUnbound === true;
+      return allowed.has(c.organizationId);
+    });
   }
   if (q) {
     items = items.filter((c) => {

@@ -16,6 +16,7 @@ import {
 } from "@/lib/platform/intelligence/scenarios";
 import type { SimilarSituationView } from "@/lib/platform/intelligence/memory/index";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { recordJagAuditEvent } from "../audit/store";
 import { projectDecisionsFromExecutions } from "../decision-center/project";
@@ -63,10 +64,10 @@ export function loadScenarioPlanner(
   }
 ): JagScenarioPlannerModel {
   const organizations = listOrganizationsForSession(session);
-  const organization =
-    organizations.find((o) => o.id === options?.organizationId) ??
-    organizations[0] ??
-    null;
+  const organization = resolveSessionOrganization(
+    session,
+    options?.organizationId
+  );
 
   const templates = SCENARIO_TEMPLATES;
   const advisoryNotice =

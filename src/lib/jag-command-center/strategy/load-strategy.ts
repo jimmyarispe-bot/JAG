@@ -11,6 +11,7 @@ import {
 } from "@/lib/platform/intelligence/strategy/index";
 import { MemoryService } from "@/lib/platform/intelligence/memory/index";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 
 export { listStrategyObservations };
@@ -40,8 +41,7 @@ export function loadStrategyWorkspace(
   options?: { organizationId?: string }
 ): JagStrategyWorkspaceModel {
   const orgs = listOrganizationsForSession(session);
-  const org =
-    orgs.find((o) => o.id === options?.organizationId) ?? orgs[0] ?? null;
+  const org = resolveSessionOrganization(session, options?.organizationId);
 
   const advisoryNotice =
     "Strategic intelligence — why we exist, where we are going, and whether today's work advances tomorrow's vision.";

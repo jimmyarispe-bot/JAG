@@ -8,6 +8,7 @@ import {
   type OrganizationBrand,
 } from "@/lib/platform/branding";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
+import { assertSessionCanAccessOrganization } from "@/lib/jag-platform/data-plane";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 export type BrandActionResult =
@@ -29,9 +30,8 @@ export async function saveOrganizationBrandAction(
   const auth = await requireSession();
   if (!auth.ok) return auth;
 
-  if (!organizationId.trim()) {
-    return { ok: false, error: "organizationId is required." };
-  }
+  const denied = assertSessionCanAccessOrganization(auth.session, organizationId);
+  if (denied) return { ok: false, error: denied };
 
   const brand = BrandService.updateBrand(organizationId, partial);
   revalidatePath("/jag");
@@ -47,9 +47,8 @@ export async function restoreOrganizationBrandDefaultsAction(
   const auth = await requireSession();
   if (!auth.ok) return auth;
 
-  if (!organizationId.trim()) {
-    return { ok: false, error: "organizationId is required." };
-  }
+  const denied = assertSessionCanAccessOrganization(auth.session, organizationId);
+  if (denied) return { ok: false, error: denied };
 
   const brand = BrandService.restoreDefaults(organizationId);
   revalidatePath("/jag");
@@ -66,9 +65,11 @@ export async function uploadBrandAssetAction(input: {
   const auth = await requireSession();
   if (!auth.ok) return auth;
 
-  if (!input.organizationId.trim()) {
-    return { ok: false, error: "organizationId is required." };
-  }
+  const denied = assertSessionCanAccessOrganization(
+    auth.session,
+    input.organizationId
+  );
+  if (denied) return { ok: false, error: denied };
 
   BrandService.ensureOrganization(
     input.organizationId,

@@ -50,6 +50,7 @@ export {
   getSharedBriefingDetail,
   loadBriefingList,
 } from "./query";
+export { briefingReferencesDecision } from "./access";
 export {
   addExecutiveBriefingNote,
   approveBriefingDecision,

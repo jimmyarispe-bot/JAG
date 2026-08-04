@@ -57,9 +57,10 @@ Apply this migration on the target Supabase project before relying on RLS change
 
 Password login, Resend recovery, MFA recovery step-up, branded Magic Link, and establish flow still use `completeJagAuthorization` — now with org context + authority.
 
-## Next (not this sprint)
+## Next
 
-1. Apply migration 212 in Supabase
-2. Build `/jag/admin/organizations` control plane
-3. Durable pilot invite that assigns `JAG_ORG_ADMIN` + membership (never FOUNDER)
-4. Further school-scoped RLS adoption of `is_enterprise_admin_for_organization`
+1. ~~Wire data-plane loaders/mutations to `sessionCanAccessOrganization`~~ → see `213_DATA_PLANE_TENANT_ISOLATION.md`
+2. Apply migration 212 in Supabase
+3. Build `/jag/admin/organizations` control plane
+4. Durable pilot invite that assigns `JAG_ORG_ADMIN` + membership (never FOUNDER)
+5. Further school-scoped RLS adoption of `is_enterprise_admin_for_organization`

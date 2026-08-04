@@ -393,11 +393,23 @@ function resolveOrganizations(input: {
     };
   }
 
-  const org =
-    input.sessionOrgs.find((o) => o.id === input.organizationId) ??
-    input.sessionOrgs[0]!;
-  if (input.organizationId && !input.sessionOrgs.some((o) => o.id === input.organizationId)) {
-    return { error: "Organization not found for this session." };
+  if (input.organizationId) {
+    const org = input.sessionOrgs.find((o) => o.id === input.organizationId);
+    if (!org) {
+      return { error: "Organization not found for this session." };
+    }
+    return {
+      organizationIds: [org.id],
+      organizationNames: [org.name],
+      primaryId: org.id,
+      primaryName: org.name,
+    };
+  }
+  // No preferred id — bind to the first session-accessible org only when
+  // the session list is already ACL-filtered (never rewrite across tenants).
+  const org = input.sessionOrgs[0];
+  if (!org) {
+    return { error: "No organization is available for this session." };
   }
   return {
     organizationIds: [org.id],

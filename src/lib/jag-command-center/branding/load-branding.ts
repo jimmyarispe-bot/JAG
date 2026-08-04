@@ -4,6 +4,7 @@
  */
 
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import {
   BrandService,
@@ -38,8 +39,9 @@ export function loadJagBrandForSession(
   session: JagPlatformSession | null,
   host?: string
 ): JagBrandSessionModel {
-  const orgs = session ? listOrganizationsForSession(session) : [];
-  const primaryOrg = orgs[0];
+  const primaryOrg = session
+    ? resolveSessionOrganization(session, session.organizationId)
+    : null;
 
   if (primaryOrg) {
     BrandService.ensureOrganization(

@@ -3,8 +3,10 @@
  */
 
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
-import { getConversation, listConversations } from "./store";
+import { getAccessibleConversation } from "./access";
+import { listConversations } from "./store";
 import { SUGGESTED_PROMPTS } from "./types";
 import type { JagConversationListItem, JagConversationRecord } from "./types";
 
@@ -28,14 +30,15 @@ export function loadConversationWorkspace(
   }
 ): JagConversationWorkspaceModel {
   const orgs = listOrganizationsForSession(session);
-  const org =
-    orgs.find((o) => o.id === options?.organizationId) ?? orgs[0] ?? null;
+  const org = resolveSessionOrganization(session, options?.organizationId);
   const conversations = listConversations({
     query: options?.search,
     includeArchived: options?.includeArchived,
+    organizationIds: orgs.map((o) => o.id),
+    allowUnbound: session.authority === "platform",
   });
   const active = options?.conversationId
-    ? getConversation(options.conversationId)
+    ? getAccessibleConversation(session, options.conversationId)
     : null;
 
   return {

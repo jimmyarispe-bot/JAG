@@ -40,6 +40,21 @@ export function recordJagAuditEvent(input: {
   return event;
 }
 
-export function listJagAuditEvents(limit = 50): readonly JagAuditEvent[] {
-  return events.slice(0, limit);
+export function listJagAuditEvents(
+  limit = 50,
+  options?: {
+    /** When set, only events for accessible orgs (and unbound when allowUnbound). */
+    readonly canAccessOrganization?: (organizationId: string) => boolean;
+    /** Platform stewards may see events with null organizationId. */
+    readonly allowUnbound?: boolean;
+  }
+): readonly JagAuditEvent[] {
+  const canAccess = options?.canAccessOrganization;
+  const filtered = canAccess
+    ? events.filter((e) => {
+        if (!e.organizationId) return options?.allowUnbound === true;
+        return canAccess(e.organizationId);
+      })
+    : events;
+  return filtered.slice(0, limit);
 }

@@ -15,7 +15,7 @@ import {
   validateEducationPolicyRegistry,
 } from "@/lib/domains/education";
 import { getDecisionService } from "@/lib/executive-intelligence";
-import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { loadDecisionCenter } from "./decision-center/query";
 import { projectDecisionId } from "./decision-center/project";
@@ -54,11 +54,10 @@ export function loadExecutiveOverview(
   session: JagPlatformSession,
   options?: { organizationId?: string }
 ): JagExecutiveOverviewModel {
-  const organizations = listOrganizationsForSession(session);
-  const organization =
-    organizations.find((o) => o.id === options?.organizationId) ??
-    organizations[0] ??
-    null;
+  const organization = resolveSessionOrganization(
+    session,
+    options?.organizationId
+  );
   const organizationId = organization?.id ?? null;
 
   return {

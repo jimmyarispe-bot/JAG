@@ -79,8 +79,8 @@ export default async function JagRootLayout({
   const brandModel = loadJagBrandForSession(session, host);
   const overview = loadJagCommandCenterOverview(session);
   const searchCatalog = loadJagSearchCatalog(session);
-  const notifications = listJagNotifications(20);
-  const unreadNotificationCount = countUnreadJagNotifications();
+  const notifications = listJagNotifications(session, 20);
+  const unreadNotificationCount = countUnreadJagNotifications(session);
 
   return (
     <div

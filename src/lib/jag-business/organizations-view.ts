@@ -1,5 +1,8 @@
 /**
  * Organization cards for the JAG Platform dashboard.
+ *
+ * ACL source for data-plane surfaces — always filtered by session authority
+ * and `sessionCanAccessOrganization`.
  */
 
 import { ACADEMYOS_LAUNCH_PATH } from "@/lib/jag-platform/auth";
@@ -7,6 +10,7 @@ import {
   getAcademyWayOrganization,
   type JagOrganizationCard,
 } from "@/lib/jag-platform/organizations";
+import { sessionCanAccessOrganization } from "@/lib/jag-platform/org-context";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { JAG_PLATFORM_DEMO_ACCOUNTS } from "@/lib/jag-platform/auth";
 import { listProvisionedOrganizations } from "@/lib/jag-business/store";
@@ -50,11 +54,31 @@ function isSeededPlatformAccount(email: string): boolean {
   );
 }
 
+function boundOrgCard(
+  session: JagPlatformSession,
+  owned: readonly JagOrganizationCard[]
+): JagOrganizationCard | null {
+  const boundId = session.organizationId;
+  if (!boundId) return null;
+  const fromOwned = owned.find((o) => o.id === boundId);
+  if (fromOwned) return fromOwned;
+  // Session-bound org not in in-memory provisioned store — synthesize a card.
+  return {
+    id: boundId,
+    name: boundId,
+    health: "healthy",
+    status: "active",
+    products: [],
+  };
+}
+
 /**
  * Organizations visible to the signed-in JAG user.
  *
- * Platform stewards: Academy Way seed card + in-memory provisioned orgs.
- * Organization operators: only orgs they own/created (never global seed dump).
+ * Platform stewards: Academy Way seed card + in-memory provisioned orgs
+ * (demo accounts) or owned orgs (non-demo).
+ * Organization operators: only the session-bound organization — never the
+ * Academy seed dump and never other founders' orgs.
  */
 export function listOrganizationsForSession(
   session: JagPlatformSession
@@ -68,23 +92,28 @@ export function listOrganizationsForSession(
     )
     .map(provisionedToCard);
 
-  // Seeded platform demo accounts: Academy Way + all in-memory provisioned orgs.
-  if (
+  let candidates: JagOrganizationCard[];
+
+  if (session.authority === "organization") {
+    const bound = boundOrgCard(session, owned);
+    candidates = bound ? [bound] : [];
+  } else if (
     session.authority === "platform" &&
     isSeededPlatformAccount(session.email)
   ) {
-    return Object.freeze([seed, ...provisioned]);
-  }
-
-  // Customer org operator — never expose the Academy seed by default.
-  if (session.authority === "organization") {
+    candidates = [seed, ...provisioned];
+  } else {
+    // Non-demo platform steward: owned in-memory orgs only until DB control plane lands.
+    candidates = [...owned];
     if (session.organizationId) {
-      const bound = owned.filter((o) => o.id === session.organizationId);
-      if (bound.length > 0) return Object.freeze(bound);
+      const bound = boundOrgCard(session, owned);
+      if (bound && !candidates.some((c) => c.id === bound.id)) {
+        candidates = [bound, ...candidates];
+      }
     }
-    return Object.freeze(owned);
   }
 
-  // Non-demo platform steward: owned in-memory orgs only until DB control plane lands.
-  return Object.freeze(owned);
+  return Object.freeze(
+    candidates.filter((o) => sessionCanAccessOrganization(session, o.id))
+  );
 }
