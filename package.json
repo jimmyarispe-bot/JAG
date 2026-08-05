@@ -60,7 +60,14 @@
     "acceptance:rc10": "tsx scripts/rc10/suite.mts",
     "rc11:suite": "tsx scripts/rc11/suite.mts",
     "acceptance:rc11": "tsx scripts/rc11/suite.mts",
-    "cert:instructions": "node scripts/certification-run-instructions.mjs"
+    "cert:instructions": "node scripts/certification-run-instructions.mjs",
+    "db:baseline:build": "node scripts/greenfield/build-greenfield-baseline.mjs",
+    "db:baseline:verify": "node scripts/greenfield/verify-greenfield-baseline.mjs",
+    "db:baseline:inventory": "node scripts/greenfield/verify-canonical-inventory.mjs",
+    "db:bootstrap:greenfield": "node scripts/greenfield/bootstrap-greenfield.mjs",
+    "db:bootstrap:verify": "node scripts/greenfield/verify-greenfield-live.mjs",
+    "db:migrate:forward": "node scripts/greenfield/apply-forward-migrations.mjs",
+    "test:greenfield": "vitest run tests/unit/greenfield"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

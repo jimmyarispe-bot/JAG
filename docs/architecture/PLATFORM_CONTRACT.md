@@ -93,11 +93,52 @@ Doc: `docs/architecture/platform-services.md`
 
 | Field | Content |
 |-------|---------|
-| **Current implementation** | `supabase/migrations/{NNN}_{description}.sql` (and some `release*` names). Often foundation + `*_rls.sql` pairs. Idempotent patterns common. Verify via `scripts/verify-migration-audit.mjs`. |
+| **Current implementation** | `supabase/migrations/{NNN}_{description}.sql` (and some `release*` names). Often foundation + `*_rls.sql` pairs. Idempotent patterns common. Verify via `scripts/verify-migration-audit.mjs`. Dual-path greenfield baseline: `supabase/baseline/GA_BASELINE_212` + `scripts/greenfield/*`. |
 | **Maturity** | **Complete** (process) / **Partial** (naming consistency) |
-| **Required standard** | Monotonic numeric prefix; one concern per migration; RLS with or immediately after foundation; never edit applied migrations; verify against linked DB. |
+| **Required standard** | Monotonic numeric prefix; one concern per migration; RLS with or immediately after foundation; never edit applied migrations; verify against linked DB. New environments initialize from a certified greenfield baseline at an explicit cutoff — they must not fabricate historical ledger rows or recreate obsolete historical Auth identities. |
 | **Gaps** | Mixed naming eras; many incremental RLS fix migrations. |
-| **Recommended action** | Freeze naming to `{NNN}_{area}_{intent}.sql`; document “no rewrite applied SQL.” |
+| **Recommended action** | Freeze naming to `{NNN}_{area}_{intent}.sql`; document “no rewrite applied SQL.” Certify both upgrade and greenfield paths each release. |
+
+### Database Evolution Contract
+
+JAG maintains two intentional database lifecycle paths that converge at the same cutoff:
+
+```text
+PATH 1 — EXISTING DATABASE
+historical migrations → cutoff → future migrations
+
+PATH 2 — NEW DATABASE
+certified greenfield baseline → same cutoff → future migrations
+```
+
+#### Historical Migration Lineage
+
+- Used for already-deployed databases.
+- Applied migrations are immutable; upgrades are forward-only.
+- Historical repairs remain historical evidence (not greenfield prerequisites).
+- No checksum rewriting and no `schema_migrations` ledger fabrication.
+
+#### Greenfield Baseline
+
+- Used only for initializing a new empty environment.
+- Represents canonical state at an explicit cutoff (GA candidate: `GA_BASELINE_212` / cutoff `212`).
+- Is not historical execution evidence and must not claim `158` (or other excluded repairs) executed.
+- Must contain no runtime production data, production Auth identities, or secrets.
+- Provenance is stored in application-owned `platform_schema_baselines`, distinct from Supabase historical migration history.
+- Must be reproducible and independently certified.
+
+#### Convergence Requirement
+
+At the shared cutoff, historical upgrade path and greenfield baseline must converge to equivalent schema, functions, policies, permissions, and deterministic catalog/baseline data.
+
+#### Future Migration Requirement
+
+Every future migration after the cutoff must be tested against both:
+
+1. historical-upgrade-equivalent state
+2. greenfield-baseline state
+
+Normative detail: [`DATABASE_EVOLUTION_CONTRACT.md`](./DATABASE_EVOLUTION_CONTRACT.md).
 
 ---
 
