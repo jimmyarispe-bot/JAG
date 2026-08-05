@@ -16,15 +16,43 @@ grant all on table public.admissions_lead_funding_sources to service_role;
 grant all on table public.student_funding_sources to service_role;
 
 -- Named composite types are required for PostgREST to expose set-returning RPCs.
-create type if not exists public.lead_funding_link as (
-  lead_id uuid,
-  funding_source_id uuid
-);
+-- PostgreSQL does not support CREATE TYPE IF NOT EXISTS; use catalog checks
+-- (same pattern as 064_funding_junction_rpc_fix.sql).
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n
+      ON n.oid = t.typnamespace
+    WHERE t.typname = 'lead_funding_link'
+      AND n.nspname = 'public'
+  ) THEN
+    CREATE TYPE public.lead_funding_link AS (
+      lead_id uuid,
+      funding_source_id uuid
+    );
+  END IF;
+END
+$$;
 
-create type if not exists public.student_funding_link as (
-  student_id uuid,
-  funding_source_id uuid
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n
+      ON n.oid = t.typnamespace
+    WHERE t.typname = 'student_funding_link'
+      AND n.nspname = 'public'
+  ) THEN
+    CREATE TYPE public.student_funding_link AS (
+      student_id uuid,
+      funding_source_id uuid
+    );
+  END IF;
+END
+$$;
 
 grant usage on type public.lead_funding_link to authenticated, anon, service_role;
 grant usage on type public.student_funding_link to authenticated, anon, service_role;
