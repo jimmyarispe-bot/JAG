@@ -4,7 +4,7 @@
 -- ============================================================
 -- baseline_id: GA_BASELINE_212
 -- cutoff_migration: 212
--- created_from_commit: e9526f78064f2254182dcd9baeca5e73e7b3f7e9
+-- created_from_commit: 167c942c8387be973a1b6da29fd25bd5af80b9be
 -- baseline_format_version: 1
 -- generation_method: filtered_historical_source_composition
 --
@@ -27115,7 +27115,8 @@ values (
   'the-academy-way',
   'TEAM_MEMBER',
   array[
-    'jimmy@theacademyway.org']::text[]
+    'jimmy@theacademyway.org'
+  ]::text[]
 )
 on conflict (id) do nothing;
 

@@ -74,6 +74,53 @@ describe("greenfield baseline governance", () => {
   });
 });
 
+describe("greenfield composition transforms", () => {
+  it("applies 175 founder email transform exactly once and fail-closed", async () => {
+    const {
+      composeSourceSql,
+      TRANSFORM_175_FOUNDER_ARRAY,
+      countOccurrences,
+      normalizeNewlines,
+    } = await import("../../../scripts/greenfield/transforms.mjs");
+    const raw = normalizeNewlines(
+      readFileSync(join(MIGRATIONS, "175_complete_auth_user_provisioning.sql"), "utf8")
+    );
+    expect(countOccurrences(raw, TRANSFORM_175_FOUNDER_ARRAY.from)).toBe(1);
+    const composed = composeSourceSql(
+      "175_complete_auth_user_provisioning.sql",
+      raw
+    );
+    expect(composed.transforms).toHaveLength(1);
+    expect(composed.sql.includes(PROHIBITED_EMAIL)).toBe(false);
+    expect(composed.sql.includes("jimmy@theacademyway.org")).toBe(true);
+    expect(() =>
+      composeSourceSql(
+        "175_complete_auth_user_provisioning.sql",
+        raw.replace(TRANSFORM_175_FOUNDER_ARRAY.from, "array[]::text[]")
+      )
+    ).toThrow(/expected 1 occurrence/);
+  });
+
+  it("resolves supabase CLI portably without hardcoded user paths", async () => {
+    const libSrc = readFileSync(
+      join(ROOT, "scripts/greenfield/lib.mjs"),
+      "utf8"
+    );
+    expect(libSrc.includes("C:\\\\Users\\\\jimmy")).toBe(false);
+    expect(libSrc.includes("resolveSupabaseInvocation")).toBe(true);
+    const { resolveSupabaseInvocation } = await import(
+      "../../../scripts/greenfield/lib.mjs"
+    );
+    const inv = resolveSupabaseInvocation();
+    expect(["node-entry", "path-bin"]).toContain(inv.mode);
+    if (inv.mode === "node-entry") {
+      expect(inv.entry.replace(/\\/g, "/").includes("supabase/dist/supabase.js")).toBe(
+        true
+      );
+    }
+  });
+});
+
 describe("greenfield forward applicator selection", () => {
   it("selects only versions greater than baseline cutoff", async () => {
     const mod = await import("../../../scripts/greenfield/lib.mjs");

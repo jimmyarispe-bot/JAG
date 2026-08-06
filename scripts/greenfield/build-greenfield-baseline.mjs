@@ -23,10 +23,12 @@ import {
   ROOT,
   assertImmutable158,
   assertNoProhibitedExecutable,
+  assertPinnedSources,
   assertUniqueVersions,
   classifyInclusion,
   composeSourceSql,
   ensureDir,
+  executableLines,
   gitHashObject,
   gitRevParseHead,
   listMigrationFiles,
@@ -42,6 +44,7 @@ function main() {
   ensureDir(EVIDENCE_DIR);
 
   const blob158 = assertImmutable158();
+  const pinned = assertPinnedSources();
   const sourceCommit = gitRevParseHead();
   const allFiles = listMigrationFiles();
   assertUniqueVersions(allFiles);
@@ -70,6 +73,7 @@ function main() {
 
     const abs = join(MIGRATIONS_DIR, file);
     const raw = readFileSync(abs, "utf8");
+    // composeSourceSql newline-normalizes for cross-OS determinism
     const composed = composeSourceSql(file, raw);
     assertNoProhibitedExecutable(composed.sql, file);
     const blob = gitHashObject(abs);
@@ -151,11 +155,20 @@ function main() {
 
   // Comments may mention exclusion emails in SKIPPED banners — strip check already on executable sources.
   // Re-check body excluding comment-only skip banners:
-  const executableBody = artifact
-    .split("\n")
-    .filter((line) => !line.trimStart().startsWith("--"))
-    .join("\n");
+  const executableBody = executableLines(artifact);
   assertNoProhibitedExecutable(executableBody, `${BASELINE_ID} executable body`);
+  if (executableBody.includes("Authenticated Founder repair aborted")) {
+    throw new Error("Executable baseline contains migration 158 hard-abort text");
+  }
+  const transformCount = included.reduce(
+    (n, i) => n + (i.composition_transforms?.length || 0),
+    0
+  );
+  if (transformCount !== 1) {
+    throw new Error(
+      `Expected exactly 1 composition transform (175 email), found ${transformCount}`
+    );
+  }
 
   writeFileSync(BASELINE_SQL_PATH, artifact, "utf8");
   const artifactHash = sha256(artifact);
@@ -171,13 +184,23 @@ function main() {
     artifact: "GA_BASELINE_212.sql",
     generated_artifact_hash: artifactHash,
     historical_repair_158_blob: blob158,
+    source_pins: pinned,
+    application_atomicity:
+      "NOT_SINGLE_TRANSACTION — Management API multi-statement apply; completeness enforced by fingerprint verification",
     included_migrations: included,
     excluded_historical_repairs: excluded,
+    composition_transforms_summary: included.flatMap((i) =>
+      (i.composition_transforms || []).map((t) => ({
+        filename: i.filename,
+        ...t,
+      }))
+    ),
     notes: [
       "Greenfield baseline is an initialization artifact, not historical execution evidence.",
       "Do not insert fake rows into supabase_migrations.schema_migrations for skipped repairs.",
       "Canonical seed Auth identities from 056 (jimmy@ / danni@) are deterministic baseline data.",
       "Historical Auth identity jimmy.arispe@ / d346c418-… is prohibited in executable baseline SQL.",
+      "175 email exclusion is HISTORICAL_RUNTIME_FOUNDER_BOOTSTRAP_CONFIG only; see GREENFIELD_175_EMAIL_EXCLUSION.md.",
     ],
   };
 

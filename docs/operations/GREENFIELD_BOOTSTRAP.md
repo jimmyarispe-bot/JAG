@@ -27,6 +27,12 @@ historical migration lineage → future migrations
 
 Use approved ops `supabase db push` against the environment under change-control. Do not use the greenfield bootstrap against Production.
 
+## Baseline apply semantics
+
+- Baseline SQL is applied as a multi-statement Management API request (not one wrapping transaction).
+- Success requires: SQL apply exit success **and** application-owned provenance row **and** completeness fingerprints (`npm run db:bootstrap:verify`).
+- Partial baselines must be rejected. Absence of `supabase_migrations.schema_migrations` is expected and is not a failure.
+
 ## Never
 
 - Replay historical repair migrations against greenfield merely to satisfy history

@@ -38,3 +38,5 @@ No unexpected pending migrations between `200` and `212` other than the intentio
 ## Result
 
 `PRODUCTION_DRY_RUN_EXIT=0` — pending set is exactly `211`, `212`.
+
+Reconfirmed read-only during Phase 34 continuation (post-hardening) with the same pending pair; Production was not written.

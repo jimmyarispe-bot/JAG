@@ -2,13 +2,20 @@
   "baseline_id": "GA_BASELINE_212",
   "cutoff": 212,
   "cutoff_migration": "212_jag_org_scoped_authorization.sql",
-  "source_commit": "e9526f78064f2254182dcd9baeca5e73e7b3f7e9",
-  "created_at": "2026-08-05T22:46:43.696Z",
+  "source_commit": "167c942c8387be973a1b6da29fd25bd5af80b9be",
+  "created_at": "2026-08-06T00:10:48.294Z",
   "baseline_format_version": 1,
   "generation_method": "filtered_historical_source_composition",
   "artifact": "GA_BASELINE_212.sql",
-  "generated_artifact_hash": "852e91065ba6db429c78b76ebacf04a5fd0a8e5d0bb63c94e2632edddc7d90f1",
+  "generated_artifact_hash": "fdb5f88a62708e0b170bcde907da7572685e2e076aae136e913efe4c036ff6c9",
   "historical_repair_158_blob": "540b99a23210795f6b6eba9bfd472f39a7997746",
+  "source_pins": {
+    "158_sprint002_authenticated_founder_repair.sql": "540b99a23210795f6b6eba9bfd472f39a7997746",
+    "056_phase1_org_seed.sql": "2523be498e4bedfe1c8f94dd0f3625f12caa2ff1",
+    "175_complete_auth_user_provisioning.sql": "9d249716e08f2c898d9c37969b627d688c5bb28d",
+    "212_jag_org_scoped_authorization.sql": "ad832ad3381a711cbb9aff07b1b159f7e78d61d8"
+  },
+  "application_atomicity": "NOT_SINGLE_TRANSACTION — Management API multi-statement apply; completeness enforced by fingerprint verification",
   "included_migrations": [
     {
       "filename": "001_phase1_core_foundation.sql",
@@ -17,7 +24,7 @@
       "blob": "0e15eef75aacc2de0bdfa865a4a6792793fcd018",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "09b2810528a56b68a786b7752908c85d8af49ea7e3e658938cbddd3953b8f79d"
+      "composed_sha256": "ac7838cc6010186bf04db4e01b08a57eb307d58f8fa72b9c14218bbfadaef6cc"
     },
     {
       "filename": "002_users_auth_fkey.sql",
@@ -26,7 +33,7 @@
       "blob": "3f7ade3af78413be11cd46c3846b2c69e43e90ed",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "b567228aa071819c237fa1085c7f4284784ba64416312eac8edd814df2dbfe7b"
+      "composed_sha256": "922da29dff6b8fbf613f8f9979f755302d060ccd3cddc6f42994f45221b28ca8"
     },
     {
       "filename": "003_enable_rls.sql",
@@ -35,7 +42,7 @@
       "blob": "a5c3bc76c1d2d5c5bcd94cb310bc87ccef6ebf7a",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "7b4af47bdc9b108f339859eeaa15525eda25f4058284d1db72e2d2ccf1e1bff7"
+      "composed_sha256": "fc1bfcf0d8e1a7a7c47984b077598b056ef2e9515448c87c1b08fa1641df9f23"
     },
     {
       "filename": "004_students_self_or_family_policy.sql",
@@ -44,7 +51,7 @@
       "blob": "70599c42210e57d22931892fa54e4b1fefd8dd57",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "31c7f058d7c2bcede3cd97bf69f42c642467a2d25439dfbc87b55f8887ec1c35"
+      "composed_sha256": "55ed58d337b274e74e56b945e8d5b71f95dc9ab7e56510d68cf0f065b390cabe"
     },
     {
       "filename": "005_school_scoped_access_policy.sql",
@@ -53,7 +60,7 @@
       "blob": "781e817f908ad31dc861441ad8e27d7002cb6342",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "eda2a71774249e6f0447eecd5f013f84c1ed2bb95e135b8fdef09aac9325610f"
+      "composed_sha256": "720c5c10f18d8a6575b262eeaf864b1bf967379dd9bf3b6172e4d7d943275389"
     },
     {
       "filename": "006_unique_student_class.sql",
@@ -62,7 +69,7 @@
       "blob": "d5580408c3d9a45d335d891b7783d6b8c584ddea",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "bdf2baef680993d7121394a302b840f714cc387c6e3c18aaa4b70f3f1c4bc690"
+      "composed_sha256": "c036bfeb5189a62109cd3d7655b26111983e9ed03ab0000624b76d32ddb8df07"
     },
     {
       "filename": "007_users_auth_fk_rename.sql",
@@ -71,7 +78,7 @@
       "blob": "a65590b79d8da7a6a3d435b134a3c8c64848a331",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a6dd79f54d7ac05dfaee349ab7d11b5b9c249bf3af8c5d76f74ecfaacee41652"
+      "composed_sha256": "79b4303561c9058e9dbf58c74f813eee6d662dfa3d6be5c9bf0d5032db0a2dfa"
     },
     {
       "filename": "008_enable_rls_remaining.sql",
@@ -80,7 +87,7 @@
       "blob": "5e32cca3a14cc505be5ea122e46516a902583b98",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "f3ddd671b8eb90d28184e81b5f77358fc66a9eb6965e1d3549dcb6c710216596"
+      "composed_sha256": "0e480415e041498bf286d50b9516b499dc9d74d330d4dfaab94c070889e4cf8c"
     },
     {
       "filename": "009_has_role_function.sql",
@@ -89,7 +96,7 @@
       "blob": "9c876b66a0ec69b114b28a4a17598d94e3abbda9",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "44fee2f575ef6cabadf40c73f2e1c9632e94e3649187c79d4cbe834ee8e67033"
+      "composed_sha256": "9389e9ede70cd81aad058df5def094bcbf66f556d21bd365f02c9c44c8776ad2"
     },
     {
       "filename": "010_is_school_member_function.sql",
@@ -98,7 +105,7 @@
       "blob": "656cc136a440e911d36673759b2abccead21d9ab",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "028e824edc8e03760d3423650edc2618deb0bcf5752269118fc9f9564679f5d7"
+      "composed_sha256": "a249c1a30b14e945f5d5b47dd67f96d77c2073c029774deb2663785fcc91ef5d"
     },
     {
       "filename": "011_school_access_policy.sql",
@@ -107,7 +114,7 @@
       "blob": "a78c4bb65a590cfbbf98bf5eaaae837c9d020d2c",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3d6f453a327139b0fb58190c0c9b1777fe111233f6895b0fbd640df8e9b60252"
+      "composed_sha256": "9fc5aa3f6c079ee420c9b25bb15586a5a2355b2b5aa47ac1dd32e1a883788e3a"
     },
     {
       "filename": "012_student_access_family_or_staff_policy.sql",
@@ -116,7 +123,7 @@
       "blob": "5579913548c6fb52e9ff731b8412ada127942d69",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3f393e90d6027754297411097a5fec80ee3c6bd203620d9660fa51735d2414e1"
+      "composed_sha256": "2e4437a73405a35a43a8c3e816191ae32797385860cd73ae4ba596f46560d518"
     },
     {
       "filename": "013_class_access_policy.sql",
@@ -125,7 +132,7 @@
       "blob": "ccb12be97e09c9dbc964a680a861b9b978547b18",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "5897cba91368831979a9fb9f102ee000dd01abab800ad810bbc58f710209f9ab"
+      "composed_sha256": "758ac4c94be98e00b824c67c03da576698a93523057d41d3432c0c63ac00542e"
     },
     {
       "filename": "014_enrollment_access_policy.sql",
@@ -134,7 +141,7 @@
       "blob": "7db20123ab1a2e5896e98f2809606ac44b8a47b0",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "409d95b7ba9eb58d986d7870bfa107ac0594f7dc163306b19dcebb93639f3111"
+      "composed_sha256": "259f85a94f9b76735e7fba9677867c52fa7abf55f51734a334b6c0ef7ec5403a"
     },
     {
       "filename": "015_user_self_access_policy.sql",
@@ -143,7 +150,7 @@
       "blob": "e409060352ee39832aeb1d8cac5b1f02ca373774",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "2e54d5b4793031a8d6fee56e338e2983d6683543d9c89a23243b330bbdbc4d32"
+      "composed_sha256": "1732e06ea8665bcb501fd7ed5c97eabb02c1f47f79c4770c75f45ba665d08706"
     },
     {
       "filename": "016_unique_student_class_enrollment_rename.sql",
@@ -152,7 +159,7 @@
       "blob": "3b16c8e0b51a724bd3ff1c035a1e936b96d5058c",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "81c4a0dab3eead3d02ac8a97b2bb467270019794d6f8efe6024aec8ace81a1ce"
+      "composed_sha256": "89aa5fc3652e09c08b935f6ab5073352b4f53698d4db870fc53c31d9254d997f"
     },
     {
       "filename": "017_students_authenticated_insert_policy.sql",
@@ -161,7 +168,7 @@
       "blob": "0eca5f8d3d6c6a62ce8d8b634d820e4df5e5d8f3",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3908ebdc09d7d37470c645fe8c649398f3bb7c329d694dafd9320ce6e08385c0"
+      "composed_sha256": "dfa68d12374f83810824a1da57a2538dc34e50013a8c05a460a3da7f2048d512"
     },
     {
       "filename": "018_school_leader_or_ceo_create_students_policy.sql",
@@ -170,7 +177,7 @@
       "blob": "d47549da2d012c147e4fed6b3f276d524400966a",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "b02d5cb0740e34ca14455845242168ab8fd7c11e6d3d6865f461ea747aa43b8e"
+      "composed_sha256": "0ba26638b92bbde537a978394678f39f19ac114e62325c12216bd488e7300257"
     },
     {
       "filename": "019_school_scoped_student_insert_policy.sql",
@@ -179,7 +186,7 @@
       "blob": "8fa6c038d5334c341213b08749e47c3518dc0759",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "76c7e51f1b05dc74aec3267369880c3afc86122370aaae44c07ceb8efffc6fcf"
+      "composed_sha256": "7f282b1e49068f6e8dfa598910d6cf8923e00bedd1c06b358f3cd697d32239eb"
     },
     {
       "filename": "020_school_scoped_student_insert_valid_school.sql",
@@ -188,7 +195,7 @@
       "blob": "3ffdc70d16d1ad4b36fd2ff133c70479ab75eaa7",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "ce3c3ea8f73e93ed2f4d76eaad70c073b96d37e72545fb47e0312315110d6f67"
+      "composed_sha256": "7eda5663c317f074f71736d530d3be357c78aae48ca08c8e15d036001e4ca4e9"
     },
     {
       "filename": "021_students_insert_scoped_to_school_policy.sql",
@@ -197,7 +204,7 @@
       "blob": "dc80973558d90cc61f011d17a0e2a961b89108d5",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "f4aac0510b8f6d22897e1ebc9184b88bf595439465627d9b69092e9e848a12a1"
+      "composed_sha256": "dcda91acda67bc7f6156b9be236b4d51ac31d69cc66fbd23459f6c7933652284"
     },
     {
       "filename": "022_user_schools.sql",
@@ -206,7 +213,7 @@
       "blob": "e20d75265050343c64000d7eb34698530bd30cbf",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d589ccfbc33cb8c68dc0aae09d9ef0a517722350bad5718bc052b862d00dc08c"
+      "composed_sha256": "17b949520752606009efff6c93277ed0d244fdd3695a9d48ea95977a2765eb3a"
     },
     {
       "filename": "023_students_insert_school_scoped_policy.sql",
@@ -215,7 +222,7 @@
       "blob": "332a6432932bbd070b2d39feb7c220260d1035a4",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a6e9b5395d9753200646b7bea84e677cc224bc5e2b89efd61d2662169007eb9f"
+      "composed_sha256": "c9219fcda39d98c870a59e2c8bba99ec0e1d558cc11504aad70339366a3f16cb"
     },
     {
       "filename": "024_students_select_school_scoped_policy.sql",
@@ -224,7 +231,7 @@
       "blob": "14b21fdd0b27e5bae6953b4733bf95fa92178f88",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "c46bbe30b2013e95276486bc6e7e6d028a1edffab785c67f225718720094f4b9"
+      "composed_sha256": "8e6bc70aeec2c8fc35cdcb5e3ab80b1c40a44084115c587d25cc8a2a9f0e8482"
     },
     {
       "filename": "025_students_school_leader_profile_check.sql",
@@ -233,7 +240,7 @@
       "blob": "be89c5a5f3975c2d3e35acb5736e150e499e163d",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "38196d787462fdce2b7008eeea412ce0b25336592979d9c7e087b4d1a9dc59f9"
+      "composed_sha256": "ccf21a464f26aba20e68ec1aec81afaac7de7938357b6751acb63333a30593c4"
     },
     {
       "filename": "026_is_assigned_to_school_function.sql",
@@ -242,7 +249,7 @@
       "blob": "ee1ee1db066c81b5a2e3d4c6115578f52d4e016f",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "13c2ae1f6bc43fe2b3202fcd5637b04f673038be9b35299872585f88cd7e7766"
+      "composed_sha256": "c0326e3e0e03c9df46e19d8b104b010f8c58b6bd2e95705dc79ae956abdff2a7"
     },
     {
       "filename": "027_students_insert_school_scoped_policy.sql",
@@ -251,7 +258,7 @@
       "blob": "f7b7abfd0eff780ed2c75856d37d3231b8aeff83",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "e7b1611100df2a21ae80101a474e380bccc375b84c4b829309e8c61c28a9a9a5"
+      "composed_sha256": "7a4a1da010a7ed6e292aa967666e8237fd3f238fbc9ffaaf8ad9e0f65295290d"
     },
     {
       "filename": "028_students_select_school_scoped_policy.sql",
@@ -260,7 +267,7 @@
       "blob": "a7aa4f15222ad3546ab872f465d959cf57074d1b",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "4be9033b06bc9f6ee73af0fccbb123fbef2e259fba334d7fbfde39183984c4ca"
+      "composed_sha256": "aaf5e82bb6691573483a04a5dcafd2c56ab311dd003344397c012a6df1a9eaad"
     },
     {
       "filename": "029_user_schools_enable_rls.sql",
@@ -269,7 +276,7 @@
       "blob": "4cf79b6d44ec4d01edd11b806a1f03c53b6e203d",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "8d20a9027dcf4d74d384437c4e939da40ac7fbfeada957997592445644d02705"
+      "composed_sha256": "1850231781f43a8acc70acb60534af65852e0de1ce1aa33b21d7428eb9b98d6b"
     },
     {
       "filename": "030_user_schools_select_policy.sql",
@@ -278,7 +285,7 @@
       "blob": "180b3bee8ef216cf81f7b63f328e0c03e18adc3f",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "651cf65742d9d56c94fd388fa7e064205b203950bc402d588f30cf590a0e2508"
+      "composed_sha256": "5b67f86b8b8f58e394f3343356b5cc5a6d4afa00ab02e010ae8ff9754c5c296c"
     },
     {
       "filename": "031_is_assigned_to_school_ceo.sql",
@@ -287,7 +294,7 @@
       "blob": "25aad80aa77b5a2bfead2d9e1c663100d905d173",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "badbed0e6118d41c34384f64c218bdfe8221e92e117fd8cdfd31392aefe4aef5"
+      "composed_sha256": "d5cf5f7d0e4128fdcb66226531444acf24e2e323c580afe916f52b917227efb7"
     },
     {
       "filename": "032_students_policies_use_is_assigned_to_school.sql",
@@ -296,7 +303,7 @@
       "blob": "85b987b848cb4e13c3729e40c8f61a142c1e3f81",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "0c59c30c517bed21eddbbc144537a32fb920e831e9bd53891cc1495f2cd1e85a"
+      "composed_sha256": "4e85bbd92adb2e0becdc75facf0ef5f5bca9d0fa31a77ed764ecbafde6ec1717"
     },
     {
       "filename": "033_is_assigned_to_school_school_id.sql",
@@ -305,7 +312,7 @@
       "blob": "f8160b8e2f92d14370865d58f99813fef8fed719",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "99036825591a27ea31e8d9cc00c8da3a853f5973c408a4fd6b311b40de6a45c1"
+      "composed_sha256": "1ce3fdeb0e6cace02d659e208c05504251cd754a3cce977e5182e3c00d1302e1"
     },
     {
       "filename": "034_user_id_auth_uid_policies.sql",
@@ -314,7 +321,7 @@
       "blob": "861e15f443fe6d15b892fa7be787530f1b40c115",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "51c0afd056a3491be11f114cb05c1ded75c514ef4892cf63f74d3ced8daa5898"
+      "composed_sha256": "1c6e268f50d7f07c84bf1284384eefa510f8beb6455143c1b5b44095a12bc50e"
     },
     {
       "filename": "035_user_schools_select_policy.sql",
@@ -323,7 +330,7 @@
       "blob": "b663af46f81e2d592f437ca711cadd6edad95c39",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "48c45db99081b0f1030bf196a810d7415487d2ae97a6d6e517366d2ae18c3482"
+      "composed_sha256": "c3c68754dd53a39d79c6568212b411a98e0fc3e2a70541f5cd9f4a0e4000983e"
     },
     {
       "filename": "036_user_schools_manage_ceo_only_policy.sql",
@@ -332,7 +339,7 @@
       "blob": "c93de8f9489570fd414a34b44d27ae0645cf7833",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "36888cd7ee7c0fc0333ed535a214e6040db2a5392c83889d612e8cb59b82f0b9"
+      "composed_sha256": "d02f3bd79f56cc8999c8a24472910ae37ebaf024cd1d0b8c82e4f8a575096f1b"
     },
     {
       "filename": "037_can_access_school_function.sql",
@@ -341,7 +348,7 @@
       "blob": "e2cfaf3cfed1b093592f686b9ddf81c16cf0fc98",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "38abf0a741a23e6cbc6742055de8a1b9a4fcace1aaf946a6953ce51042cead8e"
+      "composed_sha256": "129118ff46883da64205be81fb019c8ead1819b1ded2cfb36f32eb8787a1ce6d"
     },
     {
       "filename": "038_policies_use_can_access_school.sql",
@@ -350,7 +357,7 @@
       "blob": "356e1756649bc3425a103bd5c7c021d7945440e1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "73ee805ab792c053f805b7a7a74ad0af0604c6e56f7d5b7f107702ed22cd6dea"
+      "composed_sha256": "c0acfb14caa5aeb6415a019e77c7d445dd3433f47c7f32a6be243d92bc047b41"
     },
     {
       "filename": "039_phase1_final_consolidation.sql",
@@ -359,7 +366,7 @@
       "blob": "2d1c660c642af4617998314105666e16c821ee4a",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "f2e7b70ce72bb35ce4c9a1939d96637a610cdde0cd675c8af0eedc873e994327"
+      "composed_sha256": "162ada6bafa6f1ecb865e935cd866e67627edd2308c2797939f628f24822d46c"
     },
     {
       "filename": "040_final_rls_hardening.sql",
@@ -368,7 +375,7 @@
       "blob": "6753e172443bc5374f651870320759f06b339bf1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "8807f58ebd5c8f311c86a02210ee323ede73c1779e2177616bf57927e13a8727"
+      "composed_sha256": "e1b5d37709a89136f767d593e030c256626c6d021514bbcc082f3762ab7cccf1"
     },
     {
       "filename": "041_roles_rbac_fix.sql",
@@ -377,7 +384,7 @@
       "blob": "400c7b45b3bf7de5e8dc76c65a5b44729c0b837a",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3130e00434cc9af003305db0b81d82a22331304e2b76058d39c6142af3b0bcbd"
+      "composed_sha256": "b41637cc0137ff47fd92f48f51280c3dbd0aafc1cad75202d9f87ede4c4a15d6"
     },
     {
       "filename": "042_rbac_integrity_lock.sql",
@@ -386,7 +393,7 @@
       "blob": "0a7178ef9c6ac01a3a2db337187b2bbdb08a3593",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "76b24af96882c382f74125a27050884725e5f9109119e89e567ea53d7358882b"
+      "composed_sha256": "dd045d64df0f589624836a7565cd1b84dc28b145a8eba217e3a929229c922130"
     },
     {
       "filename": "043_sprint1_infrastructure.sql",
@@ -395,7 +402,7 @@
       "blob": "8f88958203700e868c956cf3a50bb5d2af16beb9",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "bd966137edfe2453bfe8f971c8f455d1209290dcb159a189ea7c6c5377afc98f"
+      "composed_sha256": "964e6429b58052c7686f96bed67a978978d3c88c374e08517d2b1e68181d56c4"
     },
     {
       "filename": "044_sprint1_org_tables.sql",
@@ -404,7 +411,7 @@
       "blob": "8848f9c8490d847275cdb8c0c1db2d00afe467d3",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "17c757a5403a400d5f979e02537138eb2d0b3edc75d1ac08ec491e56f58c9d97"
+      "composed_sha256": "a65a116ce7e9a5ddcec01f57b7c6041a3f3d766397c4b535e397800566f7b618"
     },
     {
       "filename": "045_sprint1_student_tables.sql",
@@ -413,7 +420,7 @@
       "blob": "2ad9d1319ed9a236e9168cccce3b150c24926b63",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "397e8688a80a365aa35504160f8538d5bca61df2b2c1914eebbc4db4b140693d"
+      "composed_sha256": "46123a25acdf42b417ae9cf983289048cf11c98c5d9ea2cee32ff7de1601018f"
     },
     {
       "filename": "046_sprint1_employee_tables.sql",
@@ -422,7 +429,7 @@
       "blob": "b4c66b008022f158a6eeccc3df5b8f03d78a5835",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "f875179e770eb4141b1b4b59b8d438e3c188c22f173488c578103436b75646a7"
+      "composed_sha256": "b025f93a739f9287e089fafc6aa2d6cb8205f332da38a8f30d968f05c596e0a3"
     },
     {
       "filename": "047_sprint1_course_tables.sql",
@@ -431,7 +438,7 @@
       "blob": "77a06927d1bc144eed92d005e2d8fce5857cabe7",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "ae6e3321ac5568e9544e278d0d596f2daea81676d120f9b0add64f5df9c84b0b"
+      "composed_sha256": "81d17aa62fe9b3b47521313ed750addd40e9486560ab02b4953ec39f90ce7794"
     },
     {
       "filename": "048_sprint1_scheduling_pay_tables.sql",
@@ -440,7 +447,7 @@
       "blob": "92e5cce296ec569d7766c1ad411b9d67b2c9d99b",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d81dbca154f99ab3ad9b5452720cad0a7ec96483e05b3f834780c4baa4ac92e9"
+      "composed_sha256": "af9a3433cb76ae665a1de414d9fe03b1fe98e1b9f1e5bc62f9d41da827072303"
     },
     {
       "filename": "049_sprint1_rls_policies.sql",
@@ -449,7 +456,7 @@
       "blob": "92e1849732f5819e8b38c8f880c6009aac6e8b28",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "8702a58b8bf0a8b6b1df789e968a6b93e3494e5ed8ad2b449e5aa20e2e84fba4"
+      "composed_sha256": "a493bec8f15d6e9f4b83f31844716f0fdbc4aa0ba58b4c16920eae07e73f07a3"
     },
     {
       "filename": "050_sprint2_admissions_tables.sql",
@@ -458,7 +465,7 @@
       "blob": "6232086a2ab05ab9ef3b05ed75661c0f040f1d42",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "4ef543d3c373374e30e832155322f4df2465968fefcb973ec9bd0217976e76d1"
+      "composed_sha256": "0282ad2b52fdf158f551397725483d12b91fa783a56ac9dcd1c20aca70f76138"
     },
     {
       "filename": "051_sprint2_admissions_rls.sql",
@@ -467,7 +474,7 @@
       "blob": "f3addb1e9e0e4eddeb1bd1550af8c281d9313cac",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a848aaf317685c1c850db6d5a621bb7def6ea1e91ff6e9c8ddd22e37cea3d0e4"
+      "composed_sha256": "b0b3b628cc8cc56c50c2b93392f942940bf860037f87310c9d24db72184efd81"
     },
     {
       "filename": "052_phase1_admissions_crm.sql",
@@ -476,7 +483,7 @@
       "blob": "6a93901105e186d840411bc3202eeda1c594b879",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "680702a1528e4c8851a23be071b697822bc2f958398f10127eb469ef2f246abb"
+      "composed_sha256": "47395af4c44fe67d62fc5ba0900362595dec79cd224a228815ea75c2b4aac18a"
     },
     {
       "filename": "053_phase1_sis_tables.sql",
@@ -485,7 +492,7 @@
       "blob": "d4682483bcde3a3c5883cd94cdcadc1dc7c897e1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "cde92499ddac1fd05529a2cabafb7e9a670dcc6a4e70e9ddac5dd67b7df75520"
+      "composed_sha256": "84d0fe42af3580b9ccf86245ad44eb7c69512040e1309d1f35692c6b3922475e"
     },
     {
       "filename": "054_phase1_scholarship_finance.sql",
@@ -494,7 +501,7 @@
       "blob": "1c057a55cdf325cbf15c0c243c210f189291965e",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "ddf6dd5aa165208817b00ad0756e982c0268d5216bdb66e9d8df8bec99ff96d1"
+      "composed_sha256": "44dd5057cb6a0b621f9ab1043154e3310968b0996b946ee3c67f07f583db0c89"
     },
     {
       "filename": "055_phase1_hr_tables.sql",
@@ -503,7 +510,7 @@
       "blob": "616b3828e0afcce38447db6a78082c6944aaae78",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "7390188ac8b6e4df8006986f2c7f7f560e85dd225192269ecf30bc190fb80674"
+      "composed_sha256": "a61dca0af25f75f9295feb73c911a37506cecd3aa0981b434cbb8453e168a6a5"
     },
     {
       "filename": "056_phase1_org_seed.sql",
@@ -512,7 +519,7 @@
       "blob": "2523be498e4bedfe1c8f94dd0f3625f12caa2ff1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "4a6865877ae195e7e963aed637d131d027d6b382ae5174238473026fe40e3d5f"
+      "composed_sha256": "f3aec43bb47f94a65c1503f7bde1a1e1a670b2d47dddfd7afc12ac1e5abe8d8d"
     },
     {
       "filename": "057_phase1_foundation_rls.sql",
@@ -521,7 +528,7 @@
       "blob": "e4ff752b21658e982ecb4b6739a95d3f0829cb4b",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "9f14ddf9a957a397f012f55eacec06b4bc494180e0ea1ff1ab8caea02411a534"
+      "composed_sha256": "a8beb20427f52d02aa9a4b759045cdcf84e53b39855ce794791e34fb08fe7e2d"
     },
     {
       "filename": "058_api_grants_and_schema_reload.sql",
@@ -530,7 +537,7 @@
       "blob": "70b8c6764e17a8727aa801d289ed18b9e1ce518d",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "21f57851d989ac1d5b0bcbac77c3b692fc4ea7b6bb96d251e8605ab1bc255327"
+      "composed_sha256": "13cf9a5aa463d7413e086fe308ae7c3b371d900964d06cc17f2ad916bc5cc3fe"
     },
     {
       "filename": "059_grade_funding_programs.sql",
@@ -539,7 +546,7 @@
       "blob": "ada28ba1fa1ee439dac1b401cec41067fecf25fc",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "9ed5f8b28825df5ff1f3aeea11f425b811f6abe25608577ef61642d9243cd8d3"
+      "composed_sha256": "96d8258b086d6dc5bf6ed14fb524ca4b4ca7f2a8da9772c9779374c28b697a74"
     },
     {
       "filename": "060_funding_source_category.sql",
@@ -548,7 +555,7 @@
       "blob": "5a1c24ccfc4f412f984310635d3c30d7914f98c0",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "5f3c21c40544a41a6b4269240e2be99f3492e24cc5bb38f7a8e70526bfd97d7c"
+      "composed_sha256": "1653bbe00fcf9045584c907574470f96c9d5374ddc7a3be9dbaa1671825c76ab"
     },
     {
       "filename": "061_admissions_workflow_automation.sql",
@@ -557,7 +564,7 @@
       "blob": "67c6d87f18455f472ac808081a4f6793c1341bfc",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "92ad2048438f7850adb3b54b76e2632990e01b93cd5c25670174207eabe8b746"
+      "composed_sha256": "7bccc776ad3a13ceb8848f9e8c06fd4767df7334dbd6aa2d3c734122e704609c"
     },
     {
       "filename": "062_admissions_stage_entered_at_trigger.sql",
@@ -566,7 +573,7 @@
       "blob": "78d4da38579e7e2b1057f8107aa8de4a598b4d36",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "21b399d81272333dda7e8a495c0e1534574816ffe8c1dc19ca5aac0a0f1c67e2"
+      "composed_sha256": "ce088bdad0f256290e1926e5f7d77f35a8774dfb0992d3a9661e6a224ba85774"
     },
     {
       "filename": "063_funding_junction_api.sql",
@@ -575,7 +582,7 @@
       "blob": "0123bdd061a9a0b2da2e82e5f849746d2b5bfec5",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "dbf6b49ce306683af59b62fce04429d1adfb7a565c28b013343ce64e166d07e1"
+      "composed_sha256": "25cac2c1dcba4d7adcd0d70a4038c723ca9309d5b306d6ee115c7a1bfaef1098"
     },
     {
       "filename": "064_funding_junction_rpc_fix.sql",
@@ -584,7 +591,7 @@
       "blob": "c76869182fb8bc225d71e2d198fb20c29eca6b0f",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "aad8022d057384a14f1f1704c34a70816a4c4a4080e2a3cf3743fb1d367aa2bd"
+      "composed_sha256": "470933f45e3d47dfd1196911c2d415b0fe809197bb4cf9d5b5728fc8af244f08"
     },
     {
       "filename": "065_admissions_sprint1_portal.sql",
@@ -593,7 +600,7 @@
       "blob": "4530c52830fd0d130679a24186649ec98c522f64",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "aad022346209eaba6ed686c976a60cfc01e201366c36f2b6cc0206c4d31661bc"
+      "composed_sha256": "7a33daa90288da0da9ac703f17c7d86aa7434f384859e4ac0d860996eac5b5a3"
     },
     {
       "filename": "066_admissions_sprint15_foundation.sql",
@@ -602,7 +609,7 @@
       "blob": "1b9289c214e5ff780d07df2e2190ba3613f9c0e2",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "060b9c21b8d81e975754c8a682ebf294339340cc50f8b11b1328c9809047e02e"
+      "composed_sha256": "306b3f9f269004e49438deb08140852b96841a9f957bb3ae419339919a6f8215"
     },
     {
       "filename": "067_admissions_sprint15_rls.sql",
@@ -611,7 +618,7 @@
       "blob": "4201fd79bf1e39d464f446e78b8d830b26ec6858",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "22357573527a588d3e044a98098d9630cdca143a368404e3af1fb975e3f13a3e"
+      "composed_sha256": "396376d8772b883e2458f8f8c296eb3211ab809d0c2e186457eaa232be9206c2"
     },
     {
       "filename": "068_admissions_communication_engine.sql",
@@ -620,7 +627,7 @@
       "blob": "6b04ad5e7a291c1b90f04410b7ece5dfca18b9a1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "2985890855d1ce331f5ef7cf979fc7955a97027492f2fd294be8cc35d70c6bd6"
+      "composed_sha256": "488ed6fd140a1a0818ed020400e584b517df9b410c9b1acab2747a1c795ffc93"
     },
     {
       "filename": "069_admissions_communication_rls.sql",
@@ -629,7 +636,7 @@
       "blob": "1ec74760dffb535308f680031e2b2bfad79e6714",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "cabc81415ae40662e7d96db0ca2553f8f41923f76603ee3b930c0c4f699c7297"
+      "composed_sha256": "cd1f9240d34778312ada2671224c2f98bab97125940ea91915f2eb371ef3a6bb"
     },
     {
       "filename": "070_admissions_automation_engine.sql",
@@ -638,7 +645,7 @@
       "blob": "e56b893e2c58b7d94834dc0691ed6271779b87de",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "df2b47a827b86c0974c7cd102c12d0c5add0dd95abc76656691bad41f6816735"
+      "composed_sha256": "0819fc3b700b18ea21d8100792194aae515dc1af0dea7a85339d5a6aea2f7994"
     },
     {
       "filename": "071_admissions_automation_rls.sql",
@@ -647,7 +654,7 @@
       "blob": "b02ab38a23bf1078d0f388ad1a1658c335e81c11",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "5eec7b8ab4a23514f97a16e3cf4df5c493c3d6505cd23b5362ff11a7df931864"
+      "composed_sha256": "4f691ed02905440eec9e5e4ffe629994c01969b50e83c386cd7cbafc66af2e5a"
     },
     {
       "filename": "072_platform_automation_foundation.sql",
@@ -656,7 +663,7 @@
       "blob": "bd2e3847aeed26c2bfca39306d7c695bd6207b4b",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a705df9101d6ffabeabb658c55fcd4898d950b06c863d29d9339290a2b1e51cd"
+      "composed_sha256": "02d01e3b6e554bd120382044356557ae6f3be3801da813cc5dc6f1d9615f3f7e"
     },
     {
       "filename": "073_platform_automation_rls.sql",
@@ -665,7 +672,7 @@
       "blob": "b969ec8fb283693db6007ff32223cbdd9b338041",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "4c4607a527bea40d97bd660e25d6b306e536f5f1eeacf0b841daa898d8a97561"
+      "composed_sha256": "dcf9b89bdc6ae47f2deb8191ed9686e44fccc77bcd336cc8acfcffdf4a9ddde6"
     },
     {
       "filename": "074_enterprise_identity_foundation.sql",
@@ -674,7 +681,7 @@
       "blob": "79630392b6051399f1473e2550d7438a204ce0c6",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "e547bb2c56cdfc4b2755a740265ec7c4745fa8db309c899943c75f2a0fe2c1eb"
+      "composed_sha256": "9d8e17e7170ca7c171acf8efe62a5f9693d38f5abc463f9345da18fd9a693758"
     },
     {
       "filename": "075_enterprise_identity_rls.sql",
@@ -683,7 +690,7 @@
       "blob": "ccc445f82de2e663e653abc10180a8d69be28c64",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "ba6b11b85a1225fe77393f5422add66b042a7b8f344b862c8b2c02f8d83ee6c1"
+      "composed_sha256": "36d2c6632c2ca9dff689b155a324fb7ec076908286b99e55bc3ce81d3adc59ff"
     },
     {
       "filename": "076_sprint17_identity_additions.sql",
@@ -692,7 +699,7 @@
       "blob": "6155e81787268aa5760269676e9451810758c1e6",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "ebe7b9303b8326aefb9be71110e3d0d10d328947c5062f9b900ce1ea2b7f8a9c"
+      "composed_sha256": "e533b41e670e4d9d00dfc126f050e29a8cd91bb9d12f4397393b3218e6063533"
     },
     {
       "filename": "077_sprint17_identity_additions_rls.sql",
@@ -701,7 +708,7 @@
       "blob": "13f244dfcb1fe94b02248df1c17a6c9f6bdcc428",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "1d3220fa1a2e29336f3949cadf77f938cb0e2799f0197ffddf887d68929b67c6"
+      "composed_sha256": "5553f5057c9b021a62a430e6ea93c220fde3bb5b82a51923e25c119d6ca893ae"
     },
     {
       "filename": "078_sis_sprint2_foundation.sql",
@@ -710,7 +717,7 @@
       "blob": "480e14a4ce81ac7ff3e7382fc0eda10f9ebf2b68",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "5c1b13f0c29d3179143e8c22ad8d37648b8a19365fb5a607751117b9d2d1b40d"
+      "composed_sha256": "1d237e538b4f3a1d8c7ab035f6e1929445ae475cf930334fa363eeb474658bd9"
     },
     {
       "filename": "079_sis_sprint2_rls.sql",
@@ -719,7 +726,7 @@
       "blob": "258cd79368134eec9fccfcb6b67d0ae0d2a04351",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "0b83069342c75182ca0f501c36acc65abb05cd12188fcca4a7d0f10ec3df61ff"
+      "composed_sha256": "e13dae62cd631ceefa72ff14ffc870b2d2a842c43d08b1d6f18ecee10a8fdb0f"
     },
     {
       "filename": "080_ssis_student_success_platform.sql",
@@ -728,7 +735,7 @@
       "blob": "3251ea79e26cde2544dd7707201a0ba29ef8566c",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "7fb95376c9c5885632a9306e4c2f2ddc3b4e0baada028f23b38e8cf636dd754b"
+      "composed_sha256": "3762252563dcffa87373298f5a9068c7fd7bf4a63d83b870d5403ea45e435e30"
     },
     {
       "filename": "081_ssis_rls.sql",
@@ -737,7 +744,7 @@
       "blob": "676bde885cf7cc9af6a34cfbdcd9cd1cdfd1f1fa",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "175eeb8b7724aa39896b0010a78d646a9215f5933be8eac5fb9c4759e7934575"
+      "composed_sha256": "11a40a85f1ba7116bf7a75484f3bb752cdce8c3d2353d9d5aa76cf4ffdb1d947"
     },
     {
       "filename": "082_sprint3_scheduling_foundation.sql",
@@ -746,7 +753,7 @@
       "blob": "4821450523c09cd5112bdfcea70b83c66c8eac63",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "dd7a6d7e88570d5c27acd6314f6ff9a668037ea66b6d6e671048d4d7b0738776"
+      "composed_sha256": "e68969b02bb75694e47460759131cebf3ffa51447404a68aaeb6d3253e00af0f"
     },
     {
       "filename": "083_sprint3_scheduling_rls.sql",
@@ -755,7 +762,7 @@
       "blob": "c88e2a169f155e394a2473cc29dde7418a513726",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "dcc7725f16edb3bc61c83648b539b2c184eef20e153aa3361272e86ae87d9df2"
+      "composed_sha256": "64f8dfb3a565b46355ffa3565b42d445ba4c7d24ead8e3c6719bb93b0e90b14d"
     },
     {
       "filename": "084_sprint4_teacher_workspace_foundation.sql",
@@ -764,7 +771,7 @@
       "blob": "ce83bbc03633210aceb28b10597e3618508420ac",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "bd7e2a8c63166148337bff107ccaba832a1f6dc5b60eeac04e68e09b9e2ee4e4"
+      "composed_sha256": "a7b37f80347490720f41482f7f339677da87b17b52cf0995f11138a08a626608"
     },
     {
       "filename": "085_sprint4_teacher_workspace_rls.sql",
@@ -773,7 +780,7 @@
       "blob": "a5abd057c79bab3c27c1edede345813d2f116bef",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "497b174d3f74c32fa0cfb313eb922976439eb26868ae1fc94aaaa902f086c254"
+      "composed_sha256": "6b7178024476358c9c8fd4c978a2b360fa791efa3cd7538a0d2e32bf4e2f0cb5"
     },
     {
       "filename": "086_sprint42_collaborative_instruction_foundation.sql",
@@ -782,7 +789,7 @@
       "blob": "78f5002aff861681406d55743a3893b5e8c26fcf",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "ee223d1933f722f8107717dc0e0ec813761e66cdbd2da77426008f08d12927e9"
+      "composed_sha256": "db4481f21cc05017ce91a471ef9ed16d9aa0dc374bf99bce20782d6524998f3a"
     },
     {
       "filename": "087_sprint42_collaborative_instruction_rls.sql",
@@ -791,7 +798,7 @@
       "blob": "66c9da7254fcc99391394c903787551aa84be0d3",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "85a5fbce605c2fbe1526d462355f8be3e2cd056b5e529f7d596af16e6f41f321"
+      "composed_sha256": "95e7a73966892c02f24abe4c794ccdfdec1dd9a9868ea353c255b2772e610bfc"
     },
     {
       "filename": "088_release6_financial_operations_foundation.sql",
@@ -800,7 +807,7 @@
       "blob": "e70bdf4b6cfac148009997c089b55ef8d8d03cab",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "edeaa110ba45e9fe710b6ac3fb44231bd8fe7f73647b007da8404f781d34b1b9"
+      "composed_sha256": "55654e8582c774103b6e51bc049d0e82b29e27b77f212e9aa47a13a20397c9b3"
     },
     {
       "filename": "089_release6_financial_operations_rls.sql",
@@ -809,7 +816,7 @@
       "blob": "7d65b6dd4d11474493ecb364637ca0952fe8ed14",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a4d3002c6597878bdf4a7d86ab4c863ceac0cf9dce4cf6ca03bc41d2937f7a75"
+      "composed_sha256": "4d499666b7e8e2d6dc2b16aa481fcc05e170abff577df52f47b3b8cdf1959e62"
     },
     {
       "filename": "090_release7_parent_student_experience_foundation.sql",
@@ -818,7 +825,7 @@
       "blob": "bafd85b55b728740c979b0a5dc68ec384d9b6d9b",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a4983df232ff40f261c5aec43119a85ef3d9dbe4f7a864d930a3ba749dd239c9"
+      "composed_sha256": "6ec1a36a8448af12d0d3a838a6cca3a2aab081fa99d393d90d99f9d332eb74f2"
     },
     {
       "filename": "091_release7_parent_student_experience_rls.sql",
@@ -827,7 +834,7 @@
       "blob": "d9631ef4811a97ac9ba681fed5f9672bddd356b1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "bd15398ffc90d7287a3f77e8be25c2c134241c84aca589579c0e1c459f7933f7"
+      "composed_sha256": "a8afcc5530d45688eb8b5ee3f16bf2649d656910810a54ee4a609dce67bf7303"
     },
     {
       "filename": "092_release8_workforce_management_foundation.sql",
@@ -836,7 +843,7 @@
       "blob": "53b27f00b226ac628b511fb2a4a8cb9bcee61ef5",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d40e26c6f78ea7e9146e48a1bb5481a7d266bc393d772b398ac5159a3efc03d7"
+      "composed_sha256": "f1b3fabc9ef99e8652cf07deb5899c3b207f648f8e6f806e4e566a27fb436b36"
     },
     {
       "filename": "093_release8_workforce_management_rls.sql",
@@ -845,7 +852,7 @@
       "blob": "9f0f092a70f9396c567e137cdbcd080b40b4a131",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "721de4b302eac9d57608538631e55b9b7b9da3dc7bd92b4e796d05c0914334d1"
+      "composed_sha256": "8c43db53c9017d400c0a7651c9e7c9a7b1166355d81ceae1b423e7fe9ac78cc1"
     },
     {
       "filename": "094_release9_executive_intelligence_foundation.sql",
@@ -854,7 +861,7 @@
       "blob": "ce81a96cbcef1ce22118520b43e4aecbcd8fa9c2",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "234fad52010a1c0b49054f92ae82aca94c0120183550deb2dbc7e8e5dc80e6e3"
+      "composed_sha256": "1f0836f1620259a036e529240f8102e3d3bbe8933564b8b4d74bfd7364bf55b0"
     },
     {
       "filename": "095_release9_executive_intelligence_rls.sql",
@@ -863,7 +870,7 @@
       "blob": "095a06e429665a7b75102d1b42cc79454e081fb0",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d6cb2fbe3b69d05cdc984b34142aa63928504e8b7e3067bb157d7516f4cc256b"
+      "composed_sha256": "5da491d13371b86a0d535274bbd4022bacd4091ef08549bdcc59f051b7505a71"
     },
     {
       "filename": "096_release101_compliance_obligations_foundation.sql",
@@ -872,7 +879,7 @@
       "blob": "15f15c944311b050faf593f1e451b6948acc5330",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "75d2d3dbffb1fa342bbd8e16b294905feb38743f7c2e76e39d979e169997308f"
+      "composed_sha256": "c2b6b6a5bd6a30e8245bf16602e4a3e99ea2a20cefc9a60a90d2cbe3fcf7611c"
     },
     {
       "filename": "097_release101_compliance_obligations_rls.sql",
@@ -881,7 +888,7 @@
       "blob": "09bab1c618661bf8e9e1e7b5c6be2f28ad10da60",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "da6d4e7bb8c50455f87311b7e9261495134ffc115c21ccf4c034172256580be7"
+      "composed_sha256": "55d426abf3e17017f67255489373b4e430d402ff6d33bc032a4ca674e014bee2"
     },
     {
       "filename": "098_release101_universal_deadline_engine.sql",
@@ -890,7 +897,7 @@
       "blob": "df0df02313771463a9f7fb9d3c0b4bd26eafa6f1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "8d3e70371ff1f8ba40e80b16c6c6e64407999be4c763c6c80095d24b0be028e7"
+      "composed_sha256": "54c28a1b00f42e4c7a558e0af88639989086946992c0bc216c01234a517581a5"
     },
     {
       "filename": "099_release101_universal_deadline_engine_rls.sql",
@@ -899,7 +906,7 @@
       "blob": "d6be214cf6f42eafc19b56d52f9f5fa6e7663ce3",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d4342de3533e6460e3ac8157314adb48cc3064378f59951d3fabdc6ebc4108d2"
+      "composed_sha256": "52a51fd67028376e501a7c62afb3788c686d00ffa03ca7ad31f7f9555272f97a"
     },
     {
       "filename": "100_release102_work_management_foundation.sql",
@@ -908,7 +915,7 @@
       "blob": "614152f89910684882eccbd401aebd86d5a9013e",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "cbb8fe9838baa514f67d00de1a5787abd148fa5e701b5187270a0f79195f26db"
+      "composed_sha256": "3c841ac74e80a4ca166cdfae1663499fe7ddaa0ff4591b49ef7ca6be2c2652c4"
     },
     {
       "filename": "101_release102_work_management_rls.sql",
@@ -917,7 +924,7 @@
       "blob": "ac9dc7ccddc171d3f1fdbe65dfc6e4c76358d0b8",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "56b0ebb5d4bac0db27b0ad2489c61f46459c479537eff8e2f98a812c2875ec3f"
+      "composed_sha256": "8ddb43cb489b6c25081f7c1e27801dc103c897eda98bc11d507b320da00e9928"
     },
     {
       "filename": "102_release105_financial_intelligence_foundation.sql",
@@ -926,7 +933,7 @@
       "blob": "ecfb9d4bf1541bb907ccd797d5140767d0128163",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "66afe22e29135271c3e120698c848826269bd74aee75120cd28db0e52f64d953"
+      "composed_sha256": "102a9822043d83d451e5b3b929931296a9b9e98b14ef8227de990aa81d47347c"
     },
     {
       "filename": "103_release105_financial_intelligence_rls.sql",
@@ -935,7 +942,7 @@
       "blob": "1305ff0e663b9b01f87f21f729ab9466cd1529e1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "43f7ad11385426748b614e0b664b44b027f29d8936b235f1d0480b58313c1585"
+      "composed_sha256": "380c53e27747010f0fdb005b4d2bd238982e266f87f5126a1ea483e61fb0f1fd"
     },
     {
       "filename": "104_release106_executive_decision_intelligence_foundation.sql",
@@ -944,7 +951,7 @@
       "blob": "0ca4a435c94aa44875120a7eed8b9ecf73710886",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3214ef7102a9a1d5dcf0e12aa9d680dd5f53182425b38b786f5eb16899b23556"
+      "composed_sha256": "58cc88c680d97bb44564eabbd2414c53c2cdbf4f0acf25a88bf3262583f2d9d3"
     },
     {
       "filename": "105_release106_executive_decision_intelligence_rls.sql",
@@ -953,7 +960,7 @@
       "blob": "dc0c362e33d694fc9a1ae886a3eedf6e1851ac11",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "f954496f7dd06cdd5a01bd27ed38c153f8298ee7659eb0c13c38aabe4fe2e0af"
+      "composed_sha256": "3cd406bbd742e59cca805d78a5c68f0ba6ca6939787049df4b4b788ab62e8f16"
     },
     {
       "filename": "106_release11_configuration_studio_foundation.sql",
@@ -962,7 +969,7 @@
       "blob": "325e3d971c8215395015a2dfe8cc84284ce319e1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "55c2e3116328db24a172b7378b4058ed24eeba4a73849ec0cdf159f593c94e5b"
+      "composed_sha256": "88a29e5befb4136d128cffe04d33e8ccc5d272c04ebe410ff889e63e90c83741"
     },
     {
       "filename": "107_release11_configuration_studio_rls.sql",
@@ -971,7 +978,7 @@
       "blob": "a92286cd96ff509f2444da6fe766ffb354444f85",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "e7ee840bc5bce0bbef9d9255d81e05de3f8ace3fd940d5891b37508a3d01ffab"
+      "composed_sha256": "dc3a0e80de701b83ddc0fe15e1d9b456368379ae20c836f3374cb96650900095"
     },
     {
       "filename": "108_release12_enterprise_data_platform_foundation.sql",
@@ -980,7 +987,7 @@
       "blob": "575045a23cdcbcf25c688adc44f4d54bde483497",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "78174da3c47fbb621ce043c21a6fa5e5a1ad382ee4be69d80beb9e5cf35f4c23"
+      "composed_sha256": "992f544175cbf7fc692a8b77afaff35b4916b45a937ec162d47dc1b8191ebf33"
     },
     {
       "filename": "109_release12_enterprise_data_platform_rls.sql",
@@ -989,7 +996,7 @@
       "blob": "4e7dd138ea76e7a863a6369079deb924de1d2b59",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d360dd0f64f8476c99127949c9ee6896996d7622a6ba1c7cfcbf7f9a68636d09"
+      "composed_sha256": "f1ac32a5f3b43af9285efaf72781b2e6a1e4ee9ea73ebce4ce27ff4ccda52f29"
     },
     {
       "filename": "110_release125_intelligence_platform_foundation.sql",
@@ -998,7 +1005,7 @@
       "blob": "69e017e78f7fa7d3508c84b7eceb50e05d6f61f3",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "745e89e10afe67f405d5a61edf0396f8128feb36e530c2533a8d1f229f4fb6f4"
+      "composed_sha256": "b4c096411fb551716595a0ba72579972a322d5306a502b32ba8d01d725ee4cb1"
     },
     {
       "filename": "111_release125_intelligence_platform_rls.sql",
@@ -1007,7 +1014,7 @@
       "blob": "f31c8cf3eb01dabf84ce12a8d9bebcef93c4a7dc",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "2d5a32653cff4953ad33ed0f2c57a7ed69abcad0b4202d137e6e49298d1a1013"
+      "composed_sha256": "8df3f4e33554d90ea4eda44eedc0907f1637f0af56f455117c02158d57a5386d"
     },
     {
       "filename": "112_release13_cloud_platform_foundation.sql",
@@ -1016,7 +1023,7 @@
       "blob": "0a8b5195d662674e8f125ab7665eb79aff29175a",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "afb1a816b633df351d64893d87dd34cb20cc258a60dd243108d6aae6891b8769"
+      "composed_sha256": "91d8167fbbdd11df57b22a8bcb5c327e7131633421883916068ff4ed59d77910"
     },
     {
       "filename": "113_release13_cloud_platform_rls.sql",
@@ -1025,7 +1032,7 @@
       "blob": "beebfe61e9fcf4d7cca706a12a712b359c7e6005",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "887e5c93d4169e064ed6cd32ecb89b26f8622e8e9e3400e1ad7b28ee5445ee1e"
+      "composed_sha256": "9fe7549ee6ac4da3af74eeb85c4fbe20cc6f52fc0e9ab87a881e52c8b89bf045"
     },
     {
       "filename": "114_release14_certification_foundation.sql",
@@ -1034,7 +1041,7 @@
       "blob": "5785269c0fbb3feaf1509e9eae7cfe7fe23d39bd",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "0c0df872cc66d569149b994b2eb710b818917cf93358a85f76a244b09e8c5d0d"
+      "composed_sha256": "fc4b1ed308e4a88ed351a5f88227a988633f6cbe7efcdcd3aa69d03044990f73"
     },
     {
       "filename": "115_release14_certification_rls.sql",
@@ -1043,7 +1050,7 @@
       "blob": "31ba9fc59c10f2f73f7c47a70af1fb98eb00f6d7",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "2334f83fca23ff92e2f6e808c65a9f6f8d4ade5258397c2c225576322171243c"
+      "composed_sha256": "5707f36868cff212367c324118af5859215affbb4426a0f2189f0a5b122a8b89"
     },
     {
       "filename": "116_release14_certification_enterprise_extension.sql",
@@ -1052,7 +1059,7 @@
       "blob": "30d4a1feb0b20d6fd22bd925720f04246b398cc8",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "51644d2f64297cdb44d4dd33a74b175a63f8e8fd98bce6e17aba6985f83a5483"
+      "composed_sha256": "131cb8120e6191a33c5ce2a508e788fa9202919292ae24cb8576e3a82dde4a0d"
     },
     {
       "filename": "117_release14_certification_enterprise_rls.sql",
@@ -1061,7 +1068,7 @@
       "blob": "51d0827cae4ca8281f28cf5320c123b56711cd46",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "16717e9c1c18796d86c5f6746158b7a762b80beb58343c0e3a2f04e27b071dbb"
+      "composed_sha256": "7d288400f8a10fcb421bb71b3b6ff594ec75872a12930e2c4260ad2faeab4b4c"
     },
     {
       "filename": "118_release15_integration_hub_foundation.sql",
@@ -1070,7 +1077,7 @@
       "blob": "3b9d22eb0cdbe27e2013eac03ada1fa3f41d19eb",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "e7c8943579a0669a12486e83c371f95891b06e3a8ad9ace1944f10459d059226"
+      "composed_sha256": "a3adcaa9d93facd54a56cc0c530e5620adc40b5c10e4ca4eb042f570e9dfef5d"
     },
     {
       "filename": "119_release15_integration_hub_rls.sql",
@@ -1079,7 +1086,7 @@
       "blob": "554fb85a680faa91608bac4fc72449e3b9978fe1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d95b3945ac9525410db74f2fac3dee890c0424eff8b38e60c5e1d0643b1dc294"
+      "composed_sha256": "faf2e9c5e40bb6a4fdad97893a293822065052f9e495fb901d030d6461295c73"
     },
     {
       "filename": "120_release15_integration_hub_enterprise_extension.sql",
@@ -1088,7 +1095,7 @@
       "blob": "0f70cb56c813316b51ae9becaebed2e7002b720d",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "9b0c7d0ea49fe3b8572c105e8d8721aa888fe647ee02990a143ae591fa80af46"
+      "composed_sha256": "e9ba5f610c45ed96feac39ed6e5ea1d3d30179046b592ba2d29f45ec477e3498"
     },
     {
       "filename": "121_release15_integration_hub_enterprise_rls.sql",
@@ -1097,7 +1104,7 @@
       "blob": "8d08fafde49818842cd5c07f3f60f636c50e6241",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "2c4843d84a0bd15990039d0a68734cca0122e5108af07a970a40e420fe5070b8"
+      "composed_sha256": "ae7008cf57ba6ed3e23516bab28070bdb81d3818bdab8963d298679f3d43268e"
     },
     {
       "filename": "122_release151_ipaas_foundation.sql",
@@ -1106,7 +1113,7 @@
       "blob": "7b56b42adb61273716b789bebcafbbd4bdc94986",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "b449a502f597cc89269d7e18ea0ce56117b0cbeb5ace0b9deb4230d40337598e"
+      "composed_sha256": "166cdd7a0f376b5085bf3e0caee9d0e6cd1deda923e9c6e99a57b27b840ffebc"
     },
     {
       "filename": "123_release151_ipaas_rls.sql",
@@ -1115,7 +1122,7 @@
       "blob": "b59b55b1159851828df711132b68103d32f1f047",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "4c983538f050bd7583274c66c488e56a4f02da705cb01f9d64c9f62428925043"
+      "composed_sha256": "c475d2f99558d3a25973469c561b19b4d2584ccae3ec85ebcabc4dbe8efe9a36"
     },
     {
       "filename": "124_release152_operations_platform_foundation.sql",
@@ -1124,7 +1131,7 @@
       "blob": "817ab2e5f5b97f583dc4e93b082064d6c50e7653",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "78afc0ef5f64bb0131f47da06e854e2b9570450d8a744407569d9bc3ae82efa9"
+      "composed_sha256": "2f754d80fa4c60b3a298174fe6f6eaa2bda009f9eab678cccfcb02528274fd39"
     },
     {
       "filename": "125_release152_operations_platform_rls.sql",
@@ -1133,7 +1140,7 @@
       "blob": "0c7c33c7143b2c595375b78dad0cd0893a2b0224",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "ac567103c1808e8f804530d2cdf90fd70948f11aac10552c8dbaa67001e8b795"
+      "composed_sha256": "d802a796b634a3cbfbb01a76c9bbbd4f602a87b89701e97d169cb37639503804"
     },
     {
       "filename": "126_release16_intelligence_network_foundation.sql",
@@ -1142,7 +1149,7 @@
       "blob": "d392868dafdff7d5591f9d9a92233bf473ef1328",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "56eaa2873a25bcff4b4a3de7a516f711b162ceeee3eb5390c4a1569f95b81d62"
+      "composed_sha256": "a432573735e30a3c0c4d15503816585452667a996653301002acef805c6e8b12"
     },
     {
       "filename": "127_release16_intelligence_network_rls.sql",
@@ -1151,7 +1158,7 @@
       "blob": "c4998ca08194f0b571d9fde71d5601a769d01c9e",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "b12a0c54fb04e10139230bb6ea69d8310802a477921842fc7cff81e2fcdb1c72"
+      "composed_sha256": "9762432ad69a744317e95394d28e4393e6646c8684b956adc03408bbf6f4074f"
     },
     {
       "filename": "128_release_v1_launch_audit.sql",
@@ -1160,7 +1167,7 @@
       "blob": "7a04d4594ad1c7b3f2fe3acddc858c879fccf085",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "5b1e6526b86750ec5ec9cb891be944f44cdd64cb5656443c8c919d34f8b55071"
+      "composed_sha256": "49d646a57e8be3e55b51527098be2b8916a4b82ec10619aa5de9aec2c34d1eb7"
     },
     {
       "filename": "129_release_v1_doc_categories.sql",
@@ -1169,7 +1176,7 @@
       "blob": "17ba08c5d64e51fad51b5ac78b931e937a775a8c",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "6c32c9f7304db3bf4540449bb5f55abf569ebcd04d2c4ea2bfbf040a3dd4e8c3"
+      "composed_sha256": "a0ab6612820ab26a31de5e9d2be7bb5eba04e07565d33b369b2d5c3baaaf50cf"
     },
     {
       "filename": "130_v1_phase1_security_rls_hardening.sql",
@@ -1178,7 +1185,7 @@
       "blob": "378033cd2bfa6ed86e8bad1abd8e91577a69fb99",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "78ba70cb90335422407e78f45f3d1428fe0d6a07467b030017bf7c1f74903f41"
+      "composed_sha256": "8dad3e57ca9226b49a50ee666302c3dfd0094d4ce159b1adde76f9079f01b1a8"
     },
     {
       "filename": "131_v1_phase1_seed_password_reset_flag.sql",
@@ -1187,7 +1194,7 @@
       "blob": "ae32ccb03adcce083b805230674b749cde461207",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3c89c41ebe96caff916a4899e39b216b4e9299bd6ebbc5839a94a7389022747a"
+      "composed_sha256": "cbdbcd07e30800d5a628b6b72a2c39ad248872ae94f6b2b95a5671cf69f95e73"
     },
     {
       "filename": "132_phase2_platform_services_foundation.sql",
@@ -1196,7 +1203,7 @@
       "blob": "d17dc4000e9694b96f9cfa75cb283fb1f3583a05",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "f1fa9a69768577d10cb81749c10f6b900be1ad62837f8a290bd0d4c270fb871b"
+      "composed_sha256": "3f16a7bcb52f05b19e8c6c3d8d0a37476f2d0634ca7348e937b6e52329984a6f"
     },
     {
       "filename": "133_phase2_platform_services_rls.sql",
@@ -1205,7 +1212,7 @@
       "blob": "752f8385b972d67c9e67fc97dc70530523629de5",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d6f6fc276e5277e1543a07a95af2b450b39e56d2eaea5bd3571af37128a5fa9e"
+      "composed_sha256": "0f314ece04415c5613584f607c036321eae393f737f76353f535e12631fd324b"
     },
     {
       "filename": "134_r02_activity_insert_authorization.sql",
@@ -1214,7 +1221,7 @@
       "blob": "5c86997aa2f5ad8bae790206d615bd56af353fbf",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "05fbfa67d009132227beefb7be70d62e22fc333b2cbbb6513fce318ebdc1cff3"
+      "composed_sha256": "b633861b833bff82c099453c76dfbe044aaf3b0e472cd981d68aa5f0acb2a00e"
     },
     {
       "filename": "135_r02_relationship_deduplication.sql",
@@ -1223,7 +1230,7 @@
       "blob": "b7adf7732a952382bf7f3dbc3868bdf53a95c5f1",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "5336882241cee8d52a1d51c2853dfebcaaf38b6e3454256f0dddcfca1a37eaff"
+      "composed_sha256": "7d14b9051f355f4351c1522d8ede2d824b716f9fca97c2251d65e90b3e6d16c9"
     },
     {
       "filename": "136_platform_workflow_persistence.sql",
@@ -1232,7 +1239,7 @@
       "blob": "27245586be452728a38d056f2e53a7bee08400c7",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "923dfa4ecdb3b02fe379047d45946e19a8573b316e702ccd083c4fa37adfff7c"
+      "composed_sha256": "650d9f10c2a8a75db4aa8110dd95edf1c434ff93152463959f00948d99da40ac"
     },
     {
       "filename": "137_platform_workflow_rls.sql",
@@ -1241,7 +1248,7 @@
       "blob": "7b42d46413155e84926785974c783c2648a65444",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "642cc5084c509ea6f144d93cc55492d4e035334c57877651a16c22f40acd12c1"
+      "composed_sha256": "7e6620999b36cd41c1747f444eede2e182bc506952a18ad70089e47061a46194"
     },
     {
       "filename": "138_platform_event_persistence.sql",
@@ -1250,7 +1257,7 @@
       "blob": "0e1042193a596b1ee08090d6187527f2ce9d5dea",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "e5e7d08863b4554ffce17453a7301edb5d46e67ee8ab35d76e37d257f91d432d"
+      "composed_sha256": "395d107816b97b7cfa3fa6c2e65b0181efe7041f422d2cb75f617456b25ee7dd"
     },
     {
       "filename": "139_platform_event_rls.sql",
@@ -1259,7 +1266,7 @@
       "blob": "7a480e0a971f0511929558bf801d49dc8413ebaf",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "31740c4ccd02a83a3eb2eeb46c003e2070d13b670c6efd5c114649875221c409"
+      "composed_sha256": "76a066a7d1453588dd11fda5965332f00307916de4d74bb28356d394a6da94f0"
     },
     {
       "filename": "140_platform_decision_persistence.sql",
@@ -1268,7 +1275,7 @@
       "blob": "a826aba5ab3d5a167f726e8dbaad43acd8445c07",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "1be14d4b339991b8f538256edff17909ea1435c26879938d23fd9f643d01035d"
+      "composed_sha256": "1b1abcafd95775f210fafce41b84f1991e1fd86c626d36d6cd2efd1f4db47cee"
     },
     {
       "filename": "141_platform_decision_rls.sql",
@@ -1277,7 +1284,7 @@
       "blob": "f20403db5c7d98adcc6c23f7553afaab3ba84d43",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "b576932f9e9ead106996c1bbfd0b34dee1f251b6050913c028083dfe34d05d98"
+      "composed_sha256": "69dd3c0972110f24d5ff30273ee7e96cf60bb866192255d656e3be527b09f36a"
     },
     {
       "filename": "142_platform_evidence_persistence.sql",
@@ -1286,7 +1293,7 @@
       "blob": "6e364775ab2b732a8af70b3bd5a81b0f2370a7eb",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "4e152a9e89ca70418f27dd66af1c28dc0847c8efdb2bff90aaa0c7a6eb906fd7"
+      "composed_sha256": "ba3d52f46291c754488e66cede30f16eff952434ca6f75f047add6d4bec637c4"
     },
     {
       "filename": "143_platform_evidence_rls.sql",
@@ -1295,7 +1302,7 @@
       "blob": "24544a625dacd483d6b8d053dede4ab6b07950ca",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "4e95f56647ba3836e8f5289c8147270aabe239de83f861addaa1336ed1f5c0b1"
+      "composed_sha256": "840e716ab24cfe8b05aee407078ac1706fc8815d614749b373b55bf79ad72be4"
     },
     {
       "filename": "144_platform_rules_persistence.sql",
@@ -1304,7 +1311,7 @@
       "blob": "e2a417c749b0d711fe2c9dccfef94582f2f350f0",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a48c3634e45670f5a983265a930e08d90751638b2152662c99003df8bf1bae0d"
+      "composed_sha256": "04966097ff557c25fd220c29c25ba698891c9e41d9ae51f9552701c0e1739fa5"
     },
     {
       "filename": "145_platform_rules_rls.sql",
@@ -1313,7 +1320,7 @@
       "blob": "cf2dcda07f6d3f07d0344662a21b459d9f7257ca",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "bd8404ec64803380d1cbd9f737cb0224056eb37394c6721ba202f2d951a47a7c"
+      "composed_sha256": "45492e0d6c43ce55c428afcf6044db150c1e85eeed131316ff0c407a22fc7f93"
     },
     {
       "filename": "146_platform_intelligence_graph_persistence.sql",
@@ -1322,7 +1329,7 @@
       "blob": "0309d1f7d14e29590eeaab2ba2717a1a7748034d",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "f0ce0a6b5520f6ae4a7827bd0983a6a499c32a3ee96797621c2435ff7c1b22d4"
+      "composed_sha256": "2ff14eea612aa327f1fc49ddea0c5ba891bacf3fbf73de43c021abd413b56863"
     },
     {
       "filename": "147_platform_intelligence_graph_rls.sql",
@@ -1331,7 +1338,7 @@
       "blob": "5450b297883062cffff664a3996e13c1bd5ed2ff",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "9259a329466e97b30f1f55ef0f56b71babe7e99d9ace671f58fbd72294b0a9ce"
+      "composed_sha256": "cd74a2e0c61961eb4209beed044621efaa3d219ef5fffb41d49971c22ed06a4f"
     },
     {
       "filename": "148_platform_ulr_foundation.sql",
@@ -1340,7 +1347,7 @@
       "blob": "1d9aaa3fd614afd8ef7c7af76f51b31e3526169c",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "711507bc769d76d343576662a6fb6cf14d9f87c875b77dc238d10d8bac0adff0"
+      "composed_sha256": "5814e442f1e76dcabb1fc8371cce98dfdd3595dda4255a122b259b2d7b46bdf1"
     },
     {
       "filename": "149_platform_ulr_seed_domains.sql",
@@ -1349,7 +1356,7 @@
       "blob": "9c420ecc45563e09a7603c5d08cf060a0818a7be",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "58de39bc4f5dfca485a1aeb49b4ef38d49c8088d8272101c59e2b13ff5647785"
+      "composed_sha256": "4f5dab27dca0f9d6777c9dfb254155f02f30b0b84ac3c9f61868a961734d16f5"
     },
     {
       "filename": "150_platform_ulr_rls.sql",
@@ -1358,7 +1365,7 @@
       "blob": "2269c55d2919e9e30140cdf6ad1c4a0ea00021b0",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "c9fcbe158ca382b16e6b428c705c20e1addcae70cf152349e81daa65ddfea350"
+      "composed_sha256": "47879751ddc3fe34c85ea4b60d3b4c5c089dfd235062b1c2a95b34e36f3872f5"
     },
     {
       "filename": "151_platform_ulr_sl_population.sql",
@@ -1367,7 +1374,7 @@
       "blob": "98af3d17f0a46e6f91353f92dd84ac7cc2179110",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "84546a94d55c0c28d8a4f4ad12f1fa567f749bfe3980147d231ee514b0faf547"
+      "composed_sha256": "17f57ce564db208dc2997ce808ea06b5cbf5d88645c9b50a18fb07c10c3daf56"
     },
     {
       "filename": "152_platform_ulr_sl_sub_strands.sql",
@@ -1376,7 +1383,7 @@
       "blob": "77274f5b6dba6a3a0026ac4433b9a3876304ee53",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a8a864bcf894a09691f04652f9659b4079edecb091387c1cdbf34fa7b86db330"
+      "composed_sha256": "0fa0aeaa3584ec3ca507a8bdc06e4eb05061d8e391229d323072c70dd2dc2259"
     },
     {
       "filename": "153_platform_paj_runtime.sql",
@@ -1385,7 +1392,7 @@
       "blob": "ee62c87527ccd3a9779dae2cd5328a49b9cdb62f",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "df77a636248680c2a7842e0afad4a28582dd1563c0e0b93b14286e85cbee897c"
+      "composed_sha256": "49124832c48071279e079da4a4e73fc51c685ce54515056ba8765a6b3445c338"
     },
     {
       "filename": "154_platform_paj_rls.sql",
@@ -1394,7 +1401,7 @@
       "blob": "8aefae5e16be6c144442eb3a4671131a0eecf874",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "2378f7bc1a4ec026a1f59afcbc90e94b3db72202f5b65d7f179c0f393717330b"
+      "composed_sha256": "7b75f5705d420c222d99fdaebd873fc011c31359c1767a64c6754bb070b92eae"
     },
     {
       "filename": "155_sprint25_founder_role_seed.sql",
@@ -1403,7 +1410,7 @@
       "blob": "66c48d33f6372c1afb526aae5755bfe330671a49",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "6cd670d5f833c5f73b64b039ba5f02a1894ab2c547cc22159c1c8174638eb7a1"
+      "composed_sha256": "55dde096a9f654a6a4c14bbe3515cb46d255cff563cdd49012509c775c32707a"
     },
     {
       "filename": "156_sprint002_executive_kpi_snapshots.sql",
@@ -1412,7 +1419,7 @@
       "blob": "cbf175e420aa690ca7076156bd7e9bcc81cd99be",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "ca7afce58ca819a399b041f60791deeb1a4ebbafe918c6a1f5bcd287c8eeafe2"
+      "composed_sha256": "01932150b55017ea5ee13002d42fae92cf4bcb190968ce418f5325dd9aec8ef1"
     },
     {
       "filename": "159_list_schools_for_public_inquiry.sql",
@@ -1421,7 +1428,7 @@
       "blob": "7da4e5188af634d1a59d8118f1d791f155a1eb75",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "6b792e84326bf1249e184b150068eb62c5ad618b982703dc8033b7e2835ed8e7"
+      "composed_sha256": "12e99c4b7749acd304de470237cdfa198cbb3feb63f3b7234f0f924b38ce5faf"
     },
     {
       "filename": "160_enterprise_iam_official_platform_roles.sql",
@@ -1430,7 +1437,7 @@
       "blob": "c95b33969ab085cfc5e4de970ea74a369ffa85bf",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "1f5b4e9fbea12dbbe453a074c7a7e90158d999b8e7478558259fa268ed398bae"
+      "composed_sha256": "2aa235ad20897776e8d46749456f7826810ecc4feb3a9fad32765d817f489f0f"
     },
     {
       "filename": "161_enterprise_iam_permission_catalog.sql",
@@ -1439,7 +1446,7 @@
       "blob": "e3aebf40679373787115db87e15c3dd833a76e26",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "e700dd06d6106f9f67b5f8ad8ae4d3e37d36b5479bdfb7711ef07345cfca6235"
+      "composed_sha256": "34efe46b7be8939b564c9d01cd6fd5b50b1ff286f5b4c2d09f0d291f4c3c9a1c"
     },
     {
       "filename": "162_sprint002_organizations_first_class.sql",
@@ -1448,7 +1455,7 @@
       "blob": "205ae0a4e03640302c4de9c52052b49dfa09d15d",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3510042727ddc9f6ebc93e92f149183bcfcc6e3fa2b9d096a271c250169f026d"
+      "composed_sha256": "e73f9ed65d243ee5f5e9f15c08b44d120b0f89c3bc5b9647c60d02f94badfac2"
     },
     {
       "filename": "163_sprint003_permission_engine.sql",
@@ -1457,7 +1464,7 @@
       "blob": "c8dd715e95d67e8460ca360e6ed4aa0bab1437df",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "1a7ed95ccdf99adaba4dfe4813c7833b560b3fe969c5bf56896d1a59afd4b4b3"
+      "composed_sha256": "d806ed83c8ca831e1e2e716d01fa44e840c56f10436b13a53b9b22433eb9fdff"
     },
     {
       "filename": "164_sprint004_permission_catalog.sql",
@@ -1466,7 +1473,7 @@
       "blob": "d0f5524e571830cd913deae9a1baf1c85f0dd8fc",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "58a13df312ce72cd891d7cc392a606da152164dbe1eef2310149db5565deab82"
+      "composed_sha256": "d0b7ea3971c461d4f15780dd14fd8d80a9ab728067f5362005f8cc2217f0e03f"
     },
     {
       "filename": "165_sprint005_official_platform_roles.sql",
@@ -1475,7 +1482,7 @@
       "blob": "d0b7f46c6419f7ca8b80989a844544165efca91a",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d7dc3ed7330c17da08ba42573471c881ad2264dd23f03332110bc312b9aa4511"
+      "composed_sha256": "60c14ca8da53dd9255fb7f957607351aa1f99acddd52e17880f61ff467eba642"
     },
     {
       "filename": "166_sprint006_role_permissions.sql",
@@ -1484,7 +1491,7 @@
       "blob": "b8b9e9c73a27c866936206d30841e01d160694ab",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a52b368309e9f65f82581a4dd089f2f67ceaf5a2042191c7a1c6fd36f6574300"
+      "composed_sha256": "582da48ad2aa80bde2f19fafac19879ec907a81525ebe62332f52d4b5663c836"
     },
     {
       "filename": "167_sprint007_founder_protection.sql",
@@ -1493,7 +1500,7 @@
       "blob": "9f6b1994be285a7b404d5cc46153e5caf397c496",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "d75cabe3300967df30d04f99a1e75c783a0669c882781f8053614a2e07cc9bc2"
+      "composed_sha256": "4b2bfb912dae97b01638ac21d56d279bdf3e2d93953f696185e472fb364ed3d4"
     },
     {
       "filename": "168_sprint008_financial_security.sql",
@@ -1502,7 +1509,7 @@
       "blob": "4dc82f1e8326d93b40333bba2f5440c2af0f97b8",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "a4c477f6a43024add39f2035b83cba248e2a283bc3fe14df71fa14394da17119"
+      "composed_sha256": "9fea2058b8b7539e64b48538138479120ee2430f8e9d8d52303524fb1cd443a3"
     },
     {
       "filename": "169_sprint009_platform_administration.sql",
@@ -1511,7 +1518,7 @@
       "blob": "d9386cc0a5aeba32d6ec034ee18ef42aece138d4",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "6b9787b8ec1ab7abf344029bd78e444970e3b100a5e4080e0576329f5e858049"
+      "composed_sha256": "c11070d0d978a73a96bb6b9c0501af1a79616a1f3cb58a2dad5bcf2f996f9582"
     },
     {
       "filename": "170_sprint014_iam_foundation.sql",
@@ -1520,7 +1527,7 @@
       "blob": "3d6376eacc19ba5f9e6451c44eaa280ed4c7356c",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "7715e06c606c3582f40317164a13ac74e0d0f13e48d05518b04899a8f6c14985"
+      "composed_sha256": "9faea7d5a5ae0bcc0596ea18fd4f57a2ea059e1c7686b43759817451de746be0"
     },
     {
       "filename": "171_a1_architecture_security_rls.sql",
@@ -1529,7 +1536,7 @@
       "blob": "6344ee46d27b8ddecdd6058710c30af096c59896",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "00110844023f64a03e0ed82ac9e81f397832acf262096cbd9184a501a17c9296"
+      "composed_sha256": "76c73b7b9d422778081cb8d71519dedafe8ee1000630020874ad3517ae356d66"
     },
     {
       "filename": "172_b1_security_remediation.sql",
@@ -1538,7 +1545,7 @@
       "blob": "1d71c170ed32bfe280ebae659e11ef1d6d8f259c",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "c63f21cbf0f3197cdd64a66b567d14eaffda613f69f2880bfc5b0983473b69e3"
+      "composed_sha256": "c00194399e4f7b901cc6544604f4ba7a251abbafc97ede88ad6cfafbc14a6106"
     },
     {
       "filename": "173_phase_d_list_query_indexes.sql",
@@ -1547,7 +1554,7 @@
       "blob": "7a039d11b504aca8cb505d034fe2d0e4f52a4f1d",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "b29dc1dcfea7b98a765e89eed3203632610d4b01b6a8d05ebb69347ded40c400"
+      "composed_sha256": "0c0b10fe106a74e1146ceb87ea30af004209ded470f2367abd423d47fd066774"
     },
     {
       "filename": "174_auto_provision_auth_users.sql",
@@ -1556,7 +1563,7 @@
       "blob": "87888e27393b28d604ada9908e0d8df045714f81",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "9abea49e482211a572afc0e418d591e2698d95f47d2fc6e8792901c6eecc6f1e"
+      "composed_sha256": "06b389fc16e7c67a9cd7c37d6a79560be6a0262bf405c58e8bf64cf9826a136b"
     },
     {
       "filename": "175_complete_auth_user_provisioning.sql",
@@ -1567,10 +1574,12 @@
       "composition_transforms": [
         {
           "id": "strip_historical_founder_bootstrap_email",
-          "reason": "Greenfield must not carry executable dependency on historical Auth email; seed jimmy@ remains."
+          "classification": "HISTORICAL_RUNTIME_FOUNDER_BOOTSTRAP_CONFIG",
+          "reason": "Removes historical production Auth email from founder_bootstrap_emails only; seed jimmy@ and schema/catalog unchanged.",
+          "occurrences_applied": 1
         }
       ],
-      "composed_sha256": "fd6e4ae104ddef624333f186d07b77f9c35f89f0c7ada39df4693d23c37ae0c2"
+      "composed_sha256": "e006506293400241817fc32de1a9ef11ec202bdfc08ac265e372f7efe112f594"
     },
     {
       "filename": "176_config_sections_nulls_not_distinct.sql",
@@ -1579,7 +1588,7 @@
       "blob": "02355c9e7aaf1ed617d72605eac7c9c4b4d262f5",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "aa65ed1d7a7635a383f267058c5dc5bb95790ef8236c16c1f4d0e34b26a07dfb"
+      "composed_sha256": "d3edb0cff0db9042021c92bd0349a46736c7315f60741a12e5c248f4d72b35db"
     },
     {
       "filename": "177_p009_query_pipeline_indexes.sql",
@@ -1588,7 +1597,7 @@
       "blob": "d3fd720b1bfa3e3176532de862dfcd78becb940a",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "cfbc14ded84f7364a84aefc2f14a41db2e6fb8120050ee78dc5435fd3405b0b6"
+      "composed_sha256": "247f69a413b468a533cc6c5f609059a90dd520728629b9892be890ad1d8d4f32"
     },
     {
       "filename": "178_rc201_integration_connections.sql",
@@ -1597,7 +1606,7 @@
       "blob": "66f183c800791aef0e43e3528d66234bdfe939da",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "0c8339b0c216f614a3560e4246a174878fb4f735c68281d2dabcae7b0b08b43f"
+      "composed_sha256": "5d52dd0ee2f3df0a1e453ece0b614b5006d3bc4f12389b1c40382b7c48984c07"
     },
     {
       "filename": "179_rc202_google_workspace_sync.sql",
@@ -1606,7 +1615,7 @@
       "blob": "c778dbcc1c111fa9b5d521c56d24154844206f51",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3f7d50c800036f5070b0bf8fb0659d6356adc10ca8c654a8e439ad31f2ea1075"
+      "composed_sha256": "b03e1735a063f1106a30b43a675430a69e6049c47c46aa6969f8a4d767fad82e"
     },
     {
       "filename": "180_rc605_executive_perf_indexes.sql",
@@ -1615,7 +1624,7 @@
       "blob": "ac79cc3c503474589535c458cc117e7759cdbde3",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "29982a06580b8d235f7530b87ba154b0479476935f09be6ec2e0a333ae44afa3"
+      "composed_sha256": "11c0f0b29b7b5f946a89638066f46484c6100bf26052c94734e5b8ba47dbe3cf"
     },
     {
       "filename": "181_rc604_integration_connections_org_rls.sql",
@@ -1624,7 +1633,7 @@
       "blob": "4d47f8211df4eb2f348c705d4cdf4ba890cbb029",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "b83c02a795241914cd11ae5ef890a255c794e14961bc86d0b7b9b3836409cd7d"
+      "composed_sha256": "58fc803c8489e1eb4d655f3f695d21fd7184781c469b858eeea860d060f63138"
     },
     {
       "filename": "182_p103_user_management_rls.sql",
@@ -1633,7 +1642,7 @@
       "blob": "f7633126572d35223e37d45c6b787df58f8aab39",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "143606e6eba1871145f3c0e746d500acf5bfd9bb465ba7eb16aacbf42f0cf411"
+      "composed_sha256": "3ad5f61b6ab3eedce070248bc4404c23f470421de214046eb17fa77387e9ee21"
     },
     {
       "filename": "183_p106_users_directory_select_rls.sql",
@@ -1642,7 +1651,7 @@
       "blob": "0bcfa81c2207a7d121a1b6ea1091a3e5cc8fb14e",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "f8846e5625188119735392218aef31430d6c5ad73838608fe3df34246e5094c4"
+      "composed_sha256": "156c6b475820034fdc54eac2b10c003ce160d6b3b19610a425d3a520c495d870"
     },
     {
       "filename": "184_create_student_atomic.sql",
@@ -1651,7 +1660,7 @@
       "blob": "551bff9564b07b8b6ee99a31d399a1f7f268eaeb",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "784b170264ddabbc92ff921d9da60c658cf958a0596dd6b8a4cd3eb873ac6ff7"
+      "composed_sha256": "284c4818a678ee37330900358f3e380366c5998b62fe0a46415449574ea97789"
     },
     {
       "filename": "185_family_management_atomic.sql",
@@ -1660,7 +1669,7 @@
       "blob": "95458c8e9fabfb892f73b3919a448c3ebcb8c7df",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "b1c45328d07da072986002f0cd4d14f36c142058c222320bb736ab3b3b080a62"
+      "composed_sha256": "a45bbf50eb99a73e50ca57683b591003e132e44a0feb9f492c1933639bfba75c"
     },
     {
       "filename": "186_program_canonical_only.sql",
@@ -1669,7 +1678,7 @@
       "blob": "3a989d0b09fb03fd85f7f95b33ccc5514222f3f6",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "22ed514271820c524afa9c303e66edc54627a1e69bb7b3342df985c8978798e8"
+      "composed_sha256": "40eef723690106be2b3ae673a0a59f1ae87311d8c9c259b2bca029a24c13ff48"
     },
     {
       "filename": "187_platform_bulk_import_engine.sql",
@@ -1678,7 +1687,7 @@
       "blob": "43d7a13a1ca7caa4185808b16dc9a18a13a4599f",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "17575b1200f206ddc71040cc4872cbfe4ddb3094034b85a892e9763aaa17c9de"
+      "composed_sha256": "c6661e8df56cf1b94ca9242e13c7c8958cb8f434b3db455ffdb0105ab343e4f6"
     },
     {
       "filename": "188_student_archive_delete.sql",
@@ -1687,7 +1696,7 @@
       "blob": "67a903d0ace35c954cf798da508e4fdfcb0814c7",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3f5dc9c07e85841de48702a6729661506e3a0f54da60217f6bb14f22d53d3398"
+      "composed_sha256": "8c2c1fa3660bd990ce82f8135e2fd1d0fc3a16701d17d54580c837bfa011fb7b"
     },
     {
       "filename": "189_family_management_platform.sql",
@@ -1696,7 +1705,7 @@
       "blob": "4aa42048222d2b356c042b48dffda927b9ab8d29",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "5a4c8bdbc1d60b9affd039c15b5a08d91f715c109695450a30fb7880d77e4dd7"
+      "composed_sha256": "8500a45417d77368d3b027726d79c25baabce928a49e6dc1756db7da4dd0f0e5"
     },
     {
       "filename": "190_communications_engagement_platform.sql",
@@ -1705,7 +1714,7 @@
       "blob": "acf6e3d7da924d5499dca0ca7995ec28abf867d8",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "e59025c833b614e02956f8940ecbd12137d54ee1747e7d596aaa0d0906f2973b"
+      "composed_sha256": "3442bd2d1fde34a15213357c2c674aadcc894536a3fcbac29d04b9b6e4276d6a"
     },
     {
       "filename": "191_workflow_automation_engine.sql",
@@ -1714,7 +1723,7 @@
       "blob": "5cb3c1af6ae8702bdb0bc7445ae58d3ec7eae455",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "70be09145d821a97f58bf01f1d6ef34b1f609296afdf845783f569e299e6b828"
+      "composed_sha256": "6d141df1247242bb61c16eed55db174e025de49396753753e48fd26b9cc86826"
     },
     {
       "filename": "192_calendar_scheduling_platform.sql",
@@ -1723,7 +1732,7 @@
       "blob": "43e70141578895a5165d22941f03972c84ec963d",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "8536775eb9944c92b74f526ac635f335528858ebeff00943de76a79adb558208"
+      "composed_sha256": "76e8f2a43864df9fc47756145760cf117b982d7b005f9e98572554cf79b07c41"
     },
     {
       "filename": "193_document_records_platform.sql",
@@ -1732,7 +1741,7 @@
       "blob": "75c233bed1b7beeda94921b8754812637680d78a",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "1047f674393d23b5551ad5717de994b9cae00b0195262ac15c5d02f20a7803c3"
+      "composed_sha256": "afb584a77ceb9714097b2397a3cb04b8de0fd378ae777671e0e18fcf2d997098"
     },
     {
       "filename": "194_finance_revenue_platform.sql",
@@ -1741,7 +1750,7 @@
       "blob": "19dc5a287d6b312e635a5f9fed6274af0f4272cc",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "496d95e88bc8d277a3fde7f373ad2df923d0b4654fb59bb4e957728a3899977c"
+      "composed_sha256": "8055ebd368a6b54a76ff3f861ce0b6c91210b5f06aee4a6431f168752dfdce8c"
     },
     {
       "filename": "195_human_capital_platform.sql",
@@ -1750,7 +1759,7 @@
       "blob": "06a8a4efa37b9644b79614969c19514a2e9aa8b9",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "0a0a410c63e4439867643e130ab6211ecfa679e5f26ad91d60572c8f63d5c6b6"
+      "composed_sha256": "2e3e4f2c48e86f1dd9dc4b057e63e06ebc990ba827d9033b56008bc59bbbf758"
     },
     {
       "filename": "196_founder_intelligence_platform.sql",
@@ -1759,7 +1768,7 @@
       "blob": "9efa45ab88be7a7872f6e77da39335e826efa1cb",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "3037893d2025c2f7a122eb48c4ee75a803c9c62750c59dd3839866696247677e"
+      "composed_sha256": "b1c03852779b736c01f661670358439aedbae4dc6e6df6ea8010630091ee72e8"
     },
     {
       "filename": "197_jag_intelligence_engine.sql",
@@ -1768,7 +1777,7 @@
       "blob": "2e8352acb666d83004aed7b5b01817ba7854065b",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "21825fe2eb557f8d20d6f765e95dc7faa2d5d9bcbce7d0127e76ad78aeb21c19"
+      "composed_sha256": "5496fcecf44020681876ff64bb2b476dcb0328a4057afc79dca4a9f21e4db782"
     },
     {
       "filename": "198_students_delete_rls.sql",
@@ -1777,7 +1786,7 @@
       "blob": "7498a4c7027bc6db02216f9f8ae62867b5bf36a0",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "b9e3cd99d50f60b9da5e814cbd8af9cbc6401d73fffbaf0c10f17c86173ccd42"
+      "composed_sha256": "36d20fc3db140c5568ee7331ca0a1743b8f1f6ee8cb18c5280f1f068358b29ee"
     },
     {
       "filename": "199_email_domain_theacademyway.sql",
@@ -1786,7 +1795,7 @@
       "blob": "6dee2fd030f8e009a7072eed0198263b3412fd49",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "1a8b41a5e5b531aab8566f07d57bbfe1880d0cd4b2c709de150ac412d8ed44f6"
+      "composed_sha256": "3cbb1fd109f635d4e8c0e17d5329a975d33ec9cf13f4f6147de32657959964ff"
     },
     {
       "filename": "200_sprint059_application_registry.sql",
@@ -1795,7 +1804,7 @@
       "blob": "0b03a0bff21a2452f039c0446d7596c7d92adcb4",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "4729a1d92a69957fabfd64744ce131dc6fdee4cafa5a3e75ec51e7b40fb212c8"
+      "composed_sha256": "72702ee473088f3b2bad8496724307173505070180d4e91c45244d1c005578fd"
     },
     {
       "filename": "211_organization_branding.sql",
@@ -1804,7 +1813,7 @@
       "blob": "e9dc14b142d1625f32c0a2cd64115dd1826c8b83",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "5b996d91e739e58fc0c348f4f210b82f374a1090dad64226906aea03369155f4"
+      "composed_sha256": "7ab201c2d15de281e39ecd38ee96a91438ce324775e1ccefb2c53c5a7ac6d47f"
     },
     {
       "filename": "212_jag_org_scoped_authorization.sql",
@@ -1813,7 +1822,7 @@
       "blob": "ad832ad3381a711cbb9aff07b1b159f7e78d61d8",
       "dml_class": "DETERMINISTIC_BASELINE_DATA_OR_SCHEMA",
       "composition_transforms": [],
-      "composed_sha256": "7bcd324171ced345c4b1f12d3241588a5c7e9a6a88de54f8e11577841d874dae"
+      "composed_sha256": "faf8834e9dcce516790b3194f10f5c6a96106a360baf8f397f4626ec8eb8e070"
     }
   ],
   "excluded_historical_repairs": [
@@ -1826,10 +1835,20 @@
       "blob": "540b99a23210795f6b6eba9bfd472f39a7997746"
     }
   ],
+  "composition_transforms_summary": [
+    {
+      "filename": "175_complete_auth_user_provisioning.sql",
+      "id": "strip_historical_founder_bootstrap_email",
+      "classification": "HISTORICAL_RUNTIME_FOUNDER_BOOTSTRAP_CONFIG",
+      "reason": "Removes historical production Auth email from founder_bootstrap_emails only; seed jimmy@ and schema/catalog unchanged.",
+      "occurrences_applied": 1
+    }
+  ],
   "notes": [
     "Greenfield baseline is an initialization artifact, not historical execution evidence.",
     "Do not insert fake rows into supabase_migrations.schema_migrations for skipped repairs.",
     "Canonical seed Auth identities from 056 (jimmy@ / danni@) are deterministic baseline data.",
-    "Historical Auth identity jimmy.arispe@ / d346c418-… is prohibited in executable baseline SQL."
+    "Historical Auth identity jimmy.arispe@ / d346c418-… is prohibited in executable baseline SQL.",
+    "175 email exclusion is HISTORICAL_RUNTIME_FOUNDER_BOOTSTRAP_CONFIG only; see GREENFIELD_175_EMAIL_EXCLUSION.md."
   ]
 }

@@ -48,6 +48,7 @@ Rules:
 - Must contain no runtime production data, production Auth identities, or secrets.
 - Must be reproducible from repository sources via `npm run db:baseline:build`.
 - Must be independently certified via `npm run db:bootstrap:greenfield`.
+- Absence of `supabase_migrations.schema_migrations` (or an empty ledger) after greenfield init is expected and is **not** a failure. Do not fabricate `001–cutoff` ledger rows.
 
 Excluded historical repairs are declared in `supabase/baseline/manifest.json`.
 

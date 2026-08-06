@@ -1,0 +1,9 @@
+{
+  "description": "Pinned git blobs for greenfield composition fail-closed checks",
+  "pins": {
+    "158_sprint002_authenticated_founder_repair.sql": "540b99a23210795f6b6eba9bfd472f39a7997746",
+    "056_phase1_org_seed.sql": "2523be498e4bedfe1c8f94dd0f3625f12caa2ff1",
+    "175_complete_auth_user_provisioning.sql": "9d249716e08f2c898d9c37969b627d688c5bb28d",
+    "212_jag_org_scoped_authorization.sql": "ad832ad3381a711cbb9aff07b1b159f7e78d61d8"
+  }
+}

@@ -1,6 +1,6 @@
 {
-  "source_commit": "e9526f78064f2254182dcd9baeca5e73e7b3f7e9",
-  "generated_at": "2026-08-05T22:47:04.269Z",
+  "source_commit": "167c942c8387be973a1b6da29fd25bd5af80b9be",
+  "generated_at": "2026-08-06T00:11:02.098Z",
   "blobs": {
     "001_phase1_core_foundation.sql": "0e15eef75aacc2de0bdfa865a4a6792793fcd018",
     "002_users_auth_fkey.sql": "3f7ade3af78413be11cd46c3846b2c69e43e90ed",

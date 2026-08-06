@@ -10,6 +10,9 @@ import {
   PROHIBITED_AUTH_UUID,
   REQUIRED_IMMUTABLE_158_BLOB,
 } from "./constants.mjs";
+import { composeSourceSql, executableLines } from "./transforms.mjs";
+
+export { composeSourceSql, executableLines } from "./transforms.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const ROOT = join(__dirname, "..", "..");
@@ -117,32 +120,28 @@ export function assertNoProhibitedExecutable(sql, label) {
   }
 }
 
-/**
- * Composition-time transforms for greenfield (do not edit historical files).
- * Removes historical-only Auth email from founder bootstrap config while keeping
- * the canonical seed founder email.
- */
-export function composeSourceSql(filename, sql) {
-  const transforms = [];
-  let out = sql;
+export function loadSourcePins() {
+  const path = join(__dirname, "source-pins.json");
+  return JSON.parse(readFileSync(path, "utf8"));
+}
 
-  if (filename === "175_complete_auth_user_provisioning.sql") {
-    if (out.toLowerCase().includes(PROHIBITED_AUTH_EMAIL.toLowerCase())) {
-      out = out.replace(
-        new RegExp(`\\s*'${PROHIBITED_AUTH_EMAIL}'\\s*,?\\s*\\n?`, "gi"),
-        "\n"
-      );
-      // tidy trailing commas before closing array if needed
-      out = out.replace(/,\s*(\]::text\[\])/g, "$1");
-      transforms.push({
-        id: "strip_historical_founder_bootstrap_email",
-        reason:
-          "Greenfield must not carry executable dependency on historical Auth email; seed jimmy@ remains.",
-      });
+export function assertPinnedSources() {
+  const { pins } = loadSourcePins();
+  const results = {};
+  for (const [filename, expected] of Object.entries(pins)) {
+    const abs = join(MIGRATIONS_DIR, filename);
+    if (!existsSync(abs)) {
+      throw new Error(`Pinned source missing: ${filename}`);
     }
+    const actual = gitHashObject(abs);
+    if (actual !== expected) {
+      throw new Error(
+        `Pinned source blob drift for ${filename}: expected ${expected}, got ${actual}`
+      );
+    }
+    results[filename] = actual;
   }
-
-  return { sql: out, transforms };
+  return results;
 }
 
 export function provenanceDdl() {
@@ -187,42 +186,61 @@ export function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-function resolveSupabaseEntrypoint() {
-  // Prefer direct node entry to avoid Windows .cmd/.ps1 shell quoting breakage.
+/**
+ * Portable Supabase CLI resolution.
+ * Prefer invoking the JS entry with process.execPath (avoids Windows .cmd quoting).
+ * Falls back to `supabase` on PATH for Unix/CI.
+ */
+export function resolveSupabaseInvocation() {
   const candidates = [
     join(ROOT, "node_modules", "supabase", "dist", "supabase.js"),
-    join(
-      process.env.APPDATA || "",
-      "npm",
-      "node_modules",
-      "supabase",
-      "dist",
-      "supabase.js"
-    ),
-  ];
-  for (const c of candidates) {
-    if (c && existsSync(c)) return c;
+    process.env.SUPABASE_CLI_JS,
+    process.env.APPDATA
+      ? join(process.env.APPDATA, "npm", "node_modules", "supabase", "dist", "supabase.js")
+      : null,
+    process.env.HOME
+      ? join(process.env.HOME, ".npm-global", "lib", "node_modules", "supabase", "dist", "supabase.js")
+      : null,
+    process.env.HOME
+      ? join(
+          process.env.HOME,
+          "AppData",
+          "Roaming",
+          "npm",
+          "node_modules",
+          "supabase",
+          "dist",
+          "supabase.js"
+        )
+      : null,
+  ].filter(Boolean);
+
+  for (const entry of candidates) {
+    if (existsSync(entry)) {
+      return { mode: "node-entry", entry };
+    }
   }
-  return null;
+  return { mode: "path-bin", command: "supabase" };
 }
 
 export function runSupabase(args, { cwd = ROOT, allowFail = false } = {}) {
-  const entry = resolveSupabaseEntrypoint();
+  const inv = resolveSupabaseInvocation();
   try {
-    const out = entry
-      ? execFileSync(process.execPath, [entry, ...args], {
-          cwd,
-          encoding: "utf8",
-          maxBuffer: 80 * 1024 * 1024,
-          stdio: ["pipe", "pipe", "pipe"],
-        })
-      : execFileSync("supabase", args, {
-          cwd,
-          encoding: "utf8",
-          maxBuffer: 80 * 1024 * 1024,
-          stdio: ["pipe", "pipe", "pipe"],
-        });
-    return { ok: true, stdout: out, stderr: "", code: 0 };
+    const out =
+      inv.mode === "node-entry"
+        ? execFileSync(process.execPath, [inv.entry, ...args], {
+            cwd,
+            encoding: "utf8",
+            maxBuffer: 80 * 1024 * 1024,
+            stdio: ["pipe", "pipe", "pipe"],
+          })
+        : execFileSync(inv.command, args, {
+            cwd,
+            encoding: "utf8",
+            maxBuffer: 80 * 1024 * 1024,
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+    return { ok: true, stdout: out, stderr: "", code: 0, invocation: inv };
   } catch (err) {
     if (allowFail) {
       return {
@@ -230,6 +248,7 @@ export function runSupabase(args, { cwd = ROOT, allowFail = false } = {}) {
         stdout: err.stdout?.toString?.() ?? "",
         stderr: err.stderr?.toString?.() ?? String(err),
         code: err.status ?? 1,
+        invocation: inv,
       };
     }
     const detail = [
