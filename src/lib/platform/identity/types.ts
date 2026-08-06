@@ -153,6 +153,14 @@ export const PERMISSION_KEYS = [
   "JAG_PLATFORM_ADMIN",
   /** Customer organization JAG workspace access (org-scoped; never global). */
   "JAG_ORG_ACCESS",
+  /** Listening Intelligence — view initiatives/campaigns/non-raw intelligence. */
+  "LISTENING_VIEW",
+  /** Listening Intelligence — author/publish/close campaigns. */
+  "LISTENING_MANAGE",
+  /** Listening Intelligence — run/accept analysis. */
+  "LISTENING_ANALYZE",
+  /** Listening Intelligence — privileged raw response access. */
+  "LISTENING_RAW",
   "ACADEMYOS_ACCESS",
   "FINANCE_ACCESS",
   "BANKING_ACCESS",

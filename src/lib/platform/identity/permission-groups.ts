@@ -56,6 +56,10 @@ export const PERMISSION_GROUP_DEFINITIONS: PermissionGroupMap = {
       "edi.executive",
       "ai.executive",
       "search.global",
+      "LISTENING_VIEW",
+      "LISTENING_MANAGE",
+      "LISTENING_ANALYZE",
+      "LISTENING_RAW",
     ],
   },
   JAG_PLATFORM_ADMIN: {
@@ -74,6 +78,10 @@ export const PERMISSION_GROUP_DEFINITIONS: PermissionGroupMap = {
       "executive.dashboard",
       "executive.intelligence",
       "search.global",
+      "LISTENING_VIEW",
+      "LISTENING_MANAGE",
+      "LISTENING_ANALYZE",
+      "LISTENING_RAW",
     ],
   },
   JAG_ORG_ACCESS: {
@@ -90,6 +98,10 @@ export const PERMISSION_GROUP_DEFINITIONS: PermissionGroupMap = {
       "org.view",
       "directory.view",
       "search.global",
+      "LISTENING_VIEW",
+      "LISTENING_MANAGE",
+      "LISTENING_ANALYZE",
+      "LISTENING_RAW",
     ],
   },
   ACADEMYOS_ACCESS: {
