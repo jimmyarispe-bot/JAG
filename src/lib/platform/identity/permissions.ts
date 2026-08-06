@@ -168,15 +168,17 @@ export async function requirePermission(
  * once per catalog key — that caused Vercel 504 FUNCTION_INVOCATION_TIMEOUT on every
  * dashboard navigation (≈160 keys × 2 role queries each).
  */
-const loadUserPermissionsCached = cache(async (userId: string): Promise<Set<string>> => {
-  const supabase = await getAuthClient();
-  const roles = await loadUserRoleNames(supabase, userId);
+async function loadUserPermissionsWithClient(
+  supabase: AuthClient,
+  userId: string
+): Promise<Set<string>> {
+  const roles = await loadUserRoleNamesWithClient(supabase, userId);
 
   // Always start from role→permission mapping (no role-name superuser bypass).
   const mapped = permissionsForMappedRoles(roles);
   const granted = new Set<string>(mapped);
 
-  let roleIds = await loadExpandedRoleIds(userId);
+  let roleIds = await loadExpandedRoleIdsWithClient(supabase, userId);
   if (!roleIds.length) {
     // user_role_ids RPC missing / empty — fall back to direct assignment ids
     const { data: userRoles } = await supabase
@@ -211,14 +213,27 @@ const loadUserPermissionsCached = cache(async (userId: string): Promise<Set<stri
     if (denied.has(key)) granted.delete(key);
   }
   return granted;
+}
+
+/** Request-scoped path — uses cookie-bound auth client (Sprint P002). */
+const loadUserPermissionsCached = cache(async (userId: string): Promise<Set<string>> => {
+  const supabase = await getAuthClient();
+  return loadUserPermissionsWithClient(supabase, userId);
 });
 
-/** Effective permissions — once per user per request (Sprint P002). */
+/**
+ * Effective permissions.
+ * Prefer an injected client when provided (tests / non-RSC callers).
+ * Otherwise use the request-scoped cookie client once per user (Sprint P002).
+ */
 export async function loadUserPermissions(
-  _supabase: AuthClient | undefined,
+  supabase: AuthClient | undefined,
   userId: string,
   _authUserId?: string | null
 ): Promise<Set<string>> {
+  if (supabase) {
+    return loadUserPermissionsWithClient(supabase, userId);
+  }
   return loadUserPermissionsCached(userId);
 }
 
@@ -266,15 +281,46 @@ export async function getMissionControlModulesForUser(
   return modules;
 }
 
-async function loadUserRoleNames(_supabase: AuthClient | undefined, userId: string): Promise<string[]> {
+async function loadUserRoleNamesWithClient(
+  supabase: AuthClient,
+  userId: string
+): Promise<string[]> {
+  const { data: userRoles } = await supabase
+    .from("user_roles")
+    .select("role_id")
+    .eq("user_id", userId);
+
+  const roleIds = userRoles?.map((r) => r.role_id) ?? [];
+  if (!roleIds.length) return [];
+
+  const { data: roleRows } = await supabase
+    .from("roles")
+    .select("name, display_name")
+    .in("id", roleIds);
+
+  return (roleRows ?? []).map((row) => row.name as string).filter(Boolean);
+}
+
+async function loadUserRoleNames(
+  _supabase: AuthClient | undefined,
+  userId: string
+): Promise<string[]> {
+  // Request-scoped role rows when no injectable path is needed.
   const rows = await loadUserRoleRows(userId);
   return rows.map((r) => r.name).filter(Boolean);
 }
 
-const loadExpandedRoleIdsCached = cache(async (userId: string): Promise<string[]> => {
-  const supabase = await getAuthClient();
+async function loadExpandedRoleIdsWithClient(
+  supabase: AuthClient,
+  userId: string
+): Promise<string[]> {
   const { data } = await supabase.rpc("user_role_ids", { check_user_id: userId });
   return (data as string[] | null) ?? [];
+}
+
+const loadExpandedRoleIdsCached = cache(async (userId: string): Promise<string[]> => {
+  const supabase = await getAuthClient();
+  return loadExpandedRoleIdsWithClient(supabase, userId);
 });
 
 async function loadExpandedRoleIds(userId: string): Promise<string[]> {
