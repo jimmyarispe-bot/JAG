@@ -1,0 +1,34 @@
+.listening-public {
+  --lp-bg: #0f1419;
+  --lp-panel: #161c24;
+  --lp-border: #2a3340;
+  --lp-text: #e8eef5;
+  --lp-muted: #9aa8b8;
+  --lp-muted-2: #6d7b8c;
+  --lp-accent: #3d8bfd;
+  --lp-accent-text: #ffffff;
+  --lp-danger: #f07178;
+  --lp-ready: #7fd99a;
+  min-height: 100dvh;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(61, 139, 253, 0.12), transparent),
+    var(--lp-bg);
+  color: var(--lp-text);
+  font-family: var(--font-jag-sans), "IBM Plex Sans", system-ui, sans-serif;
+}
+
+.listening-public * {
+  box-sizing: border-box;
+}
+
+.listening-public .lp-shell {
+  margin: 0 auto;
+  max-width: 40rem;
+  padding: 1.25rem 1.25rem 3rem;
+}
+
+@media (min-width: 640px) {
+  .listening-public .lp-shell {
+    padding: 2rem 1.5rem 4rem;
+  }
+}

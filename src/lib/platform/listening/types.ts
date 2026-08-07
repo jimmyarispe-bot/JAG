@@ -51,12 +51,14 @@ export const LISTENING_QUESTION_TYPES = [
 ] as const;
 export type ListeningQuestionType = (typeof LISTENING_QUESTION_TYPES)[number];
 
-/** V1 authoring / collection question types. */
+/** V1 authoring / collection question types (Slice 2.1 authoring workspace). */
 export const LISTENING_V1_QUESTION_TYPES = [
-  "single_choice",
-  "likert",
+  "short_text",
   "long_text",
-  "yes_no",
+  "single_choice",
+  "multi_choice",
+  "likert",
+  "numeric",
 ] as const satisfies readonly ListeningQuestionType[];
 
 export type ListeningInitiative = {

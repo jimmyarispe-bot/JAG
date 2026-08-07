@@ -508,6 +508,77 @@ export const EXPLAINABILITY_GRAPH_MANIFEST: CapabilityManifest = {
   },
 };
 
+export const LISTENING_INTELLIGENCE_MANIFEST: CapabilityManifest = {
+  id: "jag.intelligence.listening",
+  name: "Listening Intelligence",
+  version: v("1.1.0"),
+  description:
+    "Author listening instruments and review evidence-backed organizational signals.",
+  category: "intelligence",
+  enabled: true,
+  routes: [
+    { id: "listening", path: "/jag/listening", label: "Listening" },
+    {
+      id: "listening-intelligence",
+      path: "/jag/listening/intelligence",
+      label: "Listening Intelligence",
+    },
+  ],
+  navigation: [
+    {
+      id: "listening",
+      label: "Listening",
+      href: "/jag/listening",
+      order: 25,
+      group: "intelligence",
+    },
+    {
+      id: "listening-intelligence",
+      label: "Listening Intelligence",
+      href: "/jag/listening/intelligence",
+      order: 26,
+      group: "intelligence",
+    },
+  ],
+  permissions: readPerms,
+  dependencies: [],
+  providers: {
+    observability: {
+      surfaceLabel: "Listening intelligence",
+      description:
+        "Authoring plus deterministic analysis workbench (signals, evidence, metrics).",
+    },
+    health: healthy("Listening authoring and intelligence workbench available."),
+    search: {
+      listItems: () => [
+        {
+          id: "cap-search-listening",
+          title: "Listening",
+          subtitle: "Initiatives · instruments · campaigns",
+          href: "/jag/listening",
+          kind: "navigation",
+        },
+        {
+          id: "cap-search-listening-intelligence",
+          title: "Listening Intelligence",
+          subtitle: "Signals · evidence · metrics",
+          href: "/jag/listening/intelligence",
+          kind: "navigation",
+        },
+      ],
+    },
+  },
+  featureFlags: {
+    listeningAuthoringEnabled: true,
+    listeningIntelligenceWorkbenchEnabled: true,
+  },
+  metadata: {
+    tags: ["listening", "survey", "campaign", "authoring", "intelligence"],
+    owner: "jag-intelligence",
+    sprint: "4.1",
+  },
+};
+
 export const PHASE_II_INTELLIGENCE_MANIFESTS: readonly CapabilityManifest[] = [
   PREDICTIVE_INTELLIGENCE_MANIFEST,
   SCENARIO_PLANNING_MANIFEST,
@@ -518,4 +589,5 @@ export const PHASE_II_INTELLIGENCE_MANIFESTS: readonly CapabilityManifest[] = [
   DECISION_CENTER_MANIFEST,
   EXECUTIVE_BRIEFINGS_MANIFEST,
   EXPLAINABILITY_GRAPH_MANIFEST,
+  LISTENING_INTELLIGENCE_MANIFEST,
 ];

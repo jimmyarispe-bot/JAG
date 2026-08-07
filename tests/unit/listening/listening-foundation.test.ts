@@ -279,12 +279,14 @@ describe("Listening permission wiring (app catalog)", () => {
 });
 
 describe("Listening V1 question types", () => {
-  it("keeps V1 subset without requiring ranking/matrix", () => {
-    expect(LISTENING_V1_QUESTION_TYPES).toEqual([
-      "single_choice",
-      "likert",
+  it("keeps authoring V1 subset without ranking/matrix/nps", () => {
+    expect([...LISTENING_V1_QUESTION_TYPES]).toEqual([
+      "short_text",
       "long_text",
-      "yes_no",
+      "single_choice",
+      "multi_choice",
+      "likert",
+      "numeric",
     ]);
   });
 });
