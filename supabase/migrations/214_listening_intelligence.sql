@@ -5,7 +5,7 @@
 -- Does NOT build AI, UI, briefings, conversations, or decision integration.
 -- =============================================================================
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
 
 -- ---------------------------------------------------------------------------
 -- 0) Permissions
@@ -558,7 +558,7 @@ language sql
 immutable
 set search_path = public
 as $$
-  select digest(convert_to(p_token, 'UTF8'), 'sha256');
+  select extensions.digest(convert_to(p_token, 'UTF8'), 'sha256'::text);
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -870,14 +870,22 @@ revoke all on function public.submit_listening_response(text, jsonb) from public
 revoke all on function public.listening_token_digest(text) from public;
 revoke all on function public.listening_instrument_version_is_locked(uuid) from public;
 
+-- Supabase default privileges may grant EXECUTE to anon/authenticated on CREATE.
+-- Strip those for internal helpers; public collection uses SECURITY DEFINER RPCs only.
+revoke all on function public.listening_token_digest(text) from anon;
+revoke all on function public.listening_token_digest(text) from authenticated;
+revoke all on function public.listening_instrument_version_is_locked(uuid) from anon;
+revoke all on function public.listening_instrument_version_is_locked(uuid) from authenticated;
+
 grant execute on function public.resolve_public_listening_campaign(text)
   to anon, authenticated, service_role;
 grant execute on function public.submit_listening_response(text, jsonb)
   to anon, authenticated, service_role;
 
--- Digest helper: service/authenticated only (not for anon probing)
+-- Internal hash helper: owner + service_role only.
+-- Public RPCs call it as SECURITY DEFINER (owner); clients hash via app code.
 grant execute on function public.listening_token_digest(text)
-  to authenticated, service_role;
+  to service_role;
 
 -- ---------------------------------------------------------------------------
 -- 5) RLS — fail closed

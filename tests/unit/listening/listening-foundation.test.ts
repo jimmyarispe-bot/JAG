@@ -133,6 +133,41 @@ describe("Listening foundation migration 214", () => {
     expect(body).toContain("revoke all on table public.listening_campaigns from anon");
   });
 
+  it("resolves pgcrypto digest under pinned search_path = public", () => {
+    const body = sql();
+    expect(body).toContain(
+      "create extension if not exists pgcrypto with schema extensions"
+    );
+    expect(body).toMatch(
+      /listening_token_digest[\s\S]*set search_path = public[\s\S]*extensions\.digest\(convert_to\(p_token, 'UTF8'\), 'sha256'::text\)/
+    );
+    expect(body).not.toMatch(
+      /listening_token_digest[\s\S]*set search_path = public[\s\S]*[^.]digest\(convert_to/
+    );
+  });
+
+  it("keeps listening_token_digest internal (no anon/authenticated execute)", () => {
+    const body = sql();
+    expect(body).toContain(
+      "revoke all on function public.listening_token_digest(text) from anon"
+    );
+    expect(body).toContain(
+      "revoke all on function public.listening_token_digest(text) from authenticated"
+    );
+    expect(body).toContain(
+      "revoke all on function public.listening_token_digest(text) from public"
+    );
+    expect(body).toMatch(
+      /grant execute on function public\.listening_token_digest\(text\)\s+to service_role/
+    );
+    expect(body).not.toMatch(
+      /grant execute on function public\.listening_token_digest\(text\)\s+to authenticated/
+    );
+    expect(body).not.toMatch(
+      /grant execute on function public\.listening_token_digest\(text\)\s+to anon/
+    );
+  });
+
   it("rejects client-controlled organization ownership in submit RPC", () => {
     const body = sql();
     // organization_id taken from campaign row only
