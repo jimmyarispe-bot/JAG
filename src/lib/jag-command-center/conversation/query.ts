@@ -3,7 +3,7 @@
  */
 
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
-import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { getAccessibleConversation } from "./access";
 import { listConversations } from "./store";
@@ -30,7 +30,7 @@ export function loadConversationWorkspace(
   }
 ): JagConversationWorkspaceModel {
   const orgs = listOrganizationsForSession(session);
-  const org = resolveSessionOrganization(session, options?.organizationId);
+  const org = resolveActiveWorkspaceOrganization(session, options?.organizationId);
   const conversations = listConversations({
     query: options?.search,
     includeArchived: options?.includeArchived,

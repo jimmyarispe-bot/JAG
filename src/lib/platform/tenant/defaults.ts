@@ -20,6 +20,8 @@ export const DEFAULT_FEATURE_FLAGS: TenantFeatureFlags = Object.freeze({
   "jag.decisions.center": true,
   "jag.intelligence.briefings": true,
   "jag.intelligence.explainability": true,
+  "jag.intelligence.scenarios": true,
+  "jag.intelligence.listening": true,
 });
 
 function emptyContact(email = "") {

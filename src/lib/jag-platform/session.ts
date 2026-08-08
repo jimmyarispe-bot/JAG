@@ -35,6 +35,11 @@ export type JagPlatformSession = {
    * Required for authority=organization; optional for platform stewards.
    */
   readonly organizationId: string | null;
+  /**
+   * Authoritative customer organization display name stamped at bind/rebind.
+   * Survives in-memory provisioned/brand cache resets; never the generic fallback.
+   */
+  readonly organizationDisplayName?: string | null;
   /** Unix ms expiry — required on signed cookie tokens; optional for in-memory fixtures. */
   readonly exp?: number;
 };
@@ -47,6 +52,7 @@ type SessionPayload = {
   issuedAt: string;
   authority: JagAuthorityKind;
   organizationId: string | null;
+  organizationDisplayName?: string | null;
   exp: number;
 };
 
@@ -111,6 +117,10 @@ function isAuthority(value: unknown): value is JagAuthorityKind {
 }
 
 function isValidPayload(parsed: Partial<SessionPayload>): parsed is SessionPayload {
+  const displayOk =
+    parsed.organizationDisplayName === undefined ||
+    parsed.organizationDisplayName === null ||
+    typeof parsed.organizationDisplayName === "string";
   return (
     typeof parsed.userId === "string" &&
     typeof parsed.email === "string" &&
@@ -119,6 +129,7 @@ function isValidPayload(parsed: Partial<SessionPayload>): parsed is SessionPaylo
     typeof parsed.issuedAt === "string" &&
     isAuthority(parsed.authority) &&
     (parsed.organizationId === null || typeof parsed.organizationId === "string") &&
+    displayOk &&
     typeof parsed.exp === "number" &&
     Number.isFinite(parsed.exp) &&
     // Org operators must be organization-bound.
@@ -154,6 +165,10 @@ export async function encodeJagPlatformSession(
     issuedAt,
     authority: session.authority,
     organizationId: session.organizationId,
+    ...(session.organizationDisplayName != null &&
+    session.organizationDisplayName.trim()
+      ? { organizationDisplayName: session.organizationDisplayName.trim() }
+      : {}),
     exp,
   };
 
@@ -193,6 +208,11 @@ export async function decodeJagPlatformSession(
       issuedAt: parsed.issuedAt,
       authority: parsed.authority,
       organizationId: parsed.organizationId,
+      organizationDisplayName:
+        typeof parsed.organizationDisplayName === "string" &&
+        parsed.organizationDisplayName.trim()
+          ? parsed.organizationDisplayName.trim()
+          : null,
       exp: parsed.exp,
     };
   } catch {

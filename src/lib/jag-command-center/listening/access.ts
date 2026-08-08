@@ -1,8 +1,6 @@
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
-import {
-  assertSessionCanAccessOrganization,
-  resolveSessionOrganization,
-} from "@/lib/jag-platform/data-plane";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
+import { assertSessionCanAccessOrganization } from "@/lib/jag-platform/data-plane";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import {
   requirePermission,
@@ -36,7 +34,7 @@ export async function resolveListeningAccess(
     };
   }
 
-  const org = resolveSessionOrganization(session, preferredOrgId);
+  const org = resolveActiveWorkspaceOrganization(session, preferredOrgId);
   if (!org) {
     return { ok: false, error: "No accessible organization for Listening." };
   }

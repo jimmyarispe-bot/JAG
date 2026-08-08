@@ -13,7 +13,7 @@ import {
   listMemoryObservations,
 } from "@/lib/platform/intelligence/memory/index";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
-import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { recordJagAuditEvent } from "../audit/store";
 
@@ -57,7 +57,7 @@ export function loadMemoryWorkspace(
   options?: MemorySearchFilters & { memoryId?: string }
 ): JagMemoryWorkspaceModel {
   const orgs = listOrganizationsForSession(session);
-  const org = resolveSessionOrganization(session, options?.organizationId);
+  const org = resolveActiveWorkspaceOrganization(session, options?.organizationId);
 
   const advisoryNotice =
     "Institutional memory — organizational experience, not chat history. Patterns are advisory.";

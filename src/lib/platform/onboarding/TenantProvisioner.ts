@@ -6,8 +6,14 @@ import {
   BrandService,
   type OrganizationBrand,
 } from "@/lib/platform/branding";
-import { ensureCapabilitiesRegistered } from "@/lib/platform/capabilities";
+import {
+  ensureCapabilitiesRegistered,
+  CapabilityRegistry,
+} from "@/lib/platform/capabilities";
 import { CapabilityLoader } from "@/lib/platform/capabilities/CapabilityLoader";
+import { TenantService } from "@/lib/platform/tenant/TenantService";
+import { FeatureFlagService } from "@/lib/platform/tenant/FeatureFlagService";
+import { mergeCustomerEnabledCapabilityIds } from "./customer-capabilities";
 import type { OnboardingSession } from "./types";
 import { recordOnboardingObservation } from "./OnboardingObservability";
 
@@ -63,14 +69,55 @@ export const TenantProvisioner = {
         c.manifest.name,
       ])
     );
-    const ids = session.enabledCapabilityIds.filter((id) => available.has(id));
-    const labels = ids.map((id) => available.get(id) ?? id);
-    return { ids, labels };
+    const merged = mergeCustomerEnabledCapabilityIds(
+      session.enabledCapabilityIds
+    ).filter((id) => available.has(id));
+    const labels = merged.map((id) => available.get(id) ?? id);
+    return { ids: merged, labels };
+  },
+
+  /**
+   * Persist onboarding capability selections onto the tenant FeatureFlag store
+   * so customer navigation discovery is organization-bound.
+   */
+  bindOrganizationCapabilities(
+    organizationId: string,
+    enabledCapabilityIds: readonly string[],
+    session: OnboardingSession
+  ): void {
+    ensureCapabilitiesRegistered();
+    TenantService.ensureTenant({
+      organizationId,
+      organizationName: session.organization.organizationName,
+      subdomain: session.organization.subdomain,
+      industry: session.organization.industry,
+      timezone: session.organization.timezone,
+      primaryEmail: session.ownerEmail,
+    });
+
+    const enabled = new Set(enabledCapabilityIds);
+    for (const registered of CapabilityRegistry.list()) {
+      const id = registered.manifest.id;
+      FeatureFlagService.setFlag(
+        organizationId,
+        id,
+        enabled.has(id),
+        session.ownerEmail || "onboarding"
+      );
+    }
+
+    recordOnboardingObservation({
+      kind: "provisioning",
+      sessionId: session.id,
+      detail: `Bound ${enabled.size} organization capabilities`,
+      metadata: { organizationId, enabledCount: String(enabled.size) },
+    });
   },
 
   provisionTenant(session: OnboardingSession, organizationId: string): TenantProvisionResult {
     const brand = this.applyBrand(session, organizationId);
     const caps = this.resolveEnabledCapabilities(session);
+    this.bindOrganizationCapabilities(organizationId, caps.ids, session);
     return {
       brand,
       enabledCapabilityIds: caps.ids,

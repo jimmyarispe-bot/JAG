@@ -29,6 +29,13 @@ export function listOnboardingSessions(): readonly OnboardingSession[] {
   return Array.from(byId.values());
 }
 
+/** Restore a previously persisted session (e.g. client snapshot after cold start). */
+export function restoreOnboardingSession(
+  session: OnboardingSession
+): OnboardingSession {
+  return saveOnboardingSession(session);
+}
+
 export function resetOnboardingSessionsForTests(): void {
   byId.clear();
   byOwner.clear();

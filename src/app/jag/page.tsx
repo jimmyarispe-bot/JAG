@@ -11,7 +11,8 @@ import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 export default async function JagCommandCenterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ org?: string }>;
+  // `workspace` is consumed by /jag layout via middleware-mirrored searchParams.
+  searchParams: Promise<{ org?: string; workspace?: string }>;
 }) {
   const session = await getJagPlatformSession();
   if (!session) {

@@ -11,7 +11,7 @@ import {
   type WatcherDigest,
 } from "@/lib/platform/intelligence/watchers/index";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
-import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { getAccessibleWatcherAlert } from "./access";
 import { buildWatcherEvaluationContext } from "./build-context";
@@ -53,7 +53,7 @@ export function loadExecutiveInbox(
   }
 ): JagInboxWorkspaceModel {
   const orgs = listOrganizationsForSession(session);
-  const org = resolveSessionOrganization(session, options?.organizationId);
+  const org = resolveActiveWorkspaceOrganization(session, options?.organizationId);
 
   const advisoryNotice =
     "Executive Inbox — proactive findings for attention. JAG never executes organizational decisions.";

@@ -127,6 +127,7 @@ export function createEmptySession(input: {
     executives: input.displayName
       ? [
           {
+            id: `exec.founder.${input.ownerUserId}`,
             name: input.displayName,
             role: "founder",
             email: input.ownerEmail,

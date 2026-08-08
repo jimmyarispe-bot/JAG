@@ -5,10 +5,13 @@ import type { OrganizationBrand } from "@/lib/platform/branding";
 import { JagBrandLogoMark } from "./branding/JagBrandChrome";
 import { JagCommandPalette } from "./JagCommandPalette";
 import { JagNotificationBell } from "./JagNotificationBell";
+import { JagOrganizationSelect } from "./JagOrganizationSelect";
 
 export function JagHeader({
   session,
   organizationOptions,
+  activeOrganizationId,
+  activeOrganizationLabel,
   domainOptions,
   searchCatalog,
   notifications,
@@ -17,12 +20,19 @@ export function JagHeader({
 }: {
   readonly session: JagPlatformSession;
   readonly organizationOptions: readonly { id: string; label: string }[];
+  readonly activeOrganizationId: string | null;
+  readonly activeOrganizationLabel: string | null;
   readonly domainOptions: readonly { id: string; label: string }[];
   readonly searchCatalog: readonly JagSearchItem[];
   readonly notifications: readonly JagNotification[];
   readonly unreadNotificationCount: number;
   readonly brand: OrganizationBrand;
 }) {
+  const orgLabel =
+    activeOrganizationLabel ||
+    organizationOptions.find((o) => o.id === activeOrganizationId)?.label ||
+    brand.display_name;
+
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--jag-border)] bg-[var(--jag-bg)] px-4 md:px-6">
       <div className="hidden min-w-0 items-center gap-2 md:flex">
@@ -30,31 +40,24 @@ export function JagHeader({
         <span className="text-[var(--jag-border-strong)]" aria-hidden>
           /
         </span>
-        <span className="truncate text-xs text-[var(--jag-muted)]">
-          Executive Intelligence
-        </span>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-medium text-[var(--jag-text)]">
+            {orgLabel}
+          </p>
+          <p className="truncate text-[10px] text-[var(--jag-muted)]">
+            Executive Intelligence
+          </p>
+        </div>
       </div>
 
       <div className="ml-0 flex min-w-0 flex-1 items-center gap-2 md:ml-6">
         <label className="sr-only" htmlFor="jag-org-select">
           Organization
         </label>
-        <select
-          id="jag-org-select"
-          className="max-w-[9rem] truncate rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] px-2 py-1.5 text-xs text-[var(--jag-text)] outline-none focus-visible:border-[var(--jag-border-strong)] md:max-w-[14rem]"
-          defaultValue={organizationOptions[0]?.id ?? ""}
-          disabled={organizationOptions.length === 0}
-        >
-          {organizationOptions.length === 0 ? (
-            <option value="">No organizations</option>
-          ) : (
-            organizationOptions.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))
-          )}
-        </select>
+        <JagOrganizationSelect
+          options={organizationOptions}
+          activeOrganizationId={activeOrganizationId}
+        />
 
         <label className="sr-only" htmlFor="jag-domain-select">
           Domain

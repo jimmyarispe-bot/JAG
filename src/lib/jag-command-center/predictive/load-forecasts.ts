@@ -12,7 +12,7 @@ import {
 } from "@/lib/platform/intelligence/predictive";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
-import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
 import { projectDecisionsFromExecutions } from "../decision-center/project";
 import type { JagDecisionCard } from "../decision-center/types";
 import { recordJagAuditEvent } from "../audit/store";
@@ -84,7 +84,7 @@ export function loadForecastsView(
     readonly kinds?: readonly PredictionKind[];
   }
 ): JagForecastsView {
-  const organization = resolveSessionOrganization(
+  const organization = resolveActiveWorkspaceOrganization(
     session,
     options?.organizationId
   );

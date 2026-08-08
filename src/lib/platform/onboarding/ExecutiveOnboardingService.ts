@@ -6,6 +6,7 @@ import { ensureCapabilitiesRegistered } from "@/lib/platform/capabilities";
 import { CapabilityLoader } from "@/lib/platform/capabilities/CapabilityLoader";
 import { ChecklistService } from "./ChecklistService";
 import { createEmptySession } from "./defaults";
+import { ensureExecutiveIds } from "./executives";
 import { OnboardingStateMachine } from "./OnboardingStateMachine";
 import {
   listOnboardingObservations,
@@ -18,6 +19,7 @@ import {
   getOnboardingSession,
   getOnboardingSessionForOwner,
   resetOnboardingSessionsForTests,
+  restoreOnboardingSession,
   saveOnboardingSession,
 } from "./session-store";
 import { TenantProvisioner } from "./TenantProvisioner";
@@ -101,6 +103,56 @@ export const ExecutiveOnboardingService = {
     return saved;
   },
 
+  /**
+   * Hydrate the in-memory store from a trusted client snapshot when this
+   * process has no session (serverless cold start / alternate instance).
+   * Never trusts client-forged completion or provisioned org ids.
+   */
+  restoreFromClientSnapshot(
+    platform: { ownerUserId: string; ownerEmail: string },
+    snapshot: OnboardingSession
+  ): OnboardingSession | null {
+    if (snapshot.ownerUserId !== platform.ownerUserId) return null;
+
+    const existing = getOnboardingSessionForOwner(platform.ownerUserId);
+    if (existing?.status === "completed") return existing;
+
+    const sanitized: OnboardingSession = {
+      ...snapshot,
+      ownerUserId: platform.ownerUserId,
+      ownerEmail: platform.ownerEmail,
+      status:
+        snapshot.status === "completed" || snapshot.status === "failed"
+          ? "in_progress"
+          : snapshot.status,
+      organizationId: existing?.organizationId ?? null,
+      briefingId: existing?.briefingId ?? null,
+      completedAt: null,
+    };
+
+    const existingIsEmptyWelcome =
+      existing &&
+      existing.currentStep === "welcome" &&
+      existing.completedSteps.length === 0 &&
+      !existing.organization.organizationName.trim();
+
+    // Prefer a progressed client snapshot over a cold-worker Welcome even when
+    // the Welcome row has a newer updatedAt.
+    if (existingIsEmptyWelcome && sanitized.completedSteps.length > 0) {
+      return restoreOnboardingSession(sanitized);
+    }
+
+    if (
+      existing &&
+      !existingIsEmptyWelcome &&
+      Date.parse(existing.updatedAt) > Date.parse(sanitized.updatedAt)
+    ) {
+      return existing;
+    }
+
+    return restoreOnboardingSession(sanitized);
+  },
+
   getSession(sessionId: string): OnboardingSession | null {
     return getOnboardingSession(sessionId);
   },
@@ -152,7 +204,10 @@ export const ExecutiveOnboardingService = {
   ): OnboardingSession | null {
     const session = getOnboardingSession(sessionId);
     if (!session) return null;
-    return persist({ ...session, executives: [...executives] });
+    return persist({
+      ...session,
+      executives: ensureExecutiveIds(executives),
+    });
   },
 
   updateMission(

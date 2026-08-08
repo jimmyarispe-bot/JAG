@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useMemo, useState, useTransition } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type MutableRefObject,
+} from "react";
 import {
   completeOnboardingStepAction,
   generateOnboardingWorkspaceAction,
@@ -28,20 +36,254 @@ import type {
   OnboardingSession,
   OnboardingStepId,
 } from "@/lib/platform/onboarding";
+import {
+  createExecutiveMember,
+  ensureExecutiveIds,
+} from "@/lib/platform/onboarding/executives";
+import {
+  applyOnboardingSessionUpdate,
+  bumpOnboardingSession,
+  readOnboardingSessionFromStorage,
+  writeOnboardingSessionToStorage,
+  type OnboardingSessionUpdate,
+} from "@/lib/platform/onboarding/session-merge";
+import {
+  diagBeginAction,
+  diagEndAction,
+  isStepRegression,
+  onboardingDiag,
+} from "@/lib/platform/onboarding/onboarding-diag";
 import { JagSection } from "../JagSection";
 
 const fieldClass =
   "mt-1 w-full rounded border border-[var(--jag-border)] bg-[var(--jag-bg)] px-2 py-1.5 text-[13px] text-[var(--jag-text)]";
+
+let mountSeq = 0;
 
 export function JagOnboardingView({
   model,
 }: {
   readonly model: JagOnboardingWorkspace;
 }) {
-  const [session, setSession] = useState<OnboardingSession>(model.session);
+  const mountIdRef = useRef(`m${++mountSeq}`);
+  const [session, setSession] = useState<OnboardingSession>(() => {
+    onboardingDiag({
+      source: "client.useState.init",
+      mountId: mountIdRef.current,
+      beforeStep: undefined,
+      afterStep: model.session.currentStep,
+      sessionStep: model.session.currentStep,
+      sessionId: model.session.id,
+      organizationId: model.session.organizationId,
+      sessionUpdatedAt: model.session.updatedAt,
+      pathname:
+        typeof window !== "undefined" ? window.location.pathname : undefined,
+      search: typeof window !== "undefined" ? window.location.search : undefined,
+      detail: "Initial client state from model.session (server loader)",
+    });
+    return model.session;
+  });
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const deferred = useDeferredValue(session);
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  const prevStepRef = useRef(session.currentStep);
+  const navInFlightRef = useRef(false);
+
+  useEffect(() => {
+    const mountId = mountIdRef.current;
+    onboardingDiag({
+      source: "client.mount",
+      mountId,
+      sessionStep: model.session.currentStep,
+      afterStep: sessionRef.current.currentStep,
+      sessionId: model.session.id,
+      organizationId: model.session.organizationId,
+      sessionUpdatedAt: model.session.updatedAt,
+      pathname: window.location.pathname,
+      search: window.location.search,
+      detail: `Mounted JagOnboardingView; model.step=${model.session.currentStep}`,
+    });
+    return () => {
+      onboardingDiag({
+        source: "client.unmount",
+        mountId,
+        sessionStep: sessionRef.current.currentStep,
+        sessionId: sessionRef.current.id,
+        organizationId: sessionRef.current.organizationId,
+        sessionUpdatedAt: sessionRef.current.updatedAt,
+        pathname: window.location.pathname,
+        search: window.location.search,
+        detail: "Unmounted JagOnboardingView (remount/navigation)",
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount lifecycle only
+  }, []);
+
+  // Detect any rendered step change (expected or unexpected).
+  useEffect(() => {
+    const prev = prevStepRef.current;
+    const next = session.currentStep;
+    if (prev !== next) {
+      const unexpected = isStepRegression(prev, next);
+      onboardingDiag({
+        source: unexpected
+          ? "client.step.UNEXPECTED_REGRESSION"
+          : "client.step.change",
+        mountId: mountIdRef.current,
+        beforeStep: prev,
+        afterStep: next,
+        sessionStep: next,
+        sessionId: session.id,
+        organizationId: session.organizationId,
+        sessionUpdatedAt: session.updatedAt,
+        pathname: window.location.pathname,
+        search: window.location.search,
+        detail: unexpected
+          ? `FIRST-CLASS JUMP SIGNAL: ${prev} → ${next}`
+          : `Step ${prev} → ${next}`,
+      });
+      prevStepRef.current = next;
+    }
+  }, [session]);
+
+  // If server props change without remount (soft refresh), log them.
+  useEffect(() => {
+    onboardingDiag({
+      source: "client.model.session.prop",
+      mountId: mountIdRef.current,
+      sessionStep: model.session.currentStep,
+      afterStep: sessionRef.current.currentStep,
+      sessionId: model.session.id,
+      organizationId: model.session.organizationId,
+      sessionUpdatedAt: model.session.updatedAt,
+      detail: `Server model.session observed; client still at ${sessionRef.current.currentStep}`,
+    });
+  }, [model.session]);
+
+  const hydratedRef = useRef(false);
+  // Restore draft after refresh / soft remount (intentional, consistent).
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+    const stored = readOnboardingSessionFromStorage(
+      window.sessionStorage,
+      model.session.ownerUserId
+    );
+    onboardingDiag({
+      source: "client.sessionStorage.read",
+      mountId: mountIdRef.current,
+      beforeStep: sessionRef.current.currentStep,
+      afterStep: stored?.currentStep,
+      sessionStep: stored?.currentStep,
+      sessionId: stored?.id,
+      organizationId: stored?.organizationId ?? null,
+      sessionUpdatedAt: stored?.updatedAt,
+      applied: Boolean(stored),
+      detail: stored
+        ? `Hydrate candidate step=${stored.currentStep}`
+        : "No sessionStorage draft",
+    });
+    if (!stored) return;
+    setSession((local) => {
+      const merged = applyOnboardingSessionUpdate(local, {
+        kind: "restore",
+        session: stored,
+      });
+      onboardingDiag({
+        source: "client.sessionStorage.apply",
+        mountId: mountIdRef.current,
+        beforeStep: local.currentStep,
+        afterStep: merged.currentStep,
+        sessionStep: merged.currentStep,
+        sessionId: merged.id,
+        organizationId: merged.organizationId,
+        sessionUpdatedAt: merged.updatedAt,
+        applied: merged !== local,
+        reason: "restore",
+        detail: isStepRegression(local.currentStep, merged.currentStep)
+          ? `STORAGE CAUSED REGRESSION ${local.currentStep}→${merged.currentStep}`
+          : undefined,
+      });
+      sessionRef.current = merged;
+      return merged;
+    });
+  }, [model.session.ownerUserId]);
+
+  useEffect(() => {
+    writeOnboardingSessionToStorage(window.sessionStorage, session);
+    onboardingDiag({
+      source: "client.sessionStorage.write",
+      mountId: mountIdRef.current,
+      sessionStep: session.currentStep,
+      sessionId: session.id,
+      organizationId: session.organizationId,
+      sessionUpdatedAt: session.updatedAt,
+    });
+  }, [session]);
+
+  const applyLocal = (next: OnboardingSession) => {
+    const bumped = bumpOnboardingSession(next);
+    onboardingDiag({
+      source: "client.applyLocal",
+      mountId: mountIdRef.current,
+      beforeStep: sessionRef.current.currentStep,
+      afterStep: bumped.currentStep,
+      sessionStep: bumped.currentStep,
+      sessionId: bumped.id,
+      organizationId: bumped.organizationId,
+      sessionUpdatedAt: bumped.updatedAt,
+      applied: true,
+    });
+    sessionRef.current = bumped;
+    setSession(bumped);
+  };
+
+  const applyServerUpdate = (
+    update: OnboardingSessionUpdate,
+    action?: string
+  ) => {
+    setSession((local) => {
+      const merged = applyOnboardingSessionUpdate(local, update);
+      const regression = isStepRegression(local.currentStep, merged.currentStep);
+      const unexpected =
+        regression && update.kind === "field_save"
+          ? true
+          : regression &&
+            update.kind === "navigation" &&
+            update.requestedStep !== merged.currentStep &&
+            update.requestedStep !== undefined &&
+            merged.currentStep !== update.requestedStep
+            ? true
+            : regression && update.kind === "restore";
+      onboardingDiag({
+        source: unexpected
+          ? "client.applyServer.UNEXPECTED_REGRESSION"
+          : "client.applyServer",
+        action,
+        mountId: mountIdRef.current,
+        beforeStep: local.currentStep,
+        afterStep: merged.currentStep,
+        requestedStep: update.requestedStep ?? update.session.currentStep,
+        sessionStep: merged.currentStep,
+        sessionId: merged.id,
+        organizationId: merged.organizationId,
+        sessionUpdatedAt: merged.updatedAt,
+        applied: merged !== local,
+        reason: `${update.kind}${regression ? ":step_changed" : ""}`,
+        detail: [
+          `kind=${update.kind}`,
+          `incoming.step=${update.session.currentStep}`,
+          `requested=${update.requestedStep ?? ""}`,
+          `incoming.updatedAt=${update.session.updatedAt}`,
+          `local.updatedAt=${local.updatedAt}`,
+        ].join(" | "),
+      });
+      sessionRef.current = merged;
+      return merged;
+    });
+  };
 
   const previewTheme = useMemo(
     () =>
@@ -77,17 +319,66 @@ export function JagOnboardingView({
   }, [session, model.steps]);
 
   const run = (
-    fn: () => Promise<{
+    actionName: string,
+    fn: (snapshot: OnboardingSession) => Promise<{
       ok: boolean;
       error?: string;
       session?: OnboardingSession;
-    }>
+      kind?: OnboardingSessionUpdate["kind"];
+      requestedStep?: OnboardingStepId;
+    }>,
+    options?: { readonly navigation?: boolean }
   ) => {
+    if (options?.navigation && navInFlightRef.current) {
+      onboardingDiag({
+        source: "client.run.duplicateNavBlocked",
+        action: actionName,
+        mountId: mountIdRef.current,
+        beforeStep: sessionRef.current.currentStep,
+        sessionStep: sessionRef.current.currentStep,
+        detail: "Ignored duplicate navigation while another nav is pending",
+      });
+      return;
+    }
     setMessage("");
+    if (options?.navigation) navInFlightRef.current = true;
     startTransition(async () => {
-      const result = await fn();
-      if (result.session) setSession(result.session);
-      setMessage(result.ok ? "Saved." : (result.error ?? "Something went wrong."));
+      const before = sessionRef.current;
+      const diagId = diagBeginAction(actionName, before);
+      onboardingDiag({
+        source: "client.run",
+        action: actionName,
+        mountId: mountIdRef.current,
+        beforeStep: before.currentStep,
+        sessionStep: before.currentStep,
+        sessionId: before.id,
+        organizationId: before.organizationId,
+        sessionUpdatedAt: before.updatedAt,
+        pathname: window.location.pathname,
+        search: window.location.search,
+      });
+      try {
+        const result = await fn(before);
+        diagEndAction(diagId, actionName, before, result);
+        if (result.session) {
+          const kind =
+            result.kind ??
+            (options?.navigation ? "navigation" : "field_save");
+          applyServerUpdate(
+            {
+              kind,
+              session: result.session,
+              requestedStep: result.requestedStep,
+            },
+            actionName
+          );
+        }
+        setMessage(
+          result.ok ? "Saved." : (result.error ?? "Something went wrong.")
+        );
+      } finally {
+        if (options?.navigation) navInFlightRef.current = false;
+      }
     });
   };
 
@@ -127,10 +418,16 @@ export function JagOnboardingView({
               <button
                 key={step.id}
                 type="button"
-                disabled={pending}
+                disabled={pending || navInFlightRef.current}
                 onClick={() =>
-                  run(async () =>
-                    goToOnboardingStepAction(step.id as OnboardingStepId)
+                  run(
+                    `goTo:${step.id}`,
+                    async (snapshot) =>
+                      goToOnboardingStepAction(
+                        step.id as OnboardingStepId,
+                        snapshot
+                      ),
+                    { navigation: true }
                   )
                 }
                 className={`block w-full rounded px-3 py-2 text-left text-xs ${
@@ -159,7 +456,13 @@ export function JagOnboardingView({
                 type="button"
                 className="underline"
                 disabled={pending}
-                onClick={() => run(async () => resumeOnboardingAction())}
+                onClick={() =>
+                  run(
+                    "resume",
+                    async (snapshot) => resumeOnboardingAction(snapshot),
+                    { navigation: true }
+                  )
+                }
               >
                 Resume
               </button>
@@ -174,7 +477,11 @@ export function JagOnboardingView({
               model={model}
               previewTheme={previewTheme}
               pending={pending}
-              onSession={setSession}
+              onSession={applyLocal}
+              applyFieldSave={(s, action) =>
+                applyServerUpdate({ kind: "field_save", session: s }, action)
+              }
+              sessionRef={sessionRef}
               setMessage={setMessage}
               startTransition={startTransition}
             />
@@ -184,8 +491,14 @@ export function JagOnboardingView({
             <div className="flex flex-wrap gap-2 border-t border-[var(--jag-border)] pt-4">
               <button
                 type="button"
-                disabled={pending}
-                onClick={() => run(async () => goBackOnboardingStepAction())}
+                disabled={pending || navInFlightRef.current}
+                onClick={() =>
+                  run(
+                    "goBack",
+                    async (snapshot) => goBackOnboardingStepAction(snapshot),
+                    { navigation: true }
+                  )
+                }
                 className="rounded border border-[var(--jag-border)] px-3 py-2 text-xs text-[var(--jag-text)] disabled:opacity-60"
               >
                 Back
@@ -193,7 +506,13 @@ export function JagOnboardingView({
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => run(async () => pauseOnboardingAction())}
+                onClick={() =>
+                  run(
+                    "pause",
+                    async (snapshot) => pauseOnboardingAction(snapshot),
+                    { navigation: true }
+                  )
+                }
                 className="rounded border border-[var(--jag-border)] px-3 py-2 text-xs text-[var(--jag-text)] disabled:opacity-60"
               >
                 Pause
@@ -202,15 +521,33 @@ export function JagOnboardingView({
               session.currentStep === "review" ? (
                 <button
                   type="button"
-                  disabled={pending}
+                  disabled={pending || navInFlightRef.current}
                   onClick={() =>
-                    run(async () => {
-                      if (session.currentStep === "review") {
-                        const step = await completeOnboardingStepAction();
-                        if (!step.ok) return step;
-                      }
-                      return generateOnboardingWorkspaceAction();
-                    })
+                    run(
+                      "generateWorkspace",
+                      async (snapshot) => {
+                        if (snapshot.currentStep === "review") {
+                          const step =
+                            await completeOnboardingStepAction(snapshot);
+                          if (!step.ok) return step;
+                          if (step.session) {
+                            applyServerUpdate(
+                              {
+                                kind: "navigation",
+                                session: step.session,
+                                requestedStep: step.requestedStep,
+                              },
+                              "completeStep:preGenerate"
+                            );
+                          }
+                          return generateOnboardingWorkspaceAction(
+                            step.session ?? snapshot
+                          );
+                        }
+                        return generateOnboardingWorkspaceAction(snapshot);
+                      },
+                      { navigation: true }
+                    )
                   }
                   className="rounded bg-[var(--brand-accent,#0D9488)] px-3 py-2 text-xs font-medium text-white disabled:opacity-60"
                 >
@@ -219,9 +556,14 @@ export function JagOnboardingView({
               ) : (
                 <button
                   type="button"
-                  disabled={pending}
+                  disabled={pending || navInFlightRef.current}
                   onClick={() =>
-                    run(async () => completeOnboardingStepAction())
+                    run(
+                      "completeStep",
+                      async (snapshot) =>
+                        completeOnboardingStepAction(snapshot),
+                      { navigation: true }
+                    )
                   }
                   className="rounded bg-[var(--brand-accent,#0D9488)] px-3 py-2 text-xs font-medium text-white disabled:opacity-60"
                 >
@@ -285,7 +627,11 @@ function CompletedPanel({
           </Link>
         ) : null}
         <Link
-          href="/jag"
+          href={
+            session.organizationId
+              ? `/jag?org=${encodeURIComponent(session.organizationId)}`
+              : "/jag"
+          }
           className="rounded bg-[var(--brand-accent,#0D9488)] px-3 py-2 text-white"
         >
           Go to workspace
@@ -333,6 +679,8 @@ function StepBody({
   previewTheme,
   pending,
   onSession,
+  applyFieldSave,
+  sessionRef,
   setMessage,
   startTransition,
 }: {
@@ -341,6 +689,8 @@ function StepBody({
   readonly previewTheme: ReturnType<typeof BrandService.previewTheme>;
   readonly pending: boolean;
   readonly onSession: (s: OnboardingSession) => void;
+  readonly applyFieldSave: (s: OnboardingSession, action?: string) => void;
+  readonly sessionRef: MutableRefObject<OnboardingSession>;
   readonly setMessage: (m: string) => void;
   readonly startTransition: (fn: () => void | Promise<void>) => void;
 }) {
@@ -368,8 +718,11 @@ function StepBody({
     const o = session.organization;
     const persistOrg = (patch: Partial<typeof o>) => {
       startTransition(async () => {
-        const r = await saveOnboardingOrganizationAction({ ...o, ...patch });
-        if (r.session) onSession(r.session);
+        const before = sessionRef.current;
+        const diagId = diagBeginAction("saveOrganization", before);
+        const r = await saveOnboardingOrganizationAction(patch, before);
+        diagEndAction(diagId, "saveOrganization", before, r);
+        if (r.session) applyFieldSave(r.session, "saveOrganization");
         if (!r.ok) setMessage(r.error);
       });
     };
@@ -385,11 +738,16 @@ function StepBody({
               value={o.organizationName}
               onChange={(e) =>
                 onSession({
-                  ...session,
-                  organization: { ...o, organizationName: e.target.value },
+                  ...sessionRef.current,
+                  organization: {
+                    ...sessionRef.current.organization,
+                    organizationName: e.target.value,
+                  },
                 })
               }
-              onBlur={() => persistOrg({ organizationName: o.organizationName })}
+              onBlur={(e) =>
+                persistOrg({ organizationName: e.target.value })
+              }
             />
           </Field>
           <Field label="Subdomain">
@@ -399,14 +757,16 @@ function StepBody({
                 value={o.subdomain}
                 onChange={(e) =>
                   onSession({
-                    ...session,
+                    ...sessionRef.current,
                     organization: {
-                      ...o,
+                      ...sessionRef.current.organization,
                       subdomain: e.target.value.toLowerCase(),
                     },
                   })
                 }
-                onBlur={() => persistOrg({ subdomain: o.subdomain })}
+                onBlur={(e) =>
+                  persistOrg({ subdomain: e.target.value.toLowerCase() })
+                }
               />
               <span className="shrink-0 text-xs text-[var(--jag-muted)]">
                 .thejag.org
@@ -420,8 +780,11 @@ function StepBody({
               onChange={(e) => {
                 const industry = e.target.value;
                 onSession({
-                  ...session,
-                  organization: { ...o, industry },
+                  ...sessionRef.current,
+                  organization: {
+                    ...sessionRef.current.organization,
+                    industry,
+                  },
                 });
                 persistOrg({ industry });
               }}
@@ -439,11 +802,14 @@ function StepBody({
               value={o.timezone}
               onChange={(e) =>
                 onSession({
-                  ...session,
-                  organization: { ...o, timezone: e.target.value },
+                  ...sessionRef.current,
+                  organization: {
+                    ...sessionRef.current.organization,
+                    timezone: e.target.value,
+                  },
                 })
               }
-              onBlur={() => persistOrg({ timezone: o.timezone })}
+              onBlur={(e) => persistOrg({ timezone: e.target.value })}
             />
           </Field>
           <Field label="Logo URL">
@@ -452,11 +818,14 @@ function StepBody({
               value={o.logoUrl}
               onChange={(e) =>
                 onSession({
-                  ...session,
-                  organization: { ...o, logoUrl: e.target.value },
+                  ...sessionRef.current,
+                  organization: {
+                    ...sessionRef.current.organization,
+                    logoUrl: e.target.value,
+                  },
                 })
               }
-              onBlur={() => persistOrg({ logoUrl: o.logoUrl })}
+              onBlur={(e) => persistOrg({ logoUrl: e.target.value })}
             />
           </Field>
         </div>
@@ -486,11 +855,17 @@ function StepBody({
                   className="mt-1 h-9 w-full cursor-pointer rounded border border-[var(--jag-border)] bg-transparent"
                   value={b[key]}
                   onChange={(e) => {
-                    const next = { ...b, [key]: e.target.value };
-                    onSession({ ...session, brand: next });
+                    const next = {
+                      ...sessionRef.current.brand,
+                      [key]: e.target.value,
+                    };
+                    onSession({ ...sessionRef.current, brand: next });
                     startTransition(async () => {
-                      const r = await saveOnboardingBrandAction(next);
-                      if (r.session) onSession(r.session);
+                      const r = await saveOnboardingBrandAction(
+                        { [key]: e.target.value },
+                        sessionRef.current
+                      );
+                      if (r.session) applyFieldSave(r.session);
                     });
                   }}
                 />
@@ -504,16 +879,20 @@ function StepBody({
                 value={b.headingFont}
                 onChange={(e) =>
                   onSession({
-                    ...session,
-                    brand: { ...b, headingFont: e.target.value },
+                    ...sessionRef.current,
+                    brand: {
+                      ...sessionRef.current.brand,
+                      headingFont: e.target.value,
+                    },
                   })
                 }
-                onBlur={() =>
+                onBlur={(e) =>
                   startTransition(async () => {
-                    const r = await saveOnboardingBrandAction({
-                      headingFont: b.headingFont,
-                    });
-                    if (r.session) onSession(r.session);
+                    const r = await saveOnboardingBrandAction(
+                      { headingFont: e.target.value },
+                      sessionRef.current
+                    );
+                    if (r.session) applyFieldSave(r.session);
                   })
                 }
               />
@@ -524,16 +903,20 @@ function StepBody({
                 value={b.bodyFont}
                 onChange={(e) =>
                   onSession({
-                    ...session,
-                    brand: { ...b, bodyFont: e.target.value },
+                    ...sessionRef.current,
+                    brand: {
+                      ...sessionRef.current.brand,
+                      bodyFont: e.target.value,
+                    },
                   })
                 }
-                onBlur={() =>
+                onBlur={(e) =>
                   startTransition(async () => {
-                    const r = await saveOnboardingBrandAction({
-                      bodyFont: b.bodyFont,
-                    });
-                    if (r.session) onSession(r.session);
+                    const r = await saveOnboardingBrandAction(
+                      { bodyFont: e.target.value },
+                      sessionRef.current
+                    );
+                    if (r.session) applyFieldSave(r.session);
                   })
                 }
               />
@@ -579,12 +962,16 @@ function StepBody({
       >
         <ExecutiveEditor
           executives={session.executives}
-          pending={pending}
-          onChange={(executives) => {
-            onSession({ ...session, executives });
+          onLocalChange={(executives) => {
+            onSession({ ...sessionRef.current, executives });
+          }}
+          onPersist={(executives) => {
             startTransition(async () => {
-              const r = await saveOnboardingExecutivesAction(executives);
-              if (r.session) onSession(r.session);
+              const r = await saveOnboardingExecutivesAction(
+                executives,
+                sessionRef.current
+              );
+              if (r.session) applyFieldSave(r.session);
             });
           }}
         />
@@ -607,16 +994,20 @@ function StepBody({
               value={m.mission}
               onChange={(e) =>
                 onSession({
-                  ...session,
-                  mission: { ...m, mission: e.target.value },
+                  ...sessionRef.current,
+                  mission: {
+                    ...sessionRef.current.mission,
+                    mission: e.target.value,
+                  },
                 })
               }
-              onBlur={() =>
+              onBlur={(e) =>
                 startTransition(async () => {
-                  const r = await saveOnboardingMissionAction({
-                    mission: m.mission,
-                  });
-                  if (r.session) onSession(r.session);
+                  const r = await saveOnboardingMissionAction(
+                    { mission: e.target.value },
+                    sessionRef.current
+                  );
+                  if (r.session) applyFieldSave(r.session);
                 })
               }
             />
@@ -628,16 +1019,20 @@ function StepBody({
               value={m.vision}
               onChange={(e) =>
                 onSession({
-                  ...session,
-                  mission: { ...m, vision: e.target.value },
+                  ...sessionRef.current,
+                  mission: {
+                    ...sessionRef.current.mission,
+                    vision: e.target.value,
+                  },
                 })
               }
-              onBlur={() =>
+              onBlur={(e) =>
                 startTransition(async () => {
-                  const r = await saveOnboardingMissionAction({
-                    vision: m.vision,
-                  });
-                  if (r.session) onSession(r.session);
+                  const r = await saveOnboardingMissionAction(
+                    { vision: e.target.value },
+                    sessionRef.current
+                  );
+                  if (r.session) applyFieldSave(r.session);
                 })
               }
             />
@@ -648,16 +1043,20 @@ function StepBody({
               value={m.coreValues.join(", ")}
               onChange={(e) =>
                 onSession({
-                  ...session,
-                  mission: { ...m, coreValues: splitList(e.target.value) },
+                  ...sessionRef.current,
+                  mission: {
+                    ...sessionRef.current.mission,
+                    coreValues: splitList(e.target.value),
+                  },
                 })
               }
-              onBlur={() =>
+              onBlur={(e) =>
                 startTransition(async () => {
-                  const r = await saveOnboardingMissionAction({
-                    coreValues: m.coreValues,
-                  });
-                  if (r.session) onSession(r.session);
+                  const r = await saveOnboardingMissionAction(
+                    { coreValues: splitList(e.target.value) },
+                    sessionRef.current
+                  );
+                  if (r.session) applyFieldSave(r.session);
                 })
               }
             />
@@ -668,19 +1067,20 @@ function StepBody({
               value={m.strategicPillars.join(", ")}
               onChange={(e) =>
                 onSession({
-                  ...session,
+                  ...sessionRef.current,
                   mission: {
-                    ...m,
+                    ...sessionRef.current.mission,
                     strategicPillars: splitList(e.target.value),
                   },
                 })
               }
-              onBlur={() =>
+              onBlur={(e) =>
                 startTransition(async () => {
-                  const r = await saveOnboardingMissionAction({
-                    strategicPillars: m.strategicPillars,
-                  });
-                  if (r.session) onSession(r.session);
+                  const r = await saveOnboardingMissionAction(
+                    { strategicPillars: splitList(e.target.value) },
+                    sessionRef.current
+                  );
+                  if (r.session) applyFieldSave(r.session);
                 })
               }
             />
@@ -691,16 +1091,20 @@ function StepBody({
               value={m.goals.join(", ")}
               onChange={(e) =>
                 onSession({
-                  ...session,
-                  mission: { ...m, goals: splitList(e.target.value) },
+                  ...sessionRef.current,
+                  mission: {
+                    ...sessionRef.current.mission,
+                    goals: splitList(e.target.value),
+                  },
                 })
               }
-              onBlur={() =>
+              onBlur={(e) =>
                 startTransition(async () => {
-                  const r = await saveOnboardingMissionAction({
-                    goals: m.goals,
-                  });
-                  if (r.session) onSession(r.session);
+                  const r = await saveOnboardingMissionAction(
+                    { goals: splitList(e.target.value) },
+                    sessionRef.current
+                  );
+                  if (r.session) applyFieldSave(r.session);
                 })
               }
             />
@@ -726,15 +1130,19 @@ function StepBody({
                   className="mt-1"
                   checked={enabled.has(cap.id)}
                   onChange={(e) => {
+                    const current = sessionRef.current;
                     const next = e.target.checked
-                      ? [...session.enabledCapabilityIds, cap.id]
-                      : session.enabledCapabilityIds.filter(
+                      ? [...current.enabledCapabilityIds, cap.id]
+                      : current.enabledCapabilityIds.filter(
                           (id) => id !== cap.id
                         );
-                    onSession({ ...session, enabledCapabilityIds: next });
+                    onSession({ ...current, enabledCapabilityIds: next });
                     startTransition(async () => {
-                      const r = await saveOnboardingCapabilitiesAction(next);
-                      if (r.session) onSession(r.session);
+                      const r = await saveOnboardingCapabilitiesAction(
+                        next,
+                        sessionRef.current
+                      );
+                      if (r.session) applyFieldSave(r.session);
                     });
                   }}
                 />
@@ -767,16 +1175,20 @@ function StepBody({
                   className="mt-1"
                   checked={c.selected}
                   onChange={(e) => {
+                    const current = sessionRef.current;
                     const connectors: OnboardingConnectorSelection[] =
-                      session.connectors.map((row) =>
+                      current.connectors.map((row) =>
                         row.connectorId === c.connectorId
                           ? { ...row, selected: e.target.checked }
                           : row
                       );
-                    onSession({ ...session, connectors });
+                    onSession({ ...current, connectors });
                     startTransition(async () => {
-                      const r = await saveOnboardingConnectorsAction(connectors);
-                      if (r.session) onSession(r.session);
+                      const r = await saveOnboardingConnectorsAction(
+                        connectors,
+                        sessionRef.current
+                      );
+                      if (r.session) applyFieldSave(r.session);
                     });
                   }}
                 />
@@ -842,45 +1254,104 @@ function StepBody({
   return null;
 }
 
+/**
+ * Local-first executive team editor.
+ * Typing owns the active row; persistence is blur/debounce only and must not
+ * remount rows or replace in-progress input from a stale server response.
+ */
 function ExecutiveEditor({
   executives,
-  pending,
-  onChange,
+  onLocalChange,
+  onPersist,
 }: {
   readonly executives: readonly OnboardingExecutiveMember[];
-  readonly pending: boolean;
-  readonly onChange: (next: OnboardingExecutiveMember[]) => void;
+  readonly onLocalChange: (next: OnboardingExecutiveMember[]) => void;
+  readonly onPersist: (next: OnboardingExecutiveMember[]) => void;
 }) {
+  const [rows, setRows] = useState(() => ensureExecutiveIds(executives));
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const dirtyRef = useRef(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const propIds = executives.map((e) => e.id).join("|");
+
+  // Absorb external structure only when not mid-edit (e.g. restore after refresh).
+  useEffect(() => {
+    if (dirtyRef.current) return;
+    const next = ensureExecutiveIds(executives);
+    setRows(next);
+    rowsRef.current = next;
+  }, [propIds, executives]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const schedulePersist = (next: OnboardingExecutiveMember[]) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      dirtyRef.current = false;
+      onboardingDiag({
+        source: "client.executive.persist.debounce",
+        detail: `Persisting ${next.length} executive row(s)`,
+        sessionStep: "executive_profile",
+      });
+      onPersist(next);
+    }, 400);
+  };
+
+  const commitLocal = (next: OnboardingExecutiveMember[]) => {
+    dirtyRef.current = true;
+    const stable = ensureExecutiveIds(next);
+    setRows(stable);
+    rowsRef.current = stable;
+    onLocalChange(stable);
+    schedulePersist(stable);
+  };
+
+  const persistNow = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    dirtyRef.current = false;
+    onboardingDiag({
+      source: "client.executive.persist.blur",
+      detail: `Blur-persist ${rowsRef.current.length} executive row(s)`,
+      sessionStep: "executive_profile",
+    });
+    onPersist(rowsRef.current);
+  };
+
   return (
     <div className="space-y-3">
-      {executives.map((ex, idx) => (
+      {rows.map((ex, idx) => (
         <div
-          key={`${ex.email}-${idx}`}
+          key={ex.id}
           className="grid gap-2 rounded border border-[var(--jag-border)] p-3 sm:grid-cols-4"
         >
           <input
             className={fieldClass}
             placeholder="Name"
             value={ex.name}
-            disabled={pending}
             onChange={(e) => {
-              const next = executives.map((row, i) =>
+              const next = rows.map((row, i) =>
                 i === idx ? { ...row, name: e.target.value } : row
               );
-              onChange(next);
+              commitLocal(next);
             }}
+            onBlur={persistNow}
           />
           <select
             className={fieldClass}
             value={ex.role}
-            disabled={pending}
             onChange={(e) => {
               const role = e.target.value as OnboardingExecutiveMember["role"];
-              const next = executives.map((row, i) =>
+              const next = rows.map((row, i) =>
                 i === idx ? { ...row, role } : row
               );
-              onChange(next);
+              commitLocal(next);
             }}
+            onBlur={persistNow}
           >
             <option value="founder">Founder</option>
             <option value="ceo">CEO</option>
@@ -891,38 +1362,45 @@ function ExecutiveEditor({
             className={fieldClass}
             placeholder="Email"
             value={ex.email}
-            disabled={pending}
             onChange={(e) => {
-              const next = executives.map((row, i) =>
+              const next = rows.map((row, i) =>
                 i === idx ? { ...row, email: e.target.value } : row
               );
-              onChange(next);
+              commitLocal(next);
             }}
+            onBlur={persistNow}
           />
           <input
             className={fieldClass}
             placeholder="Title"
             value={ex.title ?? ""}
-            disabled={pending}
             onChange={(e) => {
-              const next = executives.map((row, i) =>
+              const next = rows.map((row, i) =>
                 i === idx ? { ...row, title: e.target.value } : row
               );
-              onChange(next);
+              commitLocal(next);
             }}
+            onBlur={persistNow}
           />
         </div>
       ))}
       <button
         type="button"
-        disabled={pending}
         className="rounded border border-[var(--jag-border)] px-3 py-1.5 text-xs text-[var(--jag-text)]"
-        onClick={() =>
-          onChange([
-            ...executives,
-            { name: "", role: "executive", email: "", title: "" },
-          ])
-        }
+        onClick={() => {
+          const draft = createExecutiveMember({
+            name: "",
+            role: "executive",
+            email: "",
+            title: "",
+          });
+          onboardingDiag({
+            source: "client.executive.add",
+            detail: `Added draft row id=${draft.id}`,
+            sessionStep: "executive_profile",
+          });
+          commitLocal([...rowsRef.current, draft]);
+        }}
       >
         Add executive
       </button>

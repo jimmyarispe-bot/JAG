@@ -13,20 +13,33 @@ import {
   validateEducationCapabilityRegistry,
   validateEducationKnowledgeModel,
 } from "@/lib/domains/education";
+import { resolveOrganizationDisplayName } from "@/lib/jag-business/organization-display";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
 import type { JagOverviewCardModel } from "@/components/jag/command-center";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 
 export type JagCommandCenterContext = {
   readonly organizationOptions: readonly { id: string; label: string }[];
+  readonly activeOrganizationId: string | null;
+  readonly activeOrganizationLabel: string | null;
   readonly domainOptions: readonly { id: string; label: string }[];
   readonly cards: readonly JagOverviewCardModel[];
 };
 
 export function loadJagCommandCenterOverview(
-  session: JagPlatformSession
+  session: JagPlatformSession,
+  preferredOrganizationId?: string | null
 ): JagCommandCenterContext {
-  const organizations = listOrganizationsForSession(session);
+  const active = resolveActiveWorkspaceOrganization(
+    session,
+    preferredOrganizationId
+  );
+  const organizations = listOrganizationsForSession({
+    ...session,
+    // Prefer listing with active org first when bound.
+    organizationId: active?.id ?? session.organizationId,
+  });
   const packs = listCapabilityPacks();
   const packValidation = validateEducationCapabilityRegistry();
   const knowledgeValidation = validateEducationKnowledgeModel(
@@ -39,7 +52,7 @@ export function loadJagCommandCenterOverview(
 
   const organizationOptions = organizations.map((o) => ({
     id: o.id,
-    label: o.name,
+    label: resolveOrganizationDisplayName(o.id, o.name),
   }));
 
   const domainOptions = [
@@ -180,7 +193,15 @@ export function loadJagCommandCenterOverview(
     },
   ];
 
-  return { organizationOptions, domainOptions, cards };
+  return {
+    organizationOptions,
+    activeOrganizationId: active?.id ?? null,
+    activeOrganizationLabel: active
+      ? resolveOrganizationDisplayName(active.id, active.name)
+      : null,
+    domainOptions,
+    cards,
+  };
 }
 
 function titleCase(value: string): string {

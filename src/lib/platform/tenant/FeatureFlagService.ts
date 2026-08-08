@@ -22,6 +22,8 @@ const KNOWN_FLAG_LABELS: Record<string, string> = {
   "jag.decisions.center": "Decision Intelligence",
   "jag.intelligence.briefings": "Briefings",
   "jag.intelligence.explainability": "Graph Explorer",
+  "jag.intelligence.scenarios": "Scenario Planner",
+  "jag.intelligence.listening": "Listening Intelligence",
 };
 
 export const FeatureFlagService = {

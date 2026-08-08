@@ -113,4 +113,7 @@ export const DEFAULT_ONBOARDING_CAPABILITY_IDS = [
   "jag.intelligence.watchers",
   "jag.decisions.center",
   "jag.intelligence.briefings",
+  "jag.intelligence.scenarios",
+  "jag.intelligence.explainability",
+  "jag.intelligence.listening",
 ] as const;

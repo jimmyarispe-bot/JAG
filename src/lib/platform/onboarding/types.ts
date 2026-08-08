@@ -24,6 +24,8 @@ export type OnboardingStatus =
   | "failed";
 
 export type OnboardingExecutiveMember = {
+  /** Stable row id — required for controlled editing without remount resets. */
+  readonly id: string;
   readonly name: string;
   readonly role: "founder" | "ceo" | "executive" | "other";
   readonly email: string;

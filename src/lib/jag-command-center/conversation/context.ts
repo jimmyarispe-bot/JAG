@@ -3,7 +3,7 @@
  */
 
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
-import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
 import { loadBriefingList } from "../briefing-engine/query";
 import { loadDecisionCenter } from "../decision-center/query";
 import type { JagDecisionCard } from "../decision-center/types";
@@ -53,7 +53,7 @@ export function gatherConversationContext(
   session: JagPlatformSession,
   organizationId?: string | null
 ): ConversationGroundingContext {
-  const org = resolveSessionOrganization(session, organizationId);
+  const org = resolveActiveWorkspaceOrganization(session, organizationId);
   const overview = loadExecutiveOverview(session, {
     organizationId: org?.id,
   });

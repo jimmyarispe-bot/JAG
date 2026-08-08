@@ -143,12 +143,21 @@ export const BrandService = {
   ): OrganizationBrand {
     const existing = BrandRegistry.getByOrganizationId(organizationId);
     if (existing) return existing;
-    const created = tenantDefaultBrand(organizationId, name, subdomain);
+    const trimmed = name?.trim() ?? "";
+    // Never invent / freeze a temporary generic (or opaque-id) label as brand identity.
+    if (!trimmed || trimmed === "Organization" || trimmed === organizationId) {
+      return tenantDefaultBrand(
+        organizationId,
+        trimmed || "Organization",
+        subdomain
+      );
+    }
+    const created = tenantDefaultBrand(organizationId, trimmed, subdomain);
     const saved = BrandRegistry.upsert(created);
     recordBrandObservation({
       kind: "brand_update",
       organizationId,
-      detail: `Ensured brand for ${name} (${saved.subdomain})`,
+      detail: `Ensured brand for ${trimmed} (${saved.subdomain})`,
     });
     return saved;
   },

@@ -3,7 +3,7 @@
  */
 
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
-import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
 import { sessionCanAccessOrganization } from "@/lib/jag-platform/org-context";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import { getBriefing, getBriefingByShareToken, listBriefings } from "./store";
@@ -23,7 +23,7 @@ export function loadBriefingList(
 ): JagBriefingListModel {
   const organizations = listOrganizationsForSession(session);
   const selectedOrganizationId =
-    resolveSessionOrganization(session, options?.organizationId)?.id ?? null;
+    resolveActiveWorkspaceOrganization(session, options?.organizationId)?.id ?? null;
 
   // Fail closed: never dump the global briefing store when org scope is null.
   const briefings = selectedOrganizationId

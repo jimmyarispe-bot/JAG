@@ -13,7 +13,7 @@ import {
   type GraphQuery,
 } from "@/lib/platform/intelligence/explain/index";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
-import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 
 export { listExplainObservations };
@@ -59,7 +59,7 @@ export function loadGraphWorkspace(
   }
 ): JagGraphWorkspaceModel {
   const orgs = listOrganizationsForSession(session);
-  const org = resolveSessionOrganization(session, options?.organizationId);
+  const org = resolveActiveWorkspaceOrganization(session, options?.organizationId);
 
   const advisoryNotice =
     "Intelligence Graph Explorer — executive reasoning map. Application-layer relationships, not a graph database.";

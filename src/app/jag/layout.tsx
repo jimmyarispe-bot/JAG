@@ -1,17 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { headers } from "next/headers";
-import { JagCommandShell } from "@/components/jag/command-center";
+import { JagWorkspaceShellGate } from "@/components/jag/command-center/JagWorkspaceShellGate";
+import { JagLoadingSkeleton } from "@/components/jag/command-center";
 import "@/components/jag/command-center/command-center.css";
-import {
-  countUnreadJagNotifications,
-  listJagNotifications,
-  loadJagBrandForHost,
-  loadJagBrandForSession,
-  loadJagCommandCenterOverview,
-  loadJagSearchCatalog,
-} from "@/lib/jag-command-center";
+import { loadJagBrandForHost } from "@/lib/jag-command-center";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { themeToStyle, THE_JAG_MARK } from "@/lib/platform/branding";
 
@@ -41,6 +36,9 @@ export const metadata: Metadata = {
 /**
  * JAG Executive Command Center root layout.
  * Login remains unshellled; authenticated routes use the command shell.
+ *
+ * Phase 65E — workspace mode is resolved inside JagWorkspaceShellGate from
+ * URL searchParams (not middleware x-url headers).
  */
 export default async function JagRootLayout({
   children,
@@ -76,12 +74,6 @@ export default async function JagRootLayout({
     return children;
   }
 
-  const brandModel = loadJagBrandForSession(session, host);
-  const overview = loadJagCommandCenterOverview(session);
-  const searchCatalog = loadJagSearchCatalog(session);
-  const notifications = listJagNotifications(session, 20);
-  const unreadNotificationCount = countUnreadJagNotifications(session);
-
   return (
     <div
       className={`${jagSans.variable} ${jagMono.variable}`}
@@ -89,30 +81,19 @@ export default async function JagRootLayout({
         {
           "--font-jag-display": "var(--brand-heading-font, var(--font-jag-sans))",
           fontFamily: "var(--brand-body-font, var(--font-jag-sans))",
-          ...themeToStyle(brandModel.theme),
-          ...(brandModel.brand.dashboard_background_url
-            ? {
-                backgroundImage: `url("${brandModel.brand.dashboard_background_url}")`,
-                backgroundSize: "cover",
-                backgroundAttachment: "fixed",
-              }
-            : {}),
         } as CSSProperties
       }
     >
-      <JagCommandShell
-        session={session}
-        pathname={pathname}
-        organizationOptions={overview.organizationOptions}
-        domainOptions={overview.domainOptions}
-        searchCatalog={searchCatalog}
-        notifications={notifications}
-        unreadNotificationCount={unreadNotificationCount}
-        brand={brandModel.brand}
-        pageTitle={brandModel.pageTitle}
+      <Suspense
+        fallback={
+          <JagLoadingSkeleton
+            title="Executive Intelligence Platform"
+            description="Loading workspace…"
+          />
+        }
       >
-        {children}
-      </JagCommandShell>
+        <JagWorkspaceShellGate host={host}>{children}</JagWorkspaceShellGate>
+      </Suspense>
     </div>
   );
 }

@@ -3,8 +3,15 @@
  * Application layer only — consumes `@/lib/platform/branding`.
  */
 
+import {
+  isAuthoritativeOrganizationLabel,
+  isGenericOrganizationLabel,
+  isOpaqueOrganizationLabel,
+  resolveAuthoritativeOrganizationIdentity,
+  resolveOrganizationDisplayName,
+} from "@/lib/jag-business/organization-display";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
-import { resolveSessionOrganization } from "@/lib/jag-platform/data-plane";
+import { resolveActiveWorkspaceOrganization } from "@/lib/jag-platform/active-organization";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import {
   BrandService,
@@ -32,23 +39,60 @@ export type JagBrandingSettingsWorkspace = {
   readonly observations: readonly BrandObservation[];
 };
 
+function shouldRepairBrandIdentity(
+  brand: OrganizationBrand,
+  organizationId: string
+): boolean {
+  return (
+    isGenericOrganizationLabel(brand.display_name) ||
+    isGenericOrganizationLabel(brand.organization_name) ||
+    brand.display_name === organizationId ||
+    brand.organization_name === organizationId ||
+    isOpaqueOrganizationLabel(brand.display_name, organizationId) ||
+    isOpaqueOrganizationLabel(brand.organization_name, organizationId)
+  );
+}
+
 /**
  * Resolve brand for the signed-in session, optionally from request host.
  */
 export function loadJagBrandForSession(
   session: JagPlatformSession | null,
-  host?: string
+  host?: string,
+  preferredOrganizationId?: string | null
 ): JagBrandSessionModel {
   const primaryOrg = session
-    ? resolveSessionOrganization(session, session.organizationId)
+    ? resolveActiveWorkspaceOrganization(session, preferredOrganizationId)
     : null;
 
   if (primaryOrg) {
-    BrandService.ensureOrganization(
+    const identity = resolveAuthoritativeOrganizationIdentity(primaryOrg.id);
+    const displayName = resolveOrganizationDisplayName(
       primaryOrg.id,
-      primaryOrg.name,
-      primaryOrg.id === "org.the-academy-way" ? "academy" : undefined
+      primaryOrg.name ?? session?.organizationDisplayName
     );
+    const canPersist = isAuthoritativeOrganizationLabel(
+      displayName,
+      primaryOrg.id
+    );
+    const existing = BrandService.getBrand(primaryOrg.id);
+    if (!existing) {
+      if (canPersist) {
+        BrandService.ensureOrganization(
+          primaryOrg.id,
+          displayName,
+          identity.subdomain ??
+            (primaryOrg.id === "org.the-academy-way" ? "academy" : undefined)
+        );
+      }
+      // Missing identity: do not persist the temporary generic label.
+    } else if (shouldRepairBrandIdentity(existing, primaryOrg.id) && canPersist) {
+      BrandService.updateBrand(primaryOrg.id, {
+        display_name: displayName,
+        organization_name: displayName,
+        ...(identity.subdomain ? { subdomain: identity.subdomain } : {}),
+      });
+    }
   }
 
   let brand: OrganizationBrand;
@@ -73,6 +117,33 @@ export function loadJagBrandForSession(
   } else {
     brand = BrandService.resolveForRequest({});
     source = "platform";
+  }
+
+  // Prefer authoritative org label over a generic/platform brand title in chrome.
+  if (
+    primaryOrg &&
+    isAuthoritativeOrganizationLabel(
+      resolveOrganizationDisplayName(
+        primaryOrg.id,
+        primaryOrg.name ?? session?.organizationDisplayName
+      ),
+      primaryOrg.id
+    ) &&
+    (brand.organization_id !== primaryOrg.id ||
+      isGenericOrganizationLabel(brand.display_name) ||
+      isOpaqueOrganizationLabel(brand.display_name, primaryOrg.id))
+  ) {
+    const label = resolveOrganizationDisplayName(
+      primaryOrg.id,
+      primaryOrg.name ?? session?.organizationDisplayName
+    );
+    brand = {
+      ...brand,
+      organization_id: primaryOrg.id,
+      display_name: label,
+      organization_name: label,
+    };
+    source = "organization";
   }
 
   const theme = BrandService.generateTheme(brand);
@@ -109,13 +180,19 @@ export function loadBrandingSettingsWorkspace(
   const loaded = loadJagBrandForSession(session, host);
   const brandsByOrganizationId: Record<string, OrganizationBrand> = {};
   const organizations = listOrganizationsForSession(session).map((o) => {
-    const ensured = BrandService.ensureOrganization(
-      o.id,
-      o.name,
-      o.id === "org.the-academy-way" ? "academy" : undefined
-    );
-    brandsByOrganizationId[o.id] = ensured;
-    return { id: o.id, label: o.name };
+    const label = resolveOrganizationDisplayName(o.id, o.name);
+    if (isAuthoritativeOrganizationLabel(label, o.id)) {
+      const ensured = BrandService.ensureOrganization(
+        o.id,
+        label,
+        o.id === "org.the-academy-way" ? "academy" : undefined
+      );
+      brandsByOrganizationId[o.id] = ensured;
+    } else {
+      const existing = BrandService.getBrand(o.id);
+      if (existing) brandsByOrganizationId[o.id] = existing;
+    }
+    return { id: o.id, label };
   });
 
   const selected =

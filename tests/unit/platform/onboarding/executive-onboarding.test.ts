@@ -6,6 +6,7 @@ import {
   ChecklistService,
   clearOnboardingObservationsForTests,
   ExecutiveOnboardingService,
+  applyOnboardingSessionUpdate,
   OnboardingStateMachine,
   ProgressTracker,
   WelcomeService,
@@ -155,5 +156,100 @@ describe("Sprint 212 executive onboarding", () => {
     });
     const jump = OnboardingStateMachine.enterStep(session, "review");
     expect(jump.ok).toBe(false);
+  });
+
+  it("does not jump back to an earlier step when a stale field-save response arrives", () => {
+    const session = ExecutiveOnboardingService.getOrCreateSession({
+      ownerUserId: "user-race",
+      ownerEmail: "race@example.com",
+      displayName: "Race User",
+    });
+
+    ExecutiveOnboardingService.completeCurrentStep(session.id); // welcome → organization
+    ExecutiveOnboardingService.updateOrganization(session.id, {
+      organizationName: "Stable Org",
+      subdomain: "stable-org",
+      industry: "education",
+      timezone: "America/New_York",
+    });
+
+    // Simulate an in-flight organization save that captured pre-navigation state.
+    const staleSave = ExecutiveOnboardingService.getSession(session.id)!;
+    expect(staleSave.currentStep).toBe("organization");
+
+    const advanced = ExecutiveOnboardingService.completeCurrentStep(session.id);
+    expect(advanced.ok).toBe(true);
+    expect(advanced.session?.currentStep).toBe("brand");
+
+    const local = advanced.session!;
+    // Stale save response still reports organization step + older timestamp.
+    const staleResponse = {
+      ...staleSave,
+      updatedAt: new Date(Date.parse(local.updatedAt) - 1000).toISOString(),
+    };
+
+    const merged = applyOnboardingSessionUpdate(local, {
+      kind: "field_save",
+      session: staleResponse,
+    });
+    expect(merged.currentStep).toBe("brand");
+    expect(merged.organization.organizationName).toBe("Stable Org");
+  });
+
+  it("restores a client snapshot instead of creating an empty welcome session", () => {
+    const session = ExecutiveOnboardingService.getOrCreateSession({
+      ownerUserId: "user-restore",
+      ownerEmail: "restore@example.com",
+      displayName: "Restore User",
+    });
+    ExecutiveOnboardingService.completeCurrentStep(session.id);
+    ExecutiveOnboardingService.updateOrganization(session.id, {
+      organizationName: "Restored Org",
+      subdomain: "restored-org",
+      industry: "education",
+      timezone: "UTC",
+    });
+    const snapshot = ExecutiveOnboardingService.getSession(session.id)!;
+    expect(snapshot.currentStep).toBe("organization");
+
+    // Cold worker: memory cleared.
+    ExecutiveOnboardingService.resetForTests();
+    expect(
+      ExecutiveOnboardingService.getSessionForOwner("user-restore")
+    ).toBeNull();
+
+    const restored = ExecutiveOnboardingService.restoreFromClientSnapshot(
+      { ownerUserId: "user-restore", ownerEmail: "restore@example.com" },
+      snapshot
+    );
+    expect(restored?.currentStep).toBe("organization");
+    expect(restored?.organization.organizationName).toBe("Restored Org");
+    expect(restored?.status).not.toBe("completed");
+
+    const again = ExecutiveOnboardingService.getOrCreateSession({
+      ownerUserId: "user-restore",
+      ownerEmail: "restore@example.com",
+    });
+    expect(again.id).toBe(snapshot.id);
+    expect(again.currentStep).toBe("organization");
+  });
+
+  it("organization field patches do not wipe sibling fields via stale full drafts", () => {
+    const session = ExecutiveOnboardingService.getOrCreateSession({
+      ownerUserId: "user-patch",
+      ownerEmail: "patch@example.com",
+    });
+    ExecutiveOnboardingService.updateOrganization(session.id, {
+      organizationName: "Patch Org",
+      subdomain: "patch-org",
+    });
+    // Patch-only update (as the UI now sends) must preserve name/subdomain.
+    ExecutiveOnboardingService.updateOrganization(session.id, {
+      industry: "healthcare",
+    });
+    const next = ExecutiveOnboardingService.getSession(session.id)!;
+    expect(next.organization.organizationName).toBe("Patch Org");
+    expect(next.organization.subdomain).toBe("patch-org");
+    expect(next.organization.industry).toBe("healthcare");
   });
 });

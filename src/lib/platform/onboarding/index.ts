@@ -44,3 +44,30 @@ export {
   clearOnboardingObservationsForTests,
 } from "./OnboardingObservability";
 export { generateWelcomeExecutiveBrief } from "./welcome-brief";
+export {
+  bumpOnboardingSession,
+  mergeOnboardingSessionUpdate,
+  mergeFieldSaveIntoSession,
+  mergeNavigationIntoSession,
+  mergeRestoreIntoSession,
+  applyOnboardingSessionUpdate,
+  shouldAcceptOnboardingSession,
+  readOnboardingSessionFromStorage,
+  writeOnboardingSessionToStorage,
+  ONBOARDING_SESSION_STORAGE_KEY,
+  type OnboardingResponseKind,
+  type OnboardingSessionUpdate,
+} from "./session-merge";
+
+export {
+  createExecutiveId,
+  createExecutiveMember,
+  ensureExecutiveIds,
+  mergeExecutiveLists,
+} from "./executives";
+
+export {
+  CUSTOMER_REQUIRED_CAPABILITY_IDS,
+  CUSTOMER_SHELL_ALLOWLIST_IDS,
+  mergeCustomerEnabledCapabilityIds,
+} from "./customer-capabilities";

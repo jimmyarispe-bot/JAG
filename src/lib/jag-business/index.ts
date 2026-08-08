@@ -35,4 +35,24 @@ export {
 
 export { provisionOrganization } from "@/lib/jag-business/provision";
 
-export { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
+export {
+  listOrganizationsForSession,
+  listOrganizationsForPlatformAdmin,
+} from "@/lib/jag-business/organizations-view";
+
+export {
+  GENERIC_ORGANIZATION_LABEL,
+  isGenericOrganizationLabel,
+  isOpaqueOrganizationLabel,
+  isAuthoritativeOrganizationLabel,
+  resolveAuthoritativeOrganizationIdentity,
+  resolveOrganizationDisplayName,
+} from "@/lib/jag-business/organization-display";
+
+export {
+  clearDurableOrganizationIdentitiesForTests,
+  getDurableOrganizationIdentity,
+  isDurableOrganizationId,
+  rememberDurableOrganizationIdentity,
+  type DurableOrganizationIdentity,
+} from "@/lib/jag-business/durable-organization-identity";
