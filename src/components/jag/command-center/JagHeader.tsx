@@ -2,7 +2,6 @@ import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import type { JagNotification } from "@/lib/jag-command-center/notifications";
 import type { JagSearchItem } from "@/lib/jag-command-center/search-filter";
 import type { OrganizationBrand } from "@/lib/platform/branding";
-import { JagBrandLogoMark } from "./branding/JagBrandChrome";
 import { JagCommandPalette } from "./JagCommandPalette";
 import { JagNotificationBell } from "./JagNotificationBell";
 import { JagOrganizationSelect } from "./JagOrganizationSelect";
@@ -11,12 +10,12 @@ export function JagHeader({
   session,
   organizationOptions,
   activeOrganizationId,
-  activeOrganizationLabel,
+  activeOrganizationLabel: _activeOrganizationLabel,
   domainOptions,
   searchCatalog,
   notifications,
   unreadNotificationCount,
-  brand,
+  brand: _brand,
 }: {
   readonly session: JagPlatformSession;
   readonly organizationOptions: readonly { id: string; label: string }[];
@@ -28,26 +27,13 @@ export function JagHeader({
   readonly unreadNotificationCount: number;
   readonly brand: OrganizationBrand;
 }) {
-  const orgLabel =
-    activeOrganizationLabel ||
-    organizationOptions.find((o) => o.id === activeOrganizationId)?.label ||
-    brand.display_name;
-
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--jag-border)] bg-[var(--jag-bg)] px-4 md:px-6">
-      <div className="hidden min-w-0 items-center gap-2 md:flex">
-        <JagBrandLogoMark brand={brand} dark className="h-6 max-w-[9rem] object-contain" />
-        <span className="text-[var(--jag-border-strong)]" aria-hidden>
-          /
-        </span>
-        <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-[var(--jag-text)]">
-            {orgLabel}
-          </p>
-          <p className="truncate text-[10px] text-[var(--jag-muted)]">
-            Executive Intelligence
-          </p>
-        </div>
+      {/* Org name lives in the sidebar brand + organization selector — not duplicated here. */}
+      <div className="hidden min-w-0 items-center md:flex">
+        <p className="truncate text-[10px] text-[var(--jag-muted)]">
+          Executive Intelligence · The JAG™
+        </p>
       </div>
 
       <div className="ml-0 flex min-w-0 flex-1 items-center gap-2 md:ml-6">

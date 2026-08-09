@@ -58,12 +58,10 @@ export function JagBrandLogoMark({
 
   const label = visibleBrandMarkLabel(brand);
 
+  // No logo asset: do not paint the org/display name here — JagSidebar already
+  // renders the customer organization title once in the brand block.
   if (!src) {
-    return (
-      <span className="font-[family-name:var(--font-jag-display)] text-sm font-semibold tracking-tight text-[var(--jag-text)]">
-        {label}
-      </span>
-    );
+    return null;
   }
 
   return (

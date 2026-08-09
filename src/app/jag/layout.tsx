@@ -30,7 +30,7 @@ const jagMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: THE_JAG_MARK,
+    default: "Overview",
     template: `%s · ${THE_JAG_MARK}`,
   },
   description: `${THE_JAG_MARK} Organizational Intelligence Operating System. ${POWERED_BY_LINE}.`,
