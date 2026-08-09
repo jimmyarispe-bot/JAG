@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -22,7 +21,22 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function JagLoginPage() {
+function firstQueryValue(
+  value: string | string[] | undefined
+): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+export default async function JagLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    next?: string | string[];
+    error?: string | string[];
+    reset?: string | string[];
+  }>;
+}) {
   const session = await getJagPlatformSession();
   if (session) {
     redirect(JAG_PLATFORM_HOME_PATH);
@@ -33,6 +47,7 @@ export default async function JagLoginPage() {
     headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? undefined;
   const model = loadJagBrandForHost(host);
   const bg = model.brand.login_background_url;
+  const params = await searchParams;
 
   return (
     <div
@@ -46,9 +61,12 @@ export default async function JagLoginPage() {
         backgroundPosition: "center",
       }}
     >
-      <Suspense fallback={<p className="p-8 text-white">Loading…</p>}>
-        <JagLoginForm brand={model.brand} />
-      </Suspense>
+      <JagLoginForm
+        brand={model.brand}
+        next={firstQueryValue(params.next)}
+        error={firstQueryValue(params.error)}
+        reset={firstQueryValue(params.reset)}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   JAG_PLATFORM_FORGOT_PASSWORD_PATH,
@@ -15,12 +15,23 @@ import {
 
 export function JagLoginForm({
   brand,
+  next: nextParam,
+  error: errorParam,
+  reset: resetParam,
 }: {
   readonly brand: OrganizationBrand;
+  /** Server-resolved `?next=` — avoids useSearchParams hydration mismatch. */
+  readonly next?: string;
+  /** Server-resolved `?error=` */
+  readonly error?: string;
+  /** Server-resolved `?reset=` */
+  readonly reset?: string;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") ?? JAG_PLATFORM_HOME_PATH;
+  const nextPath =
+    nextParam && nextParam.startsWith("/")
+      ? nextParam
+      : JAG_PLATFORM_HOME_PATH;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -110,7 +121,7 @@ export function JagLoginForm({
         {brand.display_name} Executive Intelligence Platform
       </p>
 
-      {searchParams.get("error") === "auth_callback_failed" ? (
+      {errorParam === "auth_callback_failed" ? (
         <p className="mt-4 text-sm text-red-600" role="alert">
           That sign-in link is invalid or expired. Request a new magic link or
           sign in with your password.
@@ -159,7 +170,7 @@ export function JagLoginForm({
               {message}
             </p>
           ) : null}
-          {searchParams.get("reset") === "success" ? (
+          {resetParam === "success" ? (
             <p className="text-sm text-emerald-700" role="status">
               Password updated. Sign in with your new password.
             </p>
