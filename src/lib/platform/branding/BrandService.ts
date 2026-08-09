@@ -10,10 +10,28 @@ import { platformDefaultBrand, tenantDefaultBrand } from "./defaults";
 import { buildTheme, generateTheme } from "./ThemeEngine";
 import {
   POWERED_BY_LINE,
+  THE_JAG_MARK,
   type BrandResolveInput,
   type BrandTheme,
   type OrganizationBrand,
 } from "./types";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const GENERIC_ORGANIZATION_LABEL = "Organization" as const;
+
+function isAuthoritativeBrandLabel(
+  label: string | null | undefined,
+  organizationId: string
+): boolean {
+  const value = label?.trim() ?? "";
+  if (!value) return false;
+  if (value === GENERIC_ORGANIZATION_LABEL) return false;
+  if (value === organizationId) return false;
+  if (UUID_RE.test(value)) return false;
+  return true;
+}
 
 function mergeBrand(
   base: OrganizationBrand,
@@ -26,6 +44,40 @@ function mergeBrand(
     created_at: base.created_at,
     updated_at: new Date().toISOString(),
   };
+}
+
+function sanitizeNameField(
+  organizationId: string,
+  value: string | undefined,
+  fallback: string
+): string {
+  if (value === undefined) return fallback;
+  const trimmed = value.trim();
+  if (isAuthoritativeBrandLabel(trimmed, organizationId)) {
+    return trimmed;
+  }
+  // Refuse UUID / opaque / generic overwrite of an already-valid identity.
+  if (isAuthoritativeBrandLabel(fallback, organizationId)) {
+    return fallback;
+  }
+  return GENERIC_ORGANIZATION_LABEL;
+}
+
+function visibleBrandLabel(brand: OrganizationBrand): string {
+  if (brand.organization_id === "platform") {
+    return isAuthoritativeBrandLabel(brand.display_name, brand.organization_id)
+      ? brand.display_name.trim()
+      : THE_JAG_MARK;
+  }
+  if (isAuthoritativeBrandLabel(brand.display_name, brand.organization_id)) {
+    return brand.display_name.trim();
+  }
+  if (
+    isAuthoritativeBrandLabel(brand.organization_name, brand.organization_id)
+  ) {
+    return brand.organization_name.trim();
+  }
+  return GENERIC_ORGANIZATION_LABEL;
 }
 
 export const BrandService = {
@@ -54,12 +106,35 @@ export const BrandService = {
     organizationId: string,
     partial: Partial<OrganizationBrand>
   ): OrganizationBrand {
-    const existing =
-      BrandRegistry.getByOrganizationId(organizationId) ??
-      tenantDefaultBrand(organizationId, partial.organization_name ?? organizationId);
+    const existing = BrandRegistry.getByOrganizationId(organizationId);
+    const seedName = isAuthoritativeBrandLabel(
+      partial.organization_name,
+      organizationId
+    )
+      ? partial.organization_name!.trim()
+      : isAuthoritativeBrandLabel(partial.display_name, organizationId)
+        ? partial.display_name!.trim()
+        : GENERIC_ORGANIZATION_LABEL;
 
-    const next = mergeBrand(existing, {
+    const base =
+      existing ?? tenantDefaultBrand(organizationId, seedName);
+
+    const nextNameSource = {
+      organization_name: sanitizeNameField(
+        organizationId,
+        partial.organization_name,
+        base.organization_name
+      ),
+      display_name: sanitizeNameField(
+        organizationId,
+        partial.display_name,
+        base.display_name
+      ),
+    };
+
+    const next = mergeBrand(base, {
       ...partial,
+      ...nextNameSource,
       organization_id: organizationId,
     });
     const saved = BrandRegistry.upsert(next);
@@ -73,12 +148,21 @@ export const BrandService = {
 
   restoreDefaults(organizationId: string): OrganizationBrand {
     const existing = BrandRegistry.getByOrganizationId(organizationId);
+    const restoredName =
+      existing &&
+      isAuthoritativeBrandLabel(existing.organization_name, organizationId)
+        ? existing.organization_name
+        : existing &&
+            isAuthoritativeBrandLabel(existing.display_name, organizationId)
+          ? existing.display_name
+          : GENERIC_ORGANIZATION_LABEL;
+
     const restored =
       organizationId === "platform"
         ? platformDefaultBrand()
         : tenantDefaultBrand(
             organizationId,
-            existing?.organization_name ?? organizationId,
+            restoredName,
             existing?.subdomain
           );
     const saved = BrandRegistry.upsert(restored);
@@ -115,23 +199,29 @@ export const BrandService = {
   },
 
   emailFooter(brand: OrganizationBrand): string {
+    const label = visibleBrandLabel(brand);
     if (brand.email_footer?.trim()) return brand.email_footer;
     if (brand.powered_by_enabled) {
-      return `${brand.display_name} · ${POWERED_BY_LINE}`;
+      return `${label} · ${POWERED_BY_LINE}`;
     }
-    return brand.display_name;
+    return label;
   },
 
   pdfFooter(brand: OrganizationBrand): string {
+    const label = visibleBrandLabel(brand);
     if (brand.pdf_footer?.trim()) return brand.pdf_footer;
     if (brand.powered_by_enabled) {
-      return `${brand.display_name} · ${POWERED_BY_LINE}`;
+      return `${label} · ${POWERED_BY_LINE}`;
     }
-    return brand.display_name;
+    return label;
   },
 
   formatPageTitle(brand: OrganizationBrand, section?: string): string {
-    const base = `${brand.display_name} Executive Intelligence Platform`;
+    const label = visibleBrandLabel(brand);
+    const base =
+      brand.organization_id === "platform"
+        ? THE_JAG_MARK
+        : `${label} · ${THE_JAG_MARK}`;
     if (section?.trim()) return `${section.trim()} · ${base}`;
     return base;
   },
@@ -142,13 +232,29 @@ export const BrandService = {
     subdomain?: string
   ): OrganizationBrand {
     const existing = BrandRegistry.getByOrganizationId(organizationId);
-    if (existing) return existing;
+    if (existing) {
+      // Never overwrite a valid durable identity with UUID / "Organization".
+      if (
+        isAuthoritativeBrandLabel(existing.display_name, organizationId) ||
+        isAuthoritativeBrandLabel(existing.organization_name, organizationId)
+      ) {
+        return existing;
+      }
+      if (isAuthoritativeBrandLabel(name, organizationId)) {
+        return this.updateBrand(organizationId, {
+          display_name: name.trim(),
+          organization_name: name.trim(),
+          ...(subdomain?.trim() ? { subdomain: subdomain.trim() } : {}),
+        });
+      }
+      return existing;
+    }
     const trimmed = name?.trim() ?? "";
     // Never invent / freeze a temporary generic (or opaque-id) label as brand identity.
-    if (!trimmed || trimmed === "Organization" || trimmed === organizationId) {
+    if (!isAuthoritativeBrandLabel(trimmed, organizationId)) {
       return tenantDefaultBrand(
         organizationId,
-        trimmed || "Organization",
+        GENERIC_ORGANIZATION_LABEL,
         subdomain
       );
     }

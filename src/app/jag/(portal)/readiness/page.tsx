@@ -1,21 +1,18 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { JagLoadingSkeleton } from "@/components/jag/command-center";
 import { JagReadinessView } from "@/components/jag/command-center/readiness";
 import { loadReadinessWorkspace } from "@/lib/jag-command-center/production-readiness";
-import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
-import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
+import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 
 export const metadata: Metadata = {
-  title: "Production readiness · JAG",
+  title: "Production readiness",
   description:
     "GA validation of the executive workflow matrix and Capability SDK health.",
 };
 
 export default async function JagReadinessPage() {
-  const session = await getJagPlatformSession();
-  if (!session) redirect(JAG_PLATFORM_LOGIN_PATH);
+  await requireJagPlatformAdminSession();
 
   return (
     <Suspense
@@ -33,9 +30,7 @@ export default async function JagReadinessPage() {
 }
 
 async function ReadinessContent() {
-  const session = await getJagPlatformSession();
-  if (!session) redirect(JAG_PLATFORM_LOGIN_PATH);
-
+  await requireJagPlatformAdminSession();
   const model = await loadReadinessWorkspace();
   return <JagReadinessView model={model} />;
 }

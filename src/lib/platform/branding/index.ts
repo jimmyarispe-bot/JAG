@@ -18,6 +18,8 @@ export {
   type BrandObservationKind,
 } from "./types";
 
+export { resolvePublicAppOrigin } from "./public-origin";
+
 export { platformDefaultBrand, tenantDefaultBrand } from "./defaults";
 
 export { BrandRegistry } from "./BrandRegistry";

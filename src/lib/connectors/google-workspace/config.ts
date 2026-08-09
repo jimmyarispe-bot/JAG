@@ -1,3 +1,4 @@
+import { resolvePublicAppOrigin } from "@/lib/platform/branding";
 import { GOOGLE_WORKSPACE_OAUTH_SCOPES } from "@/lib/platform/integrations/connectors/google-workspace/auth/oauth";
 
 export function googleWorkspaceJagClientConfig(): {
@@ -16,9 +17,7 @@ export function googleWorkspaceJagClientConfig(): {
     process.env.GOOGLE_CLIENT_SECRET ||
     ""
   ).trim();
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    "http://localhost:3000";
+  const base = resolvePublicAppOrigin();
   return {
     clientId,
     clientSecret,

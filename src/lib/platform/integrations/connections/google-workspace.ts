@@ -23,6 +23,7 @@ import type {
 } from "@/lib/platform/integrations/connections/types";
 import { getGoogleWorkspaceSyncProgress } from "@/lib/platform/integrations/google-workspace/sync/progress";
 import { GOOGLE_WORKSPACE_PROVIDER_VERSION } from "@/lib/platform/integrations/google-workspace/sync/instance-id";
+import { resolvePublicAppOrigin } from "@/lib/platform/branding/public-origin";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -41,11 +42,7 @@ const EMPTY_SYNC_FIELDS = {
 };
 
 function appBaseUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    process.env.VERCEL_URL?.replace(/\/$/, "")?.replace(/^/, "https://") ||
-    "http://localhost:3000"
-  );
+  return resolvePublicAppOrigin();
 }
 
 export function googleWorkspaceRedirectUri(): string {

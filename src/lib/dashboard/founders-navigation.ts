@@ -5,8 +5,9 @@ import type { OrganizationBranding } from "@/lib/branding/types";
  * Do not expose these widgets/links to any other role.
  */
 /**
- * D.1 — Dual executive surfaces (intentional):
- * - `/exec/*` = JAG Command Center (operating brief / health / ask)
+ * D.1 — Dual executive surfaces (compatibility retained):
+ * - `/jag/*` = The JAG™ primary Command Center
+ * - `/exec/*` = legacy JAG operating brief surface (kept, not primary nav)
  * - `/dashboard/executive` = AcademyOS Executive Intelligence module
  */
 export const FOUNDER_DASHBOARD_NAV = [
@@ -14,9 +15,9 @@ export const FOUNDER_DASHBOARD_NAV = [
   { href: "/founder", label: "Founder Workspace" },
   { href: "/dashboard/founder", label: "Founder Intelligence" },
   { href: "/dashboard/mission-control", label: "Mission Control" },
-  { href: "/exec", label: "Command Center (JAG)" },
+  { href: "/jag", label: "The JAG™" },
   { href: "/dashboard/executive", label: "Executive Intelligence" },
-  { href: "/exec/brief", label: "Executive Brief" },
+  { href: "/jag/briefings", label: "Executive Brief" },
   { href: "/dashboard/admin", label: "Platform Administration" },
 ] as const;
 
@@ -60,7 +61,7 @@ export const FOUNDERS_QUICK_LAUNCH_MODULE_IDS = [
 export const FOUNDERS_EXECUTIVE_NAV = [
   { href: "/dashboard/founder", label: "Founder Intelligence", exact: true },
   { href: "/dashboard/executive", label: "Command Center" },
-  { href: "/dashboard/jag", label: "JAG Workspace" },
+  { href: "/jag", label: "The JAG™ Workspace" },
   { href: "/dashboard/executive/release", label: "Release Dashboard" },
   { href: "/dashboard/executive/observability", label: "Observability" },
   { href: "/dashboard/executive/decisions", label: "Decisions" },

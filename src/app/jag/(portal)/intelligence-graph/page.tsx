@@ -4,8 +4,10 @@ import {
   EDUCATION_GRAPH_NODE_KINDS,
   createEducationPlanner,
 } from "@/lib/domains/education";
+import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 
-export default function JagIntelligenceGraphPage() {
+export default async function JagIntelligenceGraphPage() {
+  await requireJagPlatformAdminSession();
   const catalog = createEducationPlanner().catalog();
 
   return (

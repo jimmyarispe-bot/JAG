@@ -9,7 +9,7 @@ import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { parseListeningSections } from "@/lib/platform/listening";
 
 export const metadata: Metadata = {
-  title: "Listening Preview · Executive Intelligence Platform",
+  title: "Listening Preview",
 };
 
 export default async function JagListeningPreviewPage({

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { JagExecutiveOverviewModel } from "@/lib/jag-command-center";
+import type { JagWorkspaceMode } from "@/lib/jag-platform/workspace-mode";
+import { THE_JAG_MARK } from "@/lib/platform/branding";
 import { JagCapabilityPacksSection } from "./JagCapabilityPacksSection";
 import { JagDecisionExecutionSection } from "./JagDecisionExecutionSection";
 import { JagDomainsSection } from "./JagDomainsSection";
@@ -13,14 +15,18 @@ import { JagRuntimeStatusSection } from "./JagRuntimeStatusSection";
 
 export function JagExecutiveOverview({
   model,
+  workspaceMode = "customer",
 }: {
   readonly model: JagExecutiveOverviewModel;
+  readonly workspaceMode?: JagWorkspaceMode;
 }) {
+  const showPlatformSections = workspaceMode === "platform";
+
   return (
     <div className="space-y-8">
       <header className="space-y-1">
         <h1 className="text-xl font-medium tracking-tight text-[var(--jag-text)]">
-          JAG Executive Command Center
+          {THE_JAG_MARK} Command Center
         </h1>
         <p className="text-sm text-[var(--jag-muted)]">
           {model.organizationName
@@ -56,12 +62,15 @@ export function JagExecutiveOverview({
       <JagPrioritiesSection priorities={model.priorities} />
       <JagExecutiveBriefSection brief={model.executiveBrief} />
 
-      <div className="grid gap-8 xl:grid-cols-2">
-        <JagCapabilityPacksSection packs={model.capabilityPacks} />
-        <JagDomainsSection domains={model.domains} />
-      </div>
-
-      <JagRuntimeStatusSection services={model.runtimeStatus} />
+      {showPlatformSections ? (
+        <>
+          <div className="grid gap-8 xl:grid-cols-2">
+            <JagCapabilityPacksSection packs={model.capabilityPacks} />
+            <JagDomainsSection domains={model.domains} />
+          </div>
+          <JagRuntimeStatusSection services={model.runtimeStatus} />
+        </>
+      ) : null}
       <JagRecentIntelligenceSection items={model.recentIntelligence} />
       <JagRecommendedDecisionsSection groups={model.recommendedDecisions} />
     </div>

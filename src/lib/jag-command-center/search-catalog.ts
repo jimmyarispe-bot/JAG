@@ -7,6 +7,7 @@ import { cache } from "react";
 import {
   CapabilityLoader,
   ensureCapabilitiesRegistered,
+  SHELL_NAVIGATION,
 } from "@/lib/platform/capabilities";
 import {
   EDUCATION_DOMAIN_ID,
@@ -15,6 +16,8 @@ import {
 } from "@/lib/domains/education";
 import { listOrganizationsForSession } from "@/lib/jag-business/organizations-view";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
+import type { JagWorkspaceMode } from "@/lib/jag-platform/workspace-mode";
+import { CUSTOMER_SHELL_ALLOWLIST_IDS } from "@/lib/platform/onboarding/customer-capabilities";
 import { listBriefings } from "./briefing-engine/store";
 import { loadDecisionCenter } from "./decision-center/query";
 import { listLoadedDomains } from "./domains";
@@ -24,11 +27,69 @@ import type { JagSearchItem } from "./search-filter";
 export type { JagSearchItem, JagSearchItemKind } from "./search-filter";
 export { filterJagSearchCatalog } from "./search-filter";
 
+const PLATFORM_ONLY_HREF_PREFIXES = [
+  "/jag/organizations",
+  "/jag/domains",
+  "/jag/capability-packs",
+  "/jag/knowledge",
+  "/jag/policies",
+  "/jag/intelligence-graph",
+  "/jag/capabilities",
+  "/jag/observability",
+  "/jag/runtime",
+  "/jag/onboarding",
+  "/jag/health",
+  "/jag/readiness",
+  "/jag/providers",
+  "/jag/governance",
+  "/jag/marketplace",
+  "/jag/blueprints",
+  "/jag/developer",
+] as const;
+
+const CUSTOMER_NAV_ALLOWLIST = new Set<string>([
+  ...CUSTOMER_SHELL_ALLOWLIST_IDS,
+]);
+
+function hrefIsPlatformOnly(href: string): boolean {
+  const path = href.split("?")[0] ?? href;
+  return PLATFORM_ONLY_HREF_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`)
+  );
+}
+
+function isPlatformOnlySearchItem(item: JagSearchItem): boolean {
+  if (
+    item.kind === "organization" ||
+    item.kind === "domain" ||
+    item.kind === "capability_pack" ||
+    item.kind === "knowledge" ||
+    item.kind === "policy"
+  ) {
+    return true;
+  }
+  if (item.id.startsWith("nav:")) {
+    const navId = item.id.slice("nav:".length);
+    const shell = SHELL_NAVIGATION.find((n) => n.id === navId);
+    if (shell) {
+      const group = shell.group ?? "primary";
+      if (group === "platform" || group === "system") {
+        return !CUSTOMER_NAV_ALLOWLIST.has(shell.id);
+      }
+    }
+  }
+  return hrefIsPlatformOnly(item.href);
+}
+
 export const loadJagSearchCatalog = cache(function loadJagSearchCatalog(
-  session: JagPlatformSession
+  session: JagPlatformSession,
+  workspaceMode: JagWorkspaceMode = session.authority === "platform"
+    ? "platform"
+    : "customer"
 ): readonly JagSearchItem[] {
   ensureCapabilitiesRegistered();
   const items: JagSearchItem[] = [];
+  const includePlatform = workspaceMode === "platform";
 
   for (const discovered of CapabilityLoader.discoverSearchItems()) {
     const kind: JagSearchItem["kind"] =
@@ -47,42 +108,44 @@ export const loadJagSearchCatalog = cache(function loadJagSearchCatalog(
   }
 
   const orgs = listOrganizationsForSession(session);
-  for (const org of orgs) {
-    items.push({
-      id: `org:${org.id}`,
-      kind: "organization",
-      title: org.name,
-      subtitle: "Organization",
-      href: `/jag/organizations?org=${encodeURIComponent(org.id)}`,
-    });
-  }
+  if (includePlatform) {
+    for (const org of orgs) {
+      items.push({
+        id: `org:${org.id}`,
+        kind: "organization",
+        title: org.name,
+        subtitle: "Organization",
+        href: `/jag/organizations?org=${encodeURIComponent(org.id)}`,
+      });
+    }
 
-  for (const domain of listLoadedDomains()) {
+    for (const domain of listLoadedDomains()) {
+      items.push({
+        id: `domain:${domain.id}`,
+        kind: "domain",
+        title: domain.name,
+        subtitle: `Domain · ${domain.status}`,
+        href: "/jag/domains",
+      });
+    }
+
     items.push({
-      id: `domain:${domain.id}`,
+      id: `domain:${EDUCATION_DOMAIN_ID}`,
       kind: "domain",
-      title: domain.name,
-      subtitle: `Domain · ${domain.status}`,
+      title: EDUCATION_DOMAIN_NAME,
+      subtitle: "Domain",
       href: "/jag/domains",
     });
-  }
 
-  items.push({
-    id: `domain:${EDUCATION_DOMAIN_ID}`,
-    kind: "domain",
-    title: EDUCATION_DOMAIN_NAME,
-    subtitle: "Domain",
-    href: "/jag/domains",
-  });
-
-  for (const pack of listCapabilityPacks()) {
-    items.push({
-      id: `pack:${pack.id}`,
-      kind: "capability_pack",
-      title: pack.name,
-      subtitle: `Capability Pack · v${pack.version}`,
-      href: "/jag/capability-packs",
-    });
+    for (const pack of listCapabilityPacks()) {
+      items.push({
+        id: `pack:${pack.id}`,
+        kind: "capability_pack",
+        title: pack.name,
+        subtitle: `Capability Pack · v${pack.version}`,
+        href: "/jag/capability-packs",
+      });
+    }
   }
 
   const decisions = loadDecisionCenter(session, {}).decisions;
@@ -122,35 +185,40 @@ export const loadJagSearchCatalog = cache(function loadJagSearchCatalog(
     });
   }
 
-  const executions = listStoredExecutionsForOrganizations(orgIds, 80);
-  const seenContributors = new Set<string>();
-  for (const e of executions) {
-    if (seenContributors.has(e.contributorId)) continue;
-    seenContributors.add(e.contributorId);
-    items.push({
-      id: `contributor:${e.contributorId}`,
-      kind: "contributor",
-      title: e.label,
-      subtitle: e.contributorId,
-      href: "/jag/intelligence-graph",
-    });
+  if (includePlatform) {
+    const executions = listStoredExecutionsForOrganizations(orgIds, 80);
+    const seenContributors = new Set<string>();
+    for (const e of executions) {
+      if (seenContributors.has(e.contributorId)) continue;
+      seenContributors.add(e.contributorId);
+      items.push({
+        id: `contributor:${e.contributorId}`,
+        kind: "contributor",
+        title: e.label,
+        subtitle: e.contributorId,
+        href: "/jag/intelligence-graph",
+      });
+    }
+
+    items.push(
+      {
+        id: "knowledge:model",
+        kind: "knowledge",
+        title: "Education Knowledge Model",
+        subtitle: "Knowledge",
+        href: "/jag/knowledge",
+      },
+      {
+        id: "policy:registry",
+        kind: "policy",
+        title: "Education Policy Registry",
+        subtitle: "Policies",
+        href: "/jag/policies",
+      }
+    );
   }
 
   items.push(
-    {
-      id: "knowledge:model",
-      kind: "knowledge",
-      title: "Education Knowledge Model",
-      subtitle: "Knowledge",
-      href: "/jag/knowledge",
-    },
-    {
-      id: "policy:registry",
-      kind: "policy",
-      title: "Education Policy Registry",
-      subtitle: "Policies",
-      href: "/jag/policies",
-    },
     {
       id: "reasoning:graph",
       kind: "reasoning",
@@ -174,5 +242,9 @@ export const loadJagSearchCatalog = cache(function loadJagSearchCatalog(
     }
   );
 
-  return items;
+  if (includePlatform) {
+    return items;
+  }
+
+  return items.filter((item) => !isPlatformOnlySearchItem(item));
 });

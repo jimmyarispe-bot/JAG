@@ -7,7 +7,7 @@ import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { POWERED_BY_LINE } from "@/lib/platform/branding";
 
 export const metadata: Metadata = {
-  title: "Settings · Executive Intelligence Platform",
+  title: "Settings",
   description: "Command Center settings for the signed-in JAG platform role.",
 };
 

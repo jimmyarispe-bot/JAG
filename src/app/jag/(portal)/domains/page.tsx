@@ -5,8 +5,10 @@ import {
   EDUCATION_DOMAIN_VERSION,
   listCapabilityPacks,
 } from "@/lib/domains/education";
+import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 
-export default function JagDomainsPage() {
+export default async function JagDomainsPage() {
+  await requireJagPlatformAdminSession();
   const packs = listCapabilityPacks();
 
   return (

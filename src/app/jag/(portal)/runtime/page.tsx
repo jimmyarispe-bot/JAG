@@ -1,6 +1,8 @@
 import { JagPlaceholderPage } from "@/components/jag/command-center";
+import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 
-export default function JagRuntimePage() {
+export default async function JagRuntimePage() {
+  await requireJagPlatformAdminSession();
   return (
     <JagPlaceholderPage
       title="Runtime"

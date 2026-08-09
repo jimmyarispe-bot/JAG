@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { JagLoadingSkeleton } from "@/components/jag/command-center";
 import { JagCapabilitiesView } from "@/components/jag/command-center/capabilities";
 import { loadCapabilitiesWorkspace } from "@/lib/jag-command-center/capabilities";
-import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
-import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
+import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 
 export const metadata: Metadata = {
-  title: "Capabilities · JAG",
+  title: "Capabilities",
   description:
     "Intelligence Capability SDK — installed modules, health, providers, and dependencies.",
 };
@@ -18,8 +16,7 @@ export default async function JagCapabilitiesPage({
 }: {
   searchParams: Promise<{ id?: string }>;
 }) {
-  const session = await getJagPlatformSession();
-  if (!session) redirect(JAG_PLATFORM_LOGIN_PATH);
+  await requireJagPlatformAdminSession();
 
   const params = await searchParams;
 
@@ -43,9 +40,7 @@ async function CapabilitiesContent({
 }: {
   capabilityId?: string;
 }) {
-  const session = await getJagPlatformSession();
-  if (!session) redirect(JAG_PLATFORM_LOGIN_PATH);
-
+  await requireJagPlatformAdminSession();
   const model = loadCapabilitiesWorkspace({ capabilityId });
   return <JagCapabilitiesView model={model} />;
 }

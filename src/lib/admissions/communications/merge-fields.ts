@@ -1,6 +1,7 @@
 import { programLabel } from "@/lib/constants/programs";
 import { fundingSourceLabels } from "@/lib/constants/programs";
 import type { MergeField } from "@/lib/admissions/communications/types";
+import { resolvePublicAppOrigin } from "@/lib/platform/branding";
 
 export interface MergeContext {
   studentFirstName?: string | null;
@@ -42,7 +43,7 @@ function parentName(ctx: MergeContext): string {
 }
 
 function portalLink(ctx: MergeContext): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const base = resolvePublicAppOrigin();
   if (ctx.applicationId) return `${base}/apply/portal/${ctx.applicationId}`;
   return `${base}/apply/portal`;
 }

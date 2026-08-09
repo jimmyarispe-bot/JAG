@@ -9,9 +9,10 @@ import {
   upsertGoogleWorkspaceConnection,
 } from "@/lib/platform/integrations/connections";
 
+import { resolvePublicAppOrigin } from "@/lib/platform/branding";
+
 function settingsRedirect(query: Record<string, string>): NextResponse {
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "http://localhost:3000";
+  const base = resolvePublicAppOrigin();
   const url = new URL("/settings/integrations/google", base);
   for (const [key, value] of Object.entries(query)) {
     url.searchParams.set(key, value);

@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   if (isJagPlatformApexHost(host)) {
     return {
       title: "Sign In",
-      description: "Executive Intelligence Platform",
+      description: "The JAG™ Organizational Intelligence Operating System",
     };
   }
 

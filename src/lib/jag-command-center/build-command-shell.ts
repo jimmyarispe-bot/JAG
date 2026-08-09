@@ -84,7 +84,7 @@ export function buildJagCommandShellModel(
     session,
     workspaceMode === "customer" ? preferredOrg ?? active?.id : preferredOrg
   );
-  const searchCatalog = loadJagSearchCatalog(session);
+  const searchCatalog = loadJagSearchCatalog(session, workspaceMode);
   const notifications = listJagNotifications(session, 20);
   const unreadNotificationCount = countUnreadJagNotifications(session);
   const needsOrganizationRebind = shouldRebindSessionToActiveOrganization(

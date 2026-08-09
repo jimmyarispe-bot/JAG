@@ -103,7 +103,10 @@ export function gatherConversationContext(
       title: b.title,
       href: `/jag/briefings/${b.id}`,
     })),
-    searchCatalog: loadJagSearchCatalog(session),
+    searchCatalog: loadJagSearchCatalog(
+      session,
+      org?.id || session.organizationId ? "customer" : session.authority === "platform" ? "platform" : "customer"
+    ),
     recentExecutions: executions,
     scenarioTemplates: scenarios.templates.map((t) => ({
       kind: t.kind,

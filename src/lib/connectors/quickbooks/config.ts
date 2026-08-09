@@ -1,3 +1,4 @@
+import { resolvePublicAppOrigin } from "@/lib/platform/branding";
 import { QUICKBOOKS_OAUTH_SCOPES } from "@/lib/platform/integrations/connectors/quickbooks/auth";
 
 export function quickbooksClientConfig(): {
@@ -21,9 +22,7 @@ export function quickbooksClientConfig(): {
     process.env.QUICKBOOKS_ENVIRONMENT === "production"
       ? "production"
       : "sandbox";
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    "http://localhost:3000";
+  const base = resolvePublicAppOrigin();
   return {
     clientId,
     clientSecret,

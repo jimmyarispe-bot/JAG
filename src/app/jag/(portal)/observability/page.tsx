@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   JagEmptyState,
   JagSection,
@@ -16,20 +15,16 @@ import {
   listCapabilityObservations,
   listExplainObservations,
 } from "@/lib/jag-command-center";
-import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
+import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 import { filterObservationsForSession } from "@/lib/jag-platform/data-plane";
 import { sessionCanAccessOrganization } from "@/lib/jag-platform/org-context";
-import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 /**
  * Observability surfaces executive audit and intelligence runs.
  * No fabricated telemetry.
  */
 export default async function JagObservabilityPage() {
-  const session = await getJagPlatformSession();
-  if (!session) {
-    redirect(JAG_PLATFORM_LOGIN_PATH);
-  }
+  const session = await requireJagPlatformAdminSession();
 
   const events = listJagAuditEvents(40, {
     canAccessOrganization: (organizationId) =>

@@ -24,6 +24,7 @@ import {
   authCallbackRedirectTo,
   buildEmailAuthCallbackLink,
 } from "@/lib/auth/auth-callback";
+import { resolvePublicAppOrigin } from "@/lib/platform/branding";
 
 export type ManagedUserInput = {
   firstName: string;
@@ -56,10 +57,7 @@ function fullName(input: Pick<ManagedUserInput, "firstName" | "lastName" | "pref
 }
 
 function appUrl() {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    "http://localhost:3000"
-  );
+  return resolvePublicAppOrigin();
 }
 
 async function resolveRoleId(

@@ -8,7 +8,11 @@ import { JagLoadingSkeleton } from "@/components/jag/command-center";
 import "@/components/jag/command-center/command-center.css";
 import { loadJagBrandForHost } from "@/lib/jag-command-center";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
-import { themeToStyle, THE_JAG_MARK } from "@/lib/platform/branding";
+import {
+  POWERED_BY_LINE,
+  themeToStyle,
+  THE_JAG_MARK,
+} from "@/lib/platform/branding";
 
 const jagSans = IBM_Plex_Sans({
   subsets: ["latin"],
@@ -26,11 +30,21 @@ const jagMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Executive Intelligence Platform",
-    template: `%s · Powered by ${THE_JAG_MARK}`,
+    default: THE_JAG_MARK,
+    template: `%s · ${THE_JAG_MARK}`,
   },
-  description:
-    "Executive Intelligence Platform powered by The JAG™ Organizational Intelligence Operating System.",
+  description: `${THE_JAG_MARK} Organizational Intelligence Operating System. ${POWERED_BY_LINE}.`,
+  applicationName: THE_JAG_MARK,
+  openGraph: {
+    title: THE_JAG_MARK,
+    description: `${THE_JAG_MARK} Organizational Intelligence Operating System.`,
+    siteName: THE_JAG_MARK,
+  },
+  twitter: {
+    card: "summary",
+    title: THE_JAG_MARK,
+    description: `${THE_JAG_MARK} Organizational Intelligence Operating System.`,
+  },
 };
 
 /**
@@ -87,7 +101,7 @@ export default async function JagRootLayout({
       <Suspense
         fallback={
           <JagLoadingSkeleton
-            title="Executive Intelligence Platform"
+            title={THE_JAG_MARK}
             description="Loading workspace…"
           />
         }

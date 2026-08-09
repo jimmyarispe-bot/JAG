@@ -3,8 +3,10 @@ import {
   EDUCATION_KNOWLEDGE_MODEL,
   validateEducationKnowledgeModel,
 } from "@/lib/domains/education";
+import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 
-export default function JagKnowledgePage() {
+export default async function JagKnowledgePage() {
+  await requireJagPlatformAdminSession();
   const validation = validateEducationKnowledgeModel(EDUCATION_KNOWLEDGE_MODEL);
 
   return (

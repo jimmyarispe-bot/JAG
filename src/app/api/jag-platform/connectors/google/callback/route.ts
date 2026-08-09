@@ -6,10 +6,10 @@ import {
   saveGoogleWorkspaceTokens,
 } from "@/lib/connectors";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
+import { resolvePublicAppOrigin } from "@/lib/platform/branding";
 
 function redirectToConnectors(query: Record<string, string>): NextResponse {
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "http://localhost:3000";
+  const base = resolvePublicAppOrigin();
   const url = new URL("/jag/connectors", base);
   for (const [k, v] of Object.entries(query)) {
     url.searchParams.set(k, v);

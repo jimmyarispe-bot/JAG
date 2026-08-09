@@ -70,8 +70,10 @@ export {
 } from "@/lib/jag-platform/versioning";
 
 export {
+  canAccessJagPlatformAdmin,
   canViewPlatformHealth,
   PLATFORM_HEALTH_ROLES,
+  requireJagPlatformAdminSession,
 } from "@/lib/jag-platform/admin-access";
 
 export {

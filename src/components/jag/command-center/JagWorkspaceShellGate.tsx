@@ -7,6 +7,7 @@ import { JagLoadingSkeleton } from "./JagLoadingSkeleton";
 import type { JagCommandShellModel } from "@/lib/jag-command-center/build-command-shell";
 import { loadJagCommandShellAction } from "@/lib/jag-command-center/load-command-shell";
 import { JAG_WORKSPACE_QUERY_PARAM } from "@/lib/jag-platform/workspace-mode";
+import { THE_JAG_MARK } from "@/lib/platform/branding";
 
 /**
  * SearchParams-capable shell gate.
@@ -50,7 +51,7 @@ export function JagWorkspaceShellGate({
   if (!shell || loadKey !== requestKey) {
     return (
       <JagLoadingSkeleton
-        title="Executive Intelligence Platform"
+        title={THE_JAG_MARK}
         description="Loading workspace…"
       />
     );

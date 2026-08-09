@@ -4,13 +4,13 @@ import { InteractionProviders } from "@/components/experience-system/feedback/In
 import { WebVitalsReporter } from "@/components/observability/WebVitalsReporter";
 import {
   CANONICAL_JAG_PRODUCTION_ORIGIN,
+  resolvePublicAppOrigin,
   THE_JAG_MARK,
 } from "@/lib/platform/branding";
 
-const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-  "http://localhost:3000";
+const appUrl = resolvePublicAppOrigin();
+const productDescription =
+  "The JAG™ Organizational Intelligence Operating System";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl || CANONICAL_JAG_PRODUCTION_ORIGIN),
@@ -18,7 +18,25 @@ export const metadata: Metadata = {
     default: THE_JAG_MARK,
     template: `%s · ${THE_JAG_MARK}`,
   },
-  description: "Organizational Intelligence Operating System",
+  description: productDescription,
+  applicationName: THE_JAG_MARK,
+  icons: {
+    icon: [{ url: "/icon", type: "image/png" }],
+    apple: [{ url: "/apple-icon", type: "image/png" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: CANONICAL_JAG_PRODUCTION_ORIGIN,
+    siteName: THE_JAG_MARK,
+    title: THE_JAG_MARK,
+    description: productDescription,
+  },
+  twitter: {
+    card: "summary",
+    title: THE_JAG_MARK,
+    description: productDescription,
+  },
 };
 
 export default function RootLayout({

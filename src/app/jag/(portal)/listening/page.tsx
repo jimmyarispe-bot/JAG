@@ -8,7 +8,7 @@ import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "Listening · Executive Intelligence Platform",
+  title: "Listening",
   description: "Author organizational listening initiatives, instruments, and campaigns.",
 };
 

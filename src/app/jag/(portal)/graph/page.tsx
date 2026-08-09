@@ -8,7 +8,7 @@ import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 export const metadata: Metadata = {
-  title: "Intelligence Graph · JAG",
+  title: "Intelligence Graph",
   description:
     "Explainability layer — executive reasoning map from evidence to outcomes.",
 };

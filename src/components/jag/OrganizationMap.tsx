@@ -1,3 +1,4 @@
+import { resolveOrganizationDisplayName } from "@/lib/jag-business/organization-display";
 import type { OrganizationMonitorReading } from "@/lib/platform/intelligence/organization/types";
 
 interface OrganizationMapProps {
@@ -13,11 +14,15 @@ export function OrganizationMap({
   schoolId,
   requestId,
 }: OrganizationMapProps) {
+  const organizationLabel = organizationId
+    ? resolveOrganizationDisplayName(organizationId)
+    : "n/a";
+
   return (
     <section id="organization-map" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" data-stream-ready="true">
       <h2 className="text-lg font-semibold text-slate-900">Organization Map</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Monitor surface for org {organizationId ?? "n/a"}
+        Monitor surface for {organizationLabel}
         {schoolId ? ` · school ${schoolId}` : ""}
         {requestId ? ` · request ${requestId}` : ""}
       </p>

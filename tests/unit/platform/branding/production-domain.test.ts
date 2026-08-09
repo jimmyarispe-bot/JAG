@@ -65,8 +65,21 @@ describe("JAG production domain + product identity", () => {
   it("keeps local development URL behavior", () => {
     delete process.env.NEXT_PUBLIC_APP_URL;
     delete process.env.NEXT_PUBLIC_SITE_URL;
+    delete process.env.VERCEL_ENV;
+    delete process.env.VERCEL_URL;
     expect(resolveAuthAppUrl()).toBe("http://localhost:3000");
     expect(isCanonicalJagProductionAppUrl()).toBe(false);
+  });
+
+  it("uses canonical origin when production env has no app URL", () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    delete process.env.VERCEL_URL;
+    const priorVercel = process.env.VERCEL_ENV;
+    process.env.VERCEL_ENV = "production";
+    expect(resolveAuthAppUrl()).toBe(CANONICAL_JAG_PRODUCTION_ORIGIN);
+    if (priorVercel === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = priorVercel;
   });
 
   it("documents canonical production origin as www", () => {

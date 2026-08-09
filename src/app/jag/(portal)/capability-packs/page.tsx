@@ -3,8 +3,10 @@ import {
   listCapabilityPacks,
   validateEducationCapabilityRegistry,
 } from "@/lib/domains/education";
+import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 
-export default function JagCapabilityPacksPage() {
+export default async function JagCapabilityPacksPage() {
+  await requireJagPlatformAdminSession();
   const packs = listCapabilityPacks();
   const validation = validateEducationCapabilityRegistry();
 

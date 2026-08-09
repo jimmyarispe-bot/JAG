@@ -1,7 +1,9 @@
 import { JagSection } from "@/components/jag/command-center";
 import { createEducationPolicyEngine } from "@/lib/domains/education";
+import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 
-export default function JagPoliciesPage() {
+export default async function JagPoliciesPage() {
+  await requireJagPlatformAdminSession();
   const policies = createEducationPolicyEngine().registry().list();
 
   return (

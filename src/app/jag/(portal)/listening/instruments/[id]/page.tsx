@@ -7,7 +7,7 @@ import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 export const metadata: Metadata = {
-  title: "Listening Instrument · Executive Intelligence Platform",
+  title: "Listening Instrument",
 };
 
 export default async function JagListeningInstrumentPage({

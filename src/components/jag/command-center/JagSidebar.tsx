@@ -70,8 +70,8 @@ export function JagSidebar({
           </p>
           <p className="mt-0.5 text-[11px] leading-snug text-[var(--jag-muted)]">
             {workspaceMode === "customer"
-              ? "Executive Intelligence"
-              : "JAG Executive Command Center"}
+              ? "Executive Intelligence · The JAG™"
+              : "The JAG™ Platform Admin"}
           </p>
           <p className="sr-only">{pageTitle}</p>
         </div>

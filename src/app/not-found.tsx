@@ -25,7 +25,7 @@ export default function NotFound() {
           href="/jag"
           className="rounded border border-neutral-300 px-3 py-1.5 text-neutral-800 hover:bg-neutral-50"
         >
-          JAG Command Center
+          The JAG™
         </Link>
         <Link
           href="/dashboard"

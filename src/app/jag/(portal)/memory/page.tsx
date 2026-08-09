@@ -10,7 +10,7 @@ import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 export const metadata: Metadata = {
-  title: "Organizational Memory · JAG",
+  title: "Organizational Memory",
   description:
     "Institutional memory — decisions, outcomes, lessons, and advisory patterns.",
 };

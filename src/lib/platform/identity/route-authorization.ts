@@ -36,7 +36,13 @@ export type RouteAuthzDecision =
 
 /** True for JAG application surfaces. */
 export function isJagRoute(pathname: string): boolean {
-  return pathname === "/exec" || pathname.startsWith("/exec/") || pathname.startsWith("/dashboard/jag");
+  return (
+    pathname === "/jag" ||
+    pathname.startsWith("/jag/") ||
+    pathname === "/exec" ||
+    pathname.startsWith("/exec/") ||
+    pathname.startsWith("/dashboard/jag")
+  );
 }
 
 /** True for AcademyOS application surfaces (excludes JAG nested under /dashboard/jag). */

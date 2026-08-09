@@ -3,7 +3,10 @@ import {
   buildEmailAuthCallbackLink,
   safeInternalPath,
 } from "@/lib/auth/auth-callback";
-import { CANONICAL_JAG_PRODUCTION_ORIGIN } from "@/lib/platform/branding";
+import {
+  CANONICAL_JAG_PRODUCTION_ORIGIN,
+  resolvePublicAppOrigin,
+} from "@/lib/platform/branding";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
 export type AuthEmailLinkType = Extract<
@@ -20,11 +23,7 @@ export { CANONICAL_JAG_PRODUCTION_ORIGIN };
  * (see `CANONICAL_JAG_PRODUCTION_ORIGIN`). Preview/local keep their own origins.
  */
 export function resolveAuthAppUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    "http://localhost:3000"
-  );
+  return resolvePublicAppOrigin();
 }
 
 /** True when the resolved app URL is the canonical JAG www production origin. */

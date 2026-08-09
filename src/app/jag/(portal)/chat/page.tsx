@@ -8,7 +8,7 @@ import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
 export const metadata: Metadata = {
-  title: "Executive Conversation · JAG",
+  title: "Executive Conversation",
   description:
     "Evidence-backed executive conversation — grounded in JAG intelligence, not a chatbot.",
 };
