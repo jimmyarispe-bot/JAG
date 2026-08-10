@@ -13,6 +13,7 @@ import {
   walkthroughControlAction,
 } from "@/lib/jag-command-center/learning/actions";
 import { JagSection } from "../JagSection";
+import { JagLearningVideo } from "./JagLearningVideo";
 
 export function JagTutorialDetail({
   tutorial,
@@ -30,34 +31,40 @@ export function JagTutorialDetail({
 
   return (
     <div className="space-y-6" data-jag-page={`tutorial-${tutorial.slug}`}>
-      <header className="space-y-2">
+      <header className="space-y-1">
         <p className="text-xs text-[var(--jag-muted)]">{tutorial.code}</p>
         <h1 className="font-[family-name:var(--font-jag-display)] text-2xl font-semibold text-[var(--jag-text)]">
           {tutorial.title}
         </h1>
-        <p className="text-sm text-[var(--jag-muted)]">{tutorial.description}</p>
-        <p className="text-xs text-[var(--jag-muted)]">
-          {tutorial.estimatedMinutes} min ·{" "}
-          {progress?.status === "completed"
-            ? "Completed"
-            : `${progress?.progressPercent ?? 0}%`}
-        </p>
       </header>
 
-      {tutorial.videoUrl ? (
-        <JagSection title="Video" description="Verified lesson video.">
-          <a
-            href={tutorial.videoUrl}
-            className="text-sm text-[var(--jag-text)] underline"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open video
-          </a>
-        </JagSection>
-      ) : (
-        <p className="text-xs text-[var(--jag-muted)]">Video coming soon</p>
-      )}
+      <JagSection
+        title="Mr. JAG™ video"
+        description="Catalog instructional video from Mr. JAG™."
+      >
+        <JagLearningVideo
+          videoUrl={tutorial.videoUrl}
+          title={tutorial.title}
+        />
+      </JagSection>
+
+      <JagSection
+        title="About this tutorial"
+        description={`${tutorial.estimatedMinutes} min · ${
+          progress?.status === "completed"
+            ? "Completed"
+            : `${progress?.progressPercent ?? 0}% complete`
+        }`}
+      >
+        <p className="text-sm leading-relaxed text-[var(--jag-text)]">
+          {tutorial.description}
+        </p>
+        {tutorial.content.summary ? (
+          <p className="mt-2 text-sm text-[var(--jag-muted)]">
+            {tutorial.content.summary}
+          </p>
+        ) : null}
+      </JagSection>
 
       <JagSection
         title={step?.title ?? "Tutorial"}
@@ -66,7 +73,91 @@ export function JagTutorialDetail({
         <p className="text-sm leading-relaxed text-[var(--jag-text)]">
           {step?.body}
         </p>
-        <div className="mt-4 flex flex-wrap gap-2">
+      </JagSection>
+
+      {tutorial.walkthroughId ? (
+        <JagSection
+          title="Interactive walkthrough"
+          description="Guided highlights in the Command Center — complements the video."
+        >
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              className="rounded border border-[var(--jag-border)] px-3 py-1.5 text-sm"
+              onClick={() => {
+                startTransition(async () => {
+                  const wt = await walkthroughControlAction({
+                    walkthroughId: tutorial.walkthroughId!,
+                    action: "start",
+                  });
+                  if (wt.ok) setHighlight(wt.highlightControls);
+                });
+              }}
+            >
+              Start guide
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              className="rounded border border-[var(--jag-border)] px-3 py-1.5 text-sm"
+              onClick={() => {
+                startTransition(async () => {
+                  await walkthroughControlAction({
+                    walkthroughId: tutorial.walkthroughId!,
+                    action: "pause",
+                  });
+                });
+              }}
+            >
+              Pause
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              className="rounded border border-[var(--jag-border)] px-3 py-1.5 text-sm"
+              onClick={() => {
+                startTransition(async () => {
+                  const wt = await walkthroughControlAction({
+                    walkthroughId: tutorial.walkthroughId!,
+                    action: "resume",
+                  });
+                  if (wt.ok) setHighlight(wt.highlightControls);
+                });
+              }}
+            >
+              Resume
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              className="rounded border border-[var(--jag-border)] px-3 py-1.5 text-sm"
+              onClick={() => {
+                startTransition(async () => {
+                  await walkthroughControlAction({
+                    walkthroughId: tutorial.walkthroughId!,
+                    action: "skip",
+                  });
+                  setHighlight([]);
+                });
+              }}
+            >
+              Skip
+            </button>
+          </div>
+          {highlight.length > 0 ? (
+            <p className="mt-3 text-xs text-[var(--jag-muted)]">
+              Highlighting: {highlight.join(", ")}
+            </p>
+          ) : null}
+        </JagSection>
+      ) : null}
+
+      <JagSection
+        title="Progress"
+        description="Step completion remains the source of truth."
+      >
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             disabled={pending}
@@ -135,60 +226,7 @@ export function JagTutorialDetail({
           >
             Mark complete
           </button>
-          {tutorial.walkthroughId ? (
-            <>
-              <button
-                type="button"
-                className="rounded border border-[var(--jag-border)] px-3 py-1.5 text-sm"
-                onClick={() => {
-                  startTransition(async () => {
-                    await walkthroughControlAction({
-                      walkthroughId: tutorial.walkthroughId!,
-                      action: "pause",
-                    });
-                  });
-                }}
-              >
-                Pause guide
-              </button>
-              <button
-                type="button"
-                className="rounded border border-[var(--jag-border)] px-3 py-1.5 text-sm"
-                onClick={() => {
-                  startTransition(async () => {
-                    const wt = await walkthroughControlAction({
-                      walkthroughId: tutorial.walkthroughId!,
-                      action: "resume",
-                    });
-                    if (wt.ok) setHighlight(wt.highlightControls);
-                  });
-                }}
-              >
-                Resume guide
-              </button>
-              <button
-                type="button"
-                className="rounded border border-[var(--jag-border)] px-3 py-1.5 text-sm"
-                onClick={() => {
-                  startTransition(async () => {
-                    await walkthroughControlAction({
-                      walkthroughId: tutorial.walkthroughId!,
-                      action: "skip",
-                    });
-                    setHighlight([]);
-                  });
-                }}
-              >
-                Skip guide
-              </button>
-            </>
-          ) : null}
         </div>
-        {highlight.length > 0 ? (
-          <p className="mt-3 text-xs text-[var(--jag-muted)]">
-            Highlighting: {highlight.join(", ")}
-          </p>
-        ) : null}
       </JagSection>
 
       <div className="flex flex-wrap gap-3 text-sm">

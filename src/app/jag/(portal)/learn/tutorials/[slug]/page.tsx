@@ -5,6 +5,7 @@ import {
   canAccessJagLearningCenter,
   getAccessibleTutorial,
   getTutorialProgressForUser,
+  withResolvedJagLearnTutorialVideo,
 } from "@/lib/jag-command-center/learning";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
@@ -36,7 +37,11 @@ export default async function JagTutorialPage({
   if (!tutorial) notFound();
 
   const progress = await getTutorialProgressForUser(session, tutorial.id);
+  const tutorialWithPlayback = await withResolvedJagLearnTutorialVideo(tutorial);
   return (
-    <JagTutorialDetail tutorial={tutorial} initialProgress={progress} />
+    <JagTutorialDetail
+      tutorial={tutorialWithPlayback}
+      initialProgress={progress}
+    />
   );
 }

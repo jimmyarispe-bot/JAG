@@ -13,6 +13,12 @@ export * from "./authorization";
 export * from "./service";
 export * from "./coach";
 export * from "./walkthrough";
+export * from "./media";
+export {
+  resolveJagLearnCatalogVideoUrl,
+  setJagLearnMediaStorageFactoryForTests,
+  withResolvedJagLearnTutorialVideo,
+} from "./media/resolve";
 export {
   setLearningPersistenceForTests,
   createMemoryLearningPersistence,

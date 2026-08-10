@@ -12,13 +12,17 @@ import { JagPrioritiesSection } from "./JagPrioritiesSection";
 import { JagRecentIntelligenceSection } from "./JagRecentIntelligenceSection";
 import { JagRecommendedDecisionsSection } from "./JagRecommendedDecisionsSection";
 import { JagRuntimeStatusSection } from "./JagRuntimeStatusSection";
+import { JagWelcomeVideoSection } from "./JagWelcomeVideoSection";
 
 export function JagExecutiveOverview({
   model,
   workspaceMode = "customer",
+  welcomeVideoUrl = null,
 }: {
   readonly model: JagExecutiveOverviewModel;
   readonly workspaceMode?: JagWorkspaceMode;
+  /** Runtime signed playback URL for durable JAG-001 Welcome video. */
+  readonly welcomeVideoUrl?: string | null;
 }) {
   const showPlatformSections = workspaceMode === "platform";
 
@@ -55,6 +59,8 @@ export function JagExecutiveOverview({
           Ask grounded questions or model hypothetical changes.
         </p>
       </header>
+
+      <JagWelcomeVideoSection videoUrl={welcomeVideoUrl} />
 
       <JagOrgHealthSection health={model.organizationHealth} />
       <JagForecastsSection forecasts={model.forecasts} />

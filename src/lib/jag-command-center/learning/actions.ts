@@ -2,6 +2,7 @@
 
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { answerLearningCoach, searchLearningHelp } from "./coach";
+import { withResolvedJagLearnTutorialVideo } from "./media/resolve";
 import {
   advanceTutorialStep,
   assertOwnProgressAccess,
@@ -98,7 +99,8 @@ export async function getTutorialAction(input: {
   );
   if (!tutorial) return { ok: false as const, error: "forbidden" };
   const progress = await getTutorialProgressForUser(session, tutorial.id);
-  return { ok: true as const, tutorial, progress };
+  const tutorialWithPlayback = await withResolvedJagLearnTutorialVideo(tutorial);
+  return { ok: true as const, tutorial: tutorialWithPlayback, progress };
 }
 
 export async function startTutorialAction(input: {

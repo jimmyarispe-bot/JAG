@@ -33,6 +33,10 @@ export type JagLearnTutorial = {
   readonly requiredCapabilityId: string | null;
   readonly product: "jag";
   readonly content: JagLearnTutorialContent;
+  /**
+   * Durable Learning media path (e.g. tutorials/JAG-001/mr-jag.mp4) or null.
+   * Never a temporary HeyGen CDN URL. Runtime converts paths to signed https URLs.
+   */
   readonly videoUrl: string | null;
   readonly walkthroughId: string | null;
   readonly pageId: string;

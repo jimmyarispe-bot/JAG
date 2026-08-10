@@ -29,6 +29,14 @@
 /perf-rc5-*.json
 /docs/operations/rc10/artifacts/*.json
 
+# Local HeyGen generation artifacts (may include temporary signed URLs)
+/artifacts/heygen/*
+!/artifacts/heygen/.gitkeep
+
+# Local Learning media ingest temp (MP4 downloads — never commit)
+/artifacts/temp/
+/artifacts/jag-learn-media/
+
 # misc
 .DS_Store
 *.pem
