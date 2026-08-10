@@ -14,6 +14,7 @@ import {
   loadAuthProvisionState,
   needsAuthUserProvisioning,
 } from "@/lib/platform/identity/provision-auth-user";
+import { resolvePersonalDisplayTitle } from "@/lib/auth/display-title";
 
 export interface SessionUser {
   id: string;
@@ -43,7 +44,11 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   }
 
   const [{ data: profile }, roleRows, branding] = await Promise.all([
-    supabase.from("users").select("full_name, email").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("users")
+      .select("full_name, email, display_name, title")
+      .eq("id", user.id)
+      .maybeSingle(),
     loadUserRoleRows(user.id),
     loadOrganizationBranding(supabase),
   ]);
@@ -65,22 +70,36 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     roleRows[0]?.display_name ??
     null;
   const email = profile?.email ?? user.email ?? "";
+  const metadataDisplayName =
+    typeof user.user_metadata?.display_name === "string"
+      ? user.user_metadata.display_name.trim()
+      : typeof user.user_metadata?.full_name === "string"
+        ? user.user_metadata.full_name.trim()
+        : "";
   const fullName =
+    profile?.display_name?.trim() ||
     profile?.full_name?.trim() ||
+    metadataDisplayName ||
     email.split("@")[0]?.replace(/\./g, " ") ||
     "User";
 
-  const personalTitle =
+  const metadataTitle =
     typeof user.user_metadata?.title === "string"
       ? user.user_metadata.title.trim()
       : "";
+  // Persisted personal job title wins over role branding (Founder vs Founder & CEO).
+  const personalTitle =
+    profile?.title?.trim() ||
+    resolvePersonalDisplayTitle(email, metadataTitle) ||
+    metadataTitle;
 
-  const roleLabel = hasExecutiveAccess
-    ? branding.roleTitles.FOUNDER?.trim() ||
-      resolveRoleLabel(primaryRole, branding, primaryRoleDisplayName) ||
-      "Executive"
-    : personalTitle ||
-      resolveRoleLabel(primaryRole, branding, primaryRoleDisplayName);
+  const roleLabel =
+    personalTitle ||
+    (hasExecutiveAccess
+      ? branding.roleTitles.FOUNDER?.trim() ||
+        resolveRoleLabel(primaryRole, branding, primaryRoleDisplayName) ||
+        "Executive"
+      : resolveRoleLabel(primaryRole, branding, primaryRoleDisplayName));
 
   return {
     id: user.id,

@@ -35,7 +35,7 @@ export default async function DashboardHomePage() {
             {greeting} · {today}
           </p>
           <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Founder &amp; CEO
+            {ctx.roleLabel || "Founder"}
           </h2>
           <p className="mt-2 text-sm text-indigo-100/90">
             Welcome back, {ctx.fullName}
@@ -44,9 +44,11 @@ export default async function DashboardHomePage() {
             Your founder operating home for {branding.productName}
             {branding.editionLabel ? ` · ${branding.editionLabel}` : " · Founder's Edition"}.
           </p>
-          <p className="mt-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-indigo-100 ring-1 ring-white/20">
-            Founder &amp; CEO
-          </p>
+          {ctx.roleLabel ? (
+            <p className="mt-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-indigo-100 ring-1 ring-white/20">
+              {ctx.roleLabel}
+            </p>
+          ) : null}
         </section>
 
         <FounderDashboardNav />

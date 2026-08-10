@@ -24035,21 +24035,33 @@ export type Database = {
       users: {
         Row: {
           created_at: string | null
+          display_name: string | null
           email: string
+          first_name: string | null
           full_name: string | null
           id: string
+          last_name: string | null
+          title: string | null
         }
         Insert: {
           created_at?: string | null
+          display_name?: string | null
           email: string
+          first_name?: string | null
           full_name?: string | null
           id: string
+          last_name?: string | null
+          title?: string | null
         }
         Update: {
           created_at?: string | null
+          display_name?: string | null
           email?: string
+          first_name?: string | null
           full_name?: string | null
           id?: string
+          last_name?: string | null
+          title?: string | null
         }
         Relationships: []
       }

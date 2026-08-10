@@ -9,6 +9,7 @@ import {
   inviteManagedUsers,
   resetUserPassword,
   setUserActiveState,
+  updateManagedUserProfile,
 } from "@/lib/platform/identity/user-management";
 import {
   resolveUserManagementRole,
@@ -101,6 +102,19 @@ export async function importUsersCsvAction(formData: FormData) {
   if (!result.success) return { error: result.error };
   revalidateUsers();
   return { success: true, created: result.created, errors: result.errors };
+}
+
+export async function updateUserProfileAction(formData: FormData) {
+  const result = await updateManagedUserProfile({
+    userId: String(formData.get("user_id") ?? ""),
+    firstName: String(formData.get("first_name") ?? ""),
+    lastName: String(formData.get("last_name") ?? ""),
+    displayName: String(formData.get("display_name") ?? ""),
+    title: String(formData.get("title") ?? ""),
+  });
+  if (!result.success) return { error: result.error };
+  revalidateUsers();
+  return { success: true };
 }
 
 export async function assignUserRoleAction(formData: FormData) {

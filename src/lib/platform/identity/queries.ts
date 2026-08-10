@@ -15,6 +15,10 @@ export type AdminDirectoryUser = {
   id: string;
   email: string;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
+  title: string | null;
   created_at: string | null;
   roles: string[];
   roleKeys: string[];
@@ -31,7 +35,9 @@ export async function getAdminUsersDirectory(): Promise<AdminDirectoryUser[]> {
   const supabase = await createAuthClient();
   const { data: users } = await supabase
     .from("users")
-    .select("id, email, full_name, created_at")
+    .select(
+      "id, email, full_name, first_name, last_name, display_name, title, created_at"
+    )
     .order("full_name");
 
   const { data: userRoles } = await supabase

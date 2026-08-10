@@ -54,7 +54,7 @@ export const getIdentityContext = cache(async (): Promise<IdentityContext | null
     if (impSession) {
       const { data: targetUser } = await supabase
         .from("users")
-        .select("full_name")
+        .select("display_name, full_name")
         .eq("id", impSession.target_user_id)
         .maybeSingle();
 
@@ -63,7 +63,10 @@ export const getIdentityContext = cache(async (): Promise<IdentityContext | null
         sessionId: impSession.id,
         actorUserId: impSession.actor_user_id,
         targetUserId: impSession.target_user_id,
-        targetName: targetUser?.full_name ?? "User",
+        targetName:
+          targetUser?.display_name?.trim() ||
+          targetUser?.full_name?.trim() ||
+          "User",
         startedAt: impSession.started_at,
       };
     }

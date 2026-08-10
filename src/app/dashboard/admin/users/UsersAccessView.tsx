@@ -21,6 +21,7 @@ import {
   importUsersCsvAction,
   inviteUsersAction,
   resetPasswordAction,
+  updateUserProfileAction,
 } from "@/lib/platform/identity/user-management-actions";
 import { startImpersonationAction } from "@/lib/platform/identity/server-actions";
 import {
@@ -32,7 +33,28 @@ type OrgOption = { id: string; name: string };
 type SchoolOption = { id: string; name: string };
 type DeptOption = { id: string; name: string };
 
-type Modal = "add" | "import" | "invite" | "assign-school" | "assign-role" | null;
+type Modal =
+  | "add"
+  | "edit-profile"
+  | "import"
+  | "invite"
+  | "assign-school"
+  | "assign-role"
+  | null;
+
+function profileDefaults(user: AdminDirectoryUser) {
+  const display =
+    user.display_name?.trim() || user.full_name?.trim() || "";
+  const parts = display.split(/\s+/).filter(Boolean);
+  return {
+    firstName: user.first_name?.trim() || parts[0] || "",
+    lastName:
+      user.last_name?.trim() ||
+      (parts.length > 1 ? parts.slice(1).join(" ") : ""),
+    displayName: display,
+    title: user.title?.trim() || "",
+  };
+}
 
 function statusTone(status: AdminDirectoryUser["status"]) {
   if (status === "active") return "bg-emerald-50 text-emerald-700";
@@ -117,7 +139,9 @@ export function UsersAccessView({
     if (!q) return users;
     return users.filter((u) => {
       const hay = [
+        u.display_name,
         u.full_name,
+        u.title,
         u.email,
         u.roles.join(" "),
         u.schools.join(" "),
@@ -164,6 +188,14 @@ export function UsersAccessView({
     const actions: EntityMenuAction[] = [];
     if (canManage) {
       actions.push(
+        {
+          id: "edit-profile",
+          label: "Edit",
+          onSelect: () => {
+            setActionUserId(user.id);
+            setModal("edit-profile");
+          },
+        },
         {
           id: "assign-role",
           label: "Assign Role",
@@ -435,7 +467,12 @@ export function UsersAccessView({
                     </td>
                   )}
                   <td className="px-4 py-3 font-medium text-slate-900">
-                    {user.full_name ?? "—"}
+                    <div>{user.display_name?.trim() || user.full_name || "—"}</div>
+                    {user.title?.trim() ? (
+                      <div className="mt-0.5 text-xs font-normal text-slate-500">
+                        {user.title}
+                      </div>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{user.email}</td>
                   <td className="px-4 py-3">
@@ -479,6 +516,87 @@ export function UsersAccessView({
           Working…
         </p>
       )}
+
+      {modal === "edit-profile" && actionUserId && (() => {
+        const user = users.find((u) => u.id === actionUserId);
+        if (!user) return null;
+        const defaults = profileDefaults(user);
+        return (
+          <ModalShell title="Edit Profile" onClose={() => setModal(null)}>
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                runAction(() => updateUserProfileAction(fd), "Profile updated");
+              }}
+            >
+              <input type="hidden" name="user_id" value={user.id} />
+              <p className="text-sm text-slate-500">
+                Updates profile display fields only. Roles and permissions are managed
+                separately.
+              </p>
+              <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                {user.email}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label className="text-sm">
+                  First Name
+                  <input
+                    name="first_name"
+                    required
+                    defaultValue={defaults.firstName}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+                  />
+                </label>
+                <label className="text-sm">
+                  Last Name
+                  <input
+                    name="last_name"
+                    required
+                    defaultValue={defaults.lastName}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+                  />
+                </label>
+              </div>
+              <label className="block text-sm">
+                Display Name
+                <input
+                  name="display_name"
+                  required
+                  defaultValue={defaults.displayName}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+                />
+              </label>
+              <label className="block text-sm">
+                Job Title
+                <input
+                  name="title"
+                  defaultValue={defaults.title}
+                  placeholder="e.g. Chief Schools Officer"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+                />
+              </label>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModal(null)}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={pending}
+                  className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+                >
+                  Save Profile
+                </button>
+              </div>
+            </form>
+          </ModalShell>
+        );
+      })()}
 
       {modal === "add" && (
         <ModalShell title="Add User" onClose={() => setModal(null)}>

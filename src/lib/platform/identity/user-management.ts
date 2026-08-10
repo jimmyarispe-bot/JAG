@@ -85,6 +85,8 @@ async function attachMembershipAndScope(
     userId: string;
     email: string;
     fullName: string;
+    firstName: string;
+    lastName: string;
     organizationId: string;
     schoolIds: string[];
     role: UserManagementRoleValue;
@@ -102,6 +104,9 @@ async function attachMembershipAndScope(
       id: input.userId,
       email: input.email,
       full_name: input.fullName,
+      display_name: input.fullName,
+      first_name: input.firstName.trim() || null,
+      last_name: input.lastName.trim() || null,
     },
     { onConflict: "id" }
   );
@@ -287,6 +292,8 @@ export async function createManagedUser(
       userId,
       email,
       fullName: name,
+      firstName: input.firstName,
+      lastName: input.lastName,
       organizationId: input.organizationId,
       schoolIds: input.schoolIds,
       role: input.role,
@@ -473,6 +480,116 @@ export async function importUsersFromCsv(input: {
     return { success: false, error: errors.join("; ") || "No users imported" };
   }
   return { success: true, created, errors };
+}
+
+export type ManagedUserProfileInput = {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  title: string;
+};
+
+/**
+ * Profile attributes only — never roles, permissions, org, or auth email.
+ * Requires users.manage; uses service role for public.users + metadata sync.
+ */
+export async function updateManagedUserProfile(
+  input: ManagedUserProfileInput
+): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = await createAuthClient();
+  const gate = await requirePermission(supabase, "users.manage");
+  if (!gate.ok) return { success: false, error: gate.error };
+
+  const userId = input.userId.trim();
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+  const displayName = input.displayName.trim();
+  const title = input.title.trim();
+
+  if (!userId) return { success: false, error: "User is required" };
+  if (!firstName || !lastName) {
+    return { success: false, error: "First and last name are required" };
+  }
+  if (!displayName) {
+    return { success: false, error: "Display name is required" };
+  }
+
+  let admin: ReturnType<typeof createServiceRoleClient>;
+  try {
+    admin = createServiceRoleClient();
+  } catch {
+    return { success: false, error: "Missing SUPABASE_SERVICE_ROLE_KEY" };
+  }
+
+  const { data: existing, error: existingError } = await admin
+    .from("users")
+    .select("id, email")
+    .eq("id", userId)
+    .maybeSingle();
+  if (existingError) return { success: false, error: existingError.message };
+  if (!existing) return { success: false, error: "User not found" };
+
+  const { error: profileError } = await admin
+    .from("users")
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      display_name: displayName,
+      full_name: displayName,
+      title: title || null,
+    })
+    .eq("id", userId);
+  if (profileError) return { success: false, error: profileError.message };
+
+  const { data: authUser, error: authGetError } =
+    await admin.auth.admin.getUserById(userId);
+  if (authGetError) return { success: false, error: authGetError.message };
+
+  const { error: authUpdateError } = await admin.auth.admin.updateUserById(
+    userId,
+    {
+      user_metadata: {
+        ...(authUser.user?.user_metadata ?? {}),
+        first_name: firstName,
+        last_name: lastName,
+        display_name: displayName,
+        full_name: displayName,
+        title: title || null,
+      },
+    }
+  );
+  if (authUpdateError) return { success: false, error: authUpdateError.message };
+
+  await logSecurityEvent(supabase, {
+    eventType: "sensitive_access",
+    userId,
+    summary: `Updated profile for ${existing.email}`,
+    metadata: {
+      profile_only: true,
+      display_name: displayName,
+      title: title || null,
+    },
+  });
+  await recordActivity(supabase, {
+    eventType: "identity.user_updated",
+    moduleKey: "identity",
+    entityType: "user",
+    entityId: userId,
+    title: "User profile updated",
+    summary: `${displayName} (${existing.email})`,
+    actorUserId: await resolveActorUserId(supabase),
+    payload: {
+      first_name: firstName,
+      last_name: lastName,
+      display_name: displayName,
+      title: title || null,
+    },
+    sourceTable: "users",
+    sourceId: userId,
+  });
+
+  return { success: true };
 }
 
 export async function assignUserRole(input: {

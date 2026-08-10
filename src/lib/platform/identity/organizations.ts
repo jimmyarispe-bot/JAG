@@ -184,21 +184,30 @@ export async function getOrganizationUsers(
   const { data } = await client
     .from("user_organization_memberships")
     .select(
-      "user_id, membership_role, status, is_primary, permissions, users(email, full_name)"
+      "user_id, membership_role, status, is_primary, permissions, users(email, full_name, display_name)"
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: true });
 
   return (data ?? []).map((row) => {
     const users = row.users as
-      | { email: string | null; full_name: string | null }
-      | { email: string | null; full_name: string | null }[]
+      | {
+          email: string | null;
+          full_name: string | null;
+          display_name: string | null;
+        }
+      | {
+          email: string | null;
+          full_name: string | null;
+          display_name: string | null;
+        }[]
       | null;
     const profile = Array.isArray(users) ? users[0] : users;
     return {
       userId: row.user_id as string,
       email: profile?.email ?? null,
-      fullName: profile?.full_name ?? null,
+      fullName:
+        profile?.display_name?.trim() || profile?.full_name?.trim() || null,
       membershipRole: row.membership_role as string,
       status: row.status as string,
       isPrimary: Boolean(row.is_primary),

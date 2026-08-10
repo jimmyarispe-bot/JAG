@@ -192,7 +192,7 @@ describe("Phase 65 customer workspace navigation", () => {
       organizationId: null,
     });
     const ids = nav.map((n) => n.id);
-    expect(ids).toEqual(["overview", "settings"]);
+    expect(ids).toEqual(["overview", "learn", "settings"]);
   });
 
   it("H. explicit workspace=platform restores admin mode while org remains", () => {

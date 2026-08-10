@@ -87,6 +87,7 @@ export function JagSidebar({
                 <li key={item.id}>
                   <Link
                     href={item.href}
+                    data-jag-nav={item.id}
                     onClick={() => setOpen(false)}
                     className={
                       active

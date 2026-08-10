@@ -16,8 +16,16 @@ export const CUSTOMER_REQUIRED_CAPABILITY_IDS = [
   "jag.intelligence.listening",
 ] as const;
 
-/** Shell nav item ids allowed in customer context despite group:"system". */
-export const CUSTOMER_SHELL_ALLOWLIST_IDS = ["overview", "settings"] as const;
+/**
+ * Shell nav item ids always available in customer context.
+ * `learn` is primary-group but also allowlisted so Learning Center remains
+ * reachable even before an organization is bound (fail-closed shell).
+ */
+export const CUSTOMER_SHELL_ALLOWLIST_IDS = [
+  "overview",
+  "learn",
+  "settings",
+] as const;
 
 export function mergeCustomerEnabledCapabilityIds(
   selected: readonly string[]

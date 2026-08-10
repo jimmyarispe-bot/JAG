@@ -21,6 +21,13 @@ import { formatCapabilityVersion } from "./CapabilityVersion";
 export const SHELL_NAVIGATION: readonly CapabilityNavItem[] = [
   { id: "overview", label: "Overview", href: "/jag", order: 0, group: "primary" },
   {
+    id: "learn",
+    label: "Learn",
+    href: "/jag/learn",
+    order: 5,
+    group: "primary",
+  },
+  {
     id: "organizations",
     label: "Organizations",
     href: "/jag/organizations",

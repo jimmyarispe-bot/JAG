@@ -11,7 +11,7 @@ import type { OrganizationBranding } from "@/lib/branding/types";
  * - `/dashboard/executive` = AcademyOS Executive Intelligence module
  */
 export const FOUNDER_DASHBOARD_NAV = [
-  { href: "/dashboard", label: "Founder & CEO", exact: true },
+  { href: "/dashboard", label: "Overview", exact: true },
   { href: "/founder", label: "Founder Workspace" },
   { href: "/dashboard/founder", label: "Founder Intelligence" },
   { href: "/dashboard/mission-control", label: "Mission Control" },

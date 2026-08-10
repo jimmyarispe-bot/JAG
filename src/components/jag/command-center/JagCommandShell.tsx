@@ -7,6 +7,7 @@ import type { OrganizationBrand } from "@/lib/platform/branding";
 import { JagHeader } from "./JagHeader";
 import { JagOrganizationHandoff } from "./JagOrganizationHandoff";
 import { JagSidebar } from "./JagSidebar";
+import { JagContextualHelp, JagFirstLoginWelcome } from "./learn";
 import type { JagNavItem } from "./nav";
 
 export function JagCommandShell({
@@ -105,6 +106,8 @@ export function JagCommandShell({
           <div className="mx-auto w-full max-w-[90rem]">{children}</div>
         </main>
       </div>
+      <JagFirstLoginWelcome />
+      <JagContextualHelp />
     </div>
   );
 }

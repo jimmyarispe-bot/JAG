@@ -32,6 +32,7 @@ export {
   JagBrandingSettingsView,
 } from "./branding";
 export { JagOnboardingView } from "./onboarding";
+/** Learning Center UI — import from `@/components/jag/command-center/learn` only. */
 export {
   ListeningCampaignView,
   ListeningInitiativeView,
