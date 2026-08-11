@@ -63,19 +63,40 @@ describe("Overview Welcome video (JAG-001)", () => {
   });
 
   it("renders Welcome section front-and-center with signed playback URL", () => {
+    const signed =
+      "https://ybcpaffklggaloxhnqkl.supabase.co/storage/v1/object/sign/jag-learn-media/tutorials/JAG-001/mr-jag.mp4?token=1";
     const html = renderToStaticMarkup(
       createElement(JagWelcomeVideoSection, {
-        videoUrl: "https://signed.example/tutorials/JAG-001/mr-jag.mp4?token=1",
+        videoUrl: signed,
       })
     );
     expect(html).toContain("Welcome to The JAG");
     expect(html).toContain("data-jag-overview-welcome-video");
     expect(html).toContain('data-jag-learn-video="ready"');
-    expect(html).toContain(
-      "https://signed.example/tutorials/JAG-001/mr-jag.mp4?token=1"
+    expect(html).toMatch(
+      new RegExp(
+        `<video[^>]*\\ssrc="${signed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`
+      )
     );
     expect(html).not.toContain("heygen");
     expect(html).toContain("/jag/learn/tutorials/welcome-to-the-jag");
+  });
+
+  it("passes overview welcomeVideoUrl through to the video element", () => {
+    const signed =
+      "https://ybcpaffklggaloxhnqkl.supabase.co/storage/v1/object/sign/jag-learn-media/tutorials/JAG-001/mr-jag.mp4?token=overview";
+    const html = renderToStaticMarkup(
+      createElement(JagExecutiveOverview, {
+        model: emptyOverview(),
+        welcomeVideoUrl: signed,
+      })
+    );
+    expect(html).toContain("data-jag-overview-welcome-video");
+    expect(html).toMatch(
+      new RegExp(
+        `<video[^>]*\\ssrc="${signed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`
+      )
+    );
   });
 
   it("places Welcome video above overview health content", () => {

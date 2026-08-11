@@ -59,10 +59,10 @@ export function JagLearningVideo({
           controlsList="nodownload"
           preload="metadata"
           playsInline
+          src={playback.videoUrl}
           poster={playback.posterUrl ?? undefined}
           aria-label={`${playback.instructorDisplayName}: ${playback.title}`}
         >
-          <source src={playback.videoUrl} />
           {playback.captionsUrl ? (
             <track
               kind="captions"

@@ -178,11 +178,31 @@ describe("JAG Learning video infrastructure", () => {
     );
     expect(html).toContain('data-jag-learn-video="ready"');
     expect(html).toContain("<video");
-    expect(html).toContain("https://cdn.example.com/jag/JAG-001.mp4");
+    // URL must be on the <video> element itself (not only a nested <source>).
+    expect(html).toMatch(
+      /<video[^>]*\ssrc="https:\/\/cdn\.example\.com\/jag\/JAG-001\.mp4"/
+    );
     expect(html).toContain('kind="captions"');
     expect(html).toContain("poster=");
     expect(html).not.toContain("autoplay");
     expect(html).toContain("Mr. JAG");
+  });
+
+  it("assigns a Supabase signed URL to the video element src attribute", () => {
+    const signed =
+      "https://ybcpaffklggaloxhnqkl.supabase.co/storage/v1/object/sign/jag-learn-media/tutorials/JAG-001/mr-jag.mp4?token=test";
+    const html = renderToStaticMarkup(
+      createElement(JagLearningVideo, {
+        videoUrl: signed,
+        title: "Welcome to The JAG",
+      })
+    );
+    expect(html).toContain('data-jag-learn-video="ready"');
+    expect(html).toMatch(
+      new RegExp(
+        `<video[^>]*\\ssrc="${signed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`
+      )
+    );
   });
 
   it("builds media paths under the dedicated JAG Learning bucket contract", () => {
