@@ -4,7 +4,8 @@
  * Maps URL paths to required catalog permissions. Used by Next.js middleware
  * and server layout guards.
  *
- * Sprint 007 — Founder Protection: JAG routes require JAG_ACCESS only.
+ * Sprint 007 — Founder Protection: JAG routes enter via JAG_ACCESS (platform)
+ * or JAG_ORG_ACCESS (customer org admin). AcademyOS-only roles are denied.
  * Sprint 008 — Financial Security: finance surfaces require FINANCE_ACCESS.
  */
 
@@ -19,6 +20,7 @@ import {
   JAG_ENTRY_PERMISSION,
   authorizeJagEntry,
 } from "@/lib/platform/identity/founder-protection";
+import { JAG_ORG_ENTRY_PERMISSION } from "@/lib/platform/identity/jag-authority";
 import {
   FINANCE_DENIED_REDIRECT,
   FINANCE_ENTRY_PERMISSION,
@@ -78,12 +80,15 @@ export function isPayrollRoute(pathname: string, search: string = ""): boolean {
 /**
  * Resolve catalog permissions required for a route.
  * More specific module gates are additive on top of application scope.
+ *
+ * JAG entry is OR(JAG_ACCESS, JAG_ORG_ACCESS). This helper returns the
+ * platform steward permission for declarative callers; authorizeRoute() is
+ * authoritative and must not treat the list as an AND for JAG paths.
  */
 export function requiredPermissionsForRoute(
   pathname: string,
   search: string = ""
 ): CatalogPermission[] {
-  // Sprint 007 — JAG is Founder-protected via JAG_ACCESS alone.
   if (isJagRoute(pathname)) {
     return [JAG_ENTRY_PERMISSION];
   }
@@ -112,7 +117,10 @@ export function deniedRedirectFor(
   missing: CatalogPermission,
   _pathname: string
 ): string {
-  if (missing === JAG_ENTRY_PERMISSION) {
+  if (
+    missing === JAG_ENTRY_PERMISSION ||
+    missing === JAG_ORG_ENTRY_PERMISSION
+  ) {
     return ACADEMYOS_HOME_PATH;
   }
   if (missing === "ACADEMYOS_ACCESS") {
@@ -130,17 +138,20 @@ export function authorizeRoute(
   pathname: string,
   search: string = ""
 ): RouteAuthzDecision {
-  // Sprint 007 — Founder Protection (permission engine only).
+  // JAG Command Center — platform steward (JAG_ACCESS) or org admin (JAG_ORG_ACCESS).
   if (isJagRoute(pathname)) {
-    if (authorizeJagEntry(snapshot)) {
+    if (!authorizeJagEntry(snapshot)) {
+      return {
+        ok: false,
+        required: [JAG_ENTRY_PERMISSION, JAG_ORG_ENTRY_PERMISSION],
+        missing: JAG_ORG_ENTRY_PERMISSION,
+        redirectTo: ACADEMYOS_HOME_PATH,
+      };
+    }
+    if (authorize(snapshot, JAG_ENTRY_PERMISSION)) {
       return { ok: true, required: [JAG_ENTRY_PERMISSION] };
     }
-    return {
-      ok: false,
-      required: [JAG_ENTRY_PERMISSION],
-      missing: JAG_ENTRY_PERMISSION,
-      redirectTo: ACADEMYOS_HOME_PATH,
-    };
+    return { ok: true, required: [JAG_ORG_ENTRY_PERMISSION] };
   }
 
   // Sprint 009 — Platform Administration (permission engine only).
