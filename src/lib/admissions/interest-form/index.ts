@@ -10,6 +10,14 @@ export type {
 export { INTEREST_FORM_SCHEMA_VERSION } from "@/lib/admissions/interest-form/types";
 export { INITIAL_INTEREST_FORM_DEFINITION } from "@/lib/admissions/interest-form/seed-definition";
 export {
+  INTEREST_FORM_PROGRAM_OPTIONS,
+  INTEREST_FORM_PROGRAM_QUESTION_HELP,
+  INTEREST_FORM_PROGRAM_QUESTION_LABEL,
+  allowedInterestProgramTypes,
+  isInterestFormProgramValue,
+  normalizeInterestProgramSelections,
+} from "@/lib/admissions/interest-form/program-options";
+export {
   formDataToInterestValues,
   hashInterestFormDefinition,
   isQuestionVisible,

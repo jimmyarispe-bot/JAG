@@ -6,6 +6,10 @@ import { createHash } from "node:crypto";
 import { evaluateFormConditions } from "@/lib/platform/forms/visibility";
 import { GRADES } from "@/lib/constants/grades";
 import { FUNDING_SOURCES, PROGRAMS } from "@/lib/constants/programs";
+import {
+  isInterestFormProgramValue,
+  normalizeInterestProgramSelections,
+} from "@/lib/admissions/interest-form/program-options";
 import type {
   InterestFormDefinition,
   InterestFormValues,
@@ -211,14 +215,14 @@ export function validateInterestSubmission(input: {
         break;
       }
       case "program_selector": {
-        const code = String(raw).trim();
-        if (code && !input.programCodesForSchool.has(code)) {
+        const selected = normalizeInterestProgramSelections(raw);
+        if (selected.some((value) => !isInterestFormProgramValue(value))) {
           issues.push({
             path: question.key,
-            message: "Select a valid program for the chosen school.",
+            message: "Select a valid program type.",
           });
         } else {
-          visibleValues[question.key] = code || null;
+          visibleValues[question.key] = selected;
         }
         break;
       }
@@ -272,6 +276,7 @@ export function validateInterestSubmission(input: {
 export function formDataToInterestValues(formData: FormData): InterestFormValues {
   const values: InterestFormValues = {};
   const funding: string[] = [];
+  const programs: string[] = [];
   for (const [key, value] of formData.entries()) {
     // Metadata stays out of answer/value maps (submission.source is read separately).
     if (isInterestFormMetadataKey(key)) {
@@ -279,6 +284,10 @@ export function formDataToInterestValues(formData: FormData): InterestFormValues
     }
     if (key === "funding_sources") {
       funding.push(String(value));
+      continue;
+    }
+    if (key === "program") {
+      programs.push(String(value));
       continue;
     }
     if (values[key] !== undefined) {
@@ -291,5 +300,6 @@ export function formDataToInterestValues(formData: FormData): InterestFormValues
     }
   }
   if (funding.length) values.funding_sources = funding;
+  if (programs.length) values.program = normalizeInterestProgramSelections(programs);
   return values;
 }
