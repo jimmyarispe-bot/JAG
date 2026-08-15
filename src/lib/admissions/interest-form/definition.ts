@@ -101,6 +101,30 @@ export type InterestValidationIssue = {
 };
 
 /**
+ * Non-question FormData / value keys accepted alongside published questions.
+ * Anything else unknown is rejected (integrity boundary).
+ *
+ * - company_website / cf-turnstile-response — anti-spam
+ * - form_version_id — stale-version check (not an answer)
+ * - source — submission metadata (`admissions_interest_submissions.source`)
+ */
+export const INTEREST_FORM_METADATA_KEYS = [
+  "company_website",
+  "form_version_id",
+  "cf-turnstile-response",
+  "source",
+] as const;
+
+export type InterestFormMetadataKey = (typeof INTEREST_FORM_METADATA_KEYS)[number];
+
+export function isInterestFormMetadataKey(key: string): key is InterestFormMetadataKey {
+  return (INTEREST_FORM_METADATA_KEYS as readonly string[]).includes(key);
+}
+
+/** Canonical submission.source for the public Express Interest path. */
+export const EXPRESS_INTEREST_SUBMISSION_SOURCE = "express_interest" as const;
+
+/**
  * Validate submission values against a published definition and current options.
  */
 export function validateInterestSubmission(input: {
@@ -127,7 +151,7 @@ export function validateInterestSubmission(input: {
   const knownKeys = new Set(input.definition.questions.map((q) => q.key));
 
   for (const key of Object.keys(input.values)) {
-    if (key === "company_website" || key === "form_version_id" || key === "cf-turnstile-response") {
+    if (isInterestFormMetadataKey(key)) {
       continue;
     }
     if (!knownKeys.has(key)) {
@@ -249,6 +273,10 @@ export function formDataToInterestValues(formData: FormData): InterestFormValues
   const values: InterestFormValues = {};
   const funding: string[] = [];
   for (const [key, value] of formData.entries()) {
+    // Metadata stays out of answer/value maps (submission.source is read separately).
+    if (isInterestFormMetadataKey(key)) {
+      continue;
+    }
     if (key === "funding_sources") {
       funding.push(String(value));
       continue;

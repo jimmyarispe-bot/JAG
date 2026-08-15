@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  EXPRESS_INTEREST_SUBMISSION_SOURCE,
   formDataToInterestValues,
   hashInterestFormDefinition,
   isQuestionVisible,
@@ -475,6 +476,177 @@ describe("8–15 conditional visibility + validation", () => {
     if (!result.ok) {
       expect(result.issues.some((i) => i.path === "form_version_id")).toBe(true);
     }
+  });
+});
+
+describe("source metadata — submission column, not a question", () => {
+  const schoolIds = new Set([SCHOOL_A]);
+  const baseValues = {
+    first_name: "A",
+    last_name: "B",
+    school_id: SCHOOL_A,
+    guardian_email: "a@example.com",
+  };
+
+  it("accepts source=express_interest as non-question metadata", () => {
+    const result = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: {
+        ...baseValues,
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.visibleValues).not.toHaveProperty("source");
+      expect(result.visibleValues.first_name).toBe("A");
+    }
+  });
+
+  it("strips source from FormData so it never becomes an answer key", () => {
+    const fd = new FormData();
+    fd.set("first_name", "Ada");
+    fd.set("last_name", "Lovelace");
+    fd.set("school_id", SCHOOL_A);
+    fd.set("guardian_email", "ada@example.com");
+    fd.set("source", EXPRESS_INTEREST_SUBMISSION_SOURCE);
+    fd.set("form_version_id", VERSION_A);
+    const values = formDataToInterestValues(fd);
+    expect(values).not.toHaveProperty("source");
+    expect(values).not.toHaveProperty("form_version_id");
+    expect(values.first_name).toBe("Ada");
+  });
+
+  it("persists express_interest on submission.source server-side (not as an answer)", () => {
+    expect(MIGRATION).toMatch(
+      /admissions_interest_submissions[\s\S]*source text null/
+    );
+    const submitSrc = readFileSync(
+      join(ROOT, "src/lib/admissions/interest-form/submit.ts"),
+      "utf8"
+    );
+    expect(submitSrc).toContain("EXPRESS_INTEREST_SUBMISSION_SOURCE");
+    expect(submitSrc).toMatch(/source:\s*EXPRESS_INTEREST_SUBMISSION_SOURCE/);
+    expect(submitSrc).not.toMatch(
+      /source:\s*asString\(formData\.get\(["']source["']\)\)/
+    );
+    // Answers are built only from visible question values
+    expect(submitSrc).toContain("Object.entries(input.values)");
+    expect(EXPRESS_INTEREST_SUBMISSION_SOURCE).toBe("express_interest");
+  });
+
+  it("rejects arbitrary unknown keys (source_hacked / not_a_question)", () => {
+    for (const forged of ["source_hacked", "not_a_question"] as const) {
+      const result = validateInterestSubmission({
+        definition: INITIAL_INTEREST_FORM_DEFINITION,
+        values: {
+          ...baseValues,
+          [forged]: "nope",
+        },
+        schoolIds,
+        programCodesForSchool: new Set(),
+        claimedFormVersionId: VERSION_A,
+        publishedFormVersionId: VERSION_A,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.issues.some((i) => i.path === forged)).toBe(true);
+        expect(result.issues.some((i) => i.message.includes(`Unknown question: ${forged}`))).toBe(
+          true
+        );
+      }
+    }
+  });
+
+  it("still accepts known question keys with source metadata present", () => {
+    const result = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: {
+        ...baseValues,
+        preferred_name: "Ada",
+        referral_source: "friend",
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.visibleValues.preferred_name).toBe("Ada");
+      expect(result.visibleValues.referral_source).toBe("friend");
+      expect(result.visibleValues).not.toHaveProperty("source");
+    }
+  });
+
+  it("still rejects stale form version when source metadata is present", () => {
+    const result = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: {
+        ...baseValues,
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: "stale-version",
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.some((i) => i.path === "form_version_id")).toBe(true);
+    }
+  });
+
+  it("still rejects invalid school/program when source metadata is present", () => {
+    const invalidSchool = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: {
+        ...baseValues,
+        school_id: SCHOOL_B,
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(invalidSchool.ok).toBe(false);
+    if (!invalidSchool.ok) {
+      expect(invalidSchool.issues.some((i) => i.path === "school_id")).toBe(true);
+    }
+
+    const invalidProgram = validateInterestSubmission({
+      definition: withConditionalQuestions(),
+      values: {
+        ...baseValues,
+        program: "academy_fl_campus",
+        learning_concerns: "notes",
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(["academy_ga_campus"]),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(invalidProgram.ok).toBe(false);
+    if (!invalidProgram.ok) {
+      expect(invalidProgram.issues.some((i) => i.path === "program")).toBe(true);
+    }
+  });
+
+  it("organization remains server-authoritative on submit (no client org id)", () => {
+    const submitSrc = readFileSync(
+      join(ROOT, "src/lib/admissions/interest-form/submit.ts"),
+      "utf8"
+    );
+    expect(submitSrc).toContain("resolveInterestFormOrganization()");
+    expect(submitSrc).not.toMatch(/formData\.get\(["']organization_id["']\)/);
+    expect(submitSrc).toContain("Ignore client organization authority");
   });
 });
 

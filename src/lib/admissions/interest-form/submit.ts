@@ -5,6 +5,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import {
+  EXPRESS_INTEREST_SUBMISSION_SOURCE,
   formDataToInterestValues,
   validateInterestSubmission,
 } from "@/lib/admissions/interest-form/definition";
@@ -211,7 +212,8 @@ export async function submitPublishedInterestForm(
     leadId,
     formId: published.formId,
     formVersionId: published.formVersionId,
-    source: asString(formData.get("source")) || "express_interest",
+    // Server-owned submission metadata — do not trust arbitrary client source values.
+    source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
     referralSource: asString(visible.referral_source) || null,
     values: visible,
   });
