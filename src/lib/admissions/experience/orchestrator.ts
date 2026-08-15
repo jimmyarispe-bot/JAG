@@ -11,6 +11,7 @@ import {
   submitPublicInquiry,
   uploadPortalDocument,
 } from "@/lib/admissions/portal/actions";
+import { submitPublishedInterestForm } from "@/lib/admissions/interest-form/submit";
 import {
   generateEnrollmentPacket,
   getEnrollmentPacket,
@@ -49,8 +50,8 @@ export function createAdmissionsExperienceOrchestrator() {
     toDashboardStatus,
 
     async submitInterest(formData: FormData, organizationId?: string | null) {
-      encodeInquiryExtras(formData);
-      const result = await submitPublicInquiry(formData);
+      // Phase 1: versioned published Interest Form path (new lead every submit).
+      const result = await submitPublishedInterestForm(formData);
       if ("leadId" in result && result.leadId) {
         publishAdmissionsExperienceEvent({
           type: "admissions.inquiry_submitted",

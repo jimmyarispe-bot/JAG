@@ -1,0 +1,227 @@
+/**
+ * Public Interest Form submit — org-resolved, version-validated, durable answers.
+ */
+
+import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import {
+  formDataToInterestValues,
+  validateInterestSubmission,
+} from "@/lib/admissions/interest-form/definition";
+import { loadPublishedInterestForm, listPublicProgramsForSchool } from "@/lib/admissions/interest-form/load";
+import { resolveInterestFormOrganization } from "@/lib/admissions/interest-form/org-resolve";
+import type { InterestFormValues } from "@/lib/admissions/interest-form/types";
+import { recordInitialStage } from "@/lib/admissions/workflow";
+import { onInquirySubmitted } from "@/lib/admissions/communications/triggers";
+import type { GradeValue } from "@/lib/constants/grades";
+import { parseProgramValue } from "@/lib/constants/programs";
+import { parseFundingSourcesFromForm } from "@/lib/funding/helpers";
+import {
+  checkRateLimitAsync,
+  getClientIpFromHeaders,
+} from "@/lib/platform/api-rate-limit";
+import { createAuthClient } from "@/lib/supabase/server-auth";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+
+function asString(value: unknown): string {
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+function encodeLeadReferralExtras(values: InterestFormValues): string | null {
+  const referral = asString(values.referral_source);
+  const concerns = asString(values.learning_concerns);
+  const preferred = asString(values.preferred_contact_method);
+  const parts = [
+    referral,
+    preferred ? `preferred_contact:${preferred}` : "",
+    concerns ? `learning_concerns:${concerns}` : "",
+  ].filter(Boolean);
+  return parts.length ? parts.join(" | ") : null;
+}
+
+async function verifyAntiSpam(formData: FormData): Promise<string | null> {
+  const honeypot = asString(formData.get("company_website"));
+  if (honeypot) return "Unable to submit inquiry.";
+
+  const headerStore = await headers();
+  const ip = getClientIpFromHeaders(headerStore);
+  const limited = await checkRateLimitAsync(`admissions-inquiry:${ip}`, 5, 60_000);
+  if (!limited.ok) return "Too many inquiries. Please try again later.";
+
+  const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+  if (turnstileSecret) {
+    const token = asString(formData.get("cf-turnstile-response"));
+    if (!token) return "Please complete the captcha.";
+    try {
+      const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          secret: turnstileSecret,
+          response: token,
+          remoteip: ip,
+        }),
+      });
+      const outcome = (await verify.json()) as { success?: boolean };
+      if (!outcome.success) return "Captcha verification failed.";
+    } catch {
+      return "Captcha verification unavailable.";
+    }
+  }
+  return null;
+}
+
+async function persistInterestSubmission(input: {
+  organizationId: string;
+  leadId: string;
+  formId: string;
+  formVersionId: string;
+  source: string | null;
+  referralSource: string | null;
+  values: InterestFormValues;
+}): Promise<{ submissionId: string } | { error: string }> {
+  const admin = createServiceRoleClient();
+
+  const { data: submission, error: submissionError } = await admin
+    .from("admissions_interest_submissions" as never)
+    .insert({
+      organization_id: input.organizationId,
+      lead_id: input.leadId,
+      form_id: input.formId,
+      form_version_id: input.formVersionId,
+      submitted_at: new Date().toISOString(),
+      source: input.source,
+      referral_source: input.referralSource,
+    } as never)
+    .select("id")
+    .single();
+
+  if (submissionError || !submission) {
+    return { error: submissionError?.message ?? "Unable to persist submission." };
+  }
+
+  const submissionId = (submission as { id: string }).id;
+  const answerRows = Object.entries(input.values).map(([question_key, value]) => ({
+    submission_id: submissionId,
+    organization_id: input.organizationId,
+    form_version_id: input.formVersionId,
+    question_key,
+    value: value === undefined ? null : value,
+  }));
+
+  if (answerRows.length) {
+    const { error: answersError } = await admin
+      .from("admissions_interest_answers" as never)
+      .insert(answerRows as never);
+    if (answersError) {
+      return { error: answersError.message };
+    }
+  }
+
+  return { submissionId };
+}
+
+/**
+ * Submit Express Interest against the server-resolved published form.
+ * Client-supplied organization_id / form ownership is ignored.
+ */
+export async function submitPublishedInterestForm(
+  formData: FormData
+): Promise<{ leadId: string; submissionId: string } | { error: string }> {
+  const spamError = await verifyAntiSpam(formData);
+  if (spamError) return { error: spamError };
+
+  // Ignore client organization authority — host resolution only (fail closed).
+  const org = await resolveInterestFormOrganization();
+  if (!org) {
+    return { error: "Unable to resolve organization for this inquiry." };
+  }
+
+  const published = await loadPublishedInterestForm({
+    organizationId: org.organizationId,
+    organizationName: org.organizationName,
+  });
+  if (!published) {
+    return { error: "Interest form is not available." };
+  }
+
+  const values = formDataToInterestValues(formData);
+  const schoolId = asString(values.school_id);
+  const schoolIds = new Set(published.schools.map((s) => s.id));
+
+  const programs =
+    schoolId && schoolIds.has(schoolId)
+      ? await listPublicProgramsForSchool({
+          organizationId: org.organizationId,
+          schoolId,
+        })
+      : [];
+  const programCodes = new Set(programs.map((p) => p.code));
+
+  const validation = validateInterestSubmission({
+    definition: published.definition,
+    values,
+    schoolIds,
+    programCodesForSchool: programCodes,
+    claimedFormVersionId: asString(formData.get("form_version_id")) || null,
+    publishedFormVersionId: published.formVersionId,
+  });
+
+  if (!validation.ok) {
+    return {
+      error: validation.issues.map((i) => i.message).join(" "),
+    };
+  }
+
+  const visible = validation.visibleValues;
+  const fundingSources = parseFundingSourcesFromForm(formData);
+  const referralForLead = encodeLeadReferralExtras(visible);
+
+  const supabase = await createAuthClient();
+  const { data, error } = await supabase.rpc("submit_public_admissions_inquiry", {
+    p_school_id: asString(visible.school_id),
+    p_first_name: asString(visible.first_name),
+    p_last_name: asString(visible.last_name),
+    p_preferred_name: asString(visible.preferred_name) || null,
+    p_date_of_birth: asString(visible.date_of_birth) || null,
+    p_current_grade: (asString(visible.current_grade) as GradeValue) || null,
+    p_applying_for_grade: (asString(visible.applying_for_grade) as GradeValue) || null,
+    p_program: parseProgramValue(asString(visible.program)),
+    p_referral_source: referralForLead,
+    p_guardian_first_name: asString(visible.guardian_first_name) || null,
+    p_guardian_last_name: asString(visible.guardian_last_name) || null,
+    p_guardian_email: asString(visible.guardian_email),
+    p_guardian_phone: asString(visible.guardian_phone) || null,
+    p_funding_source_codes: fundingSources.length
+      ? fundingSources
+      : Array.isArray(visible.funding_sources)
+        ? (visible.funding_sources as string[])
+        : [],
+  });
+
+  if (error) return { error: error.message };
+
+  const leadId = data as string;
+  await recordInitialStage(supabase, leadId, null);
+  await onInquirySubmitted(supabase, leadId);
+
+  const persisted = await persistInterestSubmission({
+    organizationId: org.organizationId,
+    leadId,
+    formId: published.formId,
+    formVersionId: published.formVersionId,
+    source: asString(formData.get("source")) || "express_interest",
+    referralSource: asString(visible.referral_source) || null,
+    values: visible,
+  });
+
+  if ("error" in persisted) {
+    // Lead already created — surface persistence failure without undoing CRM.
+    console.error("[submitPublishedInterestForm] answers", persisted.error);
+    return { error: "Inquiry received but submission archive failed. Please contact admissions." };
+  }
+
+  revalidatePath("/apply");
+  return { leadId, submissionId: persisted.submissionId };
+}
