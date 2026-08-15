@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   RELATIONSHIP_TYPES,
   resolveEvidenceUploadFileSelection,
@@ -45,10 +45,41 @@ export function JagEvidenceDetail({
   const [versionFile, setVersionFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const nameById = Object.fromEntries(
     catalogOptions.map((item) => [item.id, item.name])
   );
+
+  const deleteDocument = async () => {
+    setDeleting(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(
+        `/api/jag-platform/evidence/documents/${encodeURIComponent(document.id)}`,
+        { method: "DELETE" }
+      );
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) {
+        setDeleteOpen(false);
+        setError(payload.error ?? "Could not delete evidence document.");
+        return;
+      }
+      setDeleteOpen(false);
+      setMessage("Evidence document deleted.");
+      router.push(`/jag/evidence?org=${encodeURIComponent(organizationId)}`);
+      router.refresh();
+    } catch (err) {
+      setDeleteOpen(false);
+      setError(
+        err instanceof Error ? err.message : "Could not delete evidence document."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const addVersion = async () => {
     if (!versionFile) {
@@ -130,8 +161,29 @@ export function JagEvidenceDetail({
               Download
             </a>
           )}
+          <button
+            type="button"
+            className="text-sm font-medium text-rose-700 underline"
+            onClick={() => {
+              setError("");
+              setDeleteOpen(true);
+            }}
+          >
+            Delete
+          </button>
         </div>
       </div>
+
+      {deleteOpen ? (
+        <EvidenceDeleteConfirmDialog
+          documentName={document.name}
+          busy={deleting}
+          onCancel={() => {
+            if (!deleting) setDeleteOpen(false);
+          }}
+          onConfirm={() => void deleteDocument()}
+        />
+      ) : null}
 
       {(message || error) && (
         <p
@@ -346,6 +398,79 @@ function ComingSoon({ title }: { title: string }) {
     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6">
       <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
       <p className="mt-1 text-sm text-slate-500">Coming Soon</p>
+    </div>
+  );
+}
+
+function EvidenceDeleteConfirmDialog({
+  documentName,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  readonly documentName: string;
+  readonly busy: boolean;
+  readonly onCancel: () => void;
+  readonly onConfirm: () => void;
+}) {
+  const titleId = useId();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    cancelRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape" && !busy) onCancel();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, onCancel]);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+      >
+        <h3 id={titleId} className="text-lg font-semibold text-slate-900">
+          Delete Evidence?
+        </h3>
+        <p className="mt-2 text-sm font-medium text-slate-900">{documentName}</p>
+        <p className="mt-3 text-sm text-slate-600">
+          This permanently deletes:
+        </p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+          <li>the document</li>
+          <li>all versions</li>
+          <li>stored files</li>
+        </ul>
+        <p className="mt-3 text-sm font-medium text-rose-700">
+          This cannot be undone.
+        </p>
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            ref={cancelRef}
+            type="button"
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
+            onClick={onCancel}
+            disabled={busy}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="rounded-md bg-rose-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            onClick={onConfirm}
+            disabled={busy}
+          >
+            {busy ? "Deleting…" : "Delete"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

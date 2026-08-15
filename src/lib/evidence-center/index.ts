@@ -165,4 +165,11 @@ export {
   authorizeEvidenceUpload,
   completeEvidenceUpload,
   createEvidenceDownloadUrl,
+  deleteDurableEvidenceDocument,
 } from "@/lib/evidence-center/upload-service";
+export { removeJagEvidenceStorageObject } from "@/lib/evidence-center/storage";
+export {
+  getDurableDocumentById,
+  deleteDurableEvidenceVersions,
+  deleteDurableEvidenceDocumentRow,
+} from "@/lib/evidence-center/durable-repository";

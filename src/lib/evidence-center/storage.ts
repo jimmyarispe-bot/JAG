@@ -182,7 +182,7 @@ export function rejectArbitraryOrganizationPath(
   assertJagEvidencePathForOrganization(authorizedOrganizationId, candidatePath);
 }
 
-/** Phase 2 foundation — signed URL helpers require a server storage client. */
+/** Phase 2/4 foundation — signed URL + remove helpers require a server storage client. */
 export type JagEvidenceSignedUrlClient = {
   storage: {
     from: (bucket: string) => {
@@ -199,9 +199,80 @@ export type JagEvidenceSignedUrlClient = {
         data: { signedUrl: string; token?: string; path?: string } | null;
         error: { message: string } | null;
       }>;
+      remove?: (
+        paths: string[]
+      ) => Promise<{
+        data: unknown;
+        error: { message: string; status?: number; statusCode?: string } | null;
+      }>;
     };
   };
 };
+
+function isMissingStorageObjectError(error: {
+  message: string;
+  status?: number;
+  statusCode?: string;
+}): boolean {
+  const status = error.status;
+  const code = (error.statusCode ?? "").toLowerCase();
+  const message = error.message.toLowerCase();
+  if (status === 404) return true;
+  if (code === "404" || code.includes("not_found")) return true;
+  return (
+    message.includes("not found") ||
+    message.includes("does not exist") ||
+    message.includes("no such file") ||
+    message.includes("object not found")
+  );
+}
+
+/**
+ * Delete one Storage object at a server-validated path.
+ * Missing objects are treated as already gone (safe to continue).
+ * Any other Storage error fails closed — callers must not delete DB rows.
+ */
+export async function removeJagEvidenceStorageObject(input: {
+  client: JagEvidenceSignedUrlClient;
+  organizationId: string;
+  documentId: string;
+  versionId: string;
+  path: string;
+}): Promise<{ ok: true; absent?: boolean } | { ok: false; error: string }> {
+  let parsed: JagEvidenceObjectRef;
+  try {
+    parsed = assertJagEvidencePathForOrganization(
+      input.organizationId,
+      input.path
+    );
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Invalid storage path.",
+    };
+  }
+  if (parsed.bucket !== JAG_EVIDENCE_DOCUMENTS_BUCKET) {
+    return { ok: false, error: "Unexpected Evidence storage bucket." };
+  }
+  if (parsed.documentId !== input.documentId.toLowerCase()) {
+    return { ok: false, error: "Storage path document mismatch — access denied." };
+  }
+  if (parsed.versionId !== input.versionId.toLowerCase()) {
+    return { ok: false, error: "Storage path version mismatch — access denied." };
+  }
+
+  const bucket = input.client.storage.from(JAG_EVIDENCE_DOCUMENTS_BUCKET);
+  if (typeof bucket.remove !== "function") {
+    return {
+      ok: false,
+      error: "JAG Evidence storage remove is not available on this client.",
+    };
+  }
+  const { error } = await bucket.remove([parsed.path]);
+  if (!error) return { ok: true };
+  if (isMissingStorageObjectError(error)) return { ok: true, absent: true };
+  return { ok: false, error: error.message };
+}
 
 /**
  * Mints a short-lived download URL after the caller has authorized the org.

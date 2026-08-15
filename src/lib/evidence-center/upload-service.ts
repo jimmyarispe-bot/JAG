@@ -12,10 +12,13 @@ import {
   createJagEvidenceSignedDownloadUrl,
   createJagEvidenceSignedUploadUrl,
   JAG_EVIDENCE_DOCUMENTS_BUCKET,
+  removeJagEvidenceStorageObject,
   type JagEvidenceSignedUrlClient,
 } from "@/lib/evidence-center/storage";
 import { validateJagEvidenceFileInput } from "@/lib/evidence-center/validate-file";
 import {
+  deleteDurableEvidenceDocumentRow,
+  deleteDurableEvidenceVersions,
   getDurableDocument,
   getDurableVersion,
   insertDurableDocument,
@@ -418,6 +421,146 @@ export async function createEvidenceDownloadUrl(
       status: 500,
     };
   }
+}
+
+export type DeleteDurableEvidenceDocumentResult =
+  | {
+      ok: true;
+      documentId: string;
+      organizationId: string;
+      deletedVersionCount: number;
+      deletedStorageObjectCount: number;
+      absentStorageObjectCount: number;
+    }
+  | { ok: false; error: string; status?: number };
+
+/**
+ * Permanently delete a durable Evidence document, all versions, and Storage objects.
+ *
+ * Ordering (not a single distributed transaction):
+ * 1) Validate DB paths and delete Storage objects (fail closed — leave DB intact).
+ * 2) Delete version rows, then the document row.
+ *
+ * Residual risk: Storage deleted but DB delete fails — reported as failure; objects
+ * may already be gone while rows remain (preferable to DB-gone + Storage orphan).
+ *
+ * Client-supplied organization_id / storage_path / version_id are never accepted here.
+ */
+export async function deleteDurableEvidenceDocument(
+  deps: {
+    db: DurableEvidenceClient;
+    storage: JagEvidenceSignedUrlClient;
+  },
+  input: {
+    /** Must already be authorized for the session — derived from the document row. */
+    organizationId: string;
+    documentId: string;
+  }
+): Promise<DeleteDurableEvidenceDocumentResult> {
+  const organizationId = input.organizationId.trim();
+  const documentId = input.documentId.trim();
+  if (!organizationId || !documentId) {
+    return { ok: false, error: "Document not found.", status: 404 };
+  }
+
+  const document = await getDurableDocument(deps.db, organizationId, documentId);
+  if (!document) {
+    return { ok: false, error: "Document not found.", status: 404 };
+  }
+  if (document.organization_id !== organizationId) {
+    return { ok: false, error: "Document not found.", status: 404 };
+  }
+
+  const versions = await listDurableVersionsForDocument(
+    deps.db,
+    organizationId,
+    documentId
+  );
+
+  for (const version of versions) {
+    if (version.organization_id !== organizationId) {
+      return {
+        ok: false,
+        error: "Version organization mismatch — refusing delete.",
+        status: 409,
+      };
+    }
+    if (version.document_id !== documentId) {
+      return {
+        ok: false,
+        error: "Version document mismatch — refusing delete.",
+        status: 409,
+      };
+    }
+    try {
+      assertJagEvidencePathForOrganization(organizationId, version.storage_path);
+    } catch (err) {
+      return {
+        ok: false,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Invalid version storage path — refusing delete.",
+        status: 409,
+      };
+    }
+  }
+
+  let deletedStorageObjectCount = 0;
+  let absentStorageObjectCount = 0;
+  for (const version of versions) {
+    const removed = await removeJagEvidenceStorageObject({
+      client: deps.storage,
+      organizationId,
+      documentId,
+      versionId: version.id,
+      path: version.storage_path,
+    });
+    if (!removed.ok) {
+      return {
+        ok: false,
+        error: `Storage cleanup failed: ${removed.error}. Database records were left intact.`,
+        status: 502,
+      };
+    }
+    if (removed.absent) absentStorageObjectCount += 1;
+    else deletedStorageObjectCount += 1;
+  }
+
+  const versionsDeleted = await deleteDurableEvidenceVersions(
+    deps.db,
+    organizationId,
+    documentId
+  );
+  if (!versionsDeleted.ok) {
+    return {
+      ok: false,
+      error: `Storage objects were removed but version rows could not be deleted: ${versionsDeleted.error}`,
+      status: 500,
+    };
+  }
+
+  const documentDeleted = await deleteDurableEvidenceDocumentRow(
+    deps.db,
+    organizationId,
+    documentId
+  );
+  if (!documentDeleted.ok) {
+    return {
+      ok: false,
+      error: `Storage objects were removed but the document row could not be deleted: ${documentDeleted.error}`,
+      status: 500,
+    };
+  }
+
+  return {
+    ok: true,
+    documentId,
+    organizationId,
+    deletedVersionCount: versionsDeleted.deletedCount,
+    deletedStorageObjectCount,
+    absentStorageObjectCount,
+  };
 }
 
 // Re-export types used by routes for metadata enums (keeps imports local).

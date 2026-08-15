@@ -43,6 +43,13 @@ export type DurableEvidenceClient = {
         data: boolean | null;
         error: { message: string } | null;
       }>;
+      /** Service-role object deletion (Phase 4). */
+      remove?: (
+        paths: string[]
+      ) => Promise<{
+        data: unknown;
+        error: { message: string; status?: number; statusCode?: string } | null;
+      }>;
     };
   };
 };
@@ -247,6 +254,20 @@ export async function getDurableDocument(
   return data as DurableEvidenceDocumentRow;
 }
 
+/** Lookup by document id only — caller must authorize against row.organization_id. */
+export async function getDurableDocumentById(
+  client: DurableEvidenceClient,
+  documentId: string
+): Promise<DurableEvidenceDocumentRow | null> {
+  const { data, error } = await client
+    .from("jag_evidence_documents")
+    .select("*")
+    .eq("id", documentId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as DurableEvidenceDocumentRow;
+}
+
 export async function getDurableVersion(
   client: DurableEvidenceClient,
   organizationId: string,
@@ -416,4 +437,33 @@ export async function verifyDurableStorageObject(
     };
   }
   return { ok: true, size: resolvedSize };
+}
+
+export async function deleteDurableEvidenceVersions(
+  client: DurableEvidenceClient,
+  organizationId: string,
+  documentId: string
+): Promise<{ ok: true; deletedCount: number } | { ok: false; error: string }> {
+  const { data, error } = await client
+    .from("jag_evidence_document_versions")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("document_id", documentId)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, deletedCount: Array.isArray(data) ? data.length : 0 };
+}
+
+export async function deleteDurableEvidenceDocumentRow(
+  client: DurableEvidenceClient,
+  organizationId: string,
+  documentId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error } = await client
+    .from("jag_evidence_documents")
+    .delete()
+    .eq("id", documentId)
+    .eq("organization_id", organizationId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
