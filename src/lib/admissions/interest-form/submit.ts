@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import {
   EXPRESS_INTEREST_SUBMISSION_SOURCE,
   formDataToInterestValues,
+  isInterestFormMetadataKey,
   validateInterestSubmission,
 } from "@/lib/admissions/interest-form/definition";
 import { loadPublishedInterestForm } from "@/lib/admissions/interest-form/load";
@@ -73,6 +74,47 @@ async function verifyAntiSpam(formData: FormData): Promise<string | null> {
   return null;
 }
 
+/** Omitted optional answers must not become SQL NULL rows. */
+export function isOmittedInterestAnswerValue(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string" && value.trim() === "") return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  return false;
+}
+
+export type InterestAnswerArchiveRow = {
+  submission_id: string;
+  organization_id: string;
+  form_version_id: string;
+  question_key: string;
+  value: unknown;
+};
+
+/**
+ * Build durable answer rows. Unanswered optional questions and metadata keys
+ * (including source) are skipped — never inserted as NULL.
+ */
+export function buildInterestAnswerRows(input: {
+  submissionId: string;
+  organizationId: string;
+  formVersionId: string;
+  values: InterestFormValues;
+}): InterestAnswerArchiveRow[] {
+  const rows: InterestAnswerArchiveRow[] = [];
+  for (const [question_key, value] of Object.entries(input.values)) {
+    if (isInterestFormMetadataKey(question_key)) continue;
+    if (isOmittedInterestAnswerValue(value)) continue;
+    rows.push({
+      submission_id: input.submissionId,
+      organization_id: input.organizationId,
+      form_version_id: input.formVersionId,
+      question_key,
+      value,
+    });
+  }
+  return rows;
+}
+
 async function persistInterestSubmission(input: {
   organizationId: string;
   leadId: string;
@@ -103,13 +145,12 @@ async function persistInterestSubmission(input: {
   }
 
   const submissionId = (submission as { id: string }).id;
-  const answerRows = Object.entries(input.values).map(([question_key, value]) => ({
-    submission_id: submissionId,
-    organization_id: input.organizationId,
-    form_version_id: input.formVersionId,
-    question_key,
-    value: value === undefined ? null : value,
-  }));
+  const answerRows = buildInterestAnswerRows({
+    submissionId,
+    organizationId: input.organizationId,
+    formVersionId: input.formVersionId,
+    values: input.values,
+  });
 
   if (answerRows.length) {
     const { error: answersError } = await admin

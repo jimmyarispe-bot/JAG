@@ -4,7 +4,19 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+vi.mock("next/headers", () => ({
+  headers: async () => ({ get: () => null }),
+}));
+vi.mock("@/lib/supabase/server-auth", () => ({
+  createAuthClient: () => ({ rpc: async () => ({ data: null, error: null }) }),
+}));
+vi.mock("@/lib/supabase/server", () => ({
+  createServiceRoleClient: () => ({}),
+}));
+
 import {
   EXPRESS_INTEREST_SUBMISSION_SOURCE,
   formDataToInterestValues,
@@ -14,6 +26,7 @@ import {
   validateInterestFormDefinition,
   validateInterestSubmission,
 } from "@/lib/admissions/interest-form/definition";
+import { buildInterestAnswerRows } from "@/lib/admissions/interest-form/submit";
 import { isInterestFormDevOrgFallbackEnabled } from "@/lib/admissions/interest-form/org-resolve";
 import {
   INTEREST_FORM_PROGRAM_OPTIONS,
@@ -730,15 +743,17 @@ describe("16–20 lead/submission/answers/history/cross-org", () => {
       school_id: SCHOOL_A,
       guardian_email: "ada@example.com",
     };
-    const answerRows = Object.entries(visible).map(([question_key, value]) => ({
-      submission_id: "sub-1",
-      organization_id: ORG_A,
-      form_version_id: VERSION_A,
-      question_key,
-      value,
-    }));
+    const answerRows = buildInterestAnswerRows({
+      submissionId: "sub-1",
+      organizationId: ORG_A,
+      formVersionId: VERSION_A,
+      values: visible,
+    });
     expect(answerRows).toHaveLength(4);
     expect(answerRows.every((r) => r.form_version_id === VERSION_A)).toBe(true);
+    expect(answerRows.every((r) => r.value !== null && r.value !== undefined)).toBe(
+      true
+    );
   });
 
   it("preserves historical version when publishing v2", () => {
@@ -1016,5 +1031,219 @@ describe("program type multi-select — public Interest Form", () => {
     expect(submitSrc).not.toContain("parseProgramValue");
     expect(submitSrc).toContain("allowedInterestProgramTypes");
     expect(submitSrc).not.toContain("allowedInterestProgramCodesForSchools");
+  });
+});
+
+describe("optional answer archive — skip omitted values", () => {
+  const schoolIds = new Set([SCHOOL_A]);
+  const allTypes = INTEREST_FORM_PROGRAM_OPTIONS.map((o) => o.value);
+  const requiredValues = {
+    first_name: "Ada",
+    last_name: "Lovelace",
+    school_id: SCHOOL_A,
+    guardian_email: "ada@example.com",
+  };
+
+  function validate(values: Record<string, unknown>) {
+    return validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values,
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+  }
+
+  function archiveRows(values: Record<string, unknown>) {
+    return buildInterestAnswerRows({
+      submissionId: "sub-archive",
+      organizationId: ORG_A,
+      formVersionId: VERSION_A,
+      values,
+    });
+  }
+
+  it("does not create an answer row for one unanswered optional question", () => {
+    const result = validate(requiredValues);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const rows = archiveRows(result.visibleValues);
+    expect(rows.some((row) => row.question_key === "funding_sources")).toBe(false);
+    expect(rows.some((row) => row.value === null || row.value === undefined)).toBe(
+      false
+    );
+  });
+
+  it("does not create answer rows for multiple unanswered optional questions", () => {
+    const result = validate(requiredValues);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const rows = archiveRows(result.visibleValues);
+    const omitted = [
+      "preferred_name",
+      "date_of_birth",
+      "current_grade",
+      "applying_for_grade",
+      "program",
+      "funding_sources",
+      "referral_source",
+      "learning_concerns",
+      "guardian_first_name",
+      "guardian_last_name",
+      "guardian_phone",
+    ];
+    expect(rows.map((row) => row.question_key)).toEqual(
+      expect.arrayContaining([
+        "first_name",
+        "last_name",
+        "school_id",
+        "guardian_email",
+      ])
+    );
+    for (const key of omitted) {
+      expect(rows.some((row) => row.question_key === key)).toBe(false);
+    }
+  });
+
+  it("still rejects a missing required question before archive", () => {
+    const result = validate({
+      last_name: "Lovelace",
+      school_id: SCHOOL_A,
+      guardian_email: "ada@example.com",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.some((issue) => issue.path === "first_name")).toBe(true);
+    }
+  });
+
+  it("persists a normal non-null answer", () => {
+    const result = validate({
+      ...requiredValues,
+      preferred_name: "Ada",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const rows = archiveRows(result.visibleValues);
+    const preferred = rows.find((row) => row.question_key === "preferred_name");
+    expect(preferred?.value).toBe("Ada");
+  });
+
+  it("persists program types as a string[] answer", () => {
+    const selected = ["In-Person", "Tutoring"];
+    const result = validate({ ...requiredValues, program: selected });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const program = archiveRows(result.visibleValues).find(
+      (row) => row.question_key === "program"
+    );
+    expect(program?.value).toEqual(selected);
+    expect(Array.isArray(program?.value)).toBe(true);
+  });
+
+  it("persists all five program types together", () => {
+    const result = validate({ ...requiredValues, program: allTypes });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const program = archiveRows(result.visibleValues).find(
+      (row) => row.question_key === "program"
+    );
+    expect(program?.value).toEqual(allTypes);
+    expect(program?.value).toHaveLength(5);
+  });
+
+  it("keeps source=express_interest as metadata, not an answer row", () => {
+    const result = validate({
+      ...requiredValues,
+      program: ["Hybrid (in-person + virtual)"],
+      source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.visibleValues).not.toHaveProperty("source");
+    const rows = archiveRows({
+      ...result.visibleValues,
+      source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+    });
+    expect(rows.some((row) => row.question_key === "source")).toBe(false);
+    expect(rows.some((row) => row.value === EXPRESS_INTEREST_SUBMISSION_SOURCE)).toBe(
+      false
+    );
+  });
+
+  it("still rejects unknown keys", () => {
+    const result = validate({
+      ...requiredValues,
+      not_a_question: "nope",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.some((issue) => issue.path === "not_a_question")).toBe(
+        true
+      );
+    }
+  });
+
+  it("still rejects a stale form version", () => {
+    const result = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: requiredValues,
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: "stale-version",
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.some((issue) => issue.path === "form_version_id")).toBe(
+        true
+      );
+    }
+  });
+
+  it("still rejects invalid school and invalid program type", () => {
+    const invalidSchool = validate({
+      ...requiredValues,
+      school_id: SCHOOL_B,
+      program: ["In-Person"],
+    });
+    expect(invalidSchool.ok).toBe(false);
+    if (!invalidSchool.ok) {
+      expect(invalidSchool.issues.some((issue) => issue.path === "school_id")).toBe(
+        true
+      );
+    }
+
+    const invalidProgram = validate({
+      ...requiredValues,
+      program: ["not-a-program"],
+    });
+    expect(invalidProgram.ok).toBe(false);
+    if (!invalidProgram.ok) {
+      expect(invalidProgram.issues.some((issue) => issue.path === "program")).toBe(
+        true
+      );
+    }
+  });
+
+  it("does not insert SQL NULL for omitted optional values", () => {
+    const rows = archiveRows({
+      first_name: "Ada",
+      preferred_name: null,
+      funding_sources: undefined,
+      program: [],
+      guardian_phone: "",
+      source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+    });
+    expect(rows).toEqual([
+      {
+        submission_id: "sub-archive",
+        organization_id: ORG_A,
+        form_version_id: VERSION_A,
+        question_key: "first_name",
+        value: "Ada",
+      },
+    ]);
   });
 });
