@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  EXPRESS_INTEREST_SUBMISSION_SOURCE,
   formDataToInterestValues,
   hashInterestFormDefinition,
   isQuestionVisible,
@@ -14,6 +15,11 @@ import {
   validateInterestSubmission,
 } from "@/lib/admissions/interest-form/definition";
 import { isInterestFormDevOrgFallbackEnabled } from "@/lib/admissions/interest-form/org-resolve";
+import {
+  INTEREST_FORM_PROGRAM_OPTIONS,
+  INTEREST_FORM_PROGRAM_QUESTION_HELP,
+  INTEREST_FORM_PROGRAM_QUESTION_LABEL,
+} from "@/lib/admissions/interest-form/program-options";
 import { INITIAL_INTEREST_FORM_DEFINITION } from "@/lib/admissions/interest-form/seed-definition";
 import {
   assertPublishedVersionImmutable,
@@ -478,6 +484,227 @@ describe("8–15 conditional visibility + validation", () => {
   });
 });
 
+describe("source metadata — submission column, not a question", () => {
+  const schoolIds = new Set([SCHOOL_A]);
+  const baseValues = {
+    first_name: "A",
+    last_name: "B",
+    school_id: SCHOOL_A,
+    guardian_email: "a@example.com",
+  };
+
+  it("accepts source=express_interest as non-question metadata", () => {
+    const result = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: {
+        ...baseValues,
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.visibleValues).not.toHaveProperty("source");
+      expect(result.visibleValues.first_name).toBe("A");
+    }
+  });
+
+  it("strips source from FormData so it never becomes an answer key", () => {
+    const fd = new FormData();
+    fd.set("first_name", "Ada");
+    fd.set("last_name", "Lovelace");
+    fd.set("school_id", SCHOOL_A);
+    fd.set("guardian_email", "ada@example.com");
+    fd.set("source", EXPRESS_INTEREST_SUBMISSION_SOURCE);
+    fd.set("form_version_id", VERSION_A);
+    const values = formDataToInterestValues(fd);
+    expect(values).not.toHaveProperty("source");
+    expect(values).not.toHaveProperty("form_version_id");
+    expect(values.first_name).toBe("Ada");
+  });
+
+  it("persists express_interest on submission.source server-side (not as an answer)", () => {
+    expect(MIGRATION).toMatch(
+      /admissions_interest_submissions[\s\S]*source text null/
+    );
+    const submitSrc = readFileSync(
+      join(ROOT, "src/lib/admissions/interest-form/submit.ts"),
+      "utf8"
+    );
+    expect(submitSrc).toContain("EXPRESS_INTEREST_SUBMISSION_SOURCE");
+    expect(submitSrc).toMatch(/source:\s*EXPRESS_INTEREST_SUBMISSION_SOURCE/);
+    expect(submitSrc).not.toMatch(
+      /source:\s*asString\(formData\.get\(["']source["']\)\)/
+    );
+    // Answers are built only from visible question values
+    expect(submitSrc).toContain("Object.entries(input.values)");
+    expect(EXPRESS_INTEREST_SUBMISSION_SOURCE).toBe("express_interest");
+  });
+
+  it("rejects arbitrary unknown keys (source_hacked / not_a_question)", () => {
+    for (const forged of ["source_hacked", "not_a_question"] as const) {
+      const result = validateInterestSubmission({
+        definition: INITIAL_INTEREST_FORM_DEFINITION,
+        values: {
+          ...baseValues,
+          [forged]: "nope",
+        },
+        schoolIds,
+        programCodesForSchool: new Set(),
+        claimedFormVersionId: VERSION_A,
+        publishedFormVersionId: VERSION_A,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.issues.some((i) => i.path === forged)).toBe(true);
+        expect(result.issues.some((i) => i.message.includes(`Unknown question: ${forged}`))).toBe(
+          true
+        );
+      }
+    }
+  });
+
+  it("still accepts known question keys with source metadata present", () => {
+    const result = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: {
+        ...baseValues,
+        preferred_name: "Ada",
+        referral_source: "friend",
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.visibleValues.preferred_name).toBe("Ada");
+      expect(result.visibleValues.referral_source).toBe("friend");
+      expect(result.visibleValues).not.toHaveProperty("source");
+    }
+  });
+
+  it("still rejects stale form version when source metadata is present", () => {
+    const result = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: {
+        ...baseValues,
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: "stale-version",
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.some((i) => i.path === "form_version_id")).toBe(true);
+    }
+  });
+
+  it("still rejects invalid school/program when source metadata is present", () => {
+    const invalidSchool = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: {
+        ...baseValues,
+        school_id: SCHOOL_B,
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(invalidSchool.ok).toBe(false);
+    if (!invalidSchool.ok) {
+      expect(invalidSchool.issues.some((i) => i.path === "school_id")).toBe(true);
+    }
+
+    const invalidProgram = validateInterestSubmission({
+      definition: withConditionalQuestions(),
+      values: {
+        ...baseValues,
+        program: "academy_fl_campus",
+        learning_concerns: "notes",
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(["academy_ga_campus"]),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(invalidProgram.ok).toBe(false);
+    if (!invalidProgram.ok) {
+      expect(invalidProgram.issues.some((i) => i.path === "program")).toBe(true);
+    }
+  });
+
+  it("organization remains server-authoritative on submit (no client org id)", () => {
+    const submitSrc = readFileSync(
+      join(ROOT, "src/lib/admissions/interest-form/submit.ts"),
+      "utf8"
+    );
+    expect(submitSrc).toContain("resolveInterestFormOrganization()");
+    expect(submitSrc).not.toMatch(/formData\.get\(["']organization_id["']\)/);
+    expect(submitSrc).toContain("Ignore client organization authority");
+  });
+});
+
+describe("post-RPC service-role boundary — lead communications auth", () => {
+  const submitSrc = readFileSync(
+    join(ROOT, "src/lib/admissions/interest-form/submit.ts"),
+    "utf8"
+  );
+
+  it("keeps public RPC on createAuthClient and returns leadId from that RPC", () => {
+    expect(submitSrc).toContain("const supabase = await createAuthClient()");
+    expect(submitSrc).toContain('supabase.rpc("submit_public_admissions_inquiry"');
+    expect(submitSrc).toMatch(/const leadId = data as string/);
+    // Auth client must not be reused for post-RPC lead reads / stage / communications
+    expect(submitSrc).not.toMatch(
+      /await recordInitialStage\(\s*supabase\s*,/
+    );
+    expect(submitSrc).not.toMatch(
+      /await onInquirySubmitted\(\s*supabase\s*,/
+    );
+  });
+
+  it("passes createServiceRoleClient to recordInitialStage and onInquirySubmitted after leadId", () => {
+    expect(submitSrc).toContain(
+      'import { createServiceRoleClient } from "@/lib/supabase/server"'
+    );
+    const leadIdIdx = submitSrc.indexOf("const leadId = data as string");
+    const adminIdx = submitSrc.indexOf("const admin = createServiceRoleClient()", leadIdIdx);
+    const stageIdx = submitSrc.indexOf("await recordInitialStage(admin, leadId", adminIdx);
+    const inquiryIdx = submitSrc.indexOf("await onInquirySubmitted(admin, leadId", stageIdx);
+    expect(leadIdIdx).toBeGreaterThan(-1);
+    expect(adminIdx).toBeGreaterThan(leadIdIdx);
+    expect(stageIdx).toBeGreaterThan(adminIdx);
+    expect(inquiryIdx).toBeGreaterThan(stageIdx);
+    // Service-role creation stays at the public-submit boundary — not in the engine
+    const engineSrc = readFileSync(
+      join(ROOT, "src/lib/admissions/communications/engine.ts"),
+      "utf8"
+    );
+    expect(engineSrc).not.toContain("createServiceRoleClient");
+  });
+
+  it("persistInterestSubmission continues to use service-role client", () => {
+    const persistBlock = submitSrc.slice(
+      submitSrc.indexOf("async function persistInterestSubmission"),
+      submitSrc.indexOf("export async function submitPublishedInterestForm")
+    );
+    expect(persistBlock).toContain("const admin = createServiceRoleClient()");
+    expect(persistBlock).toContain('from("admissions_interest_submissions"');
+    expect(persistBlock).toContain('from("admissions_interest_answers"');
+  });
+});
+
 describe("16–20 lead/submission/answers/history/cross-org", () => {
   it("maps form data into values for lead creation bindings", () => {
     const fd = new FormData();
@@ -487,9 +714,13 @@ describe("16–20 lead/submission/answers/history/cross-org", () => {
     fd.set("guardian_email", "ada@example.com");
     fd.append("funding_sources", "parent_pay");
     fd.append("funding_sources", "esa");
+    fd.append("program", "In-Person");
+    fd.append("program", "Tutoring");
+    fd.append("program", "In-Person");
     const values = formDataToInterestValues(fd);
     expect(values.first_name).toBe("Ada");
     expect(values.funding_sources).toEqual(["parent_pay", "esa"]);
+    expect(values.program).toEqual(["In-Person", "Tutoring"]);
   });
 
   it("persists answer shape keyed by question + version", () => {
@@ -549,6 +780,24 @@ describe("16–20 lead/submission/answers/history/cross-org", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("seed definition exposes the five public program-type checkbox options", () => {
+    const program = INITIAL_INTEREST_FORM_DEFINITION.questions.find((q) => q.key === "program");
+    expect(program?.type).toBe("program_selector");
+    expect(program?.label).toBe(INTEREST_FORM_PROGRAM_QUESTION_LABEL);
+    expect(program?.helpText).toBe(INTEREST_FORM_PROGRAM_QUESTION_HELP);
+    expect(program?.options?.map((o) => o.label)).toEqual([
+      "In-Person",
+      "Only Virtual",
+      "Hybrid (in-person + virtual)",
+      "Full-School Program",
+      "Tutoring",
+    ]);
+    expect(program?.options).toHaveLength(5);
+    expect(program?.options?.some((o) => /The Academy (FL|GA|HS|Virtual)/.test(o.label))).toBe(
+      false
+    );
+  });
+
   it("seed definition stays functionally equivalent to current inquiry fields", () => {
     const keys = INITIAL_INTEREST_FORM_DEFINITION.questions.map((q) => q.key);
     expect(keys).toEqual(
@@ -571,5 +820,201 @@ describe("16–20 lead/submission/answers/history/cross-org", () => {
         "preferred_contact_method",
       ])
     );
+  });
+});
+
+describe("program type multi-select — public Interest Form", () => {
+  const schoolIds = new Set([SCHOOL_A]);
+  const allTypes = INTEREST_FORM_PROGRAM_OPTIONS.map((o) => o.value);
+  const baseValues = {
+    first_name: "A",
+    last_name: "B",
+    school_id: SCHOOL_A,
+    guardian_email: "a@example.com",
+  };
+
+  function validate(values: Record<string, unknown>, schools = schoolIds) {
+    return validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: { ...baseValues, ...values },
+      schoolIds: schools,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: VERSION_A,
+      publishedFormVersionId: VERSION_A,
+    });
+  }
+
+  it.each([
+    ["In-Person"],
+    ["Only Virtual"],
+    ["Hybrid (in-person + virtual)"],
+    ["Full-School Program"],
+    ["Tutoring"],
+  ] as const)("accepts %s only", (type) => {
+    const result = validate({ program: [type] });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.visibleValues.program).toEqual([type]);
+      expect(result.visibleValues.school_id).toBe(SCHOOL_A);
+    }
+  });
+
+  it("accepts multiple program types without collapsing", () => {
+    const selected = ["In-Person", "Tutoring", "Only Virtual"];
+    const result = validate({ program: selected });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.visibleValues.program).toEqual(selected);
+    }
+  });
+
+  it("accepts all five program types", () => {
+    const result = validate({ program: allTypes });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.visibleValues.program).toEqual(allTypes);
+      expect(result.visibleValues.program).toHaveLength(5);
+    }
+  });
+
+  it("rejects invalid program types, campus strings, and CRM codes", () => {
+    for (const invalid of [
+      "not-a-program",
+      "academy_fl_campus",
+      "The Academy FL: Port St. Lucie Campus (in-person)",
+      "The Academy GA: virtual only",
+    ]) {
+      const result = validate({ program: ["In-Person", invalid] });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.issues.some((i) => i.path === "program")).toBe(true);
+      }
+    }
+  });
+
+  it("rejects unknown key not_a_question", () => {
+    const result = validate({
+      program: ["In-Person"],
+      not_a_question: "nope",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.some((i) => i.path === "not_a_question")).toBe(true);
+    }
+  });
+
+  it("accepts source=express_interest as metadata, not as an answer", () => {
+    const result = validate({
+      program: ["Tutoring"],
+      source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.visibleValues).not.toHaveProperty("source");
+      expect(result.visibleValues.program).toEqual(["Tutoring"]);
+    }
+  });
+
+  it("does not persist source from FormData as a question answer", () => {
+    const fd = new FormData();
+    fd.set("first_name", "Ada");
+    fd.set("last_name", "Lovelace");
+    fd.set("school_id", SCHOOL_A);
+    fd.set("guardian_email", "ada@example.com");
+    fd.append("program", "In-Person");
+    fd.append("program", "Hybrid (in-person + virtual)");
+    fd.set("source", EXPRESS_INTEREST_SUBMISSION_SOURCE);
+    const values = formDataToInterestValues(fd);
+    expect(values).not.toHaveProperty("source");
+    expect(values.program).toEqual(["In-Person", "Hybrid (in-person + virtual)"]);
+  });
+
+  it("rejects a stale form version with program types present", () => {
+    const result = validateInterestSubmission({
+      definition: INITIAL_INTEREST_FORM_DEFINITION,
+      values: {
+        ...baseValues,
+        program: ["Only Virtual"],
+        source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+      },
+      schoolIds,
+      programCodesForSchool: new Set(),
+      claimedFormVersionId: "stale-version",
+      publishedFormVersionId: VERSION_A,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.some((i) => i.path === "form_version_id")).toBe(true);
+    }
+  });
+
+  it("keeps school validation independent of program type", () => {
+    const invalidSchool = validate({
+      school_id: SCHOOL_B,
+      program: ["In-Person", "Full-School Program"],
+    });
+    expect(invalidSchool.ok).toBe(false);
+    if (!invalidSchool.ok) {
+      expect(invalidSchool.issues.some((i) => i.path === "school_id")).toBe(true);
+      expect(invalidSchool.issues.some((i) => i.path === "program")).toBe(false);
+    }
+
+    const validSchoolAnyType = validate({ program: ["Tutoring"] });
+    expect(validSchoolAnyType.ok).toBe(true);
+  });
+
+  it("persists multiple program types as the program answer value", () => {
+    const selected = ["Full-School Program", "Tutoring"];
+    const result = validate({ program: selected });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const answerRows = Object.entries(result.visibleValues).map(
+      ([question_key, value]) => ({
+        question_key,
+        value,
+      })
+    );
+    const programAnswer = answerRows.find((row) => row.question_key === "program");
+    expect(programAnswer?.value).toEqual(selected);
+    expect(Array.isArray(programAnswer?.value)).toBe(true);
+    expect(result.visibleValues.school_id).toBe(SCHOOL_A);
+  });
+
+  it("renders program types as checkboxes without campus names", () => {
+    const renderer = readFileSync(
+      join(ROOT, "src/components/admissions/portal/InterestFormRenderer.tsx"),
+      "utf8"
+    );
+    const options = readFileSync(
+      join(ROOT, "src/lib/admissions/interest-form/program-options.ts"),
+      "utf8"
+    );
+    expect(renderer).toContain("INTEREST_FORM_PROGRAM_OPTIONS");
+    expect(renderer).toContain("INTEREST_FORM_PROGRAM_QUESTION_LABEL");
+    expect(renderer).toContain("INTEREST_FORM_PROGRAM_QUESTION_HELP");
+    expect(renderer).not.toMatch(/The Academy FL/);
+    expect(renderer).not.toMatch(/The Academy GA/);
+    expect(renderer).not.toMatch(/The Academy HS/);
+    expect(renderer).not.toMatch(/The Academy Virtual/);
+    expect(options).not.toMatch(/The Academy FL/);
+    expect(options).not.toMatch(/Academy NJ/);
+    const programBlock = renderer.slice(
+      renderer.indexOf('question.type === "program_selector"'),
+      renderer.indexOf('question.type === "multiselect"')
+    );
+    expect(programBlock).toContain('type="checkbox"');
+    expect(programBlock).not.toContain("<select");
+    expect(programBlock).not.toContain('type="radio"');
+  });
+
+  it("does not collapse program types onto admissions_leads.program", () => {
+    const submitSrc = readFileSync(
+      join(ROOT, "src/lib/admissions/interest-form/submit.ts"),
+      "utf8"
+    );
+    expect(submitSrc).toMatch(/p_program:\s*null/);
+    expect(submitSrc).not.toContain("parseProgramValue");
+    expect(submitSrc).toContain("allowedInterestProgramTypes");
+    expect(submitSrc).not.toContain("allowedInterestProgramCodesForSchools");
   });
 });

@@ -2,6 +2,11 @@
  * Canonical Phase 1 Interest Form definition (mirrors current Express Interest fields).
  */
 
+import {
+  INTEREST_FORM_PROGRAM_OPTIONS,
+  INTEREST_FORM_PROGRAM_QUESTION_HELP,
+  INTEREST_FORM_PROGRAM_QUESTION_LABEL,
+} from "@/lib/admissions/interest-form/program-options";
 import type { InterestFormDefinition } from "@/lib/admissions/interest-form/types";
 import { INTEREST_FORM_SCHEMA_VERSION } from "@/lib/admissions/interest-form/types";
 
@@ -112,10 +117,15 @@ export const INITIAL_INTEREST_FORM_DEFINITION: InterestFormDefinition = {
     {
       key: "program",
       type: "program_selector",
-      label: "Program",
+      label: INTEREST_FORM_PROGRAM_QUESTION_LABEL,
       required: false,
       order: 7,
       systemBinding: "lead.program",
+      helpText: INTEREST_FORM_PROGRAM_QUESTION_HELP,
+      options: INTEREST_FORM_PROGRAM_OPTIONS.map((option) => ({
+        value: option.value,
+        label: option.label,
+      })),
     },
     {
       key: "funding_sources",

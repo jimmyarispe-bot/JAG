@@ -5,16 +5,17 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import {
+  EXPRESS_INTEREST_SUBMISSION_SOURCE,
   formDataToInterestValues,
   validateInterestSubmission,
 } from "@/lib/admissions/interest-form/definition";
-import { loadPublishedInterestForm, listPublicProgramsForSchool } from "@/lib/admissions/interest-form/load";
+import { loadPublishedInterestForm } from "@/lib/admissions/interest-form/load";
 import { resolveInterestFormOrganization } from "@/lib/admissions/interest-form/org-resolve";
 import type { InterestFormValues } from "@/lib/admissions/interest-form/types";
 import { recordInitialStage } from "@/lib/admissions/workflow";
 import { onInquirySubmitted } from "@/lib/admissions/communications/triggers";
 import type { GradeValue } from "@/lib/constants/grades";
-import { parseProgramValue } from "@/lib/constants/programs";
+import { allowedInterestProgramTypes } from "@/lib/admissions/interest-form/program-options";
 import { parseFundingSourcesFromForm } from "@/lib/funding/helpers";
 import {
   checkRateLimitAsync,
@@ -147,17 +148,8 @@ export async function submitPublishedInterestForm(
   }
 
   const values = formDataToInterestValues(formData);
-  const schoolId = asString(values.school_id);
   const schoolIds = new Set(published.schools.map((s) => s.id));
-
-  const programs =
-    schoolId && schoolIds.has(schoolId)
-      ? await listPublicProgramsForSchool({
-          organizationId: org.organizationId,
-          schoolId,
-        })
-      : [];
-  const programCodes = new Set(programs.map((p) => p.code));
+  const programCodes = allowedInterestProgramTypes();
 
   const validation = validateInterestSubmission({
     definition: published.definition,
@@ -187,7 +179,8 @@ export async function submitPublishedInterestForm(
     p_date_of_birth: asString(visible.date_of_birth) || null,
     p_current_grade: (asString(visible.current_grade) as GradeValue) || null,
     p_applying_for_grade: (asString(visible.applying_for_grade) as GradeValue) || null,
-    p_program: parseProgramValue(asString(visible.program)),
+    // Multi-select is archived on interest answers; do not collapse onto lead.program.
+    p_program: null,
     p_referral_source: referralForLead,
     p_guardian_first_name: asString(visible.guardian_first_name) || null,
     p_guardian_last_name: asString(visible.guardian_last_name) || null,
@@ -203,15 +196,19 @@ export async function submitPublishedInterestForm(
   if (error) return { error: error.message };
 
   const leadId = data as string;
-  await recordInitialStage(supabase, leadId, null);
-  await onInquirySubmitted(supabase, leadId);
+  // Post-RPC trusted server work: anon RLS cannot read admissions_leads.
+  // Service role is scoped to this controlled server action; leadId comes from SECURITY DEFINER RPC.
+  const admin = createServiceRoleClient();
+  await recordInitialStage(admin, leadId, null);
+  await onInquirySubmitted(admin, leadId);
 
   const persisted = await persistInterestSubmission({
     organizationId: org.organizationId,
     leadId,
     formId: published.formId,
     formVersionId: published.formVersionId,
-    source: asString(formData.get("source")) || "express_interest",
+    // Server-owned submission metadata — do not trust arbitrary client source values.
+    source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
     referralSource: asString(visible.referral_source) || null,
     values: visible,
   });

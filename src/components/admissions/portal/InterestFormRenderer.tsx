@@ -1,19 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
-import {
-  listInterestProgramsAction,
-  submitInterestFormAction,
-} from "@/lib/admissions/interest-form/actions";
+import { useState } from "react";
+import { submitInterestFormAction } from "@/lib/admissions/interest-form/actions";
 import {
   isQuestionVisible,
   isSectionVisible,
   resolveStaticOptions,
 } from "@/lib/admissions/interest-form/definition";
+import {
+  INTEREST_FORM_PROGRAM_OPTIONS,
+  INTEREST_FORM_PROGRAM_QUESTION_HELP,
+  INTEREST_FORM_PROGRAM_QUESTION_LABEL,
+  normalizeInterestProgramSelections,
+} from "@/lib/admissions/interest-form/program-options";
 import type {
   InterestFormValues,
-  InterestProgramOption,
   InterestQuestionDefinition,
   PublishedInterestForm,
 } from "@/lib/admissions/interest-form/types";
@@ -42,15 +44,11 @@ function QuestionField({
   value,
   onChange,
   schools,
-  programs,
-  programsLoading,
 }: {
   question: InterestQuestionDefinition;
   value: unknown;
   onChange: (key: string, next: unknown) => void;
   schools: readonly { id: string; name: string }[];
-  programs: readonly InterestProgramOption[];
-  programsLoading: boolean;
 }) {
   const id = question.key;
   const label = (
@@ -86,25 +84,51 @@ function QuestionField({
   }
 
   if (question.type === "program_selector") {
+    const selected = new Set(normalizeInterestProgramSelections(value));
     return (
-      <div>
-        {label}
-        <select
-          id={id}
-          name={id}
-          required={question.required}
-          className={portalInputClass}
-          value={typeof value === "string" ? value : ""}
-          onChange={(e) => onChange(question.key, e.target.value)}
-          disabled={programsLoading}
-        >
-          <option value="">Select program</option>
-          {programs.map((p) => (
-            <option key={p.code} value={p.code}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+      <div className="sm:col-span-2">
+        <fieldset>
+          <legend className={portalLabelClass}>
+            {INTEREST_FORM_PROGRAM_QUESTION_LABEL}
+            {question.required ? " *" : ""}
+          </legend>
+          <p className="mt-1 text-sm text-slate-500">
+            {question.helpText ?? INTEREST_FORM_PROGRAM_QUESTION_HELP}
+          </p>
+          <div className="mt-3 grid gap-2">
+            {INTEREST_FORM_PROGRAM_OPTIONS.map((option) => {
+              const checked = selected.has(option.value);
+              const optionId = `${id}-${option.value}`;
+              return (
+                <label
+                  key={option.value}
+                  htmlFor={optionId}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                    checked
+                      ? "border-brand-500 bg-brand-50 text-slate-900"
+                      : "border-slate-100 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <input
+                    id={optionId}
+                    name={id}
+                    type="checkbox"
+                    value={option.value}
+                    checked={checked}
+                    onChange={(e) => {
+                      const next = new Set(selected);
+                      if (e.target.checked) next.add(option.value);
+                      else next.delete(option.value);
+                      onChange(question.key, [...next]);
+                    }}
+                    className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  {option.label}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
       </div>
     );
   }
@@ -210,9 +234,6 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [values, setValues] = useState<InterestFormValues>(() => defaultValues(published));
-  const [programs, setPrograms] = useState<InterestProgramOption[]>([]);
-  const [programsLoading, setProgramsLoading] = useState(false);
-  const [, startTransition] = useTransition();
 
   const action = useActionFeedback({
     verb: "submit",
@@ -222,34 +243,6 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
     progressLabel: "Submitting inquiry…",
     onError: (err) => setError(err.message),
   });
-
-  const schoolId = typeof values.school_id === "string" ? values.school_id : "";
-
-  useEffect(() => {
-    if (!schoolId) {
-      setPrograms([]);
-      return;
-    }
-    let cancelled = false;
-    setProgramsLoading(true);
-    startTransition(() => {
-      void listInterestProgramsAction(schoolId).then((rows) => {
-        if (cancelled) return;
-        setPrograms(rows);
-        setProgramsLoading(false);
-        setValues((prev) => {
-          const current = typeof prev.program === "string" ? prev.program : "";
-          if (current && !rows.some((r) => r.code === current)) {
-            return { ...prev, program: "" };
-          }
-          return prev;
-        });
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [schoolId]);
 
   function setField(key: string, next: unknown) {
     setValues((prev) => ({ ...prev, [key]: next }));
@@ -318,8 +311,6 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
                   value={values[question.key]}
                   onChange={setField}
                   schools={published.schools}
-                  programs={programs}
-                  programsLoading={programsLoading}
                 />
               ))}
             </div>
