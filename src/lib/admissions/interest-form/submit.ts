@@ -204,8 +204,11 @@ export async function submitPublishedInterestForm(
   if (error) return { error: error.message };
 
   const leadId = data as string;
-  await recordInitialStage(supabase, leadId, null);
-  await onInquirySubmitted(supabase, leadId);
+  // Post-RPC trusted server work: anon RLS cannot read admissions_leads.
+  // Service role is scoped to this controlled server action; leadId comes from SECURITY DEFINER RPC.
+  const admin = createServiceRoleClient();
+  await recordInitialStage(admin, leadId, null);
+  await onInquirySubmitted(admin, leadId);
 
   const persisted = await persistInterestSubmission({
     organizationId: org.organizationId,

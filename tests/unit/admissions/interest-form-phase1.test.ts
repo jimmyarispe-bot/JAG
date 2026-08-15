@@ -650,6 +650,56 @@ describe("source metadata — submission column, not a question", () => {
   });
 });
 
+describe("post-RPC service-role boundary — lead communications auth", () => {
+  const submitSrc = readFileSync(
+    join(ROOT, "src/lib/admissions/interest-form/submit.ts"),
+    "utf8"
+  );
+
+  it("keeps public RPC on createAuthClient and returns leadId from that RPC", () => {
+    expect(submitSrc).toContain("const supabase = await createAuthClient()");
+    expect(submitSrc).toContain('supabase.rpc("submit_public_admissions_inquiry"');
+    expect(submitSrc).toMatch(/const leadId = data as string/);
+    // Auth client must not be reused for post-RPC lead reads / stage / communications
+    expect(submitSrc).not.toMatch(
+      /await recordInitialStage\(\s*supabase\s*,/
+    );
+    expect(submitSrc).not.toMatch(
+      /await onInquirySubmitted\(\s*supabase\s*,/
+    );
+  });
+
+  it("passes createServiceRoleClient to recordInitialStage and onInquirySubmitted after leadId", () => {
+    expect(submitSrc).toContain(
+      'import { createServiceRoleClient } from "@/lib/supabase/server"'
+    );
+    const leadIdIdx = submitSrc.indexOf("const leadId = data as string");
+    const adminIdx = submitSrc.indexOf("const admin = createServiceRoleClient()", leadIdIdx);
+    const stageIdx = submitSrc.indexOf("await recordInitialStage(admin, leadId", adminIdx);
+    const inquiryIdx = submitSrc.indexOf("await onInquirySubmitted(admin, leadId", stageIdx);
+    expect(leadIdIdx).toBeGreaterThan(-1);
+    expect(adminIdx).toBeGreaterThan(leadIdIdx);
+    expect(stageIdx).toBeGreaterThan(adminIdx);
+    expect(inquiryIdx).toBeGreaterThan(stageIdx);
+    // Service-role creation stays at the public-submit boundary — not in the engine
+    const engineSrc = readFileSync(
+      join(ROOT, "src/lib/admissions/communications/engine.ts"),
+      "utf8"
+    );
+    expect(engineSrc).not.toContain("createServiceRoleClient");
+  });
+
+  it("persistInterestSubmission continues to use service-role client", () => {
+    const persistBlock = submitSrc.slice(
+      submitSrc.indexOf("async function persistInterestSubmission"),
+      submitSrc.indexOf("export async function submitPublishedInterestForm")
+    );
+    expect(persistBlock).toContain("const admin = createServiceRoleClient()");
+    expect(persistBlock).toContain('from("admissions_interest_submissions"');
+    expect(persistBlock).toContain('from("admissions_interest_answers"');
+  });
+});
+
 describe("16–20 lead/submission/answers/history/cross-org", () => {
   it("maps form data into values for lead creation bindings", () => {
     const fd = new FormData();
