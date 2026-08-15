@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { JagEvidenceCenter } from "@/components/jag-platform/JagEvidenceCenter";
 import {
-  catalogDashboardSummary,
   knowledgeGraphSummary,
   listAccessibleEvidenceOrganizations,
   listBusinessUnitsForOrganization,
@@ -10,8 +9,8 @@ import {
   queryKnowledgeGraph,
   queueSummary,
   resolveEvidenceOrganization,
-  searchEvidence,
 } from "@/lib/evidence-center";
+import { loadDurableEvidenceCatalog } from "@/lib/evidence-center/load-durable";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
@@ -36,12 +35,12 @@ export default async function JagEvidencePage({
     );
   }
 
-  const documents = searchEvidence({
+  const { documents, dashboard } = await loadDurableEvidenceCatalog({
     organizationId: org.id,
+    organizationName: org.name,
     query: params.q,
   });
   const queue = queueSummary(org.id);
-  const dashboard = catalogDashboardSummary(org.id);
   const businessUnits = listBusinessUnitsForOrganization(org.id);
   const organizations = listAccessibleEvidenceOrganizations(session);
   const pipelineJobs = listJobsForOrganization(org.id);

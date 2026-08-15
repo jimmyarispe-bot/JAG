@@ -118,3 +118,51 @@ export {
   type PipelineMetrics,
   type EvidenceProcessorModule,
 } from "@/lib/evidence-center/pipeline";
+
+export {
+  JAG_EVIDENCE_DOCUMENTS_BUCKET,
+  JAG_EVIDENCE_MAX_BYTES,
+  JAG_EVIDENCE_ALLOWED_EXTENSIONS,
+  JAG_EVIDENCE_ALLOWED_MIME_TYPES,
+  sanitizeJagEvidenceFilename,
+  buildJagEvidenceObjectPath,
+  parseJagEvidenceObjectPath,
+  assertJagEvidencePathForOrganization,
+} from "@/lib/evidence-center/storage";
+export type {
+  JagEvidenceObjectRef,
+  JagEvidenceDocumentLifecycle,
+  JagEvidenceVersionStatus,
+} from "@/lib/evidence-center/storage";
+
+export { validateJagEvidenceFileInput } from "@/lib/evidence-center/validate-file";
+export { isJagEvidenceMemoryFallbackEnabled } from "@/lib/evidence-center/memory-fallback";
+export {
+  resolveEvidenceUploadFileSelection,
+  stemFromFilename,
+} from "@/lib/evidence-center/upload-file-selection";
+export {
+  MAX_BULK_EVIDENCE_FILES,
+  MAX_BULK_EVIDENCE_CONCURRENCY,
+} from "@/lib/evidence-center/bulk-constants";
+export {
+  resolveEvidenceUploadBatchSelection,
+  summarizeEvidenceQueue,
+  countValidPending,
+  clearEvidenceUploadModalBatchState,
+} from "@/lib/evidence-center/bulk-queue";
+export type {
+  EvidenceUploadQueueItem,
+  EvidenceUploadModalBatchUiState,
+} from "@/lib/evidence-center/bulk-queue";
+export {
+  mapWithConcurrency,
+  runJagEvidenceBulkUpload,
+  selectItemsForBulkUpload,
+} from "@/lib/evidence-center/bulk-upload";
+export { runJagEvidenceSingleUpload } from "@/lib/evidence-center/client-upload";
+export {
+  authorizeEvidenceUpload,
+  completeEvidenceUpload,
+  createEvidenceDownloadUrl,
+} from "@/lib/evidence-center/upload-service";

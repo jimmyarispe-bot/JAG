@@ -2,12 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import { JagEvidenceDetail } from "@/components/jag-platform/JagEvidenceDetail";
 import {
   canAccessEvidenceOrganization,
-  getEvidenceForOrganization,
   getRelationshipsForOrganization,
-  getVersionsForOrganization,
-  listEvidenceForOrganization,
   resolveEvidenceOrganization,
 } from "@/lib/evidence-center";
+import { loadDurableEvidenceDocument } from "@/lib/evidence-center/load-durable";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 
@@ -30,25 +28,24 @@ export default async function JagEvidenceDetailPage({
     notFound();
   }
 
-  const document = getEvidenceForOrganization(org.id, id);
-  if (!document) {
+  const loaded = await loadDurableEvidenceDocument({
+    organizationId: org.id,
+    organizationName: org.name,
+    documentId: id,
+  });
+  if (!loaded.document) {
     notFound();
   }
 
-  const versions = getVersionsForOrganization(org.id, id);
   const relationships = getRelationshipsForOrganization(org.id, id);
-  const catalogOptions = listEvidenceForOrganization(org.id).map((item) => ({
-    id: item.id,
-    name: item.name,
-  }));
 
   return (
     <JagEvidenceDetail
-      document={document}
+      document={loaded.document}
       organizationId={org.id}
-      versions={versions}
+      versions={loaded.versions}
       relationships={relationships}
-      catalogOptions={catalogOptions}
+      catalogOptions={loaded.catalogOptions}
     />
   );
 }

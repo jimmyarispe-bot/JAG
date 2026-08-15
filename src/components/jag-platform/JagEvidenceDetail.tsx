@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   RELATIONSHIP_TYPES,
+  resolveEvidenceUploadFileSelection,
   type EvidenceDocument,
   type EvidenceRelationship,
   type EvidenceVersion,
@@ -56,25 +57,23 @@ export function JagEvidenceDetail({
     }
     setError("");
     setMessage("");
-    const response = await fetch("/api/jag-platform/evidence/versions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      const { runJagEvidenceSingleUpload } = await import(
+        "@/lib/evidence-center/client-upload"
+      );
+      await runJagEvidenceSingleUpload({
         organizationId,
+        organizationName: document.organizationName,
+        file: versionFile,
+        mode: "version",
         documentId: document.id,
-        fileName: versionFile.name,
-        mimeType: versionFile.type,
-        byteSize: versionFile.size,
-      }),
-    });
-    const payload = (await response.json()) as { ok?: boolean; error?: string };
-    if (!response.ok || !payload.ok) {
-      setError(payload.error ?? "Could not add version.");
-      return;
+      });
+      setVersionFile(null);
+      setMessage("Version uploaded and verified.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add version.");
     }
-    setVersionFile(null);
-    setMessage("Version added.");
-    router.refresh();
   };
 
   const addRelationship = async () => {
@@ -117,11 +116,21 @@ export function JagEvidenceDetail({
           {document.name}
         </h2>
         <p className="mt-1 text-sm text-slate-600">{document.fileName}</p>
-        <span
-          className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${confidentialityClass(document.confidentiality)}`}
-        >
-          {document.confidentiality}
-        </span>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${confidentialityClass(document.confidentiality)}`}
+          >
+            {document.confidentiality}
+          </span>
+          {document.status === "completed" && (
+            <a
+              className="text-sm font-medium text-slate-900 underline"
+              href={`/api/jag-platform/evidence/documents/${encodeURIComponent(document.id)}/download?organizationId=${encodeURIComponent(organizationId)}`}
+            >
+              Download
+            </a>
+          )}
+        </div>
       </div>
 
       {(message || error) && (
@@ -200,7 +209,17 @@ export function JagEvidenceDetail({
             <span className="mb-1 block text-slate-600">Add version</span>
             <input
               type="file"
-              onChange={(e) => setVersionFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const resolved = resolveEvidenceUploadFileSelection({
+                  previousFile: versionFile,
+                  evidenceName: "",
+                  pickedFiles: e.target.files,
+                });
+                if (resolved.kind === "selected") {
+                  setVersionFile(resolved.file);
+                }
+                e.target.value = "";
+              }}
             />
           </label>
           <button
