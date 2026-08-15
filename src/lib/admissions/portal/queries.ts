@@ -97,16 +97,16 @@ const APPLICATION_SELECT = `
 `;
 
 export async function getSchoolsForInquiry() {
-  const supabase = await createAuthClient();
-  // Public /apply uses the anon key. Direct SELECT on schools is blocked by
-  // schools_access_controlled (CEO / can_access_school). Use the same
-  // SECURITY DEFINER pattern as submit_public_admissions_inquiry.
-  const { data, error } = await supabase.rpc("list_schools_for_public_inquiry");
-  if (error) {
-    console.error("[getSchoolsForInquiry]", error.message);
-    return [];
-  }
-  return (data ?? []) as { id: string; name: string }[];
+  // Organization-scoped public school list (admissions_interest_public only).
+  const { resolveInterestFormOrganization } = await import(
+    "@/lib/admissions/interest-form/org-resolve"
+  );
+  const { listPublicSchoolsForOrganization } = await import(
+    "@/lib/admissions/interest-form/load"
+  );
+  const org = await resolveInterestFormOrganization();
+  if (!org) return [];
+  return listPublicSchoolsForOrganization(org.organizationId);
 }
 
 export async function getCurrentSchoolYear(schoolId: string) {

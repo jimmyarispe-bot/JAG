@@ -26183,9 +26183,18 @@ export type Database = {
         Args: { check_permission?: string; check_student_id: string }
         Returns: boolean
       }
-      list_schools_for_public_inquiry: {
-        Args: Record<string, never>
-        Returns: { id: string; name: string }[]
+      list_schools_for_public_inquiry:
+        | {
+            Args: Record<string, never>
+            Returns: { id: string; name: string }[]
+          }
+        | {
+            Args: { p_organization_id: string }
+            Returns: { id: string; name: string }[]
+          }
+      list_programs_for_public_inquiry: {
+        Args: { p_organization_id: string; p_school_id: string }
+        Returns: { code: string; name: string }[]
       }
       submit_public_admissions_inquiry: {
         Args: {
