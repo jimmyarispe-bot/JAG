@@ -26,12 +26,12 @@ export function JagPlatformUsersView({
   );
 
   function run(
-    action: () => Promise<{ error?: string; success?: boolean }>,
+    action: () => Promise<{ error?: string; success?: boolean; message?: string }>,
     ok: string
   ) {
     startTransition(async () => {
       const result = await action();
-      setMessage(result.error ?? ok);
+      setMessage(result.error ?? result.message ?? ok);
       if (!result.error) setShowAdd(false);
     });
   }

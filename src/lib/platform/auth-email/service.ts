@@ -211,6 +211,12 @@ export async function requestPasswordResetViaAuthEmail(input: {
    * Default — existing AcademyOS / tenant org branding (unchanged).
    */
   brandProfile?: "default" | "jag";
+  /**
+   * Admin/trusted callers only. Public forgot-password stays enumeration-safe
+   * (`ok: true` even when generate/deliver fails). When true, generate/deliver
+   * failures return a generic error and never include provider details.
+   */
+  reportDelivery?: boolean;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const email = input.email.trim().toLowerCase();
   if (!email.includes("@")) {
@@ -229,6 +235,11 @@ export async function requestPasswordResetViaAuthEmail(input: {
     : resolveTrustedAuthAppUrl(input.originHint);
   const next = safeAuthEmailNext(input.next);
   const authAdmin = getAdminAuthenticationService();
+  const reportDelivery = input.reportDelivery === true;
+  const deliveryUnavailable = {
+    ok: false as const,
+    error: "Password setup email could not be sent.",
+  };
 
   try {
     const { data: profile } = await admin
@@ -237,19 +248,19 @@ export async function requestPasswordResetViaAuthEmail(input: {
       .ilike("email", email)
       .maybeSingle();
 
-    // Enumeration-safe: if no profile, still report success.
+    // Enumeration-safe for public forgot: if no profile, still report success.
     if (!profile?.id) {
-      return { ok: true };
+      return reportDelivery ? deliveryUnavailable : { ok: true };
     }
 
     const userResult = await authAdmin.getUserById(profile.id);
     if (!userResult.ok || !userResult.data?.email) {
-      return { ok: true };
+      return reportDelivery ? deliveryUnavailable : { ok: true };
     }
     const authUser = userResult.data;
 
     if (!authUser.email) {
-      return { ok: true };
+      return reportDelivery ? deliveryUnavailable : { ok: true };
     }
     const recoveryEmail = authUser.email;
 
@@ -258,7 +269,7 @@ export async function requestPasswordResetViaAuthEmail(input: {
     });
     if (!linkResult.ok) {
       console.error("[auth-email] recovery generateLink failed", linkResult.error);
-      return { ok: true };
+      return reportDelivery ? deliveryUnavailable : { ok: true };
     }
 
     const actionUrl = buildAuthEmailCallbackLink({
@@ -288,6 +299,7 @@ export async function requestPasswordResetViaAuthEmail(input: {
 
     if (!mail.success) {
       console.error("[auth-email] recovery delivery failed", mail.error);
+      return reportDelivery ? deliveryUnavailable : { ok: true };
     }
     return { ok: true };
   } catch (err) {
@@ -295,7 +307,7 @@ export async function requestPasswordResetViaAuthEmail(input: {
       "[auth-email] requestPasswordResetViaAuthEmail",
       err instanceof Error ? err.message : err
     );
-    return { ok: true };
+    return reportDelivery ? deliveryUnavailable : { ok: true };
   }
 }
 

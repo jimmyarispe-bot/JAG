@@ -4,8 +4,10 @@
  * Never uses /dashboard/admin/users or JAG_ORG_STAFF.
  */
 
+import { JAG_PLATFORM_HOME_PATH } from "@/lib/jag-platform/auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { requestPasswordResetViaAuthEmail } from "@/lib/platform/auth-email";
 import { requirePermission } from "@/lib/platform/identity/permissions";
 import { logSecurityEvent } from "@/lib/platform/identity/security";
 import {
@@ -48,8 +50,61 @@ export type JagPlatformDirectoryUser = {
 };
 
 export type JagPlatformUserResult =
-  | { success: true; userId: string; created: boolean }
+  | {
+      success: true;
+      userId: string;
+      created: boolean;
+      setupEmailSent?: boolean;
+    }
   | { success: false; error: string };
+
+const SETUP_EMAIL_FAILED_MESSAGE =
+  "JAG access granted, but the setup email could not be sent." as const;
+
+/** Admin-facing copy after provision/grant. Never includes provider errors. */
+export function formatJagPlatformProvisionMessage(input: {
+  readonly email: string;
+  readonly created: boolean;
+  readonly setupEmailSent?: boolean;
+}): string {
+  if (!input.created) return "JAG access granted.";
+  if (input.setupEmailSent) {
+    return `JAG access granted. A password setup email was sent to ${input.email}.`;
+  }
+  return SETUP_EMAIL_FAILED_MESSAGE;
+}
+
+/** Same recovery request as /jag/login/forgot — JAG next, JAG brand. */
+export function jagNewUserSetupEmailRequest(
+  email: string,
+  originHint?: string
+): {
+  readonly email: string;
+  readonly next: typeof JAG_PLATFORM_HOME_PATH;
+  readonly originHint?: string;
+  readonly brandProfile: "jag";
+  readonly reportDelivery: true;
+} {
+  return {
+    email,
+    next: JAG_PLATFORM_HOME_PATH,
+    ...(originHint ? { originHint } : {}),
+    brandProfile: "jag",
+    reportDelivery: true,
+  };
+}
+
+async function sendJagNewUserSetupEmail(input: {
+  email: string;
+  originHint?: string;
+}): Promise<boolean> {
+  const result = await requestPasswordResetViaAuthEmail(
+    jagNewUserSetupEmailRequest(input.email, input.originHint)
+  );
+  if (result.ok) return true;
+  console.error("[jag-platform-users] setup email failed");
+  return false;
+}
 
 async function requireJagPlatformAdmin(): Promise<
   { ok: true } | { ok: false; error: string }
@@ -416,6 +471,7 @@ export async function provisionJagPlatformUser(input: {
   lastName: string;
   email: string;
   role?: JagPlatformAccessRole;
+  originHint?: string;
 }): Promise<JagPlatformUserResult> {
   const gate = await requireJagPlatformAdmin();
   if (!gate.ok) return { success: false, error: gate.error };
@@ -484,13 +540,23 @@ export async function provisionJagPlatformUser(input: {
   });
   if (!finalized.ok) return { success: false, error: finalized.error };
 
+  const setupEmailSent = await sendJagNewUserSetupEmail({
+    email,
+    originHint: input.originHint,
+  });
+
   const supabase = await createAuthClient();
   await logSecurityEvent(supabase, {
     eventType: "role_assignment",
     userId,
     summary: `Provisioned JAG-only platform user ${email}`,
-    metadata: { jag_platform_only: true, role, trusted_rpc: JAG_ONLY_PROVISION_RPC },
+    metadata: {
+      jag_platform_only: true,
+      role,
+      trusted_rpc: JAG_ONLY_PROVISION_RPC,
+      setup_email_sent: setupEmailSent,
+    },
   });
 
-  return { success: true, userId, created: true };
+  return { success: true, userId, created: true, setupEmailSent };
 }

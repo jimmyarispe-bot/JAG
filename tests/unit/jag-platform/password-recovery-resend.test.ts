@@ -303,6 +303,73 @@ describe("requestPasswordResetViaAuthEmail JAG integration", () => {
     });
     expect(result).toEqual({ ok: true });
   });
+
+  it("reportDelivery surfaces a generic failure without provider details", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({
+      createServiceRoleClient: () => ({
+        from: () => ({
+          select: () => ({
+            ilike: () => ({
+              maybeSingle: async () => ({
+                data: { id: "user-1", full_name: "Ada", email: "ada@example.com" },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      }),
+    }));
+    vi.doMock("@/lib/platform/authentication", () => ({
+      getAdminAuthenticationService: () => ({
+        getUserById: async () => ({
+          ok: true,
+          data: { id: "user-1", email: "ada@example.com", userMetadata: {} },
+        }),
+        generateRecovery: async () => ({
+          ok: true,
+          data: { tokenHash: "h", actionLink: null },
+        }),
+      }),
+    }));
+    vi.doMock("@/lib/platform/auth-email/branding", () => ({
+      jagPlatformPasswordResetEmailBrand: () => ({
+        displayName: "The JAG™",
+        applicationName: "The JAG™",
+        fromName: "The JAG™",
+        fromAddress: "noreply@example.com",
+        replyTo: null,
+        primaryColor: "#000",
+        secondaryColor: "#111",
+        supportEmail: null,
+        logoUrl: null,
+      }),
+      loadEmailBrandForUserEmail: async () => ({}),
+      loadOrganizationEmailBrand: async () => null,
+      platformDefaultEmailBrand: () => ({}),
+    }));
+    vi.doMock("@/lib/platform/email/send", () => ({
+      sendTransactionalEmail: async () => ({
+        success: false,
+        error: "resend API key is invalid",
+      }),
+    }));
+
+    const { requestPasswordResetViaAuthEmail } = await import(
+      "@/lib/platform/auth-email/service"
+    );
+    const result = await requestPasswordResetViaAuthEmail({
+      email: "ada@example.com",
+      next: "/jag",
+      brandProfile: "jag",
+      reportDelivery: true,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toBe("Password setup email could not be sent.");
+    expect(result.error).not.toContain("resend");
+    expect(result.error).not.toContain("API key");
+  });
 });
 
 describe("JagForgotPasswordForm client boundary", () => {

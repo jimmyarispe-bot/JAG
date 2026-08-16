@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
+  formatJagPlatformProvisionMessage,
   grantJagPlatformAccess,
   provisionJagPlatformUser,
   revokeJagPlatformAccess,
@@ -11,6 +13,13 @@ import {
   JAG_PLATFORM_GRANT_ROLE,
   JAG_PLATFORM_USERS_PATH,
 } from "@/lib/jag-platform/platform-access";
+
+function originHintFromHeaders(headerStore: Headers): string | undefined {
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  if (!host?.trim()) return undefined;
+  const proto = headerStore.get("x-forwarded-proto") ?? "https";
+  return `${proto}://${host.split(",")[0]!.trim()}`;
+}
 
 function revalidate() {
   revalidatePath(JAG_PLATFORM_USERS_PATH);
@@ -34,15 +43,27 @@ export async function provisionJagPlatformUserAction(formData: FormData) {
   const role = isJagPlatformAccessRole(rawRole)
     ? rawRole
     : JAG_PLATFORM_GRANT_ROLE;
+  const email = String(formData.get("email") ?? "");
+  const headerStore = await headers();
   const result = await provisionJagPlatformUser({
     firstName: String(formData.get("first_name") ?? ""),
     lastName: String(formData.get("last_name") ?? ""),
-    email: String(formData.get("email") ?? ""),
+    email,
     role,
+    originHint: originHintFromHeaders(headerStore),
   });
   if (!result.success) return { error: result.error };
   revalidate();
-  return { success: true, userId: result.userId, created: result.created };
+  return {
+    success: true,
+    userId: result.userId,
+    created: result.created,
+    message: formatJagPlatformProvisionMessage({
+      email: email.trim().toLowerCase(),
+      created: result.created,
+      setupEmailSent: result.setupEmailSent,
+    }),
+  };
 }
 
 export async function revokeJagPlatformAccessAction(formData: FormData) {
