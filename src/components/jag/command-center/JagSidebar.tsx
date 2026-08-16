@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { OrganizationBrand } from "@/lib/platform/branding";
-import { POWERED_BY_LINE } from "@/lib/platform/branding";
+import { POWERED_BY_LINE, THE_JAG_MARK } from "@/lib/platform/branding";
 import {
   customerWorkspaceHref,
   platformAdminHref,
@@ -34,6 +34,8 @@ export function JagSidebar({
   const [open, setOpen] = useState(false);
   const organizationTitle =
     activeOrganizationLabel?.trim() || brand.display_name;
+  const sidebarTitle =
+    workspaceMode === "platform" ? THE_JAG_MARK : organizationTitle;
 
   return (
     <>
@@ -66,7 +68,7 @@ export function JagSidebar({
         <div className="border-b border-[var(--jag-border)] px-4 py-5">
           <JagBrandLogoMark brand={brand} dark className="h-8 max-w-[11rem] object-contain" />
           <p className="mt-2 text-sm font-medium leading-snug text-[var(--jag-text)]">
-            {organizationTitle}
+            {sidebarTitle}
           </p>
           <p className="mt-0.5 text-[11px] leading-snug text-[var(--jag-muted)]">
             {workspaceMode === "customer"
