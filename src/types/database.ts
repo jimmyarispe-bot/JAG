@@ -26056,6 +26056,14 @@ export type Database = {
         Returns: undefined
       }
       provision_current_auth_user: { Args: never; Returns: undefined }
+      provision_jag_only_identity: {
+        Args: {
+          p_user_id: string
+          p_role: string
+          p_strip_default_org?: boolean
+        }
+        Returns: undefined
+      }
       instruction_student_policy: {
         Args: { check_permission?: string; check_student_id: string }
         Returns: boolean

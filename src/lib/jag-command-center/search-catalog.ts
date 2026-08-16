@@ -29,6 +29,7 @@ export { filterJagSearchCatalog } from "./search-filter";
 
 const PLATFORM_ONLY_HREF_PREFIXES = [
   "/jag/organizations",
+  "/jag/users",
   "/jag/domains",
   "/jag/capability-packs",
   "/jag/knowledge",

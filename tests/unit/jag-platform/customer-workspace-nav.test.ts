@@ -96,6 +96,7 @@ describe("Phase 65 customer workspace navigation", () => {
     });
     const ids = nav.map((n) => n.id);
     expect(ids).toContain("organizations");
+    expect(ids).toContain("users");
     expect(ids).toContain("domains");
     expect(ids).toContain("observability");
     expect(ids).toContain("runtime");
@@ -130,6 +131,7 @@ describe("Phase 65 customer workspace navigation", () => {
     expect(ids).toContain("memory");
     expect(ids).toContain("settings");
     expect(ids).not.toContain("organizations");
+    expect(ids).not.toContain("users");
     expect(ids).not.toContain("domains");
     expect(ids).not.toContain("capability-packs");
     expect(ids).not.toContain("knowledge");

@@ -34,6 +34,13 @@ export const SHELL_NAVIGATION: readonly CapabilityNavItem[] = [
     order: 80,
     group: "platform",
   },
+  {
+    id: "users",
+    label: "JAG Platform Users",
+    href: "/jag/users",
+    order: 79,
+    group: "platform",
+  },
   { id: "domains", label: "Domains", href: "/jag/domains", order: 81, group: "platform" },
   {
     id: "capability-packs",

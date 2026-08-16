@@ -102,6 +102,7 @@ export {
 export {
   needsAuthUserProvisioning,
   ensureCurrentAuthUserProvisioned,
+  isJagOnlyProvisionRoles,
   loadAuthProvisionState,
   type AuthProvisionState,
 } from "@/lib/platform/identity/provision-auth-user";

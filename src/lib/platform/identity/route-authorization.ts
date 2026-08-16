@@ -31,6 +31,7 @@ import {
   PLATFORM_ADMINISTRATION_ENTRY_PERMISSIONS,
   isPlatformAdministrationRoute,
 } from "@/lib/dashboard/platform-administration";
+import { isJagPlatformUsersRoute } from "@/lib/jag-platform/platform-access";
 
 export type RouteAuthzDecision =
   | { ok: true; required: readonly CatalogPermission[] }
@@ -147,6 +148,22 @@ export function authorizeRoute(
         missing: JAG_ORG_ENTRY_PERMISSION,
         redirectTo: ACADEMYOS_HOME_PATH,
       };
+    }
+    if (isJagPlatformUsersRoute(pathname)) {
+      if (
+        !authorize(snapshot, JAG_ENTRY_PERMISSION) ||
+        !authorize(snapshot, "JAG_PLATFORM_ADMIN")
+      ) {
+        return {
+          ok: false,
+          required: [JAG_ENTRY_PERMISSION, "JAG_PLATFORM_ADMIN"],
+          missing: authorize(snapshot, JAG_ENTRY_PERMISSION)
+            ? "JAG_PLATFORM_ADMIN"
+            : JAG_ENTRY_PERMISSION,
+          redirectTo: "/jag",
+        };
+      }
+      return { ok: true, required: [JAG_ENTRY_PERMISSION, "JAG_PLATFORM_ADMIN"] };
     }
     if (authorize(snapshot, JAG_ENTRY_PERMISSION)) {
       return { ok: true, required: [JAG_ENTRY_PERMISSION] };

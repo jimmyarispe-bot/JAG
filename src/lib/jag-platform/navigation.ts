@@ -18,6 +18,12 @@ export const JAG_PLATFORM_NAV: readonly JagPlatformNavItem[] = Object.freeze([
   { id: "dashboard", label: "Dashboard", href: "/jag/dashboard" },
   { id: "organizations", label: "Organizations", href: "/jag/organizations" },
   {
+    id: "users",
+    label: "JAG Platform Users",
+    href: "/jag/users",
+    adminOnly: true,
+  },
+  {
     id: "evidence",
     label: "Evidence Center™",
     href: "/jag/evidence",
