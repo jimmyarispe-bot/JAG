@@ -17,6 +17,8 @@ import {
   isAal2RequiredErrorMessage,
   jagPasswordResetMfaRequiredPath,
   jagPasswordResetReturnPath,
+  jagPasswordResetSuccessLoginHref,
+  jagRecoveryDestination,
   passwordUpdateRequiresMfaStepUp,
 } from "@/lib/jag-platform/password-reset-mfa";
 import { platformDefaultEmailBrand } from "@/lib/platform/auth-email/branding";
@@ -87,19 +89,38 @@ describe("JAG recovery MFA step-up", () => {
   });
 
   it("E/F. MFA route returns to JAG reset, not establish or /jag home", () => {
-    const path = jagPasswordResetMfaRequiredPath("/jag/login");
+    const path = jagPasswordResetMfaRequiredPath("/jag");
     expect(path.startsWith("/login/mfa-required?next=")).toBe(true);
     const next = new URL(path, "https://example.com").searchParams.get("next");
-    expect(next).toBe("/jag/login/reset?next=%2Fjag%2Flogin");
+    expect(next).toBe("/jag/login/reset?next=%2Fjag");
     expect(path).not.toContain("auth/establish");
-    expect(jagPasswordResetReturnPath("/jag/login")).toBe(
-      "/jag/login/reset?next=%2Fjag%2Flogin"
+    expect(jagPasswordResetReturnPath("/jag")).toBe(
+      "/jag/login/reset?next=%2Fjag"
     );
   });
 
   it("rejects open redirects in MFA return next", () => {
     expect(jagPasswordResetReturnPath("https://evil.example")).toBe(
-      "/jag/login/reset?next=%2Fjag%2Flogin"
+      "/jag/login/reset?next=%2Fjag"
+    );
+  });
+
+  it("JAG recovery destination is /jag and never /dashboard", () => {
+    expect(jagRecoveryDestination("/jag")).toBe("/jag");
+    expect(jagRecoveryDestination("/jag/login")).toBe("/jag");
+    expect(jagRecoveryDestination("/jag/login/reset")).toBe("/jag");
+    expect(jagRecoveryDestination("/dashboard")).toBe("/jag");
+    expect(jagRecoveryDestination("https://evil.example")).toBe("/jag");
+    expect(jagRecoveryDestination(null)).toBe("/jag");
+
+    const success = jagPasswordResetSuccessLoginHref("/jag");
+    expect(success).toBe("/jag/login?next=%2Fjag&reset=success");
+    expect(success).not.toContain("/dashboard");
+    expect(jagPasswordResetSuccessLoginHref("/jag/login")).toBe(
+      "/jag/login?next=%2Fjag&reset=success"
+    );
+    expect(jagPasswordResetSuccessLoginHref("/dashboard")).toBe(
+      "/jag/login?next=%2Fjag&reset=success"
     );
   });
 
@@ -121,7 +142,7 @@ describe("client recovery surfaces (source invariants)", () => {
     expect(src).toContain("passwordUpdateRequiresMfaStepUp");
     expect(src).toContain("jagPasswordResetMfaRequiredPath");
     expect(src).toContain("signOut");
-    expect(src).toContain('set("reset", "success")');
+    expect(src).toContain("jagPasswordResetSuccessLoginHref");
     expect(src).not.toContain("encodeJagPlatformSession");
     expect(src).not.toContain("jag_platform_session");
     expect(src).not.toContain("auth/establish");
@@ -145,6 +166,8 @@ describe("client recovery surfaces (source invariants)", () => {
       "utf8"
     );
     expect(src).toContain('brandProfile: "jag"');
+    expect(src).toContain("JAG_PLATFORM_HOME_PATH");
+    expect(src).not.toContain("next: JAG_PLATFORM_LOGIN_PATH");
   });
 });
 

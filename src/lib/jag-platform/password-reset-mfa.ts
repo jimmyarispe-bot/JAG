@@ -4,7 +4,11 @@
  * when the user has verified MFA factors (nextLevel === "aal2").
  */
 
-import { JAG_PLATFORM_RESET_PASSWORD_PATH } from "@/lib/jag-platform/auth";
+import {
+  JAG_PLATFORM_HOME_PATH,
+  JAG_PLATFORM_LOGIN_PATH,
+  JAG_PLATFORM_RESET_PASSWORD_PATH,
+} from "@/lib/jag-platform/auth";
 import { safeInternalPath } from "@/lib/auth/auth-callback";
 
 type MfaAalClient = {
@@ -35,11 +39,35 @@ export async function passwordUpdateRequiresMfaStepUp(
   }
 }
 
+/**
+ * Final JAG destination after recovery. Login/reset surfaces are not landing
+ * routes — those fall back to /jag. Never returns /dashboard.
+ */
+export function jagRecoveryDestination(nextAfterReset?: string | null): string {
+  const next = safeInternalPath(nextAfterReset, JAG_PLATFORM_HOME_PATH);
+  if (
+    next.startsWith("/jag") &&
+    !next.startsWith("//") &&
+    next !== JAG_PLATFORM_LOGIN_PATH &&
+    !next.startsWith(`${JAG_PLATFORM_LOGIN_PATH}/`)
+  ) {
+    return next;
+  }
+  return JAG_PLATFORM_HOME_PATH;
+}
+
 /** Return URL for MFA completion — back to JAG reset (never JAG establish/home). */
 export function jagPasswordResetReturnPath(nextAfterReset?: string | null): string {
-  const next = safeInternalPath(nextAfterReset, "/jag/login");
-  const safeNext = next.startsWith("/jag") ? next : "/jag/login";
-  return `${JAG_PLATFORM_RESET_PASSWORD_PATH}?next=${encodeURIComponent(safeNext)}`;
+  const destination = jagRecoveryDestination(nextAfterReset);
+  return `${JAG_PLATFORM_RESET_PASSWORD_PATH}?next=${encodeURIComponent(destination)}`;
+}
+
+/** After password save: JAG login, carrying /jag so sign-in does not fall through to /dashboard. */
+export function jagPasswordResetSuccessLoginHref(
+  nextAfterReset?: string | null
+): string {
+  const destination = jagRecoveryDestination(nextAfterReset);
+  return `${JAG_PLATFORM_LOGIN_PATH}?next=${encodeURIComponent(destination)}&reset=success`;
 }
 
 /** Existing MFA UI with return to JAG reset after AAL2. */

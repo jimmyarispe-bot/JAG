@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
+import {
+  JAG_PLATFORM_HOME_PATH,
+  JAG_PLATFORM_LOGIN_PATH,
+} from "@/lib/jag-platform/auth";
 import {
   isAal2RequiredErrorMessage,
   jagPasswordResetMfaRequiredPath,
+  jagPasswordResetSuccessLoginHref,
   passwordUpdateRequiresMfaStepUp,
 } from "@/lib/jag-platform/password-reset-mfa";
 import {
@@ -21,7 +25,7 @@ export function JagResetPasswordForm({
   readonly brand: OrganizationBrand;
 }) {
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") ?? JAG_PLATFORM_LOGIN_PATH;
+  const nextPath = searchParams.get("next") ?? JAG_PLATFORM_HOME_PATH;
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -100,12 +104,7 @@ export function JagResetPasswordForm({
     // Clear Supabase recovery session — does not mint a JAG platform cookie.
     await supabase.auth.signOut();
 
-    const loginUrl = new URL(
-      nextPath.startsWith("/jag/login") ? nextPath : JAG_PLATFORM_LOGIN_PATH,
-      window.location.origin
-    );
-    loginUrl.searchParams.set("reset", "success");
-    window.location.href = loginUrl.pathname + loginUrl.search;
+    window.location.href = jagPasswordResetSuccessLoginHref(nextPath);
   };
 
   const logoSrc = brand.light_logo_url || brand.dark_logo_url;

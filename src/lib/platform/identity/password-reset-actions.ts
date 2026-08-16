@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
+import { JAG_PLATFORM_HOME_PATH } from "@/lib/jag-platform/auth";
 import { requestPasswordResetViaAuthEmail } from "@/lib/platform/auth-email";
 import {
   checkRateLimitAsync,
@@ -19,7 +19,7 @@ export async function requestPasswordResetAction(
 }
 
 /**
- * JAG portal forgot password — Resend/auth-email with next=/jag/login.
+ * JAG portal forgot password — Resend/auth-email with next=/jag.
  *
  * Rate limits silently return the same neutral success so throttling cannot
  * be used to probe account existence.
@@ -48,7 +48,7 @@ export async function requestJagPasswordResetAction(input: {
 
   return requestPasswordResetViaAuthEmail({
     email,
-    next: JAG_PLATFORM_LOGIN_PATH,
+    next: JAG_PLATFORM_HOME_PATH,
     originHint: input.originHint,
     brandProfile: "jag",
   });

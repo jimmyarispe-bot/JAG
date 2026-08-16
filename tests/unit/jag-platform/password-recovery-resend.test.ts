@@ -68,6 +68,22 @@ describe("resolveTrustedAuthAppUrl", () => {
 });
 
 describe("JAG recovery callback link shape", () => {
+  it("includes type=recovery and next=/jag for JAG recovery destination", () => {
+    const link = buildAuthEmailCallbackLink({
+      tokenHash: "tok_hash_example",
+      type: "recovery",
+      next: "/jag",
+      appUrl: "https://jag-preview.vercel.app",
+    });
+    const url = new URL(link);
+    expect(url.pathname).toBe("/auth/callback");
+    expect(url.searchParams.get("type")).toBe("recovery");
+    expect(url.searchParams.get("next")).toBe("/jag");
+    expect(url.searchParams.get("next")).not.toBe("/dashboard");
+    expect(url.searchParams.get("token_hash")).toBe("tok_hash_example");
+    expect(url.origin).toBe("https://jag-preview.vercel.app");
+  });
+
   it("includes type=recovery and next=/jag/login", () => {
     const link = buildAuthEmailCallbackLink({
       tokenHash: "tok_hash_example",

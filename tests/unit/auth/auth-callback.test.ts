@@ -70,6 +70,16 @@ describe("auth-callback helpers", () => {
     ).toBe(`${PASSWORD_RESET_PATH}?next=${encodeURIComponent("/dashboard")}`);
   });
 
+  it("routes JAG recovery next=/jag to JAG password reset without becoming /dashboard", () => {
+    const path = resolveAuthCallbackRedirect({
+      type: "recovery",
+      next: "/jag",
+      user: userWith({}),
+    });
+    expect(path).toBe(`/jag/login/reset?next=${encodeURIComponent("/jag")}`);
+    expect(path).not.toContain("/dashboard");
+  });
+
   it("routes JAG recovery next to JAG password reset UI", () => {
     expect(
       resolveAuthCallbackRedirect({
