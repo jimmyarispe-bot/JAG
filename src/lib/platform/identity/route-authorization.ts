@@ -29,6 +29,7 @@ import {
   PLATFORM_ADMINISTRATION_ENTRY_PERMISSIONS,
   isPlatformAdministrationRoute,
 } from "@/lib/dashboard/platform-administration";
+import { isJagPlatformUsersRoute } from "@/lib/jag-platform/platform-access";
 
 export type RouteAuthzDecision =
   | { ok: true; required: readonly CatalogPermission[] }
@@ -84,7 +85,11 @@ export function requiredPermissionsForRoute(
   search: string = ""
 ): CatalogPermission[] {
   // Sprint 007 — JAG is Founder-protected via JAG_ACCESS alone.
+  // /jag/users is platform administration, not org-scoped JAG entry.
   if (isJagRoute(pathname)) {
+    if (isJagPlatformUsersRoute(pathname)) {
+      return [JAG_ENTRY_PERMISSION, "JAG_PLATFORM_ADMIN"];
+    }
     return [JAG_ENTRY_PERMISSION];
   }
 
@@ -132,6 +137,22 @@ export function authorizeRoute(
 ): RouteAuthzDecision {
   // Sprint 007 — Founder Protection (permission engine only).
   if (isJagRoute(pathname)) {
+    if (isJagPlatformUsersRoute(pathname)) {
+      if (
+        !authorize(snapshot, JAG_ENTRY_PERMISSION) ||
+        !authorize(snapshot, "JAG_PLATFORM_ADMIN")
+      ) {
+        return {
+          ok: false,
+          required: [JAG_ENTRY_PERMISSION, "JAG_PLATFORM_ADMIN"],
+          missing: authorize(snapshot, JAG_ENTRY_PERMISSION)
+            ? "JAG_PLATFORM_ADMIN"
+            : JAG_ENTRY_PERMISSION,
+          redirectTo: "/jag",
+        };
+      }
+      return { ok: true, required: [JAG_ENTRY_PERMISSION, "JAG_PLATFORM_ADMIN"] };
+    }
     if (authorizeJagEntry(snapshot)) {
       return { ok: true, required: [JAG_ENTRY_PERMISSION] };
     }

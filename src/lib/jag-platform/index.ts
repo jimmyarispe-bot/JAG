@@ -77,6 +77,24 @@ export {
 } from "@/lib/jag-platform/admin-access";
 
 export {
+  JAG_ONLY_PROVISION_RPC,
+  JAG_PLATFORM_ACCESS_ROLES,
+  JAG_PLATFORM_GRANT_ROLE,
+  JAG_PLATFORM_USERS_PATH,
+  academyOsRolesFrom,
+  buildJagOnlyAuthMetadata,
+  effectiveJagPlatformPermissions,
+  hasJagPlatformAccess,
+  isJagPlatformAccessRole,
+  isJagPlatformUsersRoute,
+  jagOnlyAuthMetadataHasPrivilegeSignals,
+  jagPlatformAccessRolesFrom,
+  jagPlatformPermissionUniverse,
+  jagPlatformPermissionsEqual,
+  type JagPlatformAccessRole,
+} from "@/lib/jag-platform/platform-access";
+
+export {
   createJagPlatformError,
   JagErrors,
   toPublicErrorBody,

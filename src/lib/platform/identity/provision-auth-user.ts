@@ -8,14 +8,35 @@ import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
+const JAG_ONLY_ROLE_ALLOWLIST = new Set([
+  "TEAM_MEMBER",
+  "PLATFORM_OWNER",
+  "PLATFORM_ADMIN",
+]);
+
 export type AuthProvisionState = {
   hasProfile: boolean;
   hasRole: boolean;
   hasOrgAssignment: boolean;
+  /** Trusted role rows — never auth.user_metadata. */
+  jagPlatformOnly: boolean;
 };
 
+/** JAG-only = platform role present and no AcademyOS/Founder roles. */
+export function isJagOnlyProvisionRoles(roleNames: readonly string[]): boolean {
+  const names = roleNames.filter(Boolean);
+  if (
+    !names.some((name) => name === "PLATFORM_OWNER" || name === "PLATFORM_ADMIN")
+  ) {
+    return false;
+  }
+  return names.every((name) => JAG_ONLY_ROLE_ALLOWLIST.has(name));
+}
+
 export function needsAuthUserProvisioning(state: AuthProvisionState): boolean {
-  return !state.hasProfile || !state.hasRole || !state.hasOrgAssignment;
+  if (!state.hasProfile || !state.hasRole) return true;
+  if (state.jagPlatformOnly) return false;
+  return !state.hasOrgAssignment;
 }
 
 /**
@@ -36,9 +57,9 @@ export async function loadAuthProvisionState(
   supabase: AuthClient,
   userId: string
 ): Promise<AuthProvisionState> {
-  const [profile, roles, assignments] = await Promise.all([
+  const [profile, userRoles, assignments] = await Promise.all([
     supabase.from("users").select("id").eq("id", userId).maybeSingle(),
-    supabase.from("user_roles").select("role_id").eq("user_id", userId).limit(1),
+    supabase.from("user_roles").select("role_id").eq("user_id", userId),
     supabase
       .from("user_org_assignments")
       .select("id")
@@ -46,9 +67,20 @@ export async function loadAuthProvisionState(
       .limit(1),
   ]);
 
+  const roleIds = userRoles.data?.map((row) => row.role_id) ?? [];
+  let roleNames: string[] = [];
+  if (roleIds.length > 0) {
+    const { data: roleRows } = await supabase
+      .from("roles")
+      .select("name")
+      .in("id", roleIds);
+    roleNames = (roleRows ?? []).map((row) => row.name);
+  }
+
   return {
     hasProfile: Boolean(profile.data?.id),
-    hasRole: (roles.data?.length ?? 0) > 0,
+    hasRole: roleNames.length > 0,
     hasOrgAssignment: (assignments.data?.length ?? 0) > 0,
+    jagPlatformOnly: isJagOnlyProvisionRoles(roleNames),
   };
 }
