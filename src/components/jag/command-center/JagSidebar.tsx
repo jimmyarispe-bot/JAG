@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { OrganizationBrand } from "@/lib/platform/branding";
-import { POWERED_BY_LINE } from "@/lib/platform/branding";
+import { POWERED_BY_LINE, THE_JAG_MARK } from "@/lib/platform/branding";
 import {
   customerWorkspaceHref,
   platformAdminHref,
