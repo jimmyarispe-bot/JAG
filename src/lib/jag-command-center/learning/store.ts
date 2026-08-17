@@ -1,10 +1,12 @@
 /**
  * Durable Learning Center persistence.
- * Production: Supabase via authenticated user JWT (RLS: user_id = auth.uid()).
+ * Production: service-role client after JAG session authorization.
+ * Callers must pass the bound session.userId only — never a browser-supplied id.
+ * RLS on jag_learn_* remains unchanged (direct JWT/anon access still own-row).
  * Tests: injectable memory store (not globalThis; not client state).
  */
 
-import { createAuthClient } from "@/lib/supabase/server-auth";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import { randomUUID } from "node:crypto";
 import type {
   JagLearnProgressStatus,
@@ -160,13 +162,13 @@ type LearnClient = {
   from: (table: string) => any;
 };
 
-async function learnClient(): Promise<LearnClient> {
-  return (await createAuthClient()) as unknown as LearnClient;
+function learnAdminClient(): LearnClient {
+  return createServiceRoleClient() as unknown as LearnClient;
 }
 
 const supabasePersistence: LearningPersistence = {
   async getPreferences(userId) {
-    const supabase = await learnClient();
+    const supabase = learnAdminClient();
     const { data, error } = await supabase
       .from("jag_learn_user_preferences")
       .select("*")
@@ -179,7 +181,7 @@ const supabasePersistence: LearningPersistence = {
   async ensurePreferences(userId) {
     const existing = await this.getPreferences(userId);
     if (existing) return existing;
-    const supabase = await learnClient();
+    const supabase = learnAdminClient();
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from("jag_learn_user_preferences")
@@ -201,7 +203,7 @@ const supabasePersistence: LearningPersistence = {
 
   async updatePreferences(userId, patch) {
     await this.ensurePreferences(userId);
-    const supabase = await learnClient();
+    const supabase = learnAdminClient();
     const now = new Date().toISOString();
     const update: Record<string, unknown> = { updated_at: now };
     if (patch.firstLoginCompleted !== undefined) {
@@ -231,7 +233,7 @@ const supabasePersistence: LearningPersistence = {
   },
 
   async listProgress(userId) {
-    const supabase = await learnClient();
+    const supabase = learnAdminClient();
     const { data, error } = await supabase
       .from("jag_learn_user_progress")
       .select("*")
@@ -241,7 +243,7 @@ const supabasePersistence: LearningPersistence = {
   },
 
   async getProgress(userId, tutorialId) {
-    const supabase = await learnClient();
+    const supabase = learnAdminClient();
     const { data, error } = await supabase
       .from("jag_learn_user_progress")
       .select("*")
@@ -253,7 +255,7 @@ const supabasePersistence: LearningPersistence = {
   },
 
   async upsertProgress(input) {
-    const supabase = await learnClient();
+    const supabase = learnAdminClient();
     const now = new Date().toISOString();
     const existing = await this.getProgress(input.userId, input.tutorialId);
     const row = {

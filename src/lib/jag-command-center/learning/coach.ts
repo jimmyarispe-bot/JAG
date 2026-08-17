@@ -11,6 +11,7 @@ import {
   filterAccessibleTutorials,
 } from "./authorization";
 import { JAG_LEARN_TUTORIALS, pageIdForPathname } from "./catalog";
+import { boundLearningOwnerId } from "./service";
 import { getLearningPersistence } from "./store";
 import type { JagLearnCoachAnswer, JagLearnTutorial } from "./types";
 
@@ -122,7 +123,7 @@ export async function answerLearningCoach(input: {
 
   if (/what should i learn|recommend|next/i.test(q)) {
     const store = getLearningPersistence();
-    const progress = await store.listProgress(session.userId);
+    const progress = await store.listProgress(boundLearningOwnerId(session));
     const done = new Set(
       progress.filter((p) => p.status === "completed").map((p) => p.tutorialId)
     );

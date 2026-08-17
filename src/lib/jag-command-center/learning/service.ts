@@ -28,21 +28,41 @@ function assertLearningAccess(session: JagPlatformSession): void {
   }
 }
 
+/**
+ * Persistence owner is always the authorized JAG session user.
+ * A client-supplied id is accepted only when it matches session.userId.
+ */
+export function boundLearningOwnerId(
+  session: JagPlatformSession,
+  requestedUserId?: string | null
+): string {
+  assertLearningAccess(session);
+  if (requestedUserId && requestedUserId !== session.userId) {
+    throw new Error("Cannot access another user's learning progress.");
+  }
+  return session.userId;
+}
+
+function authorizedLearningStore(session: JagPlatformSession) {
+  return {
+    store: getLearningPersistence(),
+    userId: boundLearningOwnerId(session),
+  };
+}
+
 export async function loadLearningPreferences(
   session: JagPlatformSession
 ): Promise<JagLearnUserPreferences> {
-  assertLearningAccess(session);
-  const store = getLearningPersistence();
-  return store.ensurePreferences(session.userId);
+  const { store, userId } = authorizedLearningStore(session);
+  return store.ensurePreferences(userId);
 }
 
 export async function startLearningOnboarding(
   session: JagPlatformSession
 ): Promise<JagLearnUserPreferences> {
-  assertLearningAccess(session);
-  const store = getLearningPersistence();
+  const { store, userId } = authorizedLearningStore(session);
   const now = new Date().toISOString();
-  return store.updatePreferences(session.userId, {
+  return store.updatePreferences(userId, {
     firstLoginCompleted: true,
     onboardingStartedAt: now,
   });
@@ -51,10 +71,9 @@ export async function startLearningOnboarding(
 export async function skipLearningOnboarding(
   session: JagPlatformSession
 ): Promise<JagLearnUserPreferences> {
-  assertLearningAccess(session);
-  const store = getLearningPersistence();
+  const { store, userId } = authorizedLearningStore(session);
   const now = new Date().toISOString();
-  return store.updatePreferences(session.userId, {
+  return store.updatePreferences(userId, {
     firstLoginCompleted: true,
     onboardingSkippedAt: now,
   });
@@ -63,10 +82,9 @@ export async function skipLearningOnboarding(
 export async function completeLearningOnboarding(
   session: JagPlatformSession
 ): Promise<JagLearnUserPreferences> {
-  assertLearningAccess(session);
-  const store = getLearningPersistence();
+  const { store, userId } = authorizedLearningStore(session);
   const now = new Date().toISOString();
-  return store.updatePreferences(session.userId, {
+  return store.updatePreferences(userId, {
     firstLoginCompleted: true,
     onboardingCompletedAt: now,
   });
@@ -100,8 +118,8 @@ export async function getTutorialProgressForUser(
   session: JagPlatformSession,
   tutorialId: string
 ): Promise<JagLearnUserProgress | null> {
-  assertLearningAccess(session);
-  return getLearningPersistence().getProgress(session.userId, tutorialId);
+  const { store, userId } = authorizedLearningStore(session);
+  return store.getProgress(userId, tutorialId);
 }
 
 export async function startOrResumeTutorial(
@@ -117,14 +135,14 @@ export async function startOrResumeTutorial(
   if (!tutorial) {
     throw new Error("Tutorial not found or not authorized.");
   }
-  const store = getLearningPersistence();
-  const existing = await store.getProgress(session.userId, tutorial.id);
+  const { store, userId } = authorizedLearningStore(session);
+  const existing = await store.getProgress(userId, tutorial.id);
   if (existing?.status === "completed") {
     return { tutorial, progress: existing };
   }
   const now = new Date().toISOString();
   const progress = await store.upsertProgress({
-    userId: session.userId,
+    userId,
     tutorialId: tutorial.id,
     status: "in_progress",
     progressPercent: existing?.progressPercent ?? 0,
@@ -149,11 +167,11 @@ export async function advanceTutorialStep(
   if (!tutorial) {
     throw new Error("Tutorial not found or not authorized.");
   }
-  const store = getLearningPersistence();
+  const { store, userId } = authorizedLearningStore(session);
   const existing =
-    (await store.getProgress(session.userId, tutorial.id)) ??
+    (await store.getProgress(userId, tutorial.id)) ??
     (await store.upsertProgress({
-      userId: session.userId,
+      userId,
       tutorialId: tutorial.id,
       status: "in_progress",
       progressPercent: 0,
@@ -172,7 +190,7 @@ export async function advanceTutorialStep(
   const now = new Date().toISOString();
 
   const progress = await store.upsertProgress({
-    userId: session.userId,
+    userId,
     tutorialId: tutorial.id,
     status: completed ? "completed" : "in_progress",
     progressPercent: completed ? 100 : percent,
@@ -197,10 +215,10 @@ export async function completeTutorial(
     throw new Error("Tutorial not found or not authorized.");
   }
   const now = new Date().toISOString();
-  const store = getLearningPersistence();
-  const existing = await store.getProgress(session.userId, tutorial.id);
+  const { store, userId } = authorizedLearningStore(session);
+  const existing = await store.getProgress(userId, tutorial.id);
   const progress = await store.upsertProgress({
-    userId: session.userId,
+    userId,
     tutorialId: tutorial.id,
     status: "completed",
     progressPercent: 100,
@@ -215,15 +233,14 @@ export async function loadLearningHome(
   session: JagPlatformSession,
   activeOrganizationId: string | null
 ): Promise<LearningHomeModel> {
-  assertLearningAccess(session);
-  const store = getLearningPersistence();
-  const preferences = await store.ensurePreferences(session.userId);
+  const { store, userId } = authorizedLearningStore(session);
+  const preferences = await store.ensurePreferences(userId);
   const accessible = filterAccessibleTutorials(
     session,
     JAG_LEARN_TUTORIALS,
     activeOrganizationId
   );
-  const allProgress = await store.listProgress(session.userId);
+  const allProgress = await store.listProgress(userId);
   const inProgress = allProgress
     .filter((p) => p.status === "in_progress")
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
@@ -256,8 +273,5 @@ export async function assertOwnProgressAccess(
   session: JagPlatformSession,
   requestedUserId: string | null | undefined
 ): Promise<void> {
-  assertLearningAccess(session);
-  if (requestedUserId && requestedUserId !== session.userId) {
-    throw new Error("Cannot access another user's learning progress.");
-  }
+  boundLearningOwnerId(session, requestedUserId);
 }

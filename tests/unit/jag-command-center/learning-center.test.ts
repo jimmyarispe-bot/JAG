@@ -2,16 +2,22 @@
  * JAG Learning Center — Phase 1 unit tests.
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
+import { loadExecutiveOverview } from "@/lib/jag-command-center/load-executive-overview";
 import {
   answerLearningCoach,
+  boundLearningOwnerId,
   canAccessJagLearningCenter,
   canAccessTutorial,
+  completeLearningOnboarding,
   createMemoryLearningPersistence,
   filterAccessibleTutorials,
   getCatalogTutorialBySlug,
   JAG_LEARN_TUTORIALS,
   loadLearningHome,
+  loadLearningPreferences,
   setLearningPersistenceForTests,
   shouldShowFirstLoginWelcome,
   skipLearningOnboarding,
@@ -25,6 +31,7 @@ import {
   getJagWalkthrough,
   resetJagWalkthroughRegistrationForTests,
 } from "@/lib/jag-command-center/learning";
+import type { LearningPersistence } from "@/lib/jag-command-center/learning/store";
 import { resetMrJagStoreForTests } from "@mr-jag";
 import type { JagPlatformSession } from "@/lib/jag-platform/session";
 import {
@@ -260,5 +267,164 @@ describe("JAG Learning Center", () => {
       true
     );
     expect(JAG_LEARN_TUTORIALS).toHaveLength(10);
+  });
+
+  it("authorized JAG session can create its own preferences", async () => {
+    const s = session();
+    const prefs = await loadLearningPreferences(s);
+    expect(prefs.userId).toBe(s.userId);
+    expect(prefs.firstLoginCompleted).toBe(false);
+    expect(prefs.onboardingStartedAt).toBeNull();
+  });
+
+  it("authorized JAG session can update its own preferences", async () => {
+    const s = session();
+    const started = await startLearningOnboarding(s);
+    expect(started.userId).toBe(s.userId);
+    expect(started.firstLoginCompleted).toBe(true);
+    expect(started.onboardingStartedAt).toBeTruthy();
+
+    const completed = await completeLearningOnboarding(s);
+    expect(completed.userId).toBe(s.userId);
+    expect(completed.onboardingCompletedAt).toBeTruthy();
+
+    const other = session({ userId: "user-learn-2" });
+    const otherPrefs = await loadLearningPreferences(other);
+    expect(otherPrefs.userId).toBe("user-learn-2");
+    expect(otherPrefs.onboardingStartedAt).toBeNull();
+    expect(otherPrefs.onboardingCompletedAt).toBeNull();
+  });
+
+  it("authorized JAG session can write and update its own progress", async () => {
+    const orgId = provisionOrg();
+    const s = session({ organizationId: orgId });
+    const started = await startOrResumeTutorial(s, "welcome-to-the-jag", orgId);
+    expect(started.progress.userId).toBe(s.userId);
+    expect(started.progress.status).toBe("in_progress");
+
+    const advanced = await advanceTutorialStep(
+      s,
+      "welcome-to-the-jag",
+      orgId,
+      "next"
+    );
+    expect(advanced.progress.userId).toBe(s.userId);
+    expect(advanced.progress.currentStep).toBeGreaterThanOrEqual(1);
+
+    const done = await completeTutorial(s, "welcome-to-the-jag", orgId);
+    expect(done.progress.userId).toBe(s.userId);
+    expect(done.progress.status).toBe("completed");
+  });
+
+  it("rejects a substituted user id and never persists under it", async () => {
+    const seenUserIds: string[] = [];
+    const inner = createMemoryLearningPersistence();
+    const tracking: LearningPersistence = {
+      getPreferences: async (userId) => {
+        seenUserIds.push(userId);
+        return inner.getPreferences(userId);
+      },
+      ensurePreferences: async (userId) => {
+        seenUserIds.push(userId);
+        return inner.ensurePreferences(userId);
+      },
+      updatePreferences: async (userId, patch) => {
+        seenUserIds.push(userId);
+        return inner.updatePreferences(userId, patch);
+      },
+      listProgress: async (userId) => {
+        seenUserIds.push(userId);
+        return inner.listProgress(userId);
+      },
+      getProgress: async (userId, tutorialId) => {
+        seenUserIds.push(userId);
+        return inner.getProgress(userId, tutorialId);
+      },
+      upsertProgress: async (input) => {
+        seenUserIds.push(input.userId);
+        return inner.upsertProgress(input);
+      },
+    };
+    setLearningPersistenceForTests(tracking);
+
+    const s = session();
+    expect(() => boundLearningOwnerId(s, "attacker-id")).toThrow(
+      /another user's/i
+    );
+    await expect(assertOwnProgressAccess(s, "attacker-id")).rejects.toThrow(
+      /another user's/i
+    );
+    expect(boundLearningOwnerId(s, s.userId)).toBe(s.userId);
+    expect(boundLearningOwnerId(s)).toBe(s.userId);
+
+    await loadLearningPreferences(s);
+    await skipLearningOnboarding(s);
+    const orgId = provisionOrg();
+    const orgSession = session({ organizationId: orgId });
+    await startOrResumeTutorial(orgSession, "welcome-to-the-jag", orgId);
+    await loadLearningHome(orgSession, orgId);
+    await answerLearningCoach({
+      session: orgSession,
+      question: "What should I learn next?",
+      activeOrganizationId: orgId,
+    });
+
+    expect(seenUserIds.length).toBeGreaterThan(0);
+    expect(seenUserIds.every((id) => id === s.userId)).toBe(true);
+    expect(seenUserIds).not.toContain("attacker-id");
+  });
+
+  it("leaves /jag overview independent of learning persistence", () => {
+    const overviewSrc = readFileSync(
+      join(process.cwd(), "src/lib/jag-command-center/load-executive-overview.ts"),
+      "utf8"
+    );
+    expect(overviewSrc).not.toContain("getLearningPersistence");
+    expect(overviewSrc).not.toContain("ensurePreferences");
+    expect(overviewSrc).not.toContain("jag_learn_");
+
+    const model = loadExecutiveOverview(session());
+    expect(model).not.toHaveProperty("preferences");
+    expect(model).not.toHaveProperty("showFirstLoginWelcome");
+    expect(model.capabilityPacks.length).toBeGreaterThan(0);
+    expect(model.domains.some((d) => d.id === "education")).toBe(true);
+  });
+
+  it("does not weaken jag_learn RLS or grant anon access", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "supabase/migrations/216_jag_learning_center.sql"),
+      "utf8"
+    );
+    expect(sql).toContain(
+      "create policy jag_learn_user_preferences_own on public.jag_learn_user_preferences"
+    );
+    expect(sql).toContain(
+      "create policy jag_learn_user_progress_own on public.jag_learn_user_progress"
+    );
+    expect(sql).toMatch(
+      /create policy jag_learn_user_preferences_own[\s\S]{0,180}for all to authenticated/
+    );
+    expect(sql).toMatch(
+      /create policy jag_learn_user_progress_own[\s\S]{0,180}for all to authenticated/
+    );
+    expect(sql).toContain("using (user_id = auth.uid())");
+    expect(sql).toContain("with check (user_id = auth.uid())");
+    expect(sql).not.toMatch(/jag_learn_user_preferences[^\n]*to anon/i);
+    expect(sql).not.toMatch(/jag_learn_user_progress[^\n]*to anon/i);
+    expect(sql).not.toMatch(
+      /alter table public\.jag_learn_user_(preferences|progress) disable row level security/i
+    );
+
+    const storeSrc = readFileSync(
+      join(process.cwd(), "src/lib/jag-command-center/learning/store.ts"),
+      "utf8"
+    );
+    expect(storeSrc).toContain(
+      'import { createServiceRoleClient } from "@/lib/supabase/server"'
+    );
+    expect(storeSrc).not.toContain("createAuthClient");
+    expect(storeSrc).toContain('.eq("user_id", userId)');
+    expect(storeSrc).toContain("user_id: userId");
+    expect(storeSrc).toContain("user_id: input.userId");
   });
 });

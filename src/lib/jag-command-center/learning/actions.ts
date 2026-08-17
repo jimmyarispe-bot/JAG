@@ -4,7 +4,7 @@ import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { answerLearningCoach, searchLearningHelp } from "./coach";
 import {
   advanceTutorialStep,
-  assertOwnProgressAccess,
+  boundLearningOwnerId,
   completeLearningOnboarding,
   completeTutorial,
   getAccessibleTutorial,
@@ -166,13 +166,14 @@ export async function getOwnProgressAction(input?: {
 }) {
   const session = await getJagPlatformSession();
   if (!session) return { ok: false as const, error: "unauthorized" };
+  let userId: string;
   try {
-    await assertOwnProgressAccess(session, input?.userId);
+    userId = boundLearningOwnerId(session, input?.userId);
   } catch {
     return { ok: false as const, error: "forbidden" };
   }
   const { getLearningPersistence } = await import("./store");
-  const progress = await getLearningPersistence().listProgress(session.userId);
+  const progress = await getLearningPersistence().listProgress(userId);
   return { ok: true as const, progress };
 }
 

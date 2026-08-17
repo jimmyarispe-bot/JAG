@@ -3,7 +3,7 @@
  *
  * Client Components must import from `./client` (or types/catalog/
  * preferences-helpers) — never this module — to avoid pulling
- * createAuthClient / @mr-jag / node:fs into the client bundle.
+ * createServiceRoleClient / @mr-jag / node:fs into the client bundle.
  */
 
 export * from "./types";
