@@ -159,7 +159,7 @@ describe("Phase 65F durable org_organizations identity resolve", () => {
 
     const customer = buildJagCommandShellModel(session, {
       workspaceParam: null,
-      preferredOrg: null,
+      preferredOrg: DURABLE_ID,
       pathname: "/jag",
     });
     expect(customer.workspaceMode).toBe("customer");
@@ -175,7 +175,7 @@ describe("Phase 65F durable org_organizations identity resolve", () => {
 
     const back = buildJagCommandShellModel(session, {
       workspaceParam: null,
-      preferredOrg: null,
+      preferredOrg: DURABLE_ID,
       pathname: "/jag",
     });
     expect(back.workspaceMode).toBe("customer");

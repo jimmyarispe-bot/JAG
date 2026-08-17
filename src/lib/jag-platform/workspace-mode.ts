@@ -15,13 +15,24 @@ export const JAG_WORKSPACE_QUERY_PARAM = "workspace" as const;
  * Resolve workspace composition mode from URL + session + active org.
  *
  * - Explicit `?workspace=platform` → platform/admin (stewards only)
- * - Active customer organization (and not explicit platform) → customer
- * - Otherwise platform stewards → platform; org operators without org → customer fail-closed
+ * - Explicit `?org=<id>` → customer (stewards may always enter a customer workspace)
+ * - Otherwise platform stewards → platform/admin (their home surface)
+ * - Org operators → customer, with or without a bound org (fail-closed)
+ *
+ * Note: a steward's *bound* organization no longer forces customer composition.
+ * Only an explicitly selected organization does. Stewards land on platform/admin
+ * by default and opt in to a customer workspace via the organization selector.
  */
 export function resolveJagWorkspaceMode(input: {
   readonly session: JagPlatformSession;
   readonly activeOrganizationId: string | null;
   readonly workspaceParam?: string | null;
+  /**
+   * The organization the caller explicitly asked for (`?org=<id>`).
+   * Distinct from {@link activeOrganizationId}, which may be a bound or
+   * soft-picked default the user never chose.
+   */
+  readonly explicitOrganizationParam?: string | null;
 }): JagWorkspaceMode {
   const explicit = input.workspaceParam?.trim().toLowerCase() ?? "";
   if (explicit === "platform" || explicit === "admin") {
@@ -30,9 +41,12 @@ export function resolveJagWorkspaceMode(input: {
     return "customer";
   }
 
-  if (input.activeOrganizationId) return "customer";
+  // An explicitly selected organization always wins — including for stewards.
+  if (input.explicitOrganizationParam?.trim()) return "customer";
 
   if (input.session.authority === "platform") return "platform";
+
+  if (input.activeOrganizationId) return "customer";
 
   return "customer";
 }

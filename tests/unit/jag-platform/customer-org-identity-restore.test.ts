@@ -216,7 +216,7 @@ describe("Phase 65F-C customer organization identity restore", () => {
 
     const customer = buildJagCommandShellModel(session, {
       workspaceParam: null,
-      preferredOrg: null,
+      preferredOrg: generated.organizationId,
       pathname: "/jag",
     });
     expect(customer.workspaceMode).toBe("customer");
@@ -234,7 +234,7 @@ describe("Phase 65F-C customer organization identity restore", () => {
 
     const back = buildJagCommandShellModel(session, {
       workspaceParam: null,
-      preferredOrg: null,
+      preferredOrg: generated.organizationId,
       pathname: "/jag",
     });
     expect(back.workspaceMode).toBe("customer");
@@ -257,7 +257,7 @@ describe("Phase 65F-C customer organization identity restore", () => {
     clearVolatileOrgCaches(generated.organizationId!);
     const refreshed = buildJagCommandShellModel(session, {
       workspaceParam: null,
-      preferredOrg: null,
+      preferredOrg: generated.organizationId,
       pathname: "/jag",
     });
     expect(refreshed.workspaceMode).toBe("customer");

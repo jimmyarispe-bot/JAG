@@ -114,6 +114,7 @@ describe("Phase 65 customer workspace navigation", () => {
       session,
       activeOrganizationId: generated.organizationId,
       workspaceParam: null,
+      explicitOrganizationParam: generated.organizationId,
     });
     expect(mode).toBe("customer");
 
@@ -221,7 +222,7 @@ describe("Phase 65 customer workspace navigation", () => {
     expect(platformIds).toContain("onboarding");
   });
 
-  it("I. /jag without workspace stays customer when org is bound", () => {
+  it("I. /jag without workspace lands a steward on platform even when an org is bound", () => {
     const generated = provisionCustomerOrg();
     if (!generated.ok) return;
     const session = platformSession({
@@ -232,13 +233,27 @@ describe("Phase 65 customer workspace navigation", () => {
       activeOrganizationId: generated.organizationId,
       workspaceParam: null,
     });
-    expect(mode).toBe("customer");
+    expect(mode).toBe("platform");
     const nav = composeWorkspaceNavigation({
       mode,
       organizationId: generated.organizationId,
     });
-    expect(nav.map((n) => n.id)).not.toContain("organizations");
-    expect(nav.some((n) => /listening/i.test(n.label))).toBe(true);
+    expect(nav.map((n) => n.id)).toContain("organizations");
+
+    // Selecting the organization explicitly still yields customer composition.
+    const selected = resolveJagWorkspaceMode({
+      session,
+      activeOrganizationId: generated.organizationId,
+      workspaceParam: null,
+      explicitOrganizationParam: generated.organizationId,
+    });
+    expect(selected).toBe("customer");
+    const customerNav = composeWorkspaceNavigation({
+      mode: selected,
+      organizationId: generated.organizationId,
+    });
+    expect(customerNav.map((n) => n.id)).not.toContain("organizations");
+    expect(customerNav.some((n) => /listening/i.test(n.label))).toBe(true);
   });
 
   it("J. switching workspace param platform → null returns customer nav", () => {
@@ -264,6 +279,7 @@ describe("Phase 65 customer workspace navigation", () => {
       session,
       activeOrganizationId: generated.organizationId,
       workspaceParam: null,
+      explicitOrganizationParam: generated.organizationId,
     });
     expect(back).toBe("customer");
     expect(

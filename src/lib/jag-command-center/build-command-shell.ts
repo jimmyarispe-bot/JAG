@@ -63,6 +63,7 @@ export function buildJagCommandShellModel(
     session,
     activeOrganizationId: session.organizationId,
     workspaceParam,
+    explicitOrganizationParam: preferredOrg,
   });
 
   const active = resolveActiveWorkspaceOrganization(session, preferredOrg, {
@@ -73,6 +74,7 @@ export function buildJagCommandShellModel(
     session,
     activeOrganizationId: active?.id ?? null,
     workspaceParam,
+    explicitOrganizationParam: preferredOrg,
   });
 
   const brandModel = loadJagBrandForSession(

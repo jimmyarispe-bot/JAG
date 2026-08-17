@@ -5,11 +5,6 @@ import {
   JagLoadingSkeleton,
 } from "@/components/jag/command-center";
 import { loadExecutiveOverview } from "@/lib/jag-command-center";
-import {
-  canAccessJagLearningCenter,
-  getCatalogTutorialBySlug,
-  resolveJagLearnCatalogVideoUrl,
-} from "@/lib/jag-command-center/learning";
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { resolveJagWorkspaceMode } from "@/lib/jag-platform/workspace-mode";
@@ -62,22 +57,9 @@ async function OverviewContent({
     activeOrganizationId:
       model.organizationId ?? organizationId ?? session.organizationId,
     workspaceParam,
+    explicitOrganizationParam: organizationId,
   });
-
-  let welcomeVideoUrl: string | null = null;
-  if (canAccessJagLearningCenter(session)) {
-    const welcome = getCatalogTutorialBySlug("welcome-to-the-jag");
-    // Durable catalog path (tutorials/JAG-001/mr-jag.mp4) → short-lived signed URL.
-    welcomeVideoUrl = await resolveJagLearnCatalogVideoUrl(
-      welcome?.videoUrl ?? null
-    );
-  }
-
   return (
-    <JagExecutiveOverview
-      model={model}
-      workspaceMode={workspaceMode}
-      welcomeVideoUrl={welcomeVideoUrl}
-    />
+    <JagExecutiveOverview model={model} workspaceMode={workspaceMode} />
   );
 }
