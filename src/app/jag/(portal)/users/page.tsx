@@ -4,6 +4,7 @@ import { JagPlatformUsersView } from "@/components/jag-platform/JagPlatformUsers
 import { requireJagPlatformAdminSession } from "@/lib/jag-platform/admin-access";
 import { JAG_PLATFORM_HOME_PATH } from "@/lib/jag-platform/auth";
 import { listJagPlatformUsers } from "@/lib/jag-platform/platform-users";
+import { listJagPlatformUserStatuses } from "@/lib/jag-platform/platform-user-admin";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { userHasPermission } from "@/lib/platform/identity/permissions";
 
@@ -24,10 +25,14 @@ export default async function JagPlatformUsersPage() {
 
   const listed = await listJagPlatformUsers();
   const users = listed.success ? listed.users : [];
+  const statuses = users.length
+    ? await listJagPlatformUserStatuses(users.map((user) => user.id))
+    : [];
 
   return (
     <JagPlatformUsersView
       users={users}
+      statuses={statuses}
       loadError={listed.success ? null : listed.error}
     />
   );
