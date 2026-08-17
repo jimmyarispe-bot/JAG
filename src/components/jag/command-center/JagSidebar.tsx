@@ -66,7 +66,7 @@ export function JagSidebar({
         <div className="border-b border-[var(--jag-border)] px-4 py-5">
           <JagBrandLogoMark brand={brand} dark className="h-8 max-w-[11rem] object-contain" />
           <p className="mt-2 text-sm font-medium leading-snug text-[var(--jag-text)]">
-            {organizationTitle}
+            {workspaceMode === "platform" ? THE_JAG_MARK : organizationTitle}
           </p>
           <p className="mt-0.5 text-[11px] leading-snug text-[var(--jag-muted)]">
             {workspaceMode === "customer"
