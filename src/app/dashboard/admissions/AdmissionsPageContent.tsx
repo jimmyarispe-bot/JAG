@@ -51,6 +51,7 @@ const SUB_NAV = [
   { href: "/dashboard/admissions/checklist", label: "Checklist Settings" },
   { href: "/apply", label: "Parent Inquiry Form" },
   { href: "/dashboard/admissions/leads/new", label: "Add Lead" },
+  { href: "/dashboard/admissions/import", label: "Bulk Import" },
 ];
 
 interface AdmissionsPageContentProps {

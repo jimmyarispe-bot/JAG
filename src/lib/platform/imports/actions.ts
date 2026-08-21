@@ -14,7 +14,7 @@ import {
 import "./bootstrap";
 import { getImportRows } from "./jobs";
 import { ImportService } from "./service";
-import type { FieldMapping, ImportMode, WizardStepKey } from "./types";
+import type { FieldMapping, ImportEntityType, ImportMode, WizardStepKey } from "./types";
 import { buildErrorReportCsv } from "./validation";
 
 async function gate(schoolId?: string | null) {
@@ -27,7 +27,18 @@ async function gate(schoolId?: string | null) {
   return { ok: true as const, ctx: access.ctx };
 }
 
-export async function getStudentImportPageData() {
+/**
+ * Resolve a caller-supplied entity type against the import registry.
+ * Falls back to "student" so existing callers are unaffected.
+ */
+function resolveEntityType(value: unknown): ImportEntityType {
+  if (typeof value !== "string" || !value.trim()) return "student";
+  const importer = ImportService.getImporter(value as ImportEntityType);
+  return importer ? (value as ImportEntityType) : "student";
+}
+
+export async function getStudentImportPageData(entityTypeInput?: string) {
+  const entityType = resolveEntityType(entityTypeInput);
   const access = await requireStudentImportAccess();
   if (!access.ok) return { ok: false as const, error: access.error };
 
@@ -47,6 +58,8 @@ export async function getStudentImportPageData() {
     })(),
   ]);
 
+  const scopedHistory = history.filter((job) => job.entityType === entityType);
+
   const scopedSchools = access.ctx.hasUnrestrictedSchoolAccess
     ? schools
     : schools.filter((s) => access.ctx.accessibleSchoolIds.includes(s.id));
@@ -57,9 +70,10 @@ export async function getStudentImportPageData() {
     campuses,
     schoolYears,
     programs: PROGRAMS.map((p) => ({ value: p.value, label: p.label })),
-    history,
-    templates: ImportService.listTemplates("student"),
+    history: scopedHistory,
+    templates: ImportService.listTemplates(entityType),
     canRollback: assertCanImportStudents(access.ctx).ok,
+    entityType,
   };
 }
 
@@ -69,6 +83,8 @@ export async function uploadStudentImportFile(formData: FormData) {
 
   const file = formData.get("file");
   if (!(file instanceof File)) return { ok: false as const, error: "No file uploaded" };
+
+  const entityType = resolveEntityType(formData.get("entity_type"));
 
   const fileName = file.name;
   const fileSizeBytes = file.size;
@@ -89,7 +105,7 @@ export async function uploadStudentImportFile(formData: FormData) {
   const actorUserId = await resolveActorUserId(supabase);
 
   const result = await ImportService.upload(supabase, {
-    entityType: "student",
+    entityType,
     fileName,
     fileSizeBytes,
     text,
@@ -160,7 +176,7 @@ export async function mapStudentImportColumns(input: {
   const result = await ImportService.mapColumns(supabase, input.jobId, input.mappings);
   if ("error" in result) return { ok: false as const, error: result.error };
 
-  const importer = ImportService.requireImporter("student");
+  const importer = ImportService.requireImporter(job.entityType);
   return {
     ok: true as const,
     mappings: result.mappings,
@@ -221,6 +237,10 @@ export async function commitStudentImport(input: { jobId: string }) {
 
   revalidatePath("/dashboard/students");
   revalidatePath("/dashboard/students/import");
+  if (job.entityType === "admissions_lead") {
+    revalidatePath("/dashboard/admissions");
+    revalidatePath("/dashboard/admissions/import");
+  }
   return { ok: true as const, ...result, nextStep: "results" as WizardStepKey };
 }
 

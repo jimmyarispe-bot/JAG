@@ -15,6 +15,7 @@ import {
 } from "@/lib/platform/imports/actions";
 import type {
   FieldMapping,
+  ImportEntityType,
   ImportJob,
   ImportMode,
   ImportTemplate,
@@ -35,6 +36,26 @@ interface Props {
   programs: Program[];
   history: ImportJob[];
   templates: ImportTemplate[];
+  /** Which registered importer this wizard drives. Defaults to "student". */
+  entityType?: ImportEntityType;
+}
+
+/** Per-entity wording so one wizard can drive several importers. */
+const ENTITY_COPY: Partial<
+  Record<ImportEntityType, { subject: string; subjectPlural: string; contact: string }>
+> = {
+  student: { subject: "Student", subjectPlural: "students", contact: "Parent" },
+  admissions_lead: { subject: "Lead", subjectPlural: "leads", contact: "Guardian" },
+};
+
+function entityCopy(entityType: ImportEntityType) {
+  return (
+    ENTITY_COPY[entityType] ?? {
+      subject: "Record",
+      subjectPlural: "records",
+      contact: "Contact",
+    }
+  );
 }
 
 function formatBytes(bytes: number): string {
@@ -53,13 +74,15 @@ function downloadText(fileName: string, content: string, mime = "text/csv") {
   URL.revokeObjectURL(url);
 }
 
-const IMPORT_MODES: Array<{ value: ImportMode; label: string; hint: string }> = [
-  { value: "create_only", label: "Create only", hint: "Skip rows that match existing students" },
-  { value: "update_existing", label: "Update existing", hint: "Update matches; create new rows" },
-  { value: "skip_duplicates", label: "Skip duplicates", hint: "Leave existing students unchanged" },
-  { value: "merge_duplicates", label: "Merge duplicates", hint: "Fill blank fields on matches" },
-  { value: "ask_during_preview", label: "Ask during preview", hint: "Flag duplicates for review" },
-];
+function importModes(subjectPlural: string): Array<{ value: ImportMode; label: string; hint: string }> {
+  return [
+    { value: "create_only", label: "Create only", hint: `Skip rows that match existing ${subjectPlural}` },
+    { value: "update_existing", label: "Update existing", hint: "Update matches; create new rows" },
+    { value: "skip_duplicates", label: "Skip duplicates", hint: `Leave existing ${subjectPlural} unchanged` },
+    { value: "merge_duplicates", label: "Merge duplicates", hint: "Fill blank fields on matches" },
+    { value: "ask_during_preview", label: "Ask during preview", hint: "Flag duplicates for review" },
+  ];
+}
 
 export function StudentImportWizard({
   schools,
@@ -68,7 +91,10 @@ export function StudentImportWizard({
   programs,
   history: initialHistory,
   templates,
+  entityType = "student",
 }: Props) {
+  const copy = entityCopy(entityType);
+  const IMPORT_MODES = useMemo(() => importModes(copy.subjectPlural), [copy.subjectPlural]);
   const [step, setStep] = useState<WizardStepKey>("upload");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -139,6 +165,7 @@ export function StudentImportWizard({
     if (!file) return;
     const formData = new FormData();
     formData.set("file", file);
+    formData.set("entity_type", entityType);
     run(async () => {
       const result = await uploadStudentImportFile(formData);
       if (!result.ok) {
@@ -538,8 +565,8 @@ export function StudentImportWizard({
               <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
                 <tr>
                   <th className="px-3 py-2">Row</th>
-                  <th className="px-3 py-2">Student</th>
-                  <th className="px-3 py-2">Parent</th>
+                  <th className="px-3 py-2">{copy.subject}</th>
+                  <th className="px-3 py-2">{copy.contact}</th>
                   <th className="px-3 py-2">Action</th>
                 </tr>
               </thead>
@@ -565,7 +592,17 @@ export function StudentImportWizard({
                     <td className="px-3 py-2">
                       {String(row.mapped.first_name ?? "")} {String(row.mapped.last_name ?? "")}
                     </td>
-                    <td className="px-3 py-2">{String(row.mapped.parent_email ?? row.mapped.parent_name ?? "—")}</td>
+                    <td className="px-3 py-2">
+                      {String(
+                        row.mapped.parent_email ??
+                          row.mapped.guardian_email ??
+                          row.mapped.parent_name ??
+                          [row.mapped.guardian_first_name, row.mapped.guardian_last_name]
+                            .filter(Boolean)
+                            .join(" ") ??
+                          "—"
+                      ) || "—"}
+                    </td>
                     <td className="px-3 py-2 capitalize">{row.action}</td>
                   </tr>
                 ))}
