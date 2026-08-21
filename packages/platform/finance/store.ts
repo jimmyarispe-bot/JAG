@@ -2,6 +2,8 @@
  * In-process JAG Finance store (tests / single-process foundation).
  */
 
+import { assertEphemeralStoreAllowed } from "./runtime-guard";
+
 import { resetBankingStoreForTests } from "./banking/store";
 import { resetReconciliationStoreForTests } from "./reconciliation/store";
 import { resetPayablesStoreForTests } from "./payables/store";
@@ -76,6 +78,7 @@ function empty(): FinanceStore {
 }
 
 function store(): FinanceStore {
+  assertEphemeralStoreAllowed("finance");
   if (!g.__jagFinanceStore) g.__jagFinanceStore = empty();
   return g.__jagFinanceStore;
 }

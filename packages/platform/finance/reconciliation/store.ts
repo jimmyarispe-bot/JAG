@@ -2,6 +2,8 @@
  * P-010 reconciliation store.
  */
 
+import { assertEphemeralStoreAllowed } from "../runtime-guard";
+
 import { resetMatchingRulesForTests } from "./rules";
 import type {
   MatchSuggestion,
@@ -45,6 +47,7 @@ function empty(): ReconciliationStore {
 }
 
 function store(): ReconciliationStore {
+  assertEphemeralStoreAllowed("reconciliation");
   if (!g.__jagReconciliationStore) g.__jagReconciliationStore = empty();
   return g.__jagReconciliationStore;
 }

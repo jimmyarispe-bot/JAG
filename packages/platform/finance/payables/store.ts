@@ -1,3 +1,4 @@
+import { assertEphemeralStoreAllowed } from "../runtime-guard";
 import type {
   DebitMemo,
   PaymentRun,
@@ -38,6 +39,7 @@ function empty(): PayablesStore {
 }
 
 function store(): PayablesStore {
+  assertEphemeralStoreAllowed("payables");
   if (!g.__jagPayablesStore) g.__jagPayablesStore = empty();
   return g.__jagPayablesStore;
 }

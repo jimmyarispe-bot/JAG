@@ -1,3 +1,4 @@
+import { assertEphemeralStoreAllowed } from "../runtime-guard";
 import type {
   Allocation,
   Forecast,
@@ -29,6 +30,7 @@ function empty(): PlanningStore {
 }
 
 function store(): PlanningStore {
+  assertEphemeralStoreAllowed("planning");
   if (!g.__jagPlanningStore) g.__jagPlanningStore = empty();
   return g.__jagPlanningStore;
 }

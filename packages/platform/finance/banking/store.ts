@@ -2,6 +2,8 @@
  * P-009 banking / treasury operational store.
  */
 
+import { assertEphemeralStoreAllowed } from "../runtime-guard";
+
 import type {
   BankConnection,
   BankingException,
@@ -50,6 +52,7 @@ function empty(): BankingStore {
 }
 
 function store(): BankingStore {
+  assertEphemeralStoreAllowed("banking");
   if (!g.__jagBankingStore) g.__jagBankingStore = empty();
   return g.__jagBankingStore;
 }

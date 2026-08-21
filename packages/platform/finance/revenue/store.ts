@@ -1,3 +1,4 @@
+import { assertEphemeralStoreAllowed } from "../runtime-guard";
 import type {
   CollectionActivity,
   FundingSource,
@@ -38,6 +39,7 @@ function empty(): RevenueStore {
 }
 
 function store(): RevenueStore {
+  assertEphemeralStoreAllowed("revenue");
   if (!g.__jagRevenueStore) g.__jagRevenueStore = empty();
   return g.__jagRevenueStore;
 }

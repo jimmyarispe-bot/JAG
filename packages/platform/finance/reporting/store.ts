@@ -1,3 +1,4 @@
+import { assertEphemeralStoreAllowed } from "../runtime-guard";
 import type {
   DimensionDefinition,
   DimensionTag,
@@ -35,6 +36,7 @@ function empty(): ReportingStore {
 }
 
 function store(): ReportingStore {
+  assertEphemeralStoreAllowed("reporting");
   if (!g.__jagReportingStore) g.__jagReportingStore = empty();
   return g.__jagReportingStore;
 }
