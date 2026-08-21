@@ -12,6 +12,15 @@ import {
   listProductionHealthProbes,
 } from "@/lib/platform/production";
 
+/**
+ * Both tests below dynamically import the six RC package graphs. That is cold
+ * module resolution, not compute, and it routinely runs past vitest's 5s
+ * default on a loaded machine - it timed out in one run and passed the next.
+ * A flaky test is worse than a slow one: it trains you to re-run instead of
+ * read. Give the import smoke room to finish and let a real hang fail it.
+ */
+const IMPORT_SMOKE_TIMEOUT_MS = 60_000;
+
 describe("RC-10 — Production GA", () => {
   it("exports version and readiness catalogs", () => {
     expect(PRODUCTION_GA_VERSION).toBe("1.0.0");
@@ -34,7 +43,7 @@ describe("RC-10 — Production GA", () => {
     for (const row of rows) {
       expect(row.importOk, `${row.id}: ${row.detail}`).toBe(true);
     }
-  });
+  }, IMPORT_SMOKE_TIMEOUT_MS);
 
   it("evaluates readiness gates without inventing features", () => {
     const gates = evaluateReadinessGates();
@@ -66,5 +75,5 @@ describe("RC-10 — Production GA", () => {
     expect(signOff.blockingFailures).toEqual([]);
     expect(signOff.packageMatrix.every((r) => r.importOk)).toBe(true);
     expect(signOff.characteristics.every((c) => c.satisfied)).toBe(true);
-  });
+  }, IMPORT_SMOKE_TIMEOUT_MS);
 });

@@ -57,3 +57,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude ship-gate artifacts
+vitest-report.txt
+vitest-results.json
