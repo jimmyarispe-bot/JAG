@@ -91,4 +91,10 @@ export const STUDENT_IMPORT_FIELDS: ImportFieldDefinition[] = [
     label: "Preferred Name",
     aliases: ["nickname"],
   },
+  {
+    key: "enrollment_status",
+    label: "Enrollment Status",
+    aliases: ["status", "enrollment", "student_status"],
+    dataType: "enum",
+  },
 ];

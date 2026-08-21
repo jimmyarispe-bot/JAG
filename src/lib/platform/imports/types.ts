@@ -5,6 +5,7 @@
 
 export type ImportEntityType =
   | "student"
+  | "admissions_lead"
   | "parent"
   | "employee"
   | "teacher"

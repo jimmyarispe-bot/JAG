@@ -174,7 +174,7 @@ export async function getExecutiveAdmissionsMetrics(): Promise<ExecutiveAdmissio
     .sort((a, b) => b.count - a.count);
 
   const funnelSteps = getAdmissionsFunnelSteps();
-  const informationStages = resolveLegacyLeadStagesForPipelineStage("information_requested");
+  const informationStages = resolveLegacyLeadStagesForPipelineStage("interest_meeting_requested");
   const reviewStages = resolveLegacyLeadStagesForPipelineStage("committee_review");
   const funnelCounts: Record<string, number> = {
     inquiries: leads.length,

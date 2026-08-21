@@ -263,7 +263,7 @@ export async function scheduleInterview(formData: FormData) {
   });
 
   const pipelineStage =
-    interviewType === "initial_assessment" ? "assessment_scheduled" : "interview_scheduled";
+    interviewType === "initial_assessment" ? "shadow_day_scheduled" : "interest_call_scheduled";
   const { transitionCasePipelineStage } = await import("@/lib/admissions/case/orchestration");
   const stageResult = await transitionCasePipelineStage(
     supabase,

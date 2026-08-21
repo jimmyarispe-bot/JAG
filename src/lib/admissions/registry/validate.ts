@@ -25,8 +25,13 @@ export interface AdmissionsRegistryValidationResult {
 const LEGACY_LEAD_STAGES = [
   "new_inquiry",
   "information_sent",
+  "interview_scheduled",
+  "interest_meeting_held",
+  "tour_requested",
   "tour_scheduled",
   "tour_completed",
+  "shadow_day_scheduled",
+  "assessment_scheduled",
   "application_started",
   "application_submitted",
   "records_requested",
@@ -34,6 +39,7 @@ const LEGACY_LEAD_STAGES = [
   "accepted",
   "waitlisted",
   "declined",
+  "not_returning",
   "enrolled",
 ] as const;
 

@@ -22,6 +22,22 @@ import { findExistingFamily, splitParentName } from "./family-intelligence";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
+/**
+ * Enrollment status accepted on the student write path.
+ * Mirrors StudentForm's options exactly — the platform has no inactive/alumni
+ * state, so anything unrecognized falls back to "pending" rather than inventing
+ * a value the DB constraint may reject.
+ */
+const STUDENT_ENROLLMENT_STATUSES = new Set(["enrolled", "pending", "waitlisted"]);
+
+function normalizeEnrollmentStatus(value: unknown): string {
+  const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!raw) return "pending";
+  if (STUDENT_ENROLLMENT_STATUSES.has(raw)) return raw;
+  if (raw === "enrolled currently" || raw === "active" || raw === "current") return "enrolled";
+  return "pending";
+}
+
 function asClient(helpers: ImportCommitHelpers): AuthClient {
   return helpers.supabase as AuthClient;
 }
@@ -246,7 +262,7 @@ export async function commitStudentRow(
       p_grade_level: (mapped.grade_level as GradeValue) || null,
       p_gender: (mapped.gender as string) || null,
       p_program: programGate.program,
-      p_enrollment_status: "pending",
+      p_enrollment_status: normalizeEnrollmentStatus(mapped.enrollment_status),
       p_funding_source_codes: fundingCodes,
     });
 

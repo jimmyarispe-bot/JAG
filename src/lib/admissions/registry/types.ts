@@ -4,21 +4,31 @@ export type AdmissionsEntityStatus = "live" | "partial" | "planned";
 
 export type AdmissionsIntegrationStatus = "live" | "partial" | "stub";
 
-/** Canonical Admissions OS pipeline stage keys (B-03). */
+/**
+ * Canonical Admissions OS pipeline stage keys (B-03).
+ *
+ * Aligned to The Academy Way's operating process (Aug 2026 migration). Stages
+ * describe the *family's* position in the funnel; staff to-dos ("send the
+ * application", "countersign the contract") are modelled as open tasks on the
+ * lead, never as stages — a stage must not be able to sit stale with no signal.
+ */
 export type AdmissionsPipelineStageKey =
   | "inquiry"
-  | "information_requested"
+  | "interest_meeting_requested"
+  | "interest_call_scheduled"
+  | "interest_meeting_held"
+  | "tour_requested"
+  | "tour_scheduled"
+  | "tour_conducted"
+  | "shadow_day_scheduled"
   | "application_started"
   | "application_submitted"
   | "documents_pending"
-  | "documents_complete"
-  | "interview_scheduled"
-  | "assessment_scheduled"
-  | "assessment_complete"
   | "committee_review"
   | "accepted"
   | "waitlisted"
   | "declined"
+  | "not_returning"
   | "enrollment_complete";
 
 export interface AdmissionsEntityDefinition {
