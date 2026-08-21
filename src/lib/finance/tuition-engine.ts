@@ -64,6 +64,96 @@ export async function calculateTuitionInvoice(
 }
 
 /** Resolve scholarship and state funding credits for a student from existing modules */
+/**
+ * Award payment states that may reduce what a family owes.
+ *
+ * `unknown` is deliberately excluded. State-funding records are created with
+ * `payment_status` defaulting to `'unknown'` and nothing advances them, so
+ * treating it as creditable silently under-bills every family holding an award
+ * that has never paid a cent.
+ *
+ * `overdue` is excluded for the same reason — an award in arrears is not money.
+ */
+const CREDITABLE_FUNDING_STATUSES = ["paid", "partial", "expected"] as const;
+
+/**
+ * Fraction of a `partial` award treated as available.
+ *
+ * `ssis_student_funding_records` stores an award amount but no received amount,
+ * so the true figure is unknowable here. This is a deliberately conservative
+ * placeholder, named rather than inlined, and should be replaced with real
+ * received-to-date once state funding receipts post to the ledger.
+ */
+const PARTIAL_AWARD_AVAILABLE_FRACTION = 0.5;
+
+/** Invoice states whose credits no longer count as consumed. */
+const NON_CONSUMING_INVOICE_STATUSES = ["void", "voided", "cancelled", "canceled"];
+
+/** Award amount currently available from one funding record. */
+export function creditableAwardAmount(record: {
+  award_amount?: number | null;
+  payment_status?: string | null;
+}): number {
+  const status = (record.payment_status ?? "").trim().toLowerCase();
+  if (!(CREDITABLE_FUNDING_STATUSES as readonly string[]).includes(status)) return 0;
+
+  const amount = Number(record.award_amount ?? 0);
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+
+  return status === "partial" ? amount * PARTIAL_AWARD_AVAILABLE_FRACTION : amount;
+}
+
+/**
+ * Credit still available after prior invoices have drawn on the awards.
+ *
+ * Without this, `resolveFundingCreditsForStudent` grants the full award on
+ * *every* invoice. Under monthly billing that zeroes out a family's bill twelve
+ * times from a single annual award.
+ */
+export function remainingAwardCredit(totalAwarded: number, alreadyApplied: number): number {
+  return Math.max(0, totalAwarded - Math.max(0, alreadyApplied));
+}
+
+/** Sum of credits already granted to a student for one line type, as a positive number. */
+async function creditAlreadyApplied(
+  supabase: AuthClient,
+  studentId: string,
+  lineType: "scholarship" | "state_funding"
+): Promise<number> {
+  const { data } = await supabase
+    .from("invoice_line_items")
+    .select("amount, invoices(invoice_status)")
+    .eq("student_id", studentId)
+    .eq("line_type", lineType);
+
+  let applied = 0;
+  for (const row of data ?? []) {
+    const joined = (row as { invoices?: { invoice_status?: string } | { invoice_status?: string }[] })
+      .invoices;
+    const invoice = Array.isArray(joined) ? joined[0] : joined;
+    const status = (invoice?.invoice_status ?? "").trim().toLowerCase();
+    if (NON_CONSUMING_INVOICE_STATUSES.includes(status)) continue;
+
+    // Credits are stored as negative line amounts.
+    applied += Math.abs(Number((row as { amount?: number | null }).amount ?? 0));
+  }
+  return applied;
+}
+
+/**
+ * Resolve scholarship and state-funding credits for one invoice.
+ *
+ * Two rules, both of which were previously missing:
+ *  1. Only awards in a real paying state reduce the bill (see
+ *     {@link CREDITABLE_FUNDING_STATUSES}).
+ *  2. An award is consumed as it is applied — credit already granted on prior
+ *     invoices is deducted, so an annual award cannot be spent every month.
+ *
+ * Consumption is derived from `invoice_line_items` rather than a stored balance,
+ * so it self-corrects if an invoice is voided and needs no schema change. Awards
+ * and applied credit are both summed across all years: total awarded minus total
+ * applied, so an unspent balance carries forward rather than being lost.
+ */
 export async function resolveFundingCreditsForStudent(
   supabase: AuthClient,
   studentId: string,
@@ -78,24 +168,35 @@ export async function resolveFundingCreditsForStudent(
     .eq("student_id", studentId)
     .eq("scholarship_status", "approved");
 
-  for (const s of scholarships ?? []) {
-    const available = Number(s.remaining_award_balance ?? s.approved_amount ?? 0);
-    scholarshipCredit += Math.min(available, invoiceSubtotal - scholarshipCredit);
-  }
+  const scholarshipAwarded = (scholarships ?? []).reduce(
+    (sum, s) => sum + Number(s.remaining_award_balance ?? s.approved_amount ?? 0),
+    0
+  );
+  const scholarshipRemaining = remainingAwardCredit(
+    scholarshipAwarded,
+    await creditAlreadyApplied(supabase, studentId, "scholarship")
+  );
+  scholarshipCredit = Math.max(0, Math.min(scholarshipRemaining, invoiceSubtotal));
 
   const { data: ssisFunding } = await supabase
     .from("ssis_student_funding_records")
     .select("award_amount, payment_status, verification_status")
     .eq("student_id", studentId)
     .eq("verification_status", "verified")
-    .in("payment_status", ["expected", "partial", "unknown"]);
+    .in("payment_status", [...CREDITABLE_FUNDING_STATUSES]);
 
-  for (const f of ssisFunding ?? []) {
-    const available = Number(f.award_amount ?? 0) * (f.payment_status === "partial" ? 0.5 : 1);
-    if (available > 0) {
-      stateFundingCredit += Math.min(available, invoiceSubtotal - scholarshipCredit - stateFundingCredit);
-    }
-  }
+  const stateAwarded = (ssisFunding ?? []).reduce(
+    (sum, f) => sum + creditableAwardAmount(f),
+    0
+  );
+  const stateRemaining = remainingAwardCredit(
+    stateAwarded,
+    await creditAlreadyApplied(supabase, studentId, "state_funding")
+  );
+  stateFundingCredit = Math.max(
+    0,
+    Math.min(stateRemaining, invoiceSubtotal - scholarshipCredit)
+  );
 
   return { scholarshipCredit, stateFundingCredit };
 }
