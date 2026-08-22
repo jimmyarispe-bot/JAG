@@ -39,6 +39,18 @@ export {
   type JagSearchItem,
   type JagSearchItemKind,
 } from "./search-filter";
+export {
+  searchJagGlobal,
+  applyJagSearchFinanceGate,
+  groupJagSearchResults,
+  sanitizeJagSearchQuery,
+  toJagSearchResult,
+  domainForJagSearchKind,
+  type JagSearchResult,
+  type JagSearchResultGroup,
+  type JagGlobalSearchResponse,
+} from "./global-search";
+export { searchJagGlobalAction } from "./global-search-action";
 export type {
   JagCapabilityPackView,
   JagDecisionExecutionDashboard,
