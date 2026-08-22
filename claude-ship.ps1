@@ -24,7 +24,8 @@
 param(
     [switch]$VerifyOnly,
     [switch]$UpdateBaseline,
-    [string]$Branch = "admissions-migration"
+    [string]$Branch = "admissions-migration",
+    [int]$Workers = 4
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,18 +44,35 @@ function Die($m)  { Write-Host "`nFAILED: $m" -ForegroundColor Red; exit 1 }
 # Claude leaves this behind when a commit attempt dies on the unlink restriction.
 if (Test-Path ".git\index.lock") {
     Step "Clearing stale index.lock"
-    Remove-Item ".git\index.lock" -Force
-    Write-Host "removed" -ForegroundColor Yellow
+    try {
+        Remove-Item ".git\index.lock" -Force -ErrorAction Stop
+        Write-Host "removed" -ForegroundColor Yellow
+    } catch {
+        # Not always stale: an editor's source-control panel or a live git
+        # process holds a real handle on this file. Deleting it under a running
+        # git would corrupt the index, so name the holder instead of forcing.
+        Write-Host "could not remove .git\index.lock - another process holds it." -ForegroundColor Red
+        $holders = Get-Process git, git-lfs, git-remote-https -ErrorAction SilentlyContinue
+        if ($holders) {
+            Write-Host "Live git processes:" -ForegroundColor Yellow
+            $holders | ForEach-Object { Write-Host ("  PID {0}  {1}" -f $_.Id, $_.ProcessName) }
+            Write-Host "Let them finish, or: Stop-Process -Id <pid>" -ForegroundColor DarkGray
+        } else {
+            Write-Host "No git process is running, so an editor is holding the handle." -ForegroundColor DarkGray
+            Write-Host "Close the source-control panel (or reload the window) and retry." -ForegroundColor DarkGray
+        }
+        Die "index.lock is held - nothing committed"
+    }
 }
 
 Step "Staged for commit"
 $staged = git diff --cached --name-only
 if (-not $staged) {
-    if (-not $UpdateBaseline) {
+    if (-not $UpdateBaseline -and -not $VerifyOnly) {
         Write-Host "nothing staged, exiting" -ForegroundColor Yellow
         exit 0
     }
-    Write-Host "nothing staged (baseline update only)" -ForegroundColor Yellow
+    Write-Host "nothing staged (verify / baseline only)" -ForegroundColor Yellow
 } else {
     $staged | ForEach-Object { Write-Host "  $_" }
 }
@@ -67,7 +85,13 @@ Write-Host "clean" -ForegroundColor Green
 Step "Tests"
 if (Test-Path $ResultsFile) { Remove-Item $ResultsFile -Force }
 $env:NO_COLOR = "1"
-npx vitest run tests/unit --reporter=json --outputFile=$ResultsFile
+# Capped workers, deliberately. Unbounded, vitest runs ~13 threads on this
+# machine and the workers start missing their own RPC deadlines - vitest prints
+# "[vitest-worker]: Timeout calling onTaskUpdate ... This might cause false
+# positive tests" and then fails tests that pass in isolation. A gate that
+# invents failures is a gate you learn to ignore, so trade wall-clock for a
+# verdict you can trust. Raise with -Workers if the machine is idle.
+npx vitest run tests/unit --reporter=json --outputFile=$ResultsFile --maxWorkers=$Workers --minWorkers=1
 if (-not (Test-Path $ResultsFile)) { Die "vitest wrote no JSON report, cannot judge the run" }
 
 $report = Get-Content $ResultsFile -Raw | ConvertFrom-Json
