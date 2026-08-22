@@ -500,6 +500,13 @@ export const ROLE_PERMISSION_GROUPS = {
    * Must never receive JAG_ACCESS / JAG_PLATFORM_ADMIN / FOUNDER.
    */
   JAG_ORG_ADMIN: ["JAG_ORG_ACCESS", "ACADEMYOS_ACCESS", "REPORTING_ACCESS"],
+  /**
+   * Narrow dual-product staff — org-scoped JAG + AcademyOS only.
+   * Must never receive REPORTING_ACCESS / FINANCE_ACCESS / USER_MANAGEMENT_ACCESS /
+   * JAG_ACCESS / JAG_PLATFORM_ADMIN / FOUNDER. User-facing display_name: Staff.
+   * Org-scoped JAG still requires an active user_organization_memberships row.
+   */
+  JAG_ORG_STAFF: ["JAG_ORG_ACCESS", "ACADEMYOS_ACCESS"],
 } as const satisfies Partial<Record<EduRoleName, readonly PermissionGroupId[]>> &
   Record<OfficialPlatformRole, readonly PermissionGroupId[]>;
 

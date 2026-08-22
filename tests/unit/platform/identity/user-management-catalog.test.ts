@@ -6,6 +6,7 @@ import {
   resolveUserManagementRole,
   resolveUserManagementStatus,
   USER_CSV_TEMPLATE,
+  USER_MANAGEMENT_ROLE_OPTIONS,
 } from "@/lib/platform/identity/user-management-catalog";
 
 describe("user-management catalog", () => {
@@ -16,6 +17,16 @@ describe("user-management catalog", () => {
     );
     expect(resolveUserManagementRole("Administrator")).toBe("ADMINISTRATOR");
     expect(resolveUserManagementRole("School Leader")).toBe("SCHOOL_LEADER");
+  });
+
+  it("accepts JAG_ORG_STAFF with user-facing Staff label", () => {
+    const staff = USER_MANAGEMENT_ROLE_OPTIONS.find((o) => o.value === "JAG_ORG_STAFF");
+    expect(staff).toEqual({ value: "JAG_ORG_STAFF", label: "Staff" });
+    expect(resolveUserManagementRole("JAG_ORG_STAFF")).toBe("JAG_ORG_STAFF");
+    expect(resolveUserManagementRole("Staff")).toBe("JAG_ORG_STAFF");
+    expect(USER_MANAGEMENT_ROLE_OPTIONS.map((o) => o.label).join(" ")).not.toMatch(
+      /Mentor/i
+    );
   });
 
   it("resolves statuses", () => {

@@ -12,6 +12,7 @@ export const USER_MANAGEMENT_ROLE_OPTIONS = [
   { value: "PARENT", label: "Parent" },
   { value: "STUDENT", label: "Student" },
   { value: "EMPLOYEE", label: "Employee" },
+  { value: "JAG_ORG_STAFF", label: "Staff" },
 ] as const;
 
 export type UserManagementRoleValue =
@@ -58,6 +59,8 @@ const ROLE_ALIASES: Record<string, UserManagementRoleValue> = {
   parent: "PARENT",
   student: "STUDENT",
   employee: "EMPLOYEE",
+  staff: "JAG_ORG_STAFF",
+  jag_org_staff: "JAG_ORG_STAFF",
 };
 
 export function resolveUserManagementRole(

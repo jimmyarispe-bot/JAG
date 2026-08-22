@@ -63,7 +63,14 @@ describe("JS-003 Release Intelligence & Governance", () => {
       expect(compliance.compliancePercent).toBeGreaterThanOrEqual(0);
       expect(createPolicyEngine().list().length).toBeGreaterThanOrEqual(5);
     },
-    60_000
+    /**
+     * 300s. These tests install Studio, evaluate release gates for every
+     * product and generate artifacts - real work over the whole repository.
+     * Measured at 5-19s on CI-class hardware; a developer laptop runs them
+     * ~8x slower, which put them right on the old 60/90s ceilings: they passed
+     * on one run and timed out on the next with no code change between.
+     */
+    300_000
   );
 
   it(
@@ -102,7 +109,14 @@ describe("JS-003 Release Intelligence & Governance", () => {
         );
       }
     },
-    90_000
+    /**
+     * 300s. These tests install Studio, evaluate release gates for every
+     * product and generate artifacts - real work over the whole repository.
+     * Measured at 5-19s on CI-class hardware; a developer laptop runs them
+     * ~8x slower, which put them right on the old 60/90s ceilings: they passed
+     * on one run and timed out on the next with no code change between.
+     */
+    300_000
   );
 
   it(
@@ -157,7 +171,14 @@ describe("JS-003 Release Intelligence & Governance", () => {
         expect(advanced.certifiedAt).toBeTruthy();
       }
     },
-    90_000
+    /**
+     * 300s. These tests install Studio, evaluate release gates for every
+     * product and generate artifacts - real work over the whole repository.
+     * Measured at 5-19s on CI-class hardware; a developer laptop runs them
+     * ~8x slower, which put them right on the old 60/90s ceilings: they passed
+     * on one run and timed out on the next with no code change between.
+     */
+    300_000
   );
 
   it(
@@ -205,7 +226,14 @@ describe("JS-003 Release Intelligence & Governance", () => {
       expect(stageRank("RC-2")).toBeGreaterThan(stageRank("Beta"));
       expect(stageRank("RC")).toBe(stageRank("RC-1"));
     },
-    90_000
+    /**
+     * 300s. These tests install Studio, evaluate release gates for every
+     * product and generate artifacts - real work over the whole repository.
+     * Measured at 5-19s on CI-class hardware; a developer laptop runs them
+     * ~8x slower, which put them right on the old 60/90s ceilings: they passed
+     * on one run and timed out on the next with no code change between.
+     */
+    300_000
   );
 
   it(
@@ -227,6 +255,13 @@ describe("JS-003 Release Intelligence & Governance", () => {
       expect(Array.isArray(dash.productsAwaitingApproval)).toBe(true);
       expect(Array.isArray(dash.openCriticalIssues)).toBe(true);
     },
-    90_000
+    /**
+     * 300s. These tests install Studio, evaluate release gates for every
+     * product and generate artifacts - real work over the whole repository.
+     * Measured at 5-19s on CI-class hardware; a developer laptop runs them
+     * ~8x slower, which put them right on the old 60/90s ceilings: they passed
+     * on one run and timed out on the next with no code change between.
+     */
+    300_000
   );
 });
