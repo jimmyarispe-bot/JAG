@@ -87,6 +87,19 @@ const SUITE_DEFS: {
     domain: "Studio",
     match: (p) => domainFor(p) === "Studio",
   },
+  /**
+   * Matched by path, not by domainFor - security tests live under tests/**\/security/
+   * and classify as "Other", which no other suite claims, so they were invisible
+   * to the workspace entirely. That also made the `required_security_validation`
+   * policy unreachable: it looks for a suite whose name matches /security|hardening/,
+   * and no such suite existed.
+   */
+  {
+    id: "security",
+    name: "Security",
+    domain: "Foundation",
+    match: (p) => /(^|\/)security\//.test(p) || /hardening/i.test(p),
+  },
 ];
 
 export function buildTestingWorkspace(root?: string): TestingWorkspaceView {

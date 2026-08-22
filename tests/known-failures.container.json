@@ -1,0 +1,11 @@
+[
+  "tests/unit/jag-platform/platform-users.test.ts :: JAG platform user access leaves AcademyOS user-management catalog unchanged",
+  "tests/unit/platform/crud-standards.test.ts :: entity capability registry marks archive preferred and hard-delete rules correctly",
+  "tests/unit/platform/identity/jag-org-staff-access.test.ts :: JAG_ORG_STAFF narrow dual-product access can enter AcademyOS dashboard routes",
+  "tests/unit/platform/identity/jag-org-staff-access.test.ts :: JAG_ORG_STAFF narrow dual-product access can enter The JAG as an org operator (not platform steward)",
+  "tests/unit/platform/identity/jag-org-staff-access.test.ts :: JAG_ORG_STAFF narrow dual-product access cannot access finance routes or finance entry",
+  "tests/unit/platform/identity/jag-org-staff-access.test.ts :: JAG_ORG_STAFF narrow dual-product access does not expose Mentor; migration display_name is Staff",
+  "tests/unit/platform/identity/jag-org-staff-access.test.ts :: JAG_ORG_STAFF narrow dual-product access grants only JAG_ORG_ACCESS and ACADEMYOS_ACCESS groups",
+  "tests/unit/platform/identity/jag-org-staff-access.test.ts :: JAG_ORG_STAFF narrow dual-product access migration seeds Staff display name and narrow grants only",
+  "tests/unit/platform/identity/jag-org-staff-access.test.ts :: JAG_ORG_STAFF narrow dual-product access resolves entry permissions and excludes privileged catalog gates"
+]

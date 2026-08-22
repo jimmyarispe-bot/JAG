@@ -216,7 +216,29 @@ export function buildRepositoryIntelligence(
       e.path.startsWith("src/app/api/")
   );
 
-  for (const entry of enrichTargets.slice(0, 400)) {
+  /**
+   * This budget used to be a flat `.slice(0, 400)` over enrichTargets, applied
+   * in scan order. SCAN_ROOTS lists `packages` first and `src/app/api` ninth, so
+   * once packages/ outgrew the budget on its own, not one route handler was ever
+   * enriched and only the first package.json was parsed - apiRoutes came back
+   * empty and dependencyGraph held a single entry, silently. A threshold the
+   * repository quietly grew past.
+   *
+   * Structural entries are few and load-bearing - package manifests produce the
+   * dependency graph, route handlers produce the API surface - so enrich all of
+   * them and spend the tail budget on everything else. The tail keeps its
+   * original size, so nothing that relied on it loses input.
+   */
+  const TAIL_ENRICH_BUDGET = 400;
+  const isStructural = (e: RepositoryIndexEntry): boolean =>
+    (e.kind === "package" && e.path.endsWith("package.json")) ||
+    e.path.startsWith("src/app/api/");
+
+  const structural = enrichTargets.filter(isStructural);
+  const tail = enrichTargets.filter((e) => !isStructural(e));
+  const tailEnriched = tail.slice(0, TAIL_ENRICH_BUDGET);
+
+  for (const entry of [...structural, ...tailEnriched]) {
     enrichFromContent(repoRoot, entry, symbols, apiRoutes);
     if (entry.kind === "package" && entry.path.endsWith("package.json") && entry.packageId) {
       const graph = parsePackageJson(repoRoot, entry.packageId, entry.path);
@@ -233,6 +255,12 @@ export function buildRepositoryIntelligence(
   }
   if (dependencyGraph.length < 1) {
     recommendations.push("No package dependency graphs parsed.");
+  }
+  if (tail.length > tailEnriched.length) {
+    // Silent truncation is what made the original cap so hard to see.
+    recommendations.push(
+      `Enrichment budget reached - ${tail.length - tailEnriched.length} non-structural entries were left unparsed.`
+    );
   }
   if (scan.counts.test > 0 && scan.counts.doc === 0) {
     recommendations.push("Tests present without docs — improve documentation coverage.");

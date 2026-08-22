@@ -142,7 +142,10 @@ describe("CRUD completion gate", () => {
     // Admission is registered but partial — capability may or may not meet matrix;
     // release status must not be complete until compliant.
     expect(getEntityReleaseStatus("admission")).toBe("partial");
-    expect(getEntityReleaseStatus("document")).toBe("partial");
+    // `document` was partial when this test was written and has since passed the
+    // completion gate (see "validateCrudCompletionGate passes for current release
+    // map"). Assert against an entity that is still genuinely partial instead.
+    expect(getEntityReleaseStatus("notification")).toBe("partial");
 
     const unknown = canMarkModuleComplete("not_a_real_entity" as never);
     expect(unknown.ok).toBe(false);

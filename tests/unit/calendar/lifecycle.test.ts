@@ -34,6 +34,15 @@ import { ACTIVITY_EVENT_CATALOG } from "@/lib/platform/activity/catalog";
 import { WORKFLOW_ACTION_LIBRARY } from "@/lib/workflows/actions";
 
 const EVENT_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+
+/**
+ * Reminder scheduling drops offsets whose remind_at has already passed, so this
+ * fixture has to stay in the future. It was hard-coded to 2026-07-22 and quietly
+ * stopped exercising the upsert path the day that date elapsed - the test kept
+ * asserting on an empty array. Keep it relative to the run.
+ */
+const FUTURE_START = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+const FUTURE_END = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 3_600_000).toISOString();
 const TEACHER_ID = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 const STUDENT_ID = "ffffffff-ffff-4fff-8fff-ffffffffffff";
 const RESOURCE_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
@@ -231,8 +240,8 @@ describe("event lifecycle + EI events", () => {
             organization_id: TEST_UUIDS.organization,
             family_id: null,
             student_ids: [],
-            starts_at: "2026-07-22T15:00:00.000Z",
-            ends_at: "2026-07-22T16:00:00.000Z",
+            starts_at: FUTURE_START,
+            ends_at: FUTURE_END,
           },
           error: null,
         };
@@ -247,8 +256,8 @@ describe("event lifecycle + EI events", () => {
     const result = await createCalendarEvent(supabase as never, {
       title: "Staff meeting",
       eventType: "staff_meeting",
-      startsAt: "2026-07-22T15:00:00.000Z",
-      endsAt: "2026-07-22T16:00:00.000Z",
+      startsAt: FUTURE_START,
+      endsAt: FUTURE_END,
       schoolId: TEST_UUIDS.school,
       skipConflictCheck: true,
     });

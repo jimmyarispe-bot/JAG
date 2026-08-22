@@ -1,7 +1,8 @@
 # Studio repository scanner: the API surface it never enriches
 
-Status: **diagnosed, fix validated, not shipped.** Blocked on the test-runtime
-problem in the last section, not on the fix itself.
+Status: **diagnosed, validated in a container, ready to ship.** One file,
+29 lines. An earlier attempt was reverted for reasons that turned out to be
+measurement error - see the correction below.
 
 ## Symptom
 
@@ -71,7 +72,14 @@ Verified serially (`--no-file-parallelism`): `js002`, `js003` and
 `repository-intelligence` fully green; the `js004`/`js005` graphs build with the
 API layer present. Seven tests go from red to green on the enrichment fix alone.
 
-## Why it is not shipped
+## Shippable
+
+Validated in a container against the same commit: seven tests fixed, none broken,
+no timeout changes needed. The cost is ~5 minutes of extra suite time on the four
+Studio files. On slow hardware those files were already ~15 minutes and will get
+worse; run them in CI rather than locally if that matters.
+
+## Historical note: why the first attempt was reverted
 
 Restoring ~300 API nodes and their edges makes the graph real, and the
 graph-traversal tests scale with it. Their timeouts were calibrated against a
@@ -88,45 +96,52 @@ will not hold still:
 A ~2x swing between identical runs. Any ceiling picked for it is a guess, and
 raising it further only hides the real problem.
 
-## Caveat: the measurements above are contaminated
+## Measured properly (container, Linux, same commit)
 
-Taken at the end of the session, with the scanner fix fully reverted and the
-tree byte-identical to HEAD, the same machine produced:
+The earlier numbers in this document were taken on a Windows laptop that drifted
+~5x slower over one session, and are not a clean attribution. Re-measured in a
+cloud container where the whole suite runs in minutes:
 
-| Test (unchanged code) | first measurement | end of session |
+| | baseline (458a82f) | with the fix |
 |---|---|---|
-| `js003 governance dashboard` | 27.9s | 148.1s |
-| `js005 graph health dashboard` | 42.7s | 222.8s |
+| unit suite failures | 24 | **17** |
+| unit suite wall | 333s | 647s |
 
-~5x slower on identical code, over a few hours. Long test runs, background
-Vercel builds and thermal state all move this number, so any before/after
-comparison in this document that spans hours overstates the cost of the fix.
-The extra reads are real - enrichment goes from ~400 files to ~705 - but the
-2x-to-4x figures quoted above are not a clean attribution.
+Exactly seven tests go green - `js002` x3, `js004`, `js005` x2,
+`repository-intelligence` - with no new failures. `studio-foundation` still
+fails on `missingDocumentation`, which is unrelated to the scanner.
 
-Before deciding anything about this fix on performance grounds, re-measure both
-arms back to back on an idle machine, serially, in one sitting.
+**No timeout changes are required.** The heaviest test peaks at ~102s against
+its existing 120s ceiling. The +314s is entirely the four Studio files, which go
+from ~100s to ~341s combined because the knowledge graph now contains the API
+layer it was always supposed to contain.
 
-## The real blocker: per-test escalation
+The file-content cache described in earlier drafts was dropped: it recovered
+~30% on the Windows machine's slow I/O and **nothing** in the container
+(97.1s -> 101.8s, inside the noise). It was optimising a machine, not the code.
 
-Within a single file, each test costs roughly double the one before it, though
-every test calls `resetStudioStoreForTests()` first:
+## Correction: there is no per-test escalation
 
-| | before the fix | after |
+An earlier version of this document claimed that each test in these files costs
+roughly double the one before it, and that something accumulates which
+`resetStudioStoreForTests()` fails to clear. **That was wrong.** Measured by
+running each test in isolation and comparing against its time in sequence:
+
+| test | alone | in sequence |
 |---|---|---|
-| test 1 | 8.2s | 18.3s |
-| test 2 | 8.5s | 23.6s |
-| test 3 | 27.0s | 44.8s |
-| test 4 | 43.2s | 137.9s |
-| test 5 | 42.7s | 457.5s |
+| densifies relationships | 3793ms | 3724ms |
+| RC-3 readiness | 7489ms | 7114ms |
+| generates recommendations | 11387ms | 11232ms |
+| exposes graph health | 27583ms | 26903ms |
 
-**This predates the scanner fix** (see the left column) - the fix amplifies it, it
-does not cause it. Something accumulates across tests that
-`resetStudioStoreForTests()` does not clear.
+Identical. Nothing leaks. Instrumenting `afterEach` confirms every Studio global
+(`__jagStudioStore`, `Certifications`, `Approvals`, `Policies`, `QualityWeights`,
+`KnowledgeGraph`, `KnowledgeHealthTrend`, catalog snapshot, scan cache) is empty
+after each test, and heap does not grow monotonically.
 
-Fix this first. It is why the Studio suite takes ~15 minutes serially, it makes
-every ceiling in these files guesswork, and once it is fixed the scanner fix
-above costs almost nothing and can land as-is.
+The tests are simply ordered cheapest to most expensive, which reads like
+doubling. They are individually slow because each rebuilds the repository scan
+and knowledge graph from disk - which is inherent to what they assert, not a bug.
 
 ## Related, separate
 

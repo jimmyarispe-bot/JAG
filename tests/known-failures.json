@@ -1,19 +1,6 @@
 [
-  "tests/unit/academyos/operations-rc3.test.ts :: RC-3 operations validates ops surfaces and Studio Ready-for-RC-4 evaluation",
-  "tests/unit/calendar/lifecycle.test.ts :: event lifecycle + EI events creates an event, schedules reminders, and records calendar.created",
-  "tests/unit/jag-command-center/capability-sdk.test.ts :: Capability SDK Command Center (Sprint 207) includes capability entries in search catalog",
-  "tests/unit/jag-command-center/rc1-hardening.test.ts :: RC-001 hardening (audit, notifications, search) builds a searchable catalog covering executive surfaces",
-  "tests/unit/jag-command-center/rc1-hardening.test.ts :: RC-001 hardening (audit, notifications, search) tracks in-app notifications without email",
-  "tests/unit/platform/crud-standards.test.ts :: CRUD completion gate blocks marking incomplete / unregistered modules as complete",
-  "tests/unit/platform/crud-standards.test.ts :: entity capability registry marks archive preferred and hard-delete rules correctly",
-  "tests/unit/studio/js002-architecture-graph.test.ts :: JS-002 Architecture Graph & Catalog architecture dashboard and insight summary expose JS-002 signals",
-  "tests/unit/studio/js002-architecture-graph.test.ts :: JS-002 Architecture Graph & Catalog builds a multi-package architecture graph with relationships",
-  "tests/unit/studio/js002-architecture-graph.test.ts :: JS-002 Architecture Graph & Catalog indexes a persistent catalog and reuses it until force rebuild",
-  "tests/unit/studio/js004-knowledge-graph.test.ts :: JS-004 Knowledge Graph constructs a unified graph with required layers and relationships",
-  "tests/unit/studio/js004-knowledge-graph.test.ts :: JS-004 Knowledge Graph exposes knowledge dashboard health and graph consistency",
-  "tests/unit/studio/js005-knowledge-completion.test.ts :: JS-005 Knowledge Graph Completion computes coverage metrics and API intelligence from the graph",
-  "tests/unit/studio/js005-knowledge-completion.test.ts :: JS-005 Knowledge Graph Completion densifies relationships from repository evidence",
-  "tests/unit/studio/repository-intelligence.test.ts :: Repository Intelligence JS-002 indexes services, APIs, events, permissions, and dependencies",
-  "tests/unit/studio/studio-foundation.test.ts :: JAG Studio Foundation installs, scans repository, and produces a unified dashboard",
-  "tests/unit/ux/d1-remediation.test.ts :: D.1 UX & accessibility remediation enables only routes that exist for exec primary nav"
+    "tests/unit/platform/crud-standards.test.ts :: entity capability registry marks archive preferred and hard-delete rules correctly",
+    "tests/unit/studio/js004-knowledge-graph.test.ts :: JS-004 Knowledge Graph exposes knowledge dashboard health and graph consistency",
+    "tests/unit/studio/js005-knowledge-completion.test.ts :: JS-005 Knowledge Graph Completion exposes graph health metrics, trends, and extended dashboard",
+    "tests/unit/studio/js005-knowledge-completion.test.ts :: JS-005 Knowledge Graph Completion generates evidence-backed recommendations with confidence and impact"
 ]

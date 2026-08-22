@@ -23,6 +23,11 @@ const session: JagPlatformSession = {
   displayName: "JAG Founder",
   role: "FOUNDER",
   issuedAt: "2026-01-01T00:00:00.000Z",
+  // Required since Foundation II tenant isolation. Notifications with a null
+  // organizationId are platform-scoped and only readable by a platform steward,
+  // so a founder fixture must declare that authority explicitly.
+  authority: "platform",
+  organizationId: null,
 };
 
 describe("RC-001 hardening (audit, notifications, search)", () => {
@@ -61,10 +66,10 @@ describe("RC-001 hardening (audit, notifications, search)", () => {
       href: "/jag/briefings/abc",
       briefingId: "abc",
     });
-    expect(countUnreadJagNotifications()).toBe(1);
-    expect(listJagNotifications()[0]!.kind).toBe("brief_ready");
-    markAllJagNotificationsRead();
-    expect(countUnreadJagNotifications()).toBe(0);
+    expect(countUnreadJagNotifications(session)).toBe(1);
+    expect(listJagNotifications(session)[0]!.kind).toBe("brief_ready");
+    markAllJagNotificationsRead(session);
+    expect(countUnreadJagNotifications(session)).toBe(0);
   });
 
   it("builds a searchable catalog covering executive surfaces", () => {

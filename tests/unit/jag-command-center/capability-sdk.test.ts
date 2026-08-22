@@ -20,6 +20,10 @@ const session: JagPlatformSession = {
   displayName: "JAG Founder",
   role: "FOUNDER",
   issuedAt: "2026-01-01T00:00:00.000Z",
+  // Required since Foundation II tenant isolation; the search catalog is
+  // authority-scoped, so a fixture without it silently returns an empty catalog.
+  authority: "platform",
+  organizationId: null,
 };
 
 describe("Capability SDK Command Center (Sprint 207)", () => {

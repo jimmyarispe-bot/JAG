@@ -150,29 +150,46 @@ function evaluateOne(
       const securitySuites = testing.suites.some((s) =>
         /security|hardening/i.test(s.name)
       );
-      const passed =
-        critical.length === 0 &&
-        (productId !== "academyos" ||
-          securitySuites ||
-          existsSync(
-            /* turbopackIgnore: true */ join(
-              /* turbopackIgnore: true */ root,
-              "docs",
-              "academyos",
-              "rc2"
-            )
-          ));
+      const noCritical = critical.length === 0;
+      const docsEvidence = existsSync(
+        /* turbopackIgnore: true */ join(
+          /* turbopackIgnore: true */ root,
+          "docs",
+          "academyos",
+          "rc2"
+        )
+      );
+      const hasValidationEvidence =
+        productId !== "academyos" || securitySuites || docsEvidence;
+      const passed = noCritical && hasValidationEvidence;
+
+      /**
+       * Report the reason that actually applies. This previously returned
+       * score=100 with "0 Critical finding(s) block release." whenever it failed
+       * for missing validation evidence - a passing score and a contradictory
+       * message on a failing gate, which is close to unreadable when triaging.
+       */
       return {
         policyId: policy.id,
         passed,
-        score: passed ? 100 : Math.max(0, 100 - critical.length * 25),
+        score: passed
+          ? 100
+          : noCritical
+            ? 60
+            : Math.max(0, 100 - critical.length * 25),
         evidence: Object.freeze([
           `criticalIssues=${critical.length}`,
-          securitySuites ? "security suite present" : "security suite inferred from docs",
+          securitySuites
+            ? "security suite present"
+            : docsEvidence
+              ? "security suite inferred from docs"
+              : "no security suite or docs evidence",
         ]),
         detail: passed
           ? "Security validation satisfied."
-          : `${critical.length} Critical finding(s) block release.`,
+          : !noCritical
+            ? `${critical.length} Critical finding(s) block release.`
+            : "No Critical findings, but no permission-validation evidence: no suite matching /security|hardening/ and no docs/academyos/rc2.",
       };
     }
     case "no_circular_dependencies": {
