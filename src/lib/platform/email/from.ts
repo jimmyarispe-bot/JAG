@@ -1,8 +1,15 @@
-/** Default outbound sender — Academy Way organization domain (not the product name). */
-export const DEFAULT_EMAIL_FROM = "noreply@theacademyway.org";
+/**
+ * Default outbound sender — the platform domain.
+ *
+ * This is the last-resort fallback when EMAIL_FROM is unset, so it must be a
+ * JAG address: a subscriber domain here leaks one tenant's identity onto every
+ * other tenant's mail. Per-subscriber senders come from the organization email
+ * brand, not from this constant.
+ */
+export const DEFAULT_EMAIL_FROM = "noreply@thejag.org";
 
 /** Default From display name for transactional email. */
-export const DEFAULT_EMAIL_FROM_NAME = "The Academy Way";
+export const DEFAULT_EMAIL_FROM_NAME = "The JAG";
 
 /**
  * Resolve the From address for outbound email.
