@@ -5,6 +5,7 @@ import {
 } from "@/lib/auth/auth-callback";
 import {
   CANONICAL_JAG_PRODUCTION_ORIGIN,
+  DEFAULT_ROOT_DOMAIN,
   resolvePublicAppOrigin,
 } from "@/lib/platform/branding";
 import type { EmailOtpType } from "@supabase/supabase-js";
@@ -51,6 +52,18 @@ function configuredOrigins(): Set<string> {
   return origins;
 }
 
+/**
+ * Hosts we own: the platform root and any tenant subdomain beneath it.
+ *
+ * A subscriber signing in at `academy.thejag.org` must get a reset link on
+ * their own host. Without this the origin hint is rejected and the link falls
+ * back to the JAG apex, sending Academy staff to the wrong front door.
+ */
+function isPlatformRootHost(host: string): boolean {
+  const root = DEFAULT_ROOT_DOMAIN;
+  return host === root || host.endsWith(`.${root}`);
+}
+
 function allowPreviewDeploymentHosts(): boolean {
   if (process.env.VERCEL_ENV === "preview") return true;
   if (process.env.VERCEL_ENV === "development") return true;
@@ -94,6 +107,7 @@ export function resolveTrustedAuthAppUrl(
 
   const origin = parsed.origin;
   if (configuredOrigins().has(origin)) return origin;
+  if (parsed.protocol === "https:" && isPlatformRootHost(host)) return origin;
 
   if (allowPreviewDeploymentHosts()) {
     if (isLocal && parsed.protocol === "http:") return origin;
