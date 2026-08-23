@@ -61,3 +61,6 @@ next-env.d.ts
 # Claude ship-gate artifacts
 vitest-report.txt
 vitest-results.json
+
+# Supabase CLI local state (machine-specific; changes on every CLI run)
+supabase/.temp/
