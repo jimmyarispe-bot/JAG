@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { ProfileNotesPanel } from "@/components/platform/profile-sections/ProfileNotesPanel";
 import { ProfileSectionPlaceholder } from "@/components/platform/profile-workspace/ProfileSectionPlaceholder";
 import { ProfileSectionRenderer } from "@/components/platform/profile-workspace/ProfileSectionRenderer";
@@ -54,7 +54,14 @@ function mergeHeader(config: PlatformProfileWorkspaceConfig) {
 }
 
 /** Generic profile workspace orchestration — domain wrappers supply configuration only. */
-export function PlatformProfileWorkspace({ config }: { config: PlatformProfileWorkspaceConfig }) {
+export function PlatformProfileWorkspace({
+  config,
+  sectionSlot,
+}: {
+  config: PlatformProfileWorkspaceConfig;
+  /** Statically-linked section element. Required for domains whose sections are client components. */
+  sectionSlot?: ReactNode;
+}) {
   const activeSectionDef = findActiveSectionDef(config.navigation);
 
   if (!activeSectionDef) {
@@ -81,12 +88,14 @@ export function PlatformProfileWorkspace({ config }: { config: PlatformProfileWo
             />
           }
         >
-          <ProfileSectionRenderer
-            profileKind={config.profileKind}
-            sectionKey={config.activeSection}
-            envelope={config.envelope}
-            data={config.activeSectionData}
-          />
+          {sectionSlot ?? (
+            <ProfileSectionRenderer
+              profileKind={config.profileKind}
+              sectionKey={config.activeSection}
+              envelope={config.envelope}
+              data={config.activeSectionData}
+            />
+          )}
         </Suspense>
       }
     />

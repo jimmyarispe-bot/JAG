@@ -1,4 +1,5 @@
 import { PlatformProfileWorkspace } from "@/components/platform/profile-workspace/PlatformProfileWorkspace";
+import { AdmissionsCaseSectionSwitch } from "@/components/admissions/case/sections/AdmissionsCaseSectionSwitch";
 import {
   AdmissionsCaseProfileBadges,
   AdmissionsCaseProfileHeaderActions,
@@ -30,6 +31,13 @@ export function AdmissionsCaseProfileWorkspace({
 }: AdmissionsCaseProfileWorkspaceProps) {
   return (
     <PlatformProfileWorkspace
+      sectionSlot={
+        <AdmissionsCaseSectionSwitch
+          sectionKey={activeSection}
+          envelope={envelope}
+          data={activeSectionData}
+        />
+      }
       config={{
         profileKind: "admissions_case",
         envelope,
