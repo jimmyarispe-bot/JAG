@@ -48,6 +48,18 @@ export function UserMenu({
   const handleSignOut = async () => {
     if (signingOut) return;
     setSigningOut(true);
+
+    // Clears the signed JAG session cookie as well as the Supabase session.
+    // Supabase-only sign-out leaves the JAG cookie valid, which re-enters /jag.
+    try {
+      await fetch("/api/jag-platform/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+    } catch {
+      // Fall through — the Supabase sign-out below still runs.
+    }
+
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
