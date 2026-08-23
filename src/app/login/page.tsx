@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { loadOrganizationBranding, formatProductTitle } from "@/lib/branding";
 import { isJagPlatformApexHost } from "@/lib/platform/branding";
+import { brandingForTenantHost } from "@/lib/branding/from-tenant-brand";
 import LoginForm from "./LoginForm";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,7 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   const supabase = await createAuthClient();
-  const branding = await loadOrganizationBranding(supabase);
+  const sessionBranding = await loadOrganizationBranding(supabase);
+  const branding =
+    sessionBranding.organizationId === "unknown"
+      ? (brandingForTenantHost(host) ?? sessionBranding)
+      : sessionBranding;
   return {
     title: formatProductTitle(branding, "Sign In"),
     description: branding.productTagline,
@@ -52,7 +57,15 @@ export default async function LoginPage({
   }
 
   const supabase = await createAuthClient();
-  const branding = await loadOrganizationBranding(supabase);
+  const sessionBranding = await loadOrganizationBranding(supabase);
+
+  // Signed-out subscriber subdomains have no organization to load branding
+  // from, so resolve the tenant from the request host instead of showing the
+  // generic platform fallback.
+  const branding =
+    sessionBranding.organizationId === "unknown"
+      ? (brandingForTenantHost(host) ?? sessionBranding)
+      : sessionBranding;
 
   return (
     <Suspense
