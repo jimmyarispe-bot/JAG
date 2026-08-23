@@ -6,7 +6,7 @@ import {
   type NavNotificationItem,
 } from "@/components/communications/NotificationCenter";
 import { useBranding } from "@/components/branding/BrandingContext";
-import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { UserMenu } from "@/components/dashboard/UserMenu";
 import { usePathname } from "next/navigation";
 
 interface TopNavProps {
@@ -58,19 +58,12 @@ export function TopNav({ fullName, roleLabel, notifications = [], onMenuClick }:
 
       <div className="flex items-center gap-3 sm:gap-4">
         <NotificationCenter notifications={notifications} />
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 py-1.5 pl-1.5 pr-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-xs font-semibold text-white">
-            {initials}
-          </div>
-          <div className="hidden min-w-0 sm:block">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {fullName}
-            </p>
-            <p className="truncate text-xs text-slate-500">{roleLabel}</p>
-          </div>
-        </div>
-
-        <SignOutButton productName={branding.productName} />
+        <UserMenu
+          fullName={fullName}
+          roleLabel={roleLabel}
+          initials={initials}
+          productName={branding.productName}
+        />
       </div>
     </header>
   );
