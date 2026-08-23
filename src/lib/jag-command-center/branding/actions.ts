@@ -10,6 +10,7 @@ import {
 import { JAG_PLATFORM_LOGIN_PATH } from "@/lib/jag-platform/auth";
 import { assertSessionCanAccessOrganization } from "@/lib/jag-platform/data-plane";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
+import { persistBrand } from "@/lib/platform/tenant/persistence";
 
 export type BrandActionResult =
   | { readonly ok: true; readonly brand: OrganizationBrand }
@@ -34,6 +35,13 @@ export async function saveOrganizationBrandAction(
   if (denied) return { ok: false, error: denied };
 
   const brand = BrandService.updateBrand(organizationId, partial);
+
+  // In-memory alone does not survive the next deploy or cold start.
+  const persisted = await persistBrand(brand);
+  if (!persisted.ok) {
+    return { ok: false, error: `Brand saved in memory but not stored: ${persisted.error}` };
+  }
+
   revalidatePath("/jag");
   revalidatePath("/jag/settings");
   revalidatePath("/jag/settings/branding");
@@ -51,6 +59,12 @@ export async function restoreOrganizationBrandDefaultsAction(
   if (denied) return { ok: false, error: denied };
 
   const brand = BrandService.restoreDefaults(organizationId);
+
+  const persisted = await persistBrand(brand);
+  if (!persisted.ok) {
+    return { ok: false, error: `Defaults restored in memory but not stored: ${persisted.error}` };
+  }
+
   revalidatePath("/jag");
   revalidatePath("/jag/settings");
   revalidatePath("/jag/settings/branding");

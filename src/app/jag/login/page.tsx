@@ -6,11 +6,13 @@ import { loadJagBrandForHost } from "@/lib/jag-command-center/branding";
 import { JAG_PLATFORM_HOME_PATH } from "@/lib/jag-platform/auth";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
 import { POWERED_BY_LINE } from "@/lib/platform/branding";
+import { hydrateBrandRegistry } from "@/lib/platform/tenant/persistence";
 
 export async function generateMetadata(): Promise<Metadata> {
   const headerStore = await headers();
   const host =
     headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? undefined;
+  await hydrateBrandRegistry();
   const model = loadJagBrandForHost(host);
   return {
     title: model.pageTitle,
@@ -45,6 +47,7 @@ export default async function JagLoginPage({
   const headerStore = await headers();
   const host =
     headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? undefined;
+  await hydrateBrandRegistry();
   const model = loadJagBrandForHost(host);
   const bg = model.brand.login_background_url;
   const params = await searchParams;

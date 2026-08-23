@@ -6,6 +6,7 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 import { loadOrganizationBranding, formatProductTitle } from "@/lib/branding";
 import { isJagPlatformApexHost } from "@/lib/platform/branding";
 import { brandingForTenantHost } from "@/lib/branding/from-tenant-brand";
+import { hydrateBrandRegistry } from "@/lib/platform/tenant/persistence";
 import LoginForm from "./LoginForm";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
 
+  await hydrateBrandRegistry();
   const supabase = await createAuthClient();
   const sessionBranding = await loadOrganizationBranding(supabase);
   const branding =
@@ -56,6 +58,7 @@ export default async function LoginPage({
     redirect(target);
   }
 
+  await hydrateBrandRegistry();
   const supabase = await createAuthClient();
   const sessionBranding = await loadOrganizationBranding(supabase);
 

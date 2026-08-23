@@ -4,11 +4,13 @@ import { headers } from "next/headers";
 import { JagResetPasswordForm } from "@/components/jag-platform/JagResetPasswordForm";
 import { loadJagBrandForHost } from "@/lib/jag-command-center/branding";
 import { POWERED_BY_LINE } from "@/lib/platform/branding";
+import { hydrateBrandRegistry } from "@/lib/platform/tenant/persistence";
 
 export async function generateMetadata(): Promise<Metadata> {
   const headerStore = await headers();
   const host =
     headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? undefined;
+  await hydrateBrandRegistry();
   const model = loadJagBrandForHost(host);
   return {
     title: `Reset password · ${model.pageTitle}`,
@@ -23,6 +25,7 @@ export default async function JagResetPasswordPage() {
   const headerStore = await headers();
   const host =
     headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? undefined;
+  await hydrateBrandRegistry();
   const model = loadJagBrandForHost(host);
   const bg = model.brand.login_background_url;
 

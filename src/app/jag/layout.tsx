@@ -8,6 +8,7 @@ import { JagLoadingSkeleton } from "@/components/jag/command-center";
 import "@/components/jag/command-center/command-center.css";
 import { loadJagBrandForHost } from "@/lib/jag-command-center";
 import { getJagPlatformSession } from "@/lib/jag-platform/server-session";
+import { hydrateBrandRegistry } from "@/lib/platform/tenant/persistence";
 import {
   POWERED_BY_LINE,
   themeToStyle,
@@ -67,6 +68,7 @@ export default async function JagRootLayout({
   const isSharedBriefing = pathname.startsWith("/jag/briefings/share/");
 
   if (isLogin || isSharedBriefing) {
+    await hydrateBrandRegistry();
     const brandModel = loadJagBrandForHost(host);
     return (
       <div

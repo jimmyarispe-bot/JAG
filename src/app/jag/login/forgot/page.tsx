@@ -4,11 +4,13 @@ import { headers } from "next/headers";
 import { JagForgotPasswordForm } from "@/components/jag-platform/JagForgotPasswordForm";
 import { loadJagBrandForHost } from "@/lib/jag-command-center/branding";
 import { POWERED_BY_LINE } from "@/lib/platform/branding";
+import { hydrateBrandRegistry } from "@/lib/platform/tenant/persistence";
 
 export async function generateMetadata(): Promise<Metadata> {
   const headerStore = await headers();
   const host =
     headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? undefined;
+  await hydrateBrandRegistry();
   const model = loadJagBrandForHost(host);
   return {
     title: `Forgot password · ${model.pageTitle}`,
@@ -23,6 +25,7 @@ export default async function JagForgotPasswordPage() {
   const headerStore = await headers();
   const host =
     headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? undefined;
+  await hydrateBrandRegistry();
   const model = loadJagBrandForHost(host);
   const bg = model.brand.login_background_url;
 
