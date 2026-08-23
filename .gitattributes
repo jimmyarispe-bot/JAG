@@ -1,0 +1,39 @@
+# Normalize line endings.
+#
+# Without this file the repository stores LF while Windows tooling rewrites
+# working-tree files as CRLF, so `git status` reports hundreds of files as
+# modified when only their line endings differ. That noise makes it easy to
+# sweep unrelated work into a commit.
+#
+# `text=auto` stores LF in the repository and checks out the platform's native
+# ending, so Windows keeps CRLF on disk and git stops reporting the difference.
+
+* text=auto
+
+# Files whose ending is load-bearing regardless of platform.
+*.sh   text eol=lf
+*.bash text eol=lf
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Binary — never convert, never diff as text.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.avif binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.mp4  binary
+*.mov  binary
+*.xlsx binary
+*.docx binary
+*.pptx binary
