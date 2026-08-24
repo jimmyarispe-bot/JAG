@@ -1,5 +1,6 @@
 import { QuickLaunchGrid } from "@/components/dashboard/QuickLaunchGrid";
 import { FounderMorningBriefSections } from "@/components/dashboard/FounderMorningBriefSections";
+import { FounderMorningBrief } from "@/components/dashboard/FounderMorningBrief";
 import { FounderDashboardCards } from "@/components/dashboard/FounderDashboardCards";
 import { FounderDashboardNav } from "@/components/dashboard/FounderDashboardNav";
 import { ExecutiveDirectorDashboard } from "@/components/dashboard/ExecutiveDirectorDashboard";
@@ -30,26 +31,9 @@ export default async function DashboardHomePage() {
 
     return (
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-brand-900 via-brand-700 to-indigo-600 p-6 text-white shadow-lg sm:p-8">
-          <p className="text-sm font-medium text-indigo-100">
-            {greeting} · {today}
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            {ctx.roleLabel || "Founder"}
-          </h2>
-          <p className="mt-2 text-sm text-indigo-100/90">
-            Welcome back, {ctx.fullName}
-          </p>
-          <p className="mt-3 max-w-2xl text-sm text-indigo-100/90 sm:text-base">
-            Your founder operating home for {branding.productName}
-            {branding.editionLabel ? ` · ${branding.editionLabel}` : " · Founder's Edition"}.
-          </p>
-          {ctx.roleLabel ? (
-            <p className="mt-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-indigo-100 ring-1 ring-white/20">
-              {ctx.roleLabel}
-            </p>
-          ) : null}
-        </section>
+        {/* Revenue-first brief. Replaces the greeting banner — the founder needs
+            numbers above the fold, not a welcome message. */}
+        <FounderMorningBrief orgName={branding.productName} />
 
         <FounderDashboardNav />
 
