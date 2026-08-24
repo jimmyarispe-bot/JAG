@@ -115,6 +115,7 @@ export default async function DashboardLayout({
       branding={shellData.branding}
       isFounder={canViewFounderDashboard(ctx)}
       isExecutiveDirector={canViewExecutiveDirectorDashboard(ctx)}
+      permissions={ctx.permissions}
       notifications={shellData.notifications}
       impersonation={ctx.impersonation}
     >

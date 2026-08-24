@@ -13,6 +13,11 @@ import { useBranding } from "@/components/branding/BrandingContext";
 import { formatWorkspaceProductLine } from "@/lib/branding/workspace-edition";
 import { cn } from "@/components/workspace-design-system/utils";
 import { ModuleIcon } from "./ModuleIcons";
+import {
+  SIDEBAR_NAV_SECTIONS,
+  isSidebarItemActive,
+  visibleSectionItems,
+} from "@/lib/dashboard/intelligence-navigation";
 
 interface SidebarProps {
   open: boolean;
@@ -22,6 +27,12 @@ interface SidebarProps {
   /** Executive Director operating nav — never shows Founder widgets. */
   isExecutiveDirector?: boolean;
   roleLabel?: string;
+  /**
+   * Effective permission keys for the signed-in user. Executive and
+   * Intelligence links are drawn only when the role can actually open them —
+   * a menu that shows unopenable links reads as a broken platform.
+   */
+  permissions?: readonly string[];
 }
 
 function isPlatformActive(pathname: string, href: string, exact?: boolean): boolean {
@@ -46,9 +57,14 @@ export function Sidebar({
   isFounder = false,
   isExecutiveDirector = false,
   roleLabel,
+  permissions = [],
 }: SidebarProps) {
   const pathname = usePathname();
   const branding = useBranding();
+  const navSections = SIDEBAR_NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: visibleSectionItems(section, permissions),
+  })).filter((section) => section.items.length > 0);
   const modules = getBrandedDashboardModules(branding).map((module) =>
     !isFounder && module.id === "executive"
       ? {
@@ -125,6 +141,26 @@ export function Sidebar({
               );
             })}
           </ul>
+
+          {navSections.map((section) => (
+            <div key={section.id} className="mt-6">
+              <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                {section.title}
+              </p>
+              <ul className="space-y-1">
+                {section.items.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={navLinkClass(isSidebarItemActive(pathname, item))}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-sidebar-border px-3 py-4">

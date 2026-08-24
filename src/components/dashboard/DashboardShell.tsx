@@ -11,6 +11,8 @@ interface DashboardShellProps {
   isFounder?: boolean;
   /** When true, show Executive Director operating nav (never with Founder widgets). */
   isExecutiveDirector?: boolean;
+  /** Effective permission keys — gates the Executive / Intelligence sidebar sections. */
+  permissions?: readonly string[];
   impersonation?: { targetName: string } | null;
   notifications?: Array<{
     id: string;
@@ -36,6 +38,7 @@ export function DashboardShell({
   branding,
   isFounder = false,
   isExecutiveDirector = false,
+  permissions = [],
   impersonation = null,
   notifications = [],
   children,
@@ -48,6 +51,7 @@ export function DashboardShell({
         supportModeLabel={branding.supportModeLabel}
         isFounder={isFounder}
         isExecutiveDirector={isExecutiveDirector}
+        permissions={permissions}
         impersonation={impersonation}
         notifications={notifications}
       >

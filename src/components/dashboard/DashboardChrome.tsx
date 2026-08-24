@@ -23,6 +23,8 @@ interface DashboardChromeProps {
   supportModeLabel: string;
   isFounder?: boolean;
   isExecutiveDirector?: boolean;
+  /** Effective permission keys — gates the Executive / Intelligence sidebar sections. */
+  permissions?: readonly string[];
   impersonation?: { targetName: string } | null;
   notifications?: Notification[];
   children: ReactNode;
@@ -38,6 +40,7 @@ export function DashboardChrome({
   supportModeLabel,
   isFounder = false,
   isExecutiveDirector = false,
+  permissions = [],
   impersonation = null,
   notifications = [],
   children,
@@ -57,6 +60,7 @@ export function DashboardChrome({
         isFounder={isFounder}
         isExecutiveDirector={isExecutiveDirector}
         roleLabel={roleLabel}
+        permissions={permissions}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
