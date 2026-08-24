@@ -3,6 +3,7 @@ import type { JagNotification } from "@/lib/jag-command-center/notifications";
 import type { JagSearchItem } from "@/lib/jag-command-center/search-filter";
 import type { OrganizationBrand } from "@/lib/platform/branding";
 import { JagCommandPalette } from "./JagCommandPalette";
+import { JagUserMenu } from "./JagUserMenu";
 import { JagNotificationBell } from "./JagNotificationBell";
 import { JagOrganizationSelect } from "./JagOrganizationSelect";
 
@@ -75,20 +76,12 @@ export function JagHeader({
           notifications={notifications}
           unreadCount={unreadNotificationCount}
         />
-        <div className="hidden text-right sm:block">
-          <p className="truncate text-xs font-medium text-[var(--jag-text)]">
-            {session.displayName}
-          </p>
-          <p className="truncate text-[10px] uppercase tracking-[0.08em] text-[var(--jag-muted)]">
-            {session.role.replace(/_/g, " ")}
-          </p>
-        </div>
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded border border-[var(--jag-border)] bg-[var(--jag-panel)] text-xs font-medium text-[var(--jag-text)]"
-          aria-hidden
-        >
-          {initials(session.displayName)}
-        </div>
+        <JagUserMenu
+          displayName={session.displayName}
+          roleLabel={session.role.replace(/_/g, " ")}
+          initials={initials(session.displayName)}
+          email={session.email}
+        />
       </div>
     </header>
   );
