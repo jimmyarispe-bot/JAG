@@ -55,24 +55,92 @@ function buildNotes(mapped: Record<string, unknown>, attempt?: number): string |
 }
 
 /** Existing lead with the same student name and parent email — makes re-runs safe. */
+/**
+ * Match an incoming row to an existing lead.
+ *
+ * Two passes, because legacy CRM exports duplicate the same child in ways a
+ * name comparison cannot see. The Academy Way's migration contained one record
+ * as "La'Marrieon Williams" and another as "Williams La'Marrieon" — same date of
+ * birth, same guardian, same phone, one day apart — and a name-only match
+ * imported the child twice.
+ *
+ * 1. Name + guardian email, as before.
+ * 2. Date of birth + guardian email, which survives reversed, misspelled or
+ *    differently-punctuated names.
+ * 3. Name + date of birth, and date of birth + guardian phone, for the case
+ *    where two parents inquire
+ *    separately about the same child from different email addresses — the
+ *    Clubb family filed four inquiries, one of them under the father's email.
+ *
+ * Passes 2 and 3 only run when both of their fields are present, so sparse
+ * records cannot collapse into each other. Siblings share a guardian but not a
+ * date of birth, so they stay distinct.
+ */
 async function findExistingLead(
   supabase: AuthClient,
   schoolId: string,
   firstName: string,
   lastName: string,
-  guardianEmail: string
+  guardianEmail: string,
+  dateOfBirth?: string | null,
+  guardianPhone?: string | null
 ): Promise<string | null> {
-  let query = supabase
+  let byName = supabase
     .from("admissions_leads")
     .select("id")
     .eq("school_id", schoolId)
     .ilike("first_name", firstName)
     .ilike("last_name", lastName);
 
-  if (guardianEmail) query = query.ilike("guardian_email", guardianEmail);
+  if (guardianEmail) byName = byName.ilike("guardian_email", guardianEmail);
 
-  const { data } = await query.limit(1).maybeSingle();
-  return data?.id ?? null;
+  const { data: nameMatch } = await byName.limit(1).maybeSingle();
+  if (nameMatch?.id) return nameMatch.id;
+
+  if (!dateOfBirth) return null;
+
+  // Same name and date of birth in the same school, but a different guardian
+  // contact: two parents inquiring separately. Siblings and twins are still
+  // distinct here because their first names differ.
+  const { data: nameDobMatch } = await supabase
+    .from("admissions_leads")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("date_of_birth", dateOfBirth)
+    .ilike("first_name", firstName)
+    .ilike("last_name", lastName)
+    .limit(1)
+    .maybeSingle();
+  if (nameDobMatch?.id) return nameDobMatch.id;
+
+  if (guardianEmail) {
+    const { data: byEmail } = await supabase
+      .from("admissions_leads")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("date_of_birth", dateOfBirth)
+      .ilike("guardian_email", guardianEmail)
+      .limit(1)
+      .maybeSingle();
+    if (byEmail?.id) return byEmail.id;
+  }
+
+  const phone = digitsOnly(guardianPhone);
+  if (!phone) return null;
+
+  const { data: candidates } = await supabase
+    .from("admissions_leads")
+    .select("id, guardian_phone")
+    .eq("school_id", schoolId)
+    .eq("date_of_birth", dateOfBirth);
+
+  const byPhone = (candidates ?? []).find((c) => digitsOnly(c.guardian_phone) === phone);
+  return byPhone?.id ?? null;
+}
+
+/** Phone numbers arrive as "(979) 451-8189", "979-451-8189", "9794518189". */
+function digitsOnly(value: string | null | undefined): string {
+  return (value ?? "").replace(/\D/g, "");
 }
 
 export async function commitLeadRow(
@@ -108,7 +176,15 @@ export async function commitLeadRow(
 
     const existingId =
       targetEntityId ||
-      (await findExistingLead(supabase, destination.schoolId, firstName, lastName, guardianEmail));
+      (await findExistingLead(
+        supabase,
+        destination.schoolId,
+        firstName,
+        lastName,
+        guardianEmail,
+        isoDate(text(mapped, "date_of_birth")),
+        text(mapped, "guardian_phone")
+      ));
 
     if (existingId && destination.importMode === "skip_duplicates") {
       return { ok: true, action: "skipped" };

@@ -67,7 +67,9 @@ function main() {
     const noContact: number[] = [];
     const stageCounts = new Map<string, number>();
     const seen = new Map<string, number>();
+    const identity = new Map<string, number>();
     const dupes: Array<{ row: number; of: number }> = [];
+    const softDupes: Array<{ row: number; of: number }> = [];
 
     rows.forEach((row, i) => {
       const line = i + 2; // spreadsheet row: +1 header, +1 one-based
@@ -96,6 +98,28 @@ function main() {
       if (seen.has(key)) dupes.push({ row: line, of: seen.get(key)! });
       else seen.set(key, line);
 
+      // Same child, different name spelling. Legacy CRM exports reverse first
+      // and last names, or misspell them, while date of birth and guardian
+      // email stay put. Siblings share the email but not the DOB, so this does
+      // not collapse them.
+      const dob = get(row, "DOB");
+      const email = get(row, "Parent Email").toLowerCase();
+      const phone = get(row, "Parent Phone").replace(/\D/g, "");
+      if (dob) {
+        // Two parents inquiring from different emails still share the child's
+        // date of birth and usually a phone number.
+        const nameKey = `${first}|${last}`.toLowerCase();
+        for (const contact of [email, phone, nameKey].filter(Boolean)) {
+          const idKey = `${dob}|${contact}`;
+          if (identity.has(idKey)) {
+            const of = identity.get(idKey)!;
+            if (!dupes.some((d) => d.row === line) && !softDupes.some((d) => d.row === line)) {
+              softDupes.push({ row: line, of });
+            }
+          } else identity.set(idKey, line);
+        }
+      }
+
       stageCounts.set(status.leadStage, (stageCounts.get(status.leadStage) ?? 0) + 1);
       willImport.push(line);
     });
@@ -109,6 +133,10 @@ function main() {
     for (const f of willFail) console.log(`      row ${f.row}: ${f.why}`);
     if (noContact.length) console.log(`  no contact  : ${noContact.length} (warning only) rows ${noContact.join(", ")}`);
     for (const d of dupes) console.log(`  duplicate   : row ${d.row} matches row ${d.of} (will update, not duplicate)`);
+    for (const d of softDupes)
+      console.log(
+        `  SAME CHILD  : row ${d.row} and row ${d.of} share a date of birth and guardian email under different names`
+      );
     console.log(`  stages      : ${[...stageCounts.entries()].sort().map(([s, n]) => `${s}=${n}`).join("  ")}`);
     console.log();
   }
