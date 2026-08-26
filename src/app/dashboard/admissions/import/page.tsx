@@ -5,6 +5,7 @@ import { StudentImportWizard } from "@/components/students/StudentImportWizard";
 import { canImportStudents } from "@/lib/platform/imports/access";
 import { getStudentImportPageData } from "@/lib/platform/imports/actions";
 import { getIdentityContext } from "@/lib/platform/identity/context";
+import { getEnvironmentIdentity } from "@/lib/platform/environment/identity";
 
 export const metadata = {
   title: "Admissions Pipeline Import",
@@ -17,7 +18,10 @@ export default async function AdmissionsLeadImportPage() {
     redirect("/dashboard/admissions");
   }
 
-  const data = await getStudentImportPageData("admissions_lead");
+  const [data, environment] = await Promise.all([
+    getStudentImportPageData("admissions_lead"),
+    getEnvironmentIdentity(),
+  ]);
   if (!data.ok) {
     return (
       <div className="mx-auto max-w-3xl space-y-4 p-6">
@@ -44,6 +48,29 @@ export default async function AdmissionsLeadImportPage() {
           </Link>
         }
       />
+      {/*
+        Say where the rows will land, on the page where it matters most. On
+        25 Aug 2026 a full lead import ran against the wrong database because
+        nothing on screen distinguished one from the other.
+      */}
+      <div
+        className={`rounded-xl border px-4 py-3 text-sm ${
+          environment.databaseIsProduction
+            ? "border-slate-300 bg-slate-50 text-slate-700"
+            : "border-amber-300 bg-amber-50 text-amber-900"
+        }`}
+      >
+        <span className="font-semibold">Writing to: </span>
+        {environment.databaseName ?? "unidentified database"}
+        {environment.databaseRef ? (
+          <span className="ml-1.5 font-mono text-xs opacity-75">{environment.databaseRef}</span>
+        ) : null}
+        {!environment.databaseIsProduction ? (
+          <span className="ml-2">
+            — not the live database. Records imported here will not appear on thejag.org.
+          </span>
+        ) : null}
+      </div>
       <StudentImportWizard
         entityType="admissions_lead"
         schools={data.schools}

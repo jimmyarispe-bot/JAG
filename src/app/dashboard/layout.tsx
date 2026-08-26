@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { EnvironmentBanner } from "@/components/platform/EnvironmentBanner";
 import { redirectIfPasswordResetRequired } from "@/lib/auth/must-reset-password";
 import { getAuthUser } from "@/lib/auth/auth-user";
 import { canViewExecutiveDirectorDashboard } from "@/lib/dashboard/executive-director-dashboard";
@@ -115,10 +116,11 @@ export default async function DashboardLayout({
       branding={shellData.branding}
       isFounder={canViewFounderDashboard(ctx)}
       isExecutiveDirector={canViewExecutiveDirectorDashboard(ctx)}
-      permissions={ctx.permissions}
       notifications={shellData.notifications}
       impersonation={ctx.impersonation}
     >
+      {/* Renders nothing on a correctly-configured production deployment. */}
+      <EnvironmentBanner />
       {children}
     </DashboardShell>
   );
