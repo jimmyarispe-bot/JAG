@@ -182,6 +182,7 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
           { id: "pipeline", label: "Pipeline board", href: "/dashboard/admissions?view=pipeline", variant: "secondary" },
           { id: "add-lead", label: "Add lead", href: "/dashboard/admissions/leads/new", variant: "primary" },
           { id: "enrollment", label: "Ready for enrollment", href: "/dashboard/admissions?work=ready_for_enrollment", variant: "secondary" },
+          { id: "bulk-import", label: "Bulk import leads", href: "/dashboard/admissions/import", variant: "secondary" },
         ]}
       />
     </div>
@@ -199,9 +200,17 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
       insightPanel={insightPanel}
       subtitle={orgContext?.activeScope.schoolName ?? "Enrollment funnel"}
       headerActions={
-        <Link href="/dashboard/admissions/leads/new" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          Add Lead
-        </Link>
+        <>
+          <Link
+            href="/dashboard/admissions/import"
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Bulk Import
+          </Link>
+          <Link href="/dashboard/admissions/leads/new" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+            Add Lead
+          </Link>
+        </>
       }
     >
       {orgContext && <JagOrganizationContextBar org={orgContext} />}
