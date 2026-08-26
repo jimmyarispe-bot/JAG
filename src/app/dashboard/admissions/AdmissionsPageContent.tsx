@@ -183,6 +183,7 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
           { id: "add-lead", label: "Add lead", href: "/dashboard/admissions/leads/new", variant: "primary" },
           { id: "enrollment", label: "Ready for enrollment", href: "/dashboard/admissions?work=ready_for_enrollment", variant: "secondary" },
           { id: "bulk-import", label: "Bulk import leads", href: "/dashboard/admissions/import", variant: "secondary" },
+          { id: "people", label: "All people", href: "/dashboard/people", variant: "secondary" },
         ]}
       />
     </div>
