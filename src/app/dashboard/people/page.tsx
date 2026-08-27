@@ -21,8 +21,11 @@ export default async function PeopleDirectoryPage() {
 
   const people = await getDirectory();
 
+  // Full width, deliberately. The dashboard's <main> already pads the content
+  // area, so the p-6 here was doubling it, and max-w-7xl left a band of empty
+  // page beside an eight-column table that was scrolling sideways to fit.
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-6">
+    <div className="space-y-6">
       <PageHeader
         title="People"
         subtitle="Every student and prospective family — enrolled, in the pipeline, alumni, and those who did not enrol"

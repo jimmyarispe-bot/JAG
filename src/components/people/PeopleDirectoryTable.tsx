@@ -193,9 +193,11 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
         {pending ? " · saving…" : ""}
       </p>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+      {/* The header sticks: several hundred rows scroll past, and a column of
+          bare status chips means nothing once "Status" has scrolled off. */}
+      <div className="max-h-[calc(100vh-19rem)] overflow-auto rounded-2xl border border-slate-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500 shadow-[0_1px_0_0_rgb(226_232_240)]">
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Type</th>
