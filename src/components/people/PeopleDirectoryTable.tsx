@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { ReactNode } from "react";
 import {
+  CONTACT_SOURCE_LABELS,
   PERSON_GROUPS,
   PERSON_GROUP_LABELS,
   type DirectoryPerson,
@@ -49,17 +50,18 @@ const GROUP_TONE: Record<PersonGroup, string> = {
  */
 type ColumnKey =
   | "name" | "type" | "school" | "grade"
-  | "status" | "category" | "guardian" | "contact";
+  | "status" | "category" | "guardian" | "email" | "phone";
 
 const COLUMNS: { key: ColumnKey; label: string; width: number }[] = [
-  { key: "name", label: "Name", width: 210 },
-  { key: "type", label: "Type", width: 110 },
-  { key: "school", label: "School", width: 180 },
-  { key: "grade", label: "Grade", width: 80 },
-  { key: "status", label: "Status", width: 160 },
-  { key: "category", label: "Category", width: 170 },
-  { key: "guardian", label: "Guardian", width: 180 },
-  { key: "contact", label: "Contact", width: 230 },
+  { key: "name", label: "Name", width: 200 },
+  { key: "type", label: "Type", width: 90 },
+  { key: "school", label: "School", width: 165 },
+  { key: "grade", label: "Grade", width: 85 },
+  { key: "status", label: "Status", width: 145 },
+  { key: "category", label: "Category", width: 160 },
+  { key: "guardian", label: "Parent / guardian", width: 175 },
+  { key: "email", label: "Email", width: 235 },
+  { key: "phone", label: "Phone", width: 150 },
 ];
 
 const MIN_WIDTH = 64;
@@ -233,6 +235,13 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
     return map;
   }, [people]);
 
+  // Counted, not just marked. "Some contacts came from the enquiry" is a note;
+  // a number is something you can work through.
+  const borrowedContacts = useMemo(
+    () => people.filter((p) => p.kind === "student" && p.contactSource === "lead").length,
+    [people]
+  );
+
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return people.filter((p) => {
@@ -298,8 +307,33 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
         );
       case "guardian":
         return p.guardianName ?? "—";
-      case "contact":
-        return p.guardianEmail ?? p.guardianPhone ?? "—";
+      case "email":
+        return p.guardianEmail ? (
+          <span className="inline-flex items-center gap-1.5">
+            {/* Contact borrowed from the admissions enquiry is marked, so a
+                value that is not yet on the family record cannot be mistaken
+                for one that is. */}
+            {p.contactSource === "lead" && (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+            )}
+            <a
+              href={`mailto:${p.guardianEmail}`}
+              className="truncate hover:text-brand-600 hover:underline"
+            >
+              {p.guardianEmail}
+            </a>
+          </span>
+        ) : (
+          "—"
+        );
+      case "phone":
+        return p.guardianPhone ? (
+          <a href={`tel:${p.guardianPhone}`} className="hover:text-brand-600 hover:underline">
+            {p.guardianPhone}
+          </a>
+        ) : (
+          "—"
+        );
     }
   }
 
@@ -311,8 +345,10 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
     switch (key) {
       case "name": return `${p.lastName}, ${p.firstName}`;
       case "school": return p.school;
-      case "guardian": return p.guardianName ?? undefined;
-      case "contact": return p.guardianEmail ?? p.guardianPhone ?? undefined;
+      case "guardian": return p.guardianName ?? CONTACT_SOURCE_LABELS[p.contactSource];
+      case "email":
+      case "phone":
+        return CONTACT_SOURCE_LABELS[p.contactSource];
       default: return undefined;
     }
   }
@@ -320,14 +356,15 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
   function exportCsv() {
     const header = [
       "Last name", "First name", "Type", "School", "Grade", "Program",
-      "Status", "Category", "Set by hand", "Guardian", "Email", "Phone", "Date of birth",
+      "Status", "Category", "Set by hand", "Guardian", "Email", "Phone",
+      "Contact source", "Date of birth",
     ];
     const body = rows.map((p) =>
       [
         p.lastName, p.firstName, p.kind === "student" ? "Student" : "Prospect",
         p.school, p.grade, p.program, p.statusLabel,
         PERSON_GROUP_LABELS[p.group], p.overridden ? "yes" : "", p.guardianName, p.guardianEmail,
-        p.guardianPhone, p.dateOfBirth,
+        p.guardianPhone, p.contactSource, p.dateOfBirth,
       ].map((c) => csvCell(c == null ? null : String(c))).join(",")
     );
     const blob = new Blob([[header.join(","), ...body].join("\n")], {
@@ -397,6 +434,18 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
 
       {error && (
         <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>
+      )}
+
+      {borrowedContacts > 0 && (
+        <p className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+          <span>
+            {borrowedContacts} enrolled {borrowedContacts === 1 ? "student is" : "students are"} showing
+            a parent contact taken from their admissions enquiry. It is not on their family
+            record yet, so nothing that reads the family — billing, portal invitations,
+            mail merges — can see it.
+          </span>
+        </p>
       )}
 
       <div className="flex items-center justify-between gap-4 text-sm text-slate-500">

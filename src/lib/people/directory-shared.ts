@@ -9,6 +9,15 @@
 
 export type PersonKind = "student" | "prospect";
 
+export type ContactSource = "guardian" | "family" | "lead" | "none";
+
+export const CONTACT_SOURCE_LABELS: Record<ContactSource, string> = {
+  guardian: "Guardian record",
+  family: "Family billing contact — no guardian record",
+  lead: "From the admissions enquiry — not yet on the family record",
+  none: "No contact on file",
+};
+
 /**
  * Coarse buckets that mean the same thing whichever table a row came from.
  * The precise status is kept alongside for anyone who needs it.
@@ -42,6 +51,15 @@ export interface DirectoryPerson {
   readonly guardianName: string | null;
   readonly guardianEmail: string | null;
   readonly guardianPhone: string | null;
+  /**
+   * Where the contact above came from, so a thin fallback is never mistaken for
+   * a real parent record:
+   *   guardian — a guardians row, the proper place for it
+   *   family   — the family's billing email/phone, no guardian row exists
+   *   lead     — the child's own admissions lead
+   *   none     — nothing on file
+   */
+  readonly contactSource: ContactSource;
   readonly dateOfBirth: string | null;
   readonly createdAt: string | null;
   /** Where to go when the row is clicked. */
