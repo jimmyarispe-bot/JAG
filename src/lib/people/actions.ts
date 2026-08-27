@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { canImportStudents } from "@/lib/platform/imports/access";
-import { PERSON_GROUPS, type PersonGroup, type PersonKind } from "@/lib/people/directory";
+import { PERSON_GROUPS, type PersonGroup, type PersonKind } from "@/lib/people/directory-shared";
 
 /**
  * Set or clear one person's directory category.

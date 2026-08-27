@@ -7,7 +7,7 @@ import {
   PERSON_GROUP_LABELS,
   type DirectoryPerson,
   type PersonGroup,
-} from "@/lib/people/directory";
+} from "@/lib/people/directory-shared";
 import { setPersonGroup } from "@/lib/people/actions";
 
 /**

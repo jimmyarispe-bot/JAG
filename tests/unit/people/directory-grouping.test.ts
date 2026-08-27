@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupForLead, groupForStudent } from "@/lib/people/directory";
+import { groupForLead, groupForStudent } from "@/lib/people/directory-shared";
 
 /**
  * The directory merges two tables whose status vocabularies do not overlap.

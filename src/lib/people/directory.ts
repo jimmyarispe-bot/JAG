@@ -3,6 +3,13 @@ import {
   pipelineStageLabel,
   resolvePipelineStageFromLeadStage,
 } from "@/lib/admissions/registry/stages";
+import {
+  groupForLead,
+  groupForStudent,
+  type DirectoryPerson,
+  type PersonGroup,
+  type PersonKind,
+} from "@/lib/people/directory-shared";
 
 /**
  * One list of every child the network knows about.
@@ -12,75 +19,9 @@ import {
  * who declined or did not return. No page joined them, so "show me everyone"
  * could not be answered without running two queries and merging by hand.
  *
- * This does that merge once, in one shape, so the difference between a prospect
- * and a student becomes a column rather than a different screen.
+ * Server-only: this reaches the database. Types and category logic live in
+ * `directory-shared.ts` so client components can use them too.
  */
-
-export type PersonKind = "student" | "prospect";
-
-/**
- * Coarse buckets that mean the same thing whichever table a row came from.
- * The precise status is kept alongside for anyone who needs it.
- */
-export type PersonGroup =
-  | "enrolled"
-  | "pipeline"
-  | "accepted"
-  | "alumni"
-  | "not_enrolled"
-  | "other";
-
-export interface DirectoryPerson {
-  readonly id: string;
-  readonly kind: PersonKind;
-  readonly firstName: string;
-  readonly lastName: string;
-  readonly school: string;
-  readonly grade: string | null;
-  readonly program: string | null;
-  /** Raw status from the source table: enrollment_status or lead_stage. */
-  readonly status: string;
-  /** Human label — pipeline stage name for prospects, status for students. */
-  readonly statusLabel: string;
-  /** Category shown — the override when one exists, otherwise the derived value. */
-  readonly group: PersonGroup;
-  /** What the data implies, ignoring any override. */
-  readonly derivedGroup: PersonGroup;
-  /** True when a human has deliberately set this person's category. */
-  readonly overridden: boolean;
-  readonly guardianName: string | null;
-  readonly guardianEmail: string | null;
-  readonly guardianPhone: string | null;
-  readonly dateOfBirth: string | null;
-  readonly createdAt: string | null;
-  /** Where to go when the row is clicked. */
-  readonly href: string;
-}
-
-/**
- * Students carry an enrollment status; leads carry a pipeline stage.
- *
- * Withdrawn, graduated and not-returning all derive to "other" rather than
- * "alumni". Those three statuses were assigned by a migration from a legacy CRM
- * and have not been reviewed, so parking them together keeps an unverified
- * guess from reading as a fact. "alumni" remains available as a category a
- * human can assign deliberately, one person at a time.
- */
-export function groupForStudent(status: string): PersonGroup {
-  if (status === "enrolled") return "enrolled";
-  if (status === "pending" || status === "waitlisted") return "pipeline";
-  // graduated | withdrawn | anything unrecognised
-  return "other";
-}
-
-export function groupForLead(stage: string): PersonGroup {
-  if (stage === "enrolled") return "enrolled";
-  if (stage === "accepted") return "accepted";
-  if (stage === "declined") return "not_enrolled";
-  // not_returning | waitlisted | anything unrecognised
-  if (stage === "not_returning" || stage === "waitlisted") return "other";
-  return "pipeline";
-}
 
 function titleCase(value: string): string {
   return value
@@ -187,21 +128,3 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
 
   return people;
 }
-
-export const PERSON_GROUPS: PersonGroup[] = [
-  "enrolled",
-  "pipeline",
-  "accepted",
-  "alumni",
-  "not_enrolled",
-  "other",
-];
-
-export const PERSON_GROUP_LABELS: Record<PersonGroup, string> = {
-  enrolled: "Enrolled",
-  pipeline: "In pipeline",
-  accepted: "Accepted",
-  alumni: "Alumni / former",
-  not_enrolled: "Did not enrol",
-  other: "Other",
-};

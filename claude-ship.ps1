@@ -24,7 +24,7 @@
 param(
     [switch]$VerifyOnly,
     [switch]$UpdateBaseline,
-    [string]$Branch = "admissions-migration",
+    [string]$Branch = "production",
     [int]$Workers = 4
 )
 
@@ -81,6 +81,15 @@ Step "Typecheck"
 npx tsc --noEmit
 if ($LASTEXITCODE -ne 0) { Die "tsc reported errors, nothing committed" }
 Write-Host "clean" -ForegroundColor Green
+
+Step "Client boundaries"
+# tsc cannot see this one. A client component that imports a module which
+# reaches next/headers typechecks perfectly and dies in the production build -
+# which is what happened on 27 Aug, ten minutes into a deploy, with production
+# left a commit behind. This walks the import graph out of every "use client"
+# file in about a second.
+node scripts/check-client-boundaries.mjs
+if ($LASTEXITCODE -ne 0) { Die "a client component reaches server-only code, nothing committed" }
 
 Step "Tests"
 if (Test-Path $ResultsFile) { Remove-Item $ResultsFile -Force }
