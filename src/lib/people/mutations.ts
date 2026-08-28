@@ -1,0 +1,461 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createAuthClient } from "@/lib/supabase/server-auth";
+import { getIdentityContext } from "@/lib/platform/identity/context";
+import { canImportStudents } from "@/lib/platform/imports/access";
+import {
+  archiveStudent,
+  canManageStudentLifecycle,
+  deleteStudent,
+  restoreStudent,
+} from "@/lib/students/lifecycle";
+import type { PersonKind, PersonPatch } from "@/lib/people/directory-shared";
+
+/**
+ * Edit, archive and delete from the People directory.
+ *
+ * Two gates, deliberately different:
+ *
+ *   editing            canImportStudents -- the same bar as the bulk importer,
+ *                      which can already create these records wholesale. Anyone
+ *                      who may import may correct.
+ *   archive / delete   canManageStudentLifecycle -- CEO, Founder or School
+ *                      Leader only. Established for students in RC1; leads now
+ *                      follow the same rule rather than inventing a looser one.
+ *
+ * Students reuse the existing lifecycle service, including its dependency check
+ * and its typed-DELETE guard. Leads had no lifecycle at all, so the equivalent
+ * is here, built to the same shape.
+ */
+
+export type PeopleResult =
+  | { ok: true; changed: number; message: string }
+  | {
+      ok: false;
+      error: string;
+      code?: "forbidden" | "not_found" | "has_dependencies" | "confirmation_required" | "failed";
+      /** Named so the user can act on it, rather than a bare count. */
+      blocked?: { id: string; name: string; reason: string }[];
+    };
+
+type Target = { kind: PersonKind; id: string };
+
+function text(value: unknown): string | null {
+  const v = typeof value === "string" ? value.trim() : "";
+  return v ? v : null;
+}
+
+/** "Katie Allen" -> first "Katie", last "Allen". A single word is the surname. */
+function splitName(full: string | null): { first: string | null; last: string | null } {
+  if (!full) return { first: null, last: null };
+  const parts = full.trim().split(/\s+/);
+  if (parts.length === 1) return { first: null, last: parts[0] };
+  return { first: parts.slice(0, -1).join(" "), last: parts[parts.length - 1] };
+}
+
+function revalidate() {
+  revalidatePath("/dashboard/people");
+  revalidatePath("/dashboard/students");
+  revalidatePath("/dashboard/admissions");
+}
+
+async function requireEdit() {
+  const identity = await getIdentityContext();
+  if (!identity) return { ok: false as const, error: "Not signed in" };
+  if (!canImportStudents(identity)) {
+    return { ok: false as const, error: "You do not have access to change these records" };
+  }
+  return { ok: true as const, identity };
+}
+
+async function requireLifecycle() {
+  const identity = await getIdentityContext();
+  if (!identity) return { ok: false as const, error: "Not signed in" };
+  if (!canManageStudentLifecycle(identity)) {
+    return {
+      ok: false as const,
+      error: "Only a CEO, Founder or School Leader can archive or delete records.",
+    };
+  }
+  return { ok: true as const, identity };
+}
+
+/* ------------------------------------------------------------------ edit -- */
+
+/**
+ * Parent contact on a student does not live on the student.
+ *
+ * It goes to `families.billing_email` / `billing_phone` and to the family's
+ * primary `guardians` row, creating a family or a guardian if the chain does
+ * not reach that far yet. This is the path that finally fills the `guardians`
+ * table: the 27 Aug load put contact on families only, so every student still
+ * reports its source as "family" until somebody edits them here.
+ */
+async function writeStudentContact(
+  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  studentId: string,
+  patch: PersonPatch
+): Promise<string | null> {
+  const touchesContact =
+    patch.guardianName !== undefined ||
+    patch.guardianEmail !== undefined ||
+    patch.guardianPhone !== undefined;
+  if (!touchesContact) return null;
+
+  const { data: student, error: readError } = await supabase
+    .from("students")
+    .select("id, school_id, last_name, family_id")
+    .eq("id", studentId)
+    .maybeSingle();
+  if (readError) return readError.message;
+  if (!student) return "Student not found";
+
+  const name = splitName(patch.guardianName === undefined ? null : text(patch.guardianName));
+
+  let familyId = student.family_id as string | null;
+  if (!familyId) {
+    const { data: created, error } = await supabase
+      .from("families")
+      .insert({
+        school_id: student.school_id,
+        family_name: name.last ? `${name.last} Family` : `${student.last_name} Family`,
+        billing_email: patch.guardianEmail === undefined ? null : text(patch.guardianEmail),
+        billing_phone: patch.guardianPhone === undefined ? null : text(patch.guardianPhone),
+      })
+      .select("id")
+      .single();
+    if (error) return error.message;
+    familyId = created.id as string;
+
+    const { error: linkError } = await supabase
+      .from("students")
+      .update({ family_id: familyId })
+      .eq("id", studentId);
+    if (linkError) return linkError.message;
+  } else {
+    const familyPatch: Record<string, unknown> = {};
+    if (patch.guardianEmail !== undefined) familyPatch.billing_email = text(patch.guardianEmail);
+    if (patch.guardianPhone !== undefined) familyPatch.billing_phone = text(patch.guardianPhone);
+    if (Object.keys(familyPatch).length) {
+      const { error } = await supabase.from("families").update(familyPatch).eq("id", familyId);
+      if (error) return error.message;
+    }
+  }
+
+  // One guardian per household is enough to be reachable. Prefer the row
+  // already marked primary; otherwise take the first, otherwise create one.
+  const { data: guardians, error: guardianReadError } = await supabase
+    .from("guardians")
+    .select("id, is_primary")
+    .eq("family_id", familyId);
+  if (guardianReadError) return guardianReadError.message;
+
+  const existing =
+    (guardians ?? []).find((g) => (g as Record<string, unknown>).is_primary === true) ??
+    (guardians ?? [])[0];
+
+  const guardianPatch: Record<string, unknown> = {};
+  if (patch.guardianName !== undefined) {
+    guardianPatch.first_name = name.first ?? "Guardian";
+    guardianPatch.last_name = name.last ?? student.last_name;
+  }
+  if (patch.guardianEmail !== undefined) guardianPatch.email = text(patch.guardianEmail);
+  if (patch.guardianPhone !== undefined) guardianPatch.phone = text(patch.guardianPhone);
+
+  if (existing) {
+    if (!Object.keys(guardianPatch).length) return null;
+    const { error } = await supabase
+      .from("guardians")
+      .update(guardianPatch)
+      .eq("id", (existing as Record<string, unknown>).id as string);
+    return error ? error.message : null;
+  }
+
+  // Nothing to build a guardian out of yet -- the family row carries the
+  // contact and a nameless guardian would only be noise.
+  if (!guardianPatch.first_name && !guardianPatch.email && !guardianPatch.phone) return null;
+
+  const { error } = await supabase.from("guardians").insert({
+    family_id: familyId,
+    first_name: (guardianPatch.first_name as string) ?? "Guardian",
+    last_name: (guardianPatch.last_name as string) ?? student.last_name,
+    email: (guardianPatch.email as string) ?? null,
+    phone: (guardianPatch.phone as string) ?? null,
+    relationship_to_student: "parent",
+    is_primary: true,
+    receives_billing: true,
+    receives_communications: true,
+  });
+  return error ? error.message : null;
+}
+
+/**
+ * Apply one patch to one or many people.
+ *
+ * Absent keys are left alone, which is what lets the bulk dialog send only the
+ * fields the user deliberately set. Every row is attempted: one failure is
+ * reported by name and does not abandon the rest, because stopping halfway
+ * through a bulk edit leaves the user guessing which half landed.
+ */
+export async function updatePeople(input: {
+  targets: Target[];
+  patch: PersonPatch;
+}): Promise<PeopleResult> {
+  const gate = await requireEdit();
+  if (!gate.ok) return { ok: false, error: gate.error, code: "forbidden" };
+  if (!input.targets.length) return { ok: false, error: "Nobody selected", code: "not_found" };
+
+  const supabase = await createAuthClient();
+  const patch = input.patch;
+  const blocked: { id: string; name: string; reason: string }[] = [];
+  let changed = 0;
+
+  for (const target of input.targets) {
+    const row: Record<string, unknown> = {};
+    if (patch.firstName !== undefined) row.first_name = patch.firstName.trim();
+    if (patch.lastName !== undefined) row.last_name = patch.lastName.trim();
+    if (patch.schoolId !== undefined) row.school_id = patch.schoolId;
+    if (patch.dateOfBirth !== undefined) row.date_of_birth = text(patch.dateOfBirth);
+
+    if (target.kind === "student") {
+      if (patch.grade !== undefined) row.grade_level = text(patch.grade);
+      if (patch.status !== undefined) row.enrollment_status = patch.status;
+    } else {
+      if (patch.grade !== undefined) row.current_grade = text(patch.grade);
+      if (patch.status !== undefined) row.lead_stage = patch.status;
+      if (patch.guardianEmail !== undefined) row.guardian_email = text(patch.guardianEmail);
+      if (patch.guardianPhone !== undefined) row.guardian_phone = text(patch.guardianPhone);
+      if (patch.guardianName !== undefined) {
+        const name = splitName(text(patch.guardianName));
+        row.guardian_first_name = name.first;
+        row.guardian_last_name = name.last;
+      }
+    }
+
+    const table = target.kind === "student" ? "students" : "admissions_leads";
+    let failure: string | null = null;
+
+    if (Object.keys(row).length) {
+      // .select() so a row silently filtered out by RLS reads as a failure
+      // rather than a success that wrote nothing.
+      const { data, error } = await supabase
+        .from(table)
+        .update(row)
+        .eq("id", target.id)
+        .select("id");
+      if (error) failure = error.message;
+      else if (!data || data.length === 0) failure = "No matching record, or not visible to you";
+    }
+
+    if (!failure && target.kind === "student") {
+      failure = await writeStudentContact(supabase, target.id, patch);
+    }
+
+    if (failure) blocked.push({ id: target.id, name: target.id, reason: failure });
+    else changed += 1;
+  }
+
+  revalidate();
+
+  if (blocked.length) {
+    return {
+      ok: false,
+      error:
+        changed > 0
+          ? `${changed} updated, ${blocked.length} could not be`
+          : "Nothing could be updated",
+      code: "failed",
+      blocked,
+    };
+  }
+
+  return { ok: true, changed, message: `${changed} record${changed === 1 ? "" : "s"} updated` };
+}
+
+/* -------------------------------------------------------------- lifecycle -- */
+
+async function archiveLead(
+  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  leadId: string,
+  actorId: string | null,
+  reason: string | null
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("admissions_leads")
+    .update({
+      archived_at: new Date().toISOString(),
+      archived_by: actorId,
+      archived_reason: reason,
+    })
+    .eq("id", leadId)
+    .is("archived_at", null)
+    .select("id");
+  if (error) return error.message;
+  if (!data || data.length === 0) return "Already archived, or not visible to you";
+  return null;
+}
+
+/** Archive, or put back. Nothing here erases anything. */
+export async function setPeopleArchived(input: {
+  targets: Target[];
+  archived: boolean;
+  reason?: string | null;
+}): Promise<PeopleResult> {
+  const gate = await requireLifecycle();
+  if (!gate.ok) return { ok: false, error: gate.error, code: "forbidden" };
+  if (!input.targets.length) return { ok: false, error: "Nobody selected", code: "not_found" };
+
+  const supabase = await createAuthClient();
+  const actorId = gate.identity.effectiveUserId ?? null;
+  const blocked: { id: string; name: string; reason: string }[] = [];
+  let changed = 0;
+
+  for (const target of input.targets) {
+    let failure: string | null = null;
+
+    if (target.kind === "student") {
+      const result = input.archived
+        ? await archiveStudent(supabase, { studentId: target.id, reason: input.reason ?? null })
+        : await restoreStudent(supabase, { studentId: target.id });
+      if (!result.ok) failure = result.error;
+    } else if (input.archived) {
+      failure = await archiveLead(supabase, target.id, actorId, input.reason ?? null);
+    } else {
+      const { data, error } = await supabase
+        .from("admissions_leads")
+        .update({ archived_at: null, archived_by: null, archived_reason: null })
+        .eq("id", target.id)
+        .select("id");
+      if (error) failure = error.message;
+      else if (!data || data.length === 0) failure = "Not visible to you";
+    }
+
+    if (failure) blocked.push({ id: target.id, name: target.id, reason: failure });
+    else changed += 1;
+  }
+
+  revalidate();
+
+  if (blocked.length) {
+    return {
+      ok: false,
+      error: `${changed} done, ${blocked.length} could not be`,
+      code: "failed",
+      blocked,
+    };
+  }
+
+  const verb = input.archived ? "archived" : "restored";
+  return { ok: true, changed, message: `${changed} record${changed === 1 ? "" : "s"} ${verb}` };
+}
+
+/**
+ * What a lead is holding on to. A lead with an application, a note history or a
+ * student converted from it is a paper trail, not a stray row.
+ */
+async function leadDependencies(
+  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  leadId: string
+): Promise<string[]> {
+  const checks: { table: string; column: string; label: string }[] = [
+    { table: "students", column: "admissions_lead_id", label: "an enrolled student record" },
+    { table: "admissions_applications", column: "lead_id", label: "an application" },
+    { table: "admissions_notes", column: "lead_id", label: "notes" },
+    { table: "admissions_tasks", column: "lead_id", label: "tasks" },
+  ];
+  const found: string[] = [];
+  for (const check of checks) {
+    const { count, error } = await supabase
+      .from(check.table)
+      .select("id", { count: "exact", head: true })
+      .eq(check.column, leadId);
+    // A table that is not there, or that this role cannot read, is not evidence
+    // that nothing depends on the lead -- so it does not clear the way.
+    if (error) continue;
+    if ((count ?? 0) > 0) found.push(`${count} ${check.label}`);
+  }
+  return found;
+}
+
+/**
+ * Permanent deletion. Requires the typed token and the acknowledgement, refuses
+ * anyone with dependencies, and reports who was refused and why.
+ */
+export async function deletePeople(input: {
+  targets: Target[];
+  confirmationText: string;
+  acknowledged: boolean;
+}): Promise<PeopleResult> {
+  const gate = await requireLifecycle();
+  if (!gate.ok) return { ok: false, error: gate.error, code: "forbidden" };
+  if (!input.acknowledged || input.confirmationText !== "DELETE") {
+    return {
+      ok: false,
+      error: 'Tick the box and type DELETE to continue.',
+      code: "confirmation_required",
+    };
+  }
+  if (!input.targets.length) return { ok: false, error: "Nobody selected", code: "not_found" };
+
+  const supabase = await createAuthClient();
+  const blocked: { id: string; name: string; reason: string }[] = [];
+  let changed = 0;
+
+  for (const target of input.targets) {
+    if (target.kind === "student") {
+      const result = await deleteStudent(supabase, {
+        studentId: target.id,
+        confirmationText: "DELETE",
+        acknowledged: true,
+      });
+      if (result.ok) changed += 1;
+      else
+        blocked.push({
+          id: target.id,
+          name: target.id,
+          reason:
+            result.code === "has_dependencies"
+              ? "Has records attached — archive instead"
+              : result.error,
+        });
+      continue;
+    }
+
+    const dependencies = await leadDependencies(supabase, target.id);
+    if (dependencies.length) {
+      blocked.push({
+        id: target.id,
+        name: target.id,
+        reason: `Has ${dependencies.join(", ")} — archive instead`,
+      });
+      continue;
+    }
+
+    const { data, error } = await supabase
+      .from("admissions_leads")
+      .delete()
+      .eq("id", target.id)
+      .select("id");
+    if (error) blocked.push({ id: target.id, name: target.id, reason: error.message });
+    else if (!data || data.length !== 1)
+      blocked.push({ id: target.id, name: target.id, reason: "Nothing was deleted" });
+    else changed += 1;
+  }
+
+  revalidate();
+
+  if (blocked.length) {
+    return {
+      ok: false,
+      error:
+        changed > 0
+          ? `${changed} deleted. ${blocked.length} refused — see below.`
+          : `Nothing was deleted. ${blocked.length} refused — see below.`,
+      code: "has_dependencies",
+      blocked,
+    };
+  }
+
+  return { ok: true, changed, message: `${changed} record${changed === 1 ? "" : "s"} deleted` };
+}

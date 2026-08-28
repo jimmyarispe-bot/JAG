@@ -36,6 +36,8 @@ export interface DirectoryPerson {
   readonly firstName: string;
   readonly lastName: string;
   readonly school: string;
+  /** Needed to move someone between schools; the name alone is not an id. */
+  readonly schoolId: string | null;
   readonly grade: string | null;
   readonly program: string | null;
   /** Raw status from the source table: enrollment_status or lead_stage. */
@@ -62,6 +64,8 @@ export interface DirectoryPerson {
   readonly contactSource: ContactSource;
   readonly dateOfBirth: string | null;
   readonly createdAt: string | null;
+  /** Archived records stay in the list behind a filter rather than vanishing. */
+  readonly archived: boolean;
   /** Where to go when the row is clicked. */
   readonly href: string;
 }
@@ -108,3 +112,52 @@ export const PERSON_GROUP_LABELS: Record<PersonGroup, string> = {
   not_enrolled: "Did not enrol",
   other: "Other",
 };
+
+export interface SchoolOption {
+  readonly id: string;
+  readonly name: string;
+}
+
+/**
+ * The fields a person can be edited through. Every key is optional: an absent
+ * key means "leave alone", which is what makes one shape serve both the single
+ * edit dialog and a bulk edit where most fields are deliberately untouched.
+ *
+ * `null` is a real value here and means "clear this". Only `undefined` skips.
+ */
+export interface PersonPatch {
+  firstName?: string;
+  lastName?: string;
+  schoolId?: string;
+  grade?: string | null;
+  /** enrollment_status for a student, lead_stage for a prospect. */
+  status?: string;
+  dateOfBirth?: string | null;
+  guardianName?: string | null;
+  guardianEmail?: string | null;
+  guardianPhone?: string | null;
+}
+
+/** Fields that mean something applied to many people at once. */
+export const BULK_EDITABLE_FIELDS = [
+  "schoolId",
+  "grade",
+  "status",
+  "guardianName",
+  "guardianEmail",
+  "guardianPhone",
+] as const satisfies readonly (keyof PersonPatch)[];
+
+/**
+ * enrollment_status values. Kept here rather than read from the CHECK
+ * constraint because the dialog needs them in the browser; migration 225 taught
+ * us to keep a test between a list like this and the database.
+ */
+export const STUDENT_STATUSES = [
+  "enrolled",
+  "pending",
+  "waitlisted",
+  "withdrawn",
+  "graduated",
+  "archived",
+] as const;

@@ -3,14 +3,20 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   CONTACT_SOURCE_LABELS,
   PERSON_GROUPS,
   PERSON_GROUP_LABELS,
   type DirectoryPerson,
   type PersonGroup,
+  type PersonPatch,
+  type SchoolOption,
 } from "@/lib/people/directory-shared";
 import { setPersonGroup } from "@/lib/people/actions";
+import { deletePeople, setPeopleArchived, updatePeople } from "@/lib/people/mutations";
+import { PersonEditDialog } from "@/components/people/PersonEditDialog";
+import { PersonRemoveDialog } from "@/components/people/PersonRemoveDialog";
 
 /**
  * Every child in one table — enrolled, in the pipeline, alumni, or never
@@ -49,19 +55,22 @@ const GROUP_TONE: Record<PersonGroup, string> = {
  * any window size instead of stopping short with a band of white beside it.
  */
 type ColumnKey =
-  | "name" | "type" | "school" | "grade"
-  | "status" | "category" | "guardian" | "email" | "phone";
+  | "select" | "name" | "type" | "school" | "grade"
+  | "status" | "category" | "guardian" | "email" | "phone" | "actions";
 
-const COLUMNS: { key: ColumnKey; label: string; width: number }[] = [
-  { key: "name", label: "Name", width: 200 },
-  { key: "type", label: "Type", width: 90 },
-  { key: "school", label: "School", width: 165 },
-  { key: "grade", label: "Grade", width: 85 },
-  { key: "status", label: "Status", width: 145 },
-  { key: "category", label: "Category", width: 160 },
-  { key: "guardian", label: "Parent / guardian", width: 175 },
-  { key: "email", label: "Email", width: 235 },
+/** `fixed` columns carry no resize handle — a 44px checkbox gains nothing. */
+const COLUMNS: { key: ColumnKey; label: string; width: number; fixed?: boolean }[] = [
+  { key: "select", label: "", width: 44, fixed: true },
+  { key: "name", label: "Name", width: 190 },
+  { key: "type", label: "Type", width: 85 },
+  { key: "school", label: "School", width: 150 },
+  { key: "grade", label: "Grade", width: 80 },
+  { key: "status", label: "Status", width: 135 },
+  { key: "category", label: "Category", width: 150 },
+  { key: "guardian", label: "Parent / guardian", width: 160 },
+  { key: "email", label: "Email", width: 215 },
   { key: "phone", label: "Phone", width: 150 },
+  { key: "actions", label: "", width: 150 },
 ];
 
 const MIN_WIDTH = 64;
@@ -71,8 +80,10 @@ const MIN_WIDTH = 64;
  * than letting the table overflow — verified, it really does reach 1px.
  * Carrying it in the table's min-width makes the wrapper scroll instead.
  */
-const LAST_COLUMN_MIN = 130;
-const WIDTHS_KEY = "people-directory-column-widths";
+const LAST_COLUMN_MIN = 150;
+// Bumped when the column set changed; stale saved widths for a different
+// set of columns produce a layout nobody chose.
+const WIDTHS_KEY = "people-directory-column-widths-v2";
 
 type Widths = Partial<Record<ColumnKey, number>>;
 
@@ -80,12 +91,42 @@ function defaultWidths(): Widths {
   return Object.fromEntries(COLUMNS.map((c) => [c.key, c.width])) as Widths;
 }
 
+/**
+ * Eleven columns do not fit a laptop, so the table scrolls sideways — and a
+ * row's Edit and Delete buttons are useless if you have to scroll to reach
+ * them. The checkbox and the actions are pinned to the edges; everything
+ * between them moves. Pinned cells need their own background or the scrolling
+ * columns show through.
+ */
+function stickyClass(key: ColumnKey, header: boolean): string {
+  const surface = header ? "bg-slate-50" : "bg-white";
+  const layer = header ? "z-30" : "z-10";
+  if (key === "select") {
+    return `sticky left-0 ${layer} ${surface} shadow-[1px_0_0_0_rgb(226_232_240)]`;
+  }
+  if (key === "actions") {
+    return `sticky right-0 ${layer} ${surface} shadow-[-1px_0_0_0_rgb(226_232_240)]`;
+  }
+  return "";
+}
+
 function csvCell(value: string | null): string {
   const v = value ?? "";
   return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
 
-export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPerson[] }) {
+export function PeopleDirectoryTable({
+  people: initial,
+  schools,
+  canManageLifecycle,
+}: {
+  people: DirectoryPerson[];
+  schools: SchoolOption[];
+  /** Archive and delete are a stricter role than edit; the server enforces it
+      too, but a button that always fails is worse than one that is disabled. */
+  canManageLifecycle: boolean;
+}) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [school, setSchool] = useState("all");
   const [group, setGroup] = useState<"all" | PersonGroup>("all");
@@ -94,6 +135,17 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
   const [people, setPeople] = useState(initial);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // ---- selection -----------------------------------------------------------
+  // Keyed "kind:id": a student and a prospect can share an id, and selecting
+  // one must never drag the other along.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [editing, setEditing] = useState<DirectoryPerson[] | null>(null);
+  const [removing, setRemoving] = useState<DirectoryPerson[] | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const rowKey = (p: DirectoryPerson) => `${p.kind}:${p.id}`;
 
   // ---- column widths -------------------------------------------------------
   // Starts at the defaults on both server and client so the first paint matches
@@ -186,6 +238,87 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
     setCustomised(false);
   }
 
+  const selectedPeople = useMemo(
+    () => people.filter((p) => selected.has(`${p.kind}:${p.id}`)),
+    [people, selected]
+  );
+
+  function toggleRow(person: DirectoryPerson) {
+    setSelected((current) => {
+      const next = new Set(current);
+      const key = `${person.kind}:${person.id}`;
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  /** Select-all applies to what is on screen, never to the hidden remainder. */
+  function toggleAllVisible(rowsOnScreen: DirectoryPerson[], on: boolean) {
+    setSelected((current) => {
+      const next = new Set(current);
+      for (const p of rowsOnScreen) {
+        const key = `${p.kind}:${p.id}`;
+        if (on) next.add(key);
+        else next.delete(key);
+      }
+      return next;
+    });
+  }
+
+  const targets = (list: DirectoryPerson[]) => list.map((p) => ({ kind: p.kind, id: p.id }));
+
+  /**
+   * Every mutation ends with router.refresh() rather than a local patch. These
+   * writes fan out — a parent email lands on families and guardians, an archive
+   * changes a status — and reconstructing all of that in the browser is how a
+   * table starts disagreeing with the database.
+   */
+  function finish(result: { ok: boolean; message?: string; error?: string }) {
+    if (result.ok) {
+      setSelected(new Set());
+      setNotice(result.message ?? null);
+      setError(null);
+      router.refresh();
+    }
+    return result;
+  }
+
+  async function saveEdit(patch: PersonPatch) {
+    const list = editing ?? [];
+    const result = await updatePeople({ targets: targets(list), patch });
+    finish(result);
+    return result.ok ? { ok: true } : { ok: false, error: result.error };
+  }
+
+  async function archiveSelection(list: DirectoryPerson[], reason: string | null) {
+    const result = await setPeopleArchived({ targets: targets(list), archived: true, reason });
+    finish(result);
+    return result.ok
+      ? { ok: true }
+      : { ok: false, error: result.error, blocked: result.blocked };
+  }
+
+  async function deleteSelection(
+    list: DirectoryPerson[],
+    confirmationText: string,
+    acknowledged: boolean
+  ) {
+    const result = await deletePeople({ targets: targets(list), confirmationText, acknowledged });
+    finish(result);
+    return result.ok
+      ? { ok: true }
+      : { ok: false, error: result.error, blocked: result.blocked };
+  }
+
+  function restore(list: DirectoryPerson[]) {
+    startTransition(async () => {
+      const result = await setPeopleArchived({ targets: targets(list), archived: false });
+      if (!result.ok) setError(result.error);
+      else finish(result);
+    });
+  }
+
   // ---- classification ------------------------------------------------------
 
   function reclassify(person: DirectoryPerson, next: PersonGroup | "derived") {
@@ -224,16 +357,23 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
     [widths]
   );
 
-  const schools = useMemo(
+  // Names only — this drives the filter dropdown. The `schools` prop carries
+  // ids, which is what moving somebody between schools needs.
+  const schoolNames = useMemo(
     () => [...new Set(people.map((p) => p.school))].sort(),
     [people]
   );
 
+  const archivedCount = useMemo(() => people.filter((p) => p.archived).length, [people]);
+
   const counts = useMemo(() => {
     const map = new Map<PersonGroup, number>();
-    for (const p of people) map.set(p.group, (map.get(p.group) ?? 0) + 1);
+    for (const p of people) {
+      if (p.archived !== showArchived) continue;
+      map.set(p.group, (map.get(p.group) ?? 0) + 1);
+    }
     return map;
-  }, [people]);
+  }, [people, showArchived]);
 
   // Counted, not just marked. "Some contacts came from the enquiry" is a note;
   // a number is something you can work through.
@@ -245,6 +385,9 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return people.filter((p) => {
+      // Archived records stay out of the way but stay reachable, so a mistaken
+      // archive is one click from being undone rather than a support request.
+      if (p.archived !== showArchived) return false;
       if (school !== "all" && p.school !== school) return false;
       if (group !== "all" && p.group !== group) return false;
       if (!q) return true;
@@ -259,10 +402,53 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(q));
     });
-  }, [people, query, school, group]);
+  }, [people, query, school, group, showArchived]);
 
   function cell(key: ColumnKey, p: DirectoryPerson): ReactNode {
     switch (key) {
+      case "select":
+        return (
+          <input
+            type="checkbox"
+            checked={selected.has(rowKey(p))}
+            onChange={() => toggleRow(p)}
+            aria-label={`Select ${p.lastName}, ${p.firstName}`}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+        );
+      case "actions":
+        return (
+          <span className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setEditing([p])}
+              className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+            >
+              Edit
+            </button>
+            {p.archived ? (
+              <button
+                type="button"
+                onClick={() => restore([p])}
+                disabled={!canManageLifecycle}
+                title={canManageLifecycle ? undefined : "Requires CEO, Founder or School Leader"}
+                className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                Restore
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setRemoving([p])}
+                disabled={!canManageLifecycle}
+                title={canManageLifecycle ? undefined : "Requires CEO, Founder or School Leader"}
+                className="rounded-lg border border-rose-200 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50 disabled:opacity-40"
+              >
+                Delete
+              </button>
+            )}
+          </span>
+        );
       case "name":
         return (
           <Link href={p.href} className="font-medium text-slate-900 hover:text-brand-600">
@@ -393,8 +579,8 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
           className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
         >
           <option value="all">All schools</option>
-          {schools.map((s) => (
-            <option key={s} value={s}>{s}</option>
+          {schoolNames.map((name) => (
+            <option key={name} value={name}>{name}</option>
           ))}
         </select>
         <button
@@ -416,7 +602,7 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
             group === "all" ? "bg-slate-800 text-white ring-slate-800" : "bg-white text-slate-600 ring-slate-300"
           }`}
         >
-          Everyone {people.length}
+          Everyone {people.filter((p) => p.archived === showArchived).length}
         </button>
         {GROUP_ORDER.filter((g) => counts.get(g)).map((g) => (
           <button
@@ -448,20 +634,82 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
         </p>
       )}
 
+      {/* The toolbar is always present once something is selected, and the
+          lifecycle buttons disable rather than disappear — a control that
+          vanishes teaches nobody why they cannot use it. */}
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-800 px-3 py-2 text-sm text-white">
+          <span className="font-medium">{selected.size} selected</span>
+          <button
+            type="button"
+            onClick={() => setEditing(selectedPeople)}
+            className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium hover:bg-white/20"
+          >
+            Edit {selected.size}
+          </button>
+          {showArchived ? (
+            <button
+              type="button"
+              onClick={() => restore(selectedPeople)}
+              disabled={!canManageLifecycle}
+              title={canManageLifecycle ? undefined : "Requires CEO, Founder or School Leader"}
+              className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium hover:bg-white/20 disabled:opacity-40"
+            >
+              Restore {selected.size}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setRemoving(selectedPeople)}
+              disabled={!canManageLifecycle}
+              title={canManageLifecycle ? undefined : "Requires CEO, Founder or School Leader"}
+              className="rounded-lg bg-rose-500/90 px-3 py-1.5 text-xs font-medium hover:bg-rose-500 disabled:opacity-40"
+            >
+              Archive or delete {selected.size}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="ml-auto text-xs text-slate-300 underline underline-offset-2 hover:text-white"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
+      {notice && (
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p>
+      )}
+
       <div className="flex items-center justify-between gap-4 text-sm text-slate-500">
         <p>
           Showing {rows.length} of {people.length}
           {pending ? " · saving…" : ""}
         </p>
-        {customised && (
-          <button
-            type="button"
-            onClick={resetAllColumns}
-            className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-800"
-          >
-            Reset column widths
-          </button>
-        )}
+        <span className="flex items-center gap-4">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => {
+                setShowArchived(e.target.checked);
+                setSelected(new Set());
+              }}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+            Show archived ({archivedCount})
+          </label>
+          {customised && (
+            <button
+              type="button"
+              onClick={resetAllColumns}
+              className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-800"
+            >
+              Reset column widths
+            </button>
+          )}
+        </span>
       </div>
 
       {/* The header sticks: several hundred rows scroll past, and a column of
@@ -481,9 +729,22 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
           <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500 shadow-[0_1px_0_0_rgb(226_232_240)]">
             <tr>
               {COLUMNS.map((column, index) => (
-                <th key={column.key} className="relative px-4 py-3">
-                  <span className="block truncate">{column.label}</span>
-                  {index < COLUMNS.length - 1 && (
+                <th
+                  key={column.key}
+                  className={`relative py-3 ${column.key === "select" ? "px-3" : "px-4"} ${stickyClass(column.key, true)}`}
+                >
+                  {column.key === "select" ? (
+                    <input
+                      type="checkbox"
+                      aria-label="Select every row shown"
+                      checked={rows.length > 0 && rows.every((p) => selected.has(rowKey(p)))}
+                      onChange={(e) => toggleAllVisible(rows, e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                  ) : (
+                    <span className="block truncate">{column.label}</span>
+                  )}
+                  {index < COLUMNS.length - 1 && !column.fixed && (
                     /* Sits astride the column edge and is taller than the
                        header so it stays grabbable; the visible rule only
                        appears on hover, so the header stays quiet at rest. */
@@ -514,9 +775,9 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
                     key={column.key}
                     /* truncate, not wrap: a narrowed column should clip its
                        text, not turn every row into three lines. */
-                    className={`truncate px-4 py-3 ${
+                    className={`truncate py-3 ${column.key === "select" ? "px-3" : "px-4"} ${
                       column.key === "name" ? "" : "text-slate-600"
-                    }`}
+                    } ${stickyClass(column.key, false)}`}
                     title={cellTitle(column.key, p)}
                   >
                     {cell(column.key, p)}
@@ -534,6 +795,24 @@ export function PeopleDirectoryTable({ people: initial }: { people: DirectoryPer
           </tbody>
         </table>
       </div>
+
+      {editing && (
+        <PersonEditDialog
+          people={editing}
+          schools={schools}
+          onClose={() => setEditing(null)}
+          onSave={saveEdit}
+        />
+      )}
+
+      {removing && (
+        <PersonRemoveDialog
+          people={removing}
+          onClose={() => setRemoving(null)}
+          onArchive={(reason) => archiveSelection(removing, reason)}
+          onDelete={(token, acknowledged) => deleteSelection(removing, token, acknowledged)}
+        />
+      )}
     </div>
   );
 }

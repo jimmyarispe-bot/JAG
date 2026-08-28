@@ -7,6 +7,7 @@ import {
   groupForLead,
   groupForStudent,
   type ContactSource,
+  type SchoolOption,
   type DirectoryPerson,
   type PersonGroup,
   type PersonKind,
@@ -172,10 +173,24 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
     supabase
       .from("admissions_leads")
       .select(
-        "id, school_id, first_name, last_name, current_grade, applying_for_grade, program, lead_stage, date_of_birth, created_at, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, schools(name)"
+        "id, school_id, first_name, last_name, current_grade, applying_for_grade, program, lead_stage, date_of_birth, created_at, archived_at, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, schools(name)"
       ),
     supabase.from("person_directory_overrides").select("person_kind, person_id, group_key"),
   ]);
+
+  // Fail loudly. PostgREST answers a query naming a column that does not exist
+  // with an error and no rows, so a missing migration would quietly empty half
+  // this page rather than break it — and a directory that silently drops every
+  // prospect looks exactly like a directory with no prospects.
+  for (const [label, result] of [
+    ["students", studentsRes],
+    ["admissions_leads", leadsRes],
+    ["person_directory_overrides", overridesRes],
+  ] as const) {
+    if (result.error) {
+      throw new Error(`People directory: reading ${label} failed — ${result.error.message}`);
+    }
+  }
 
   // Keyed "kind:id" so a student and a prospect cannot collide on a shared id.
   const overrides = new Map<string, PersonGroup>();
@@ -216,6 +231,7 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       firstName: String(row.first_name ?? ""),
       lastName: String(row.last_name ?? ""),
       school: row.schools?.name ?? "—",
+      schoolId: row.school_id ? String(row.school_id) : null,
       grade: row.grade_level ?? null,
       program: row.program ?? null,
       status,
@@ -224,6 +240,7 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       ...contactForStudent(family, lead),
       dateOfBirth: row.date_of_birth ?? null,
       createdAt: row.created_at ?? null,
+      archived: status === "archived",
       href: `/dashboard/students/${row.id}`,
     });
   }
@@ -244,6 +261,7 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       firstName: String(row.first_name ?? ""),
       lastName: String(row.last_name ?? ""),
       school: row.schools?.name ?? "—",
+      schoolId: row.school_id ? String(row.school_id) : null,
       grade: row.current_grade ?? row.applying_for_grade ?? null,
       program: row.program ?? null,
       status: stage,
@@ -255,6 +273,7 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       contactSource: guardianEmail || guardianPhone || guardianName ? "lead" : "none",
       dateOfBirth: row.date_of_birth ?? null,
       createdAt: row.created_at ?? null,
+      archived: Boolean(row.archived_at),
       href: `/dashboard/admissions/leads/${row.id}`,
     });
   }
@@ -265,4 +284,17 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
   );
 
   return people;
+}
+
+/**
+ * Schools the editor can move somebody to. Names alone will not do -- moving a
+ * record needs the id.
+ */
+export async function getSchoolOptions(): Promise<SchoolOption[]> {
+  const supabase = await createAuthClient();
+  const { data } = await supabase.from("schools").select("id, name").order("name");
+  return (data ?? []).map((row) => ({
+    id: String((row as Record<string, unknown>).id),
+    name: String((row as Record<string, unknown>).name ?? "—"),
+  }));
 }
