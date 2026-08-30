@@ -161,6 +161,18 @@ function identityKey(
   return `${school}|${last}|${first}|${dob}`;
 }
 
+
+/** Prefer a date that means something about the family over one that does not. */
+function firstDate(
+  candidates: [DirectoryPerson["inquiryDateSource"], unknown][]
+): Pick<DirectoryPerson, "inquiryDate" | "inquiryDateSource"> {
+  for (const [source, value] of candidates) {
+    const text = clean(value);
+    if (text) return { inquiryDate: text.slice(0, 10), inquiryDateSource: source };
+  }
+  return { inquiryDate: null, inquiryDateSource: "none" };
+}
+
 export async function getDirectory(): Promise<DirectoryPerson[]> {
   const supabase = await createAuthClient();
 
@@ -168,12 +180,12 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
     supabase
       .from("students")
       .select(
-        "id, school_id, first_name, last_name, grade_level, program, enrollment_status, date_of_birth, created_at, admissions_lead_id, schools(name), sis_enrollments(program, is_primary), families(family_name, billing_email, billing_phone, guardians(first_name, last_name, email, phone, is_primary))"
+        "id, school_id, first_name, last_name, grade_level, program, enrollment_status, date_of_birth, created_at, enrollment_start_date, admissions_lead_id, schools(name), sis_enrollments(program, is_primary), families(family_name, billing_email, billing_phone, guardians(first_name, last_name, email, phone, is_primary))"
       ),
     supabase
       .from("admissions_leads")
       .select(
-        "id, school_id, first_name, last_name, current_grade, applying_for_grade, program, lead_stage, date_of_birth, created_at, archived_at, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, schools(name)"
+        "id, school_id, first_name, last_name, current_grade, applying_for_grade, program, lead_stage, date_of_birth, created_at, inquiry_date, archived_at, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, schools(name)"
       ),
     supabase.from("person_directory_overrides").select("person_kind, person_id, group_key"),
   ]);
@@ -278,6 +290,10 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       ...applyOverride(overrides, "student", String(row.id), groupForStudent(status)),
       ...contactForStudent(family, lead),
       dateOfBirth: row.date_of_birth ?? null,
+      ...firstDate([
+        ["enrolled", row.enrollment_start_date],
+        ["created", row.created_at],
+      ]),
       createdAt: row.created_at ?? null,
       archived: status === "archived",
       href: `/dashboard/students/${row.id}`,
@@ -312,6 +328,10 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       guardianPhone,
       contactSource: guardianEmail || guardianPhone || guardianName ? "lead" : "none",
       dateOfBirth: row.date_of_birth ?? null,
+      ...firstDate([
+        ["inquiry", row.inquiry_date],
+        ["created", row.created_at],
+      ]),
       createdAt: row.created_at ?? null,
       archived: Boolean(row.archived_at),
       href: `/dashboard/admissions/leads/${row.id}`,

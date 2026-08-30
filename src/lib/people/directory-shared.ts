@@ -70,6 +70,15 @@ export interface DirectoryPerson {
    */
   readonly contactSource: ContactSource;
   readonly dateOfBirth: string | null;
+  /**
+   * When this family first appeared: the enquiry date for a prospect, the
+   * enrolment start for a student. Falls back to when the row was created,
+   * which for the imported roster is the day of the import rather than
+   * anything about the family — `inquiryDateSource` says which, so a date that
+   * means "we imported you" is never read as "you enquired".
+   */
+  readonly inquiryDate: string | null;
+  readonly inquiryDateSource: "inquiry" | "enrolled" | "created" | "none";
   readonly createdAt: string | null;
   /** Archived records stay in the list behind a filter rather than vanishing. */
   readonly archived: boolean;
@@ -168,3 +177,10 @@ export const STUDENT_STATUSES = [
   "graduated",
   "archived",
 ] as const;
+
+export const DATE_SOURCE_LABELS: Record<DirectoryPerson["inquiryDateSource"], string> = {
+  inquiry: "Date of enquiry",
+  enrolled: "Enrolment start date",
+  created: "When the record was created — not necessarily when they enquired",
+  none: "No date on file",
+};

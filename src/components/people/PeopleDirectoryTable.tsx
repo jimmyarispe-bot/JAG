@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   CONTACT_SOURCE_LABELS,
+  DATE_SOURCE_LABELS,
   PERSON_GROUPS,
   PERSON_GROUP_LABELS,
   type DirectoryPerson,
@@ -56,19 +57,20 @@ const GROUP_TONE: Record<PersonGroup, string> = {
  */
 type ColumnKey =
   | "select" | "name" | "type" | "school" | "grade"
-  | "status" | "category" | "guardian" | "email" | "phone" | "actions";
+  | "status" | "inquired" | "category" | "guardian" | "email" | "phone" | "actions";
 
 /** `fixed` columns carry no resize handle — a 44px checkbox gains nothing. */
 const COLUMNS: { key: ColumnKey; label: string; width: number; fixed?: boolean }[] = [
   { key: "select", label: "", width: 44, fixed: true },
-  { key: "name", label: "Name", width: 190 },
+  { key: "name", label: "Name", width: 180 },
   { key: "type", label: "Type", width: 85 },
-  { key: "school", label: "Program", width: 185 },
+  { key: "school", label: "Program", width: 170 },
   { key: "grade", label: "Grade", width: 80 },
   { key: "status", label: "Status", width: 135 },
+  { key: "inquired", label: "Inquired", width: 110 },
   { key: "category", label: "Category", width: 150 },
-  { key: "guardian", label: "Parent / guardian", width: 160 },
-  { key: "email", label: "Email", width: 215 },
+  { key: "guardian", label: "Parent / guardian", width: 150 },
+  { key: "email", label: "Email", width: 205 },
   { key: "phone", label: "Phone", width: 150 },
   { key: "actions", label: "", width: 150 },
 ];
@@ -144,6 +146,9 @@ export function PeopleDirectoryTable({
   const [editing, setEditing] = useState<DirectoryPerson[] | null>(null);
   const [removing, setRemoving] = useState<DirectoryPerson[] | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  // Newest first by default. A list of enquiries whose top row is whoever comes
+  // first alphabetically answers a question nobody asked.
+  const [sort, setSort] = useState<"name" | "newest" | "oldest">("newest");
 
   const rowKey = (p: DirectoryPerson) => `${p.kind}:${p.id}`;
 
@@ -384,7 +389,7 @@ export function PeopleDirectoryTable({
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return people.filter((p) => {
+    const filtered = people.filter((p) => {
       // Archived records stay out of the way but stay reachable, so a mistaken
       // archive is one click from being undone rather than a support request.
       if (p.archived !== showArchived) return false;
@@ -402,7 +407,19 @@ export function PeopleDirectoryTable({
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(q));
     });
-  }, [people, query, school, group, showArchived]);
+
+    if (sort === "name") return filtered;
+    // Rows with no date sink to the bottom either way; "oldest first" should
+    // not be led by everyone we know nothing about.
+    return [...filtered].sort((a, b) => {
+      if (!a.inquiryDate && !b.inquiryDate) return 0;
+      if (!a.inquiryDate) return 1;
+      if (!b.inquiryDate) return -1;
+      return sort === "newest"
+        ? b.inquiryDate.localeCompare(a.inquiryDate)
+        : a.inquiryDate.localeCompare(b.inquiryDate);
+    });
+  }, [people, query, school, group, showArchived, sort]);
 
   function cell(key: ColumnKey, p: DirectoryPerson): ReactNode {
     switch (key) {
@@ -494,6 +511,14 @@ export function PeopleDirectoryTable({
             ))}
           </select>
         );
+      case "inquired":
+        return p.inquiryDate ? (
+          <span className={p.inquiryDateSource === "created" ? "text-slate-400" : undefined}>
+            {p.inquiryDate}
+          </span>
+        ) : (
+          "—"
+        );
       case "guardian":
         return p.guardianName ?? "—";
       case "email":
@@ -535,6 +560,7 @@ export function PeopleDirectoryTable({
       case "name": return `${p.lastName}, ${p.firstName}`;
       case "school":
         return p.programs ? `${p.programs} · billed by ${p.school}` : p.school;
+      case "inquired": return DATE_SOURCE_LABELS[p.inquiryDateSource];
       case "guardian": return p.guardianName ?? CONTACT_SOURCE_LABELS[p.contactSource];
       case "email":
       case "phone":
@@ -546,13 +572,14 @@ export function PeopleDirectoryTable({
   function exportCsv() {
     const header = [
       "Last name", "First name", "Type", "School", "Grade", "Program",
-      "Status", "Category", "Set by hand", "Guardian", "Email", "Phone",
+      "Status", "Inquired", "Date source", "Category", "Set by hand", "Guardian", "Email", "Phone",
       "Contact source", "Date of birth",
     ];
     const body = rows.map((p) =>
       [
         p.lastName, p.firstName, p.kind === "student" ? "Student" : "Prospect",
         p.school, p.grade, p.program, p.statusLabel,
+        p.inquiryDate, p.inquiryDateSource,
         PERSON_GROUP_LABELS[p.group], p.overridden ? "yes" : "", p.guardianName, p.guardianEmail,
         p.guardianPhone, p.contactSource, p.dateOfBirth,
       ].map((c) => csvCell(c == null ? null : String(c))).join(",")
@@ -745,6 +772,22 @@ export function PeopleDirectoryTable({
                       onChange={(e) => toggleAllVisible(rows, e.target.checked)}
                       className="h-4 w-4 rounded border-slate-300"
                     />
+                  ) : column.key === "inquired" ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSort((current) =>
+                          current === "newest" ? "oldest" : current === "oldest" ? "name" : "newest"
+                        )
+                      }
+                      title="Click to sort: newest, oldest, then back to by name"
+                      className="flex items-center gap-1 uppercase hover:text-slate-800"
+                    >
+                      {column.label}
+                      <span className="text-[10px]">
+                        {sort === "newest" ? "▼" : sort === "oldest" ? "▲" : "↕"}
+                      </span>
+                    </button>
                   ) : (
                     <span className="block truncate">{column.label}</span>
                   )}
