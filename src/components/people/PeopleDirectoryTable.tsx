@@ -9,6 +9,7 @@ import {
   DATE_SOURCE_LABELS,
   PERSON_GROUPS,
   PERSON_GROUP_LABELS,
+  formatAddress,
   type DirectoryPerson,
   type PersonGroup,
   type PersonPatch,
@@ -57,7 +58,8 @@ const GROUP_TONE: Record<PersonGroup, string> = {
  */
 type ColumnKey =
   | "select" | "name" | "type" | "school" | "grade"
-  | "status" | "inquired" | "category" | "guardian" | "email" | "phone" | "actions";
+  | "status" | "inquired" | "category" | "guardian" | "email" | "phone"
+  | "address" | "actions";
 
 /** `fixed` columns carry no resize handle — a 44px checkbox gains nothing. */
 const COLUMNS: { key: ColumnKey; label: string; width: number; fixed?: boolean }[] = [
@@ -74,6 +76,7 @@ const COLUMNS: { key: ColumnKey; label: string; width: number; fixed?: boolean }
   { key: "guardian", label: "Parent / guardian", width: 150 },
   { key: "email", label: "Email", width: 205 },
   { key: "phone", label: "Phone", width: 150 },
+  { key: "address", label: "Address", width: 240 },
   { key: "actions", label: "", width: 150 },
 ];
 
@@ -160,6 +163,7 @@ const FILTER_KIND: Record<ColumnKey, "none" | "text" | "select" | "date"> = {
   guardian: "text",
   email: "text",
   phone: "text",
+  address: "text",
   actions: "none",
 };
 
@@ -184,6 +188,7 @@ function fieldText(key: FilterKey, p: DirectoryPerson): string {
     case "guardian": return p.guardianName ?? "";
     case "email": return p.guardianEmail ?? "";
     case "phone": return p.guardianPhone ?? "";
+    case "address": return formatAddress(p);
   }
 }
 
@@ -383,7 +388,10 @@ export function PeopleDirectoryTable({
     });
   }
 
-  const targets = (list: DirectoryPerson[]) => list.map((p) => ({ kind: p.kind, id: p.id }));
+  // The label rides along so a partial failure can name the person rather than
+  // printing a UUID at somebody who has no way to look it up.
+  const targets = (list: DirectoryPerson[]) =>
+    list.map((p) => ({ kind: p.kind, id: p.id, label: `${p.lastName}, ${p.firstName}` }));
 
   /**
    * Every mutation ends with router.refresh() rather than a local patch. These
@@ -727,6 +735,13 @@ export function PeopleDirectoryTable({
         ) : (
           "—"
         );
+      case "address": {
+        const full = formatAddress(p);
+        if (full) return full;
+        // A prospect has no household, so a dash there means "not applicable",
+        // not "we forgot to ask". Saying so stops it reading as a gap to chase.
+        return p.kind === "student" ? "—" : <span className="text-slate-400">No household yet</span>;
+      }
     }
   }
 
@@ -749,6 +764,10 @@ export function PeopleDirectoryTable({
       case "email":
       case "phone":
         return CONTACT_SOURCE_LABELS[p.contactSource];
+      case "address":
+        return p.kind === "student"
+          ? formatAddress(p) || "No address on the household record"
+          : "Prospects have no household record — an address needs one";
       default: return undefined;
     }
   }
@@ -831,6 +850,9 @@ export function PeopleDirectoryTable({
     const header = [
       "Last name", "First name", "Type", "School", "Grade", "Program",
       "Status", "Inquired", "Date source", "Category", "Set by hand", "Guardian", "Email", "Phone",
+      // The parts, not the joined line: a spreadsheet wants columns it can
+      // group by, and a mail merge wants the street block on its own.
+      "Address", "City", "State / Province / Region", "Postal code", "Country",
       "Contact source", "Date of birth",
     ];
     const body = rows.map((p) =>
@@ -839,7 +861,9 @@ export function PeopleDirectoryTable({
         p.school, p.grade, p.program, p.statusLabel,
         p.inquiryDate, p.inquiryDateSource,
         PERSON_GROUP_LABELS[p.group], p.overridden ? "yes" : "", p.guardianName, p.guardianEmail,
-        p.guardianPhone, p.contactSource, p.dateOfBirth,
+        p.guardianPhone,
+        p.address, p.city, p.region, p.postalCode, p.country,
+        p.contactSource, p.dateOfBirth,
       ].map((c) => csvCell(c == null ? null : String(c))).join(",")
     );
     const blob = new Blob([[header.join(","), ...body].join("\n")], {
@@ -1062,12 +1086,15 @@ export function PeopleDirectoryTable({
                       className="flex w-full items-center gap-1 uppercase hover:text-slate-800"
                     >
                       <span className="truncate">{column.label}</span>
-                      {/* The inactive marker is faint rather than absent: a
-                          header that only becomes clickable once you have
-                          already clicked it teaches nobody it was clickable. */}
+                      {/* The inactive marker sits at the same weight as the
+                          header label: a header that only becomes clickable
+                          once you have clicked it teaches nobody it was
+                          clickable, and slate-300 on slate-50 was invisible. */}
                       <span
-                        className={`shrink-0 text-[10px] ${
-                          sortKey === column.key ? "text-slate-700" : "text-slate-300"
+                        className={`shrink-0 text-[11px] ${
+                          sortKey === column.key
+                            ? "font-bold text-slate-900"
+                            : "text-slate-500"
                         }`}
                       >
                         {sortKey === column.key ? (sortDir === "asc" ? "▲" : "▼") : "↕"}

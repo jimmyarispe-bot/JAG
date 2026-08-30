@@ -36,7 +36,12 @@ export const FIELD_PROMPTS: Record<MissingField, string> = {
   grade_level: "Grade for the 2026–27 year",
   email: "Best email address for school and billing",
   phone: "Best phone number",
-  address: "Home address",
+  // Deliberately one free-text block rather than street / city / state / ZIP.
+  // The network enrols beyond the United States, and a form that asks a family
+  // in Lagos or Manchester for their "ZIP code" is making them translate on our
+  // behalf — which is how an address arrives wrong or not at all. Naming the
+  // parts we want inside one field gets a complete address in any country.
+  address: "Home address — street, city, region, postal code and country",
 };
 
 export const FIELD_INPUT_TYPE: Record<MissingField, "date" | "email" | "tel" | "text"> = {

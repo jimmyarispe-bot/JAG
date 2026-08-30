@@ -180,7 +180,7 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
     supabase
       .from("students")
       .select(
-        "id, school_id, first_name, last_name, grade_level, program, enrollment_status, date_of_birth, created_at, enrollment_start_date, admissions_lead_id, schools(name), sis_enrollments(program, is_primary), families(family_name, billing_email, billing_phone, guardians(first_name, last_name, email, phone, is_primary))"
+        "id, school_id, first_name, last_name, grade_level, program, enrollment_status, date_of_birth, created_at, enrollment_start_date, admissions_lead_id, schools(name), sis_enrollments(program, is_primary), families(family_name, billing_email, billing_phone, primary_address, city, state, zip_code, country, guardians(first_name, last_name, email, phone, is_primary))"
       ),
     supabase
       .from("admissions_leads")
@@ -289,6 +289,11 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       statusLabel: titleCase(status),
       ...applyOverride(overrides, "student", String(row.id), groupForStudent(status)),
       ...contactForStudent(family, lead),
+      address: clean(family?.primary_address),
+      city: clean(family?.city),
+      region: clean(family?.state),
+      postalCode: clean(family?.zip_code),
+      country: clean(family?.country),
       dateOfBirth: row.date_of_birth ?? null,
       ...firstDate([
         ["enrolled", row.enrollment_start_date],
@@ -327,6 +332,14 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       guardianEmail,
       guardianPhone,
       contactSource: guardianEmail || guardianPhone || guardianName ? "lead" : "none",
+      // An enquiry has no household record; admissions_leads carries no address
+      // columns at all. Null here rather than a guess, and the editor refuses
+      // the field on a prospect rather than accepting a value it cannot store.
+      address: null,
+      city: null,
+      region: null,
+      postalCode: null,
+      country: null,
       dateOfBirth: row.date_of_birth ?? null,
       ...firstDate([
         ["inquiry", row.inquiry_date],

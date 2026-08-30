@@ -10,7 +10,7 @@ import {
   deleteStudent,
   restoreStudent,
 } from "@/lib/students/lifecycle";
-import type { PersonKind, PersonPatch } from "@/lib/people/directory-shared";
+import { ADDRESS_FIELDS, type PersonKind, type PersonPatch } from "@/lib/people/directory-shared";
 
 /**
  * Edit, archive and delete from the People directory.
@@ -39,7 +39,14 @@ export type PeopleResult =
       blocked?: { id: string; name: string; reason: string }[];
     };
 
-type Target = { kind: PersonKind; id: string };
+/**
+ * `label` is the person's name, carried from the table so a partial failure
+ * can say who. Optional because it is display only — the id is what is written
+ * against — and it falls back to the id when absent.
+ */
+type Target = { kind: PersonKind; id: string; label?: string };
+
+const named = (t: Target) => t.label?.trim() || t.id;
 
 function text(value: unknown): string | null {
   const v = typeof value === "string" ? value.trim() : "";
@@ -97,10 +104,34 @@ async function writeStudentContact(
   studentId: string,
   patch: PersonPatch
 ): Promise<string | null> {
+  /**
+   * The address lives on the family too, so it takes the same path: it needs
+   * the same "create the household if the chain does not reach that far"
+   * handling, and splitting it into a second function would mean two writes
+   * racing for the same family row.
+   *
+   * `state` and `zip_code` keep their column names; the labels are
+   * "State / Province / Region" and "Postal code" because the roster is not
+   * only American.
+   */
+  const addressColumns: Record<string, string> = {
+    address: "primary_address",
+    city: "city",
+    region: "state",
+    postalCode: "zip_code",
+    country: "country",
+  };
+
+  const addressPatch: Record<string, unknown> = {};
+  for (const field of ADDRESS_FIELDS) {
+    if (patch[field] !== undefined) addressPatch[addressColumns[field]] = text(patch[field]);
+  }
+
   const touchesContact =
     patch.guardianName !== undefined ||
     patch.guardianEmail !== undefined ||
-    patch.guardianPhone !== undefined;
+    patch.guardianPhone !== undefined ||
+    Object.keys(addressPatch).length > 0;
   if (!touchesContact) return null;
 
   const { data: student, error: readError } = await supabase
@@ -122,6 +153,7 @@ async function writeStudentContact(
         family_name: name.last ? `${name.last} Family` : `${student.last_name} Family`,
         billing_email: patch.guardianEmail === undefined ? null : text(patch.guardianEmail),
         billing_phone: patch.guardianPhone === undefined ? null : text(patch.guardianPhone),
+        ...addressPatch,
       })
       .select("id")
       .single();
@@ -134,12 +166,21 @@ async function writeStudentContact(
       .eq("id", studentId);
     if (linkError) return linkError.message;
   } else {
-    const familyPatch: Record<string, unknown> = {};
+    const familyPatch: Record<string, unknown> = { ...addressPatch };
     if (patch.guardianEmail !== undefined) familyPatch.billing_email = text(patch.guardianEmail);
     if (patch.guardianPhone !== undefined) familyPatch.billing_phone = text(patch.guardianPhone);
     if (Object.keys(familyPatch).length) {
-      const { error } = await supabase.from("families").update(familyPatch).eq("id", familyId);
+      // .select() so an RLS refusal reads as a failure rather than a success
+      // that wrote nothing — the same trap this file already guards elsewhere.
+      const { data, error } = await supabase
+        .from("families")
+        .update(familyPatch)
+        .eq("id", familyId)
+        .select("id");
       if (error) return error.message;
+      if (!data || data.length === 0) {
+        return "The household record could not be updated, or is not visible to you";
+      }
     }
   }
 
@@ -211,7 +252,22 @@ export async function updatePeople(input: {
   const blocked: { id: string; name: string; reason: string }[] = [];
   let changed = 0;
 
+  const touchesAddress = ADDRESS_FIELDS.some((field) => patch[field] !== undefined);
+
   for (const target of input.targets) {
+    // A lead has no household record, and admissions_leads has no address
+    // columns. Refusing loudly beats writing the rest of the patch and leaving
+    // the user to notice on their own that the address never landed.
+    if (touchesAddress && target.kind !== "student") {
+      blocked.push({
+        id: target.id,
+        name: named(target),
+        reason:
+          "An address belongs to a household, and a prospect has none yet. Convert them to a student first.",
+      });
+      continue;
+    }
+
     const row: Record<string, unknown> = {};
     if (patch.firstName !== undefined) row.first_name = patch.firstName.trim();
     if (patch.lastName !== undefined) row.last_name = patch.lastName.trim();
@@ -252,7 +308,7 @@ export async function updatePeople(input: {
       failure = await writeStudentContact(supabase, target.id, patch);
     }
 
-    if (failure) blocked.push({ id: target.id, name: target.id, reason: failure });
+    if (failure) blocked.push({ id: target.id, name: named(target), reason: failure });
     else changed += 1;
   }
 
@@ -331,7 +387,7 @@ export async function setPeopleArchived(input: {
       else if (!data || data.length === 0) failure = "Not visible to you";
     }
 
-    if (failure) blocked.push({ id: target.id, name: target.id, reason: failure });
+    if (failure) blocked.push({ id: target.id, name: named(target), reason: failure });
     else changed += 1;
   }
 
@@ -446,7 +502,7 @@ export async function deletePeople(input: {
           .slice(0, 3);
         blocked.push({
           id: target.id,
-          name: target.id,
+          name: named(target),
           reason: names.length
             ? `Has ${names.join(", ")} — archive instead`
             : "Has records attached — archive instead",
@@ -454,11 +510,11 @@ export async function deletePeople(input: {
       } else if (result.code === "delete_failed") {
         blocked.push({
           id: target.id,
-          name: target.id,
+          name: named(target),
           reason: await explainZeroRowDelete(supabase, "students", target.id),
         });
       } else {
-        blocked.push({ id: target.id, name: target.id, reason: result.error });
+        blocked.push({ id: target.id, name: named(target), reason: result.error });
       }
       continue;
     }
@@ -467,7 +523,7 @@ export async function deletePeople(input: {
     if (dependencies.length) {
       blocked.push({
         id: target.id,
-        name: target.id,
+        name: named(target),
         reason: `Has ${dependencies.join(", ")} — archive instead`,
       });
       continue;
@@ -479,11 +535,11 @@ export async function deletePeople(input: {
       .eq("id", target.id)
       .select("id");
     if (error) {
-      blocked.push({ id: target.id, name: target.id, reason: error.message });
+      blocked.push({ id: target.id, name: named(target), reason: error.message });
     } else if (!data || data.length !== 1) {
       blocked.push({
         id: target.id,
-        name: target.id,
+        name: named(target),
         reason: await explainZeroRowDelete(supabase, "admissions_leads", target.id),
       });
     } else {

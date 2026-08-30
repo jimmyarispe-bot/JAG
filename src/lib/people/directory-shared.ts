@@ -69,6 +69,25 @@ export interface DirectoryPerson {
    *   none     — nothing on file
    */
   readonly contactSource: ContactSource;
+  /**
+   * The household address, in the parts worth grouping by.
+   *
+   * `address` is a free-text block, not a street line: it is typed as the
+   * family writes it, because no structured street form survives contact with
+   * every country the network enrols from. Only `city`, `region`, `postalCode`
+   * and `country` are separated, and only because those are the parts anything
+   * ever filters or reports on.
+   *
+   * Students only. A prospect has no household record yet, so all five are null
+   * on a lead and the editor says so rather than dropping the value.
+   */
+  readonly address: string | null;
+  readonly city: string | null;
+  /** families.state — "State / Province / Region" everywhere it is shown. */
+  readonly region: string | null;
+  /** families.zip_code. */
+  readonly postalCode: string | null;
+  readonly country: string | null;
   readonly dateOfBirth: string | null;
   /**
    * When this family first appeared: the enquiry date for a prospect, the
@@ -152,9 +171,29 @@ export interface PersonPatch {
   guardianName?: string | null;
   guardianEmail?: string | null;
   guardianPhone?: string | null;
+  /** Household address. Students only — see DirectoryPerson.address. */
+  address?: string | null;
+  city?: string | null;
+  region?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
 }
 
-/** Fields that mean something applied to many people at once. */
+export const ADDRESS_FIELDS = [
+  "address",
+  "city",
+  "region",
+  "postalCode",
+  "country",
+] as const satisfies readonly (keyof PersonPatch)[];
+
+/**
+ * Fields that mean something applied to many people at once.
+ *
+ * The address is here because siblings share one, and correcting a household
+ * from whichever child you happened to click is the whole point of a bulk edit.
+ * Every field is still opt-in per edit, so nothing travels unless it is ticked.
+ */
 export const BULK_EDITABLE_FIELDS = [
   "schoolId",
   "grade",
@@ -162,7 +201,30 @@ export const BULK_EDITABLE_FIELDS = [
   "guardianName",
   "guardianEmail",
   "guardianPhone",
+  ...ADDRESS_FIELDS,
 ] as const satisfies readonly (keyof PersonPatch)[];
+
+/**
+ * The address as one line, for a table cell or a CSV column. Empty parts are
+ * dropped rather than leaving ", , " where a family has only a country.
+ */
+export function formatAddress(p: {
+  address: string | null;
+  city: string | null;
+  region: string | null;
+  postalCode: string | null;
+  country: string | null;
+}): string {
+  return [
+    p.address?.replace(/\s*\n\s*/g, ", "),
+    p.city,
+    [p.region, p.postalCode].filter(Boolean).join(" "),
+    p.country,
+  ]
+    .map((part) => (typeof part === "string" ? part.trim() : ""))
+    .filter(Boolean)
+    .join(", ");
+}
 
 /**
  * enrollment_status values. Kept here rather than read from the CHECK

@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { ADMISSIONS_PIPELINE_STAGES } from "@/lib/admissions/registry/stages";
 import {
+  ADDRESS_FIELDS,
   STUDENT_STATUSES,
   type DirectoryPerson,
   type PersonPatch,
   type SchoolOption,
 } from "@/lib/people/directory-shared";
+import { COUNTRIES } from "@/lib/people/countries";
 
 /**
  * One dialog for editing one person or a hundred.
@@ -36,12 +38,20 @@ type FieldKey = keyof PersonPatch;
 const SINGLE_FIELDS: FieldKey[] = [
   "firstName", "lastName", "schoolId", "grade", "status", "dateOfBirth",
   "guardianName", "guardianEmail", "guardianPhone",
+  ...ADDRESS_FIELDS,
 ];
 
 const BULK_FIELDS: FieldKey[] = [
   "schoolId", "grade", "status", "guardianName", "guardianEmail", "guardianPhone",
+  ...ADDRESS_FIELDS,
 ];
 
+/**
+ * Labels, not column names. `region` is `families.state` and `postalCode` is
+ * `families.zip_code`, but the network enrols beyond the United States and a
+ * form that asks a family in Lagos for their "ZIP code" is asking them to
+ * translate on our behalf.
+ */
 const LABELS: Record<FieldKey, string> = {
   firstName: "First name",
   lastName: "Last name",
@@ -52,7 +62,18 @@ const LABELS: Record<FieldKey, string> = {
   guardianName: "Parent / guardian",
   guardianEmail: "Parent email",
   guardianPhone: "Parent phone",
+  address: "Home address",
+  city: "City",
+  region: "State / Province / Region",
+  postalCode: "Postal code",
+  country: "Country",
 };
+
+const HELP: Partial<Record<FieldKey, string>> = {
+  address: "Street, apartment, building — as the family writes it. Line breaks are kept.",
+};
+
+const ADDRESS_SET = new Set<FieldKey>(ADDRESS_FIELDS);
 
 export function PersonEditDialog({
   people,
@@ -71,9 +92,18 @@ export function PersonEditDialog({
 
   const kinds = useMemo(() => new Set(people.map((p) => p.kind)), [people]);
   const mixedKinds = kinds.size > 1;
+  // An address belongs to a household. A prospect has no household record and
+  // admissions_leads has no address columns, so the field is locked rather
+  // than accepting a value that has nowhere to go.
+  const hasProspect = kinds.has("prospect");
+
+  function isDisabled(field: FieldKey): boolean {
+    if (field === "status") return mixedKinds;
+    return ADDRESS_SET.has(field) && hasProspect;
+  }
 
   const [enabled, setEnabled] = useState<Set<FieldKey>>(
-    () => new Set(bulk ? [] : SINGLE_FIELDS)
+    () => new Set(bulk ? [] : SINGLE_FIELDS.filter((f) => !isDisabled(f)))
   );
   const [values, setValues] = useState<Record<string, string>>(() => ({
     firstName: one?.firstName ?? "",
@@ -85,6 +115,11 @@ export function PersonEditDialog({
     guardianName: one?.guardianName ?? "",
     guardianEmail: one?.guardianEmail ?? "",
     guardianPhone: one?.guardianPhone ?? "",
+    address: one?.address ?? "",
+    city: one?.city ?? "",
+    region: one?.region ?? "",
+    postalCode: one?.postalCode ?? "",
+    country: one?.country ?? "",
   }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +150,9 @@ export function PersonEditDialog({
     const patch: PersonPatch = {};
     for (const field of fields) {
       if (!enabled.has(field)) continue;
+      // A locked field must not travel even if it was ticked before the
+      // selection changed under it.
+      if (isDisabled(field)) continue;
       const raw = values[field] ?? "";
       if (field === "firstName" || field === "lastName") {
         if (!raw.trim()) continue; // a name is not a thing you clear
@@ -162,14 +200,20 @@ export function PersonEditDialog({
           {bulk
             ? "Only the fields you tick are changed. Everything else is left exactly as it is."
             : one.kind === "student"
-              ? "Student record. Parent contact is written to the family and guardian records."
+              ? "Student record. Parent contact and the address are written to the family and guardian records — so they apply to every sibling in the household."
               : "Admissions lead. Parent contact is written to the enquiry."}
         </p>
 
         <div className="mt-5 space-y-3">
           {fields.map((field) => {
             const on = enabled.has(field);
-            const disabled = field === "status" && mixedKinds;
+            const disabled = isDisabled(field);
+            const why =
+              field === "status" && mixedKinds
+                ? " — students and prospects use different vocabularies"
+                : disabled
+                  ? " — a household has this, and a prospect has no household yet"
+                  : "";
             return (
               <div key={field} className="flex items-start gap-3">
                 {bulk && (
@@ -185,8 +229,13 @@ export function PersonEditDialog({
                 <label className="flex-1">
                   <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
                     {LABELS[field]}
-                    {disabled && " — students and prospects use different vocabularies"}
+                    {why}
                   </span>
+                  {HELP[field] && !disabled && (
+                    <span className="mb-1 block text-xs font-normal normal-case text-slate-400">
+                      {HELP[field]}
+                    </span>
+                  )}
 
                   {field === "schoolId" ? (
                     <select
@@ -212,6 +261,30 @@ export function PersonEditDialog({
                         <option key={s.value} value={s.value}>{s.label}</option>
                       ))}
                     </select>
+                  ) : field === "country" ? (
+                    <select
+                      value={values.country}
+                      disabled={disabled}
+                      onChange={(e) => set(field, e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50"
+                    >
+                      <option value="">{bulk ? "Leave unchanged" : "— none —"}</option>
+                      {COUNTRIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  ) : field === "address" ? (
+                    /* A textarea, not an input: an address is two or three
+                       lines in most of the world and one line in almost none
+                       of it. */
+                    <textarea
+                      rows={3}
+                      value={values.address}
+                      disabled={disabled}
+                      onChange={(e) => set(field, e.target.value)}
+                      placeholder={bulk ? "Leave unchanged" : ""}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50"
+                    />
                   ) : field === "grade" ? (
                     <select
                       value={values.grade}
@@ -232,9 +305,10 @@ export function PersonEditDialog({
                         : "text"
                       }
                       value={values[field] ?? ""}
+                      disabled={disabled}
                       onChange={(e) => set(field, e.target.value)}
                       placeholder={bulk ? "Leave unchanged" : ""}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50"
                     />
                   )}
                 </label>
