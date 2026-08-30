@@ -116,9 +116,14 @@ export function PersonRemoveDialog({
             <span>
               <span className="block text-sm font-medium text-rose-800">Delete permanently</span>
               <span className="block text-sm text-slate-500">
-                Erased. This cannot be undone and nobody can recover it for you. Refused
-                automatically for anyone with records attached — use it for test rows and
-                duplicates.
+                Erased. This cannot be undone and nobody can recover it for you.
+              </span>
+              {/* Say exactly what goes, per kind. "Records attached" told nobody
+                  anything, and the two kinds genuinely differ. */}
+              <span className="mt-1 block text-xs text-slate-500">
+                A <strong>prospect</strong> takes its notes, tasks and application with it, and
+                is refused only if a student was enrolled from it. A <strong>student</strong> is
+                refused if any attendance, grades, invoices or enrolments exist.
               </span>
             </span>
           </label>

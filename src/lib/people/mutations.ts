@@ -351,31 +351,57 @@ export async function setPeopleArchived(input: {
 }
 
 /**
- * What a lead is holding on to. A lead with an application, a note history or a
- * student converted from it is a paper trail, not a stray row.
+ * What actually stops a lead being deleted.
+ *
+ * Only one thing does: a student converted from it. That student's record
+ * points back here, and a child's admissions history is not a stray row.
+ *
+ * Notes, tasks and the application deliberately do NOT block. All three are
+ * declared `on delete cascade` against the lead (migration 050), so the
+ * database is built to remove them with it -- they are parts of the lead, not
+ * separate records that outlive it. An earlier version of this function
+ * blocked on them, which refused 57 deletions out of 57: a single
+ * automatically-generated follow-up task was enough to stop one. Being
+ * stricter than the schema is not caution, it is a broken button.
  */
 async function leadDependencies(
   supabase: Awaited<ReturnType<typeof createAuthClient>>,
   leadId: string
 ): Promise<string[]> {
-  const checks: { table: string; column: string; label: string }[] = [
-    { table: "students", column: "admissions_lead_id", label: "an enrolled student record" },
-    { table: "admissions_applications", column: "lead_id", label: "an application" },
-    { table: "admissions_notes", column: "lead_id", label: "notes" },
-    { table: "admissions_tasks", column: "lead_id", label: "tasks" },
-  ];
-  const found: string[] = [];
-  for (const check of checks) {
-    const { count, error } = await supabase
-      .from(check.table)
-      .select("id", { count: "exact", head: true })
-      .eq(check.column, leadId);
-    // A table that is not there, or that this role cannot read, is not evidence
-    // that nothing depends on the lead -- so it does not clear the way.
-    if (error) continue;
-    if ((count ?? 0) > 0) found.push(`${count} ${check.label}`);
+  const { count, error } = await supabase
+    .from("students")
+    .select("id", { count: "exact", head: true })
+    .eq("admissions_lead_id", leadId);
+
+  // A read this role cannot perform is not evidence that nothing depends on
+  // the lead, so it does not clear the way.
+  if (error) return ["could not check for a linked student record"];
+  if ((count ?? 0) > 0) {
+    return [count === 1 ? "an enrolled student record" : `${count} enrolled student records`];
   }
-  return found;
+  return [];
+}
+
+/**
+ * Why did a delete affect no rows?
+ *
+ * PostgREST reports an RLS-refused delete as success with zero rows, which is
+ * indistinguishable from "already gone" unless you look. Reading the row back
+ * separates the two, and the difference matters: one is nothing to do, the
+ * other is a permission that needs granting.
+ */
+async function explainZeroRowDelete(
+  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  table: "students" | "admissions_leads",
+  id: string
+): Promise<string> {
+  const { data } = await supabase.from(table).select("id").eq("id", id).maybeSingle();
+  if (data) {
+    return table === "admissions_leads"
+      ? "The database refused the delete. You can see this lead but your role cannot delete it — that needs admissions.manage or admissions.accept."
+      : "The database refused the delete. You can see this student but your role cannot delete it.";
+  }
+  return "Already gone, or not visible to you.";
 }
 
 /**
@@ -409,16 +435,31 @@ export async function deletePeople(input: {
         confirmationText: "DELETE",
         acknowledged: true,
       });
-      if (result.ok) changed += 1;
-      else
+      if (result.ok) {
+        changed += 1;
+      } else if (result.code === "has_dependencies") {
+        // Name what is holding it, not just that something is. "Has 3
+        // invoices, attendance" is actionable; "has records attached" is not.
+        const names = (result.dependencies?.blocking ?? [])
+          .map((hit) => (hit.count > 1 ? `${hit.count} ${hit.label}` : hit.label))
+          .filter(Boolean)
+          .slice(0, 3);
         blocked.push({
           id: target.id,
           name: target.id,
-          reason:
-            result.code === "has_dependencies"
-              ? "Has records attached — archive instead"
-              : result.error,
+          reason: names.length
+            ? `Has ${names.join(", ")} — archive instead`
+            : "Has records attached — archive instead",
         });
+      } else if (result.code === "delete_failed") {
+        blocked.push({
+          id: target.id,
+          name: target.id,
+          reason: await explainZeroRowDelete(supabase, "students", target.id),
+        });
+      } else {
+        blocked.push({ id: target.id, name: target.id, reason: result.error });
+      }
       continue;
     }
 
@@ -437,10 +478,17 @@ export async function deletePeople(input: {
       .delete()
       .eq("id", target.id)
       .select("id");
-    if (error) blocked.push({ id: target.id, name: target.id, reason: error.message });
-    else if (!data || data.length !== 1)
-      blocked.push({ id: target.id, name: target.id, reason: "Nothing was deleted" });
-    else changed += 1;
+    if (error) {
+      blocked.push({ id: target.id, name: target.id, reason: error.message });
+    } else if (!data || data.length !== 1) {
+      blocked.push({
+        id: target.id,
+        name: target.id,
+        reason: await explainZeroRowDelete(supabase, "admissions_leads", target.id),
+      });
+    } else {
+      changed += 1;
+    }
   }
 
   revalidate();
