@@ -168,7 +168,7 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
     supabase
       .from("students")
       .select(
-        "id, school_id, first_name, last_name, grade_level, program, enrollment_status, date_of_birth, created_at, admissions_lead_id, schools(name), families(family_name, billing_email, billing_phone, guardians(first_name, last_name, email, phone, is_primary))"
+        "id, school_id, first_name, last_name, grade_level, program, enrollment_status, date_of_birth, created_at, admissions_lead_id, schools(name), sis_enrollments(program, is_primary), families(family_name, billing_email, billing_phone, guardians(first_name, last_name, email, phone, is_primary))"
       ),
     supabase
       .from("admissions_leads")
@@ -197,6 +197,44 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
   for (const row of overridesRes.data ?? []) {
     const r = row as Record<string, any>;
     overrides.set(`${r.person_kind}:${r.person_id}`, r.group_key as PersonGroup);
+  }
+
+  // Program labels, so the table never shows a raw code like `academy_hs`.
+  const { data: catalogRows } = await supabase
+    .from("program_catalog")
+    .select("program, label, sort_order");
+  const catalog = new Map<string, { label: string; sort: number }>();
+  for (const row of catalogRows ?? []) {
+    const r = row as Record<string, any>;
+    catalog.set(String(r.program), {
+      label: String(r.label ?? r.program),
+      sort: Number(r.sort_order ?? 0),
+    });
+  }
+
+  /**
+   * A dual-enrolled child is one person in two programs, not two people. The
+   * primary enrolment leads, because that is the one headcount and billing
+   * follow.
+   */
+  function programLabel(enrollments: unknown): string | null {
+    if (!Array.isArray(enrollments) || !enrollments.length) return null;
+    const seen = new Map<string, { label: string; sort: number; primary: boolean }>();
+    for (const row of enrollments as Record<string, any>[]) {
+      const code = clean(row.program);
+      if (!code || seen.has(code)) continue;
+      const entry = catalog.get(code);
+      seen.set(code, {
+        label: entry?.label ?? titleCase(code),
+        sort: entry?.sort ?? 999,
+        primary: row.is_primary === true,
+      });
+    }
+    if (!seen.size) return null;
+    return [...seen.values()]
+      .sort((a, b) => Number(b.primary) - Number(a.primary) || a.sort - b.sort)
+      .map((e) => e.label)
+      .join(" + ");
   }
 
   const leadRows = (leadsRes.data ?? []) as Record<string, any>[];
@@ -232,6 +270,7 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       lastName: String(row.last_name ?? ""),
       school: row.schools?.name ?? "—",
       schoolId: row.school_id ? String(row.school_id) : null,
+      programs: programLabel(row.sis_enrollments),
       grade: row.grade_level ?? null,
       program: row.program ?? null,
       status,
@@ -262,6 +301,7 @@ export async function getDirectory(): Promise<DirectoryPerson[]> {
       lastName: String(row.last_name ?? ""),
       school: row.schools?.name ?? "—",
       schoolId: row.school_id ? String(row.school_id) : null,
+      programs: null,
       grade: row.current_grade ?? row.applying_for_grade ?? null,
       program: row.program ?? null,
       status: stage,

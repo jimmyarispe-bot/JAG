@@ -63,7 +63,7 @@ const COLUMNS: { key: ColumnKey; label: string; width: number; fixed?: boolean }
   { key: "select", label: "", width: 44, fixed: true },
   { key: "name", label: "Name", width: 190 },
   { key: "type", label: "Type", width: 85 },
-  { key: "school", label: "School", width: 150 },
+  { key: "school", label: "Program", width: 185 },
   { key: "grade", label: "Grade", width: 80 },
   { key: "status", label: "Status", width: 135 },
   { key: "category", label: "Category", width: 150 },
@@ -458,7 +458,10 @@ export function PeopleDirectoryTable({
       case "type":
         return p.kind === "student" ? "Student" : "Prospect";
       case "school":
-        return p.school;
+        // Where the child sits, when we know it; the billing entity otherwise.
+        // A dual-enrolled child reads "The Academy HS + The Academy Virtual"
+        // on one row rather than appearing twice.
+        return p.programs ?? p.school;
       case "grade":
         return p.grade ?? "—";
       case "status":
@@ -530,7 +533,8 @@ export function PeopleDirectoryTable({
   function cellTitle(key: ColumnKey, p: DirectoryPerson): string | undefined {
     switch (key) {
       case "name": return `${p.lastName}, ${p.firstName}`;
-      case "school": return p.school;
+      case "school":
+        return p.programs ? `${p.programs} · billed by ${p.school}` : p.school;
       case "guardian": return p.guardianName ?? CONTACT_SOURCE_LABELS[p.contactSource];
       case "email":
       case "phone":

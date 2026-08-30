@@ -35,9 +35,16 @@ export interface DirectoryPerson {
   readonly kind: PersonKind;
   readonly firstName: string;
   readonly lastName: string;
+  /** The billing entity — where the money lands. Not necessarily where the
+      child sits. */
   readonly school: string;
   /** Needed to move someone between schools; the name alone is not an id. */
   readonly schoolId: string | null;
+  /**
+   * Where the child actually attends, joined when there is more than one.
+   * Null when no enrolment row exists, in which case the school stands in.
+   */
+  readonly programs: string | null;
   readonly grade: string | null;
   readonly program: string | null;
   /** Raw status from the source table: enrollment_status or lead_stage. */
