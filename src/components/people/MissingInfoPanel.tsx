@@ -22,6 +22,7 @@ export function MissingInfoPanel({ gaps }: { gaps: FamilyGap[] }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [detail, setDetail] = useState<{ family: string; reason: string }[]>([]);
+  const [sendingOne, setSendingOne] = useState<string | null>(null);
 
   if (!gaps.length) return null;
 
@@ -33,11 +34,13 @@ export function MissingInfoPanel({ gaps }: { gaps: FamilyGap[] }) {
   );
 
   async function send(familyIds?: string[]) {
+    if (familyIds?.length === 1) setSendingOne(familyIds[0]);
     setBusy(true);
     setResult(null);
     setDetail([]);
     const response = await sendMissingInfoRequests({ familyIds });
     setBusy(false);
+    setSendingOne(null);
     if (!response.ok) {
       setResult(response.error);
       return;
@@ -70,19 +73,34 @@ export function MissingInfoPanel({ gaps }: { gaps: FamilyGap[] }) {
 
       {open && (
         <div className="space-y-4 border-t border-amber-200 px-4 py-4">
+          {/* Send-one first, send-all second, and the count spelled out on the
+              button. A control whose only setting is "everybody" cannot be
+              tested on yourself, which is the first thing anyone sensible wants
+              to do before writing to forty families. */}
+          <p className="text-xs text-amber-900">
+            Each parent gets a private link listing only their own missing fields. Reminders go
+            weekly, four at most. <strong>Send one to yourself first</strong> — use Send on any
+            row below.
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={() => send()}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Email all ${reachable.length} families now?\n\nEach gets a private link listing only their own missing fields. This cannot be unsent.`
+                  )
+                ) {
+                  send();
+                }
+              }}
               disabled={busy || reachable.length === 0}
               className="rounded-xl bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-50"
             >
-              {busy ? "Sending…" : `Email ${reachable.length} famil${reachable.length === 1 ? "y" : "ies"}`}
+              {busy && !sendingOne
+                ? "Sending…"
+                : `Email all ${reachable.length} famil${reachable.length === 1 ? "y" : "ies"}`}
             </button>
-            <span className="text-xs text-amber-900">
-              Each parent gets a private link listing only their own missing fields.
-              Reminders go weekly, four at most.
-            </span>
           </div>
 
           {result && (
@@ -123,6 +141,21 @@ export function MissingInfoPanel({ gaps }: { gaps: FamilyGap[] }) {
                         <div>
                           Household: {g.familyMissing.map((m) => FIELD_LABELS[m]).join(", ")}
                         </div>
+                      )}
+                    </td>
+                    <td className="w-24 px-3 py-2 text-right">
+                      {g.email ? (
+                        <button
+                          type="button"
+                          onClick={() => send([g.familyId])}
+                          disabled={busy}
+                          title={`Send to ${g.email}`}
+                          className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        >
+                          {sendingOne === g.familyId ? "Sending…" : "Send"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
                   </tr>
