@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PeopleDirectoryTable } from "@/components/people/PeopleDirectoryTable";
 import { getDirectory, getSchoolOptions } from "@/lib/people/directory";
+import { findFamiliesWithGaps } from "@/lib/people/completeness";
+import { MissingInfoPanel } from "@/components/people/MissingInfoPanel";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { canImportStudents } from "@/lib/platform/imports/access";
 import { canManageStudentLifecycle } from "@/lib/students/lifecycle";
@@ -20,7 +22,11 @@ export default async function PeopleDirectoryPage() {
   // records may see this, since it is those records plus the pipeline.
   if (!canImportStudents(identity)) redirect("/dashboard");
 
-  const [people, schools] = await Promise.all([getDirectory(), getSchoolOptions()]);
+  const [people, schools, gaps] = await Promise.all([
+    getDirectory(),
+    getSchoolOptions(),
+    findFamiliesWithGaps(),
+  ]);
 
   // Full width, deliberately. The dashboard's <main> already pads the content
   // area, so the p-6 here was doubling it, and max-w-7xl left a band of empty
@@ -31,6 +37,7 @@ export default async function PeopleDirectoryPage() {
         title="People"
         subtitle="Every student and prospective family — enrolled, in the pipeline, alumni, and those who did not enrol"
       />
+      <MissingInfoPanel gaps={gaps} />
       <PeopleDirectoryTable
         people={people}
         schools={schools}

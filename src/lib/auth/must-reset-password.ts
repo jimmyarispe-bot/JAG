@@ -50,6 +50,13 @@ const PUBLIC_API_PATHS = new Set([
   // browser session; the route itself requires cron or ops authorization.
   "/api/ready/deep",
   "/api/observability/rum",
+  // Same reasoning, and it was missing: Vercel cron sends `Authorization:
+  // Bearer $CRON_SECRET` and no session cookie, so middleware answered 401
+  // before either route could check that bearer. The daily queue run in
+  // vercel.json has therefore never executed. Both routes verify CRON_SECRET
+  // themselves, timing-safe, and fall back to a permission check.
+  "/api/platform/process-queues",
+  "/api/admissions/process-communications",
 ]);
 
 export function isPublicApiPath(pathname: string): boolean {
