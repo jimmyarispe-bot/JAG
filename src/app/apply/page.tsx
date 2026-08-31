@@ -32,9 +32,9 @@ export default async function ApplyInquiryPage() {
             Start Your Admissions Journey
           </h1>
           <p className="mt-2 max-w-2xl text-slate-600">
-            Complete this inquiry form to connect with our admissions team. After submitting, sign in
-            with your guardian email to access the application portal, document center, and progress
-            tracker.
+            Complete this inquiry form to connect with our admissions team from one of our awesome
+            schools. After submitting, you will receive an email with a link to signup for a tour,
+            in-person, or virtual meeting so we can get to know more about your child&rsquo;s needs.
           </p>
         </div>
 
