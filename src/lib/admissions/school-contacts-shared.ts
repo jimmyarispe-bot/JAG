@@ -10,6 +10,22 @@
  * cannot get past it.
  */
 
+/**
+ * One permission, named once, used by the page guard, the write action and the
+ * admin hub card.
+ *
+ * A permission rather than a role list. The first cut of this page checked for
+ * CEO / FOUNDER / SCHOOL_LEADER and locked out the account that owns the
+ * platform, whose roles are TEAM_MEMBER and PLATFORM_OWNER — role names are a
+ * different axis from what somebody is allowed to do, and every neighbouring
+ * admin page had already worked that out.
+ *
+ * `school.configure` is the same permission that gates /dashboard/admin/schools
+ * and decides whether this page's card appears in the hub, so a card you can
+ * see is a page you can open.
+ */
+export const ADMISSIONS_CONTACT_PERMISSION = "school.configure" as const;
+
 export interface SchoolContactPatch {
   contactName: string | null;
   contactEmail: string | null;

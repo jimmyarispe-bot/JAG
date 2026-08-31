@@ -3,7 +3,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SchoolAdmissionsContactPanel } from "@/components/admissions/SchoolAdmissionsContactPanel";
 import { getSchoolAdmissionsContacts } from "@/lib/admissions/school-contacts";
 import { getIdentityContext } from "@/lib/platform/identity/context";
-import { canManageStudentLifecycle } from "@/lib/students/lifecycle";
+import { hasPermission } from "@/lib/platform/identity/authorization-service";
+import { ADMISSIONS_CONTACT_PERMISSION } from "@/lib/admissions/school-contacts-shared";
 
 export const metadata = {
   title: "Admissions contacts",
@@ -25,7 +26,7 @@ export default async function AdmissionsContactsPage() {
    * your role is short. It cost an hour of exactly that. A refusal that names
    * the check and the roles it found is the whole difference.
    */
-  if (!canManageStudentLifecycle(identity)) {
+  if (!hasPermission(identity, ADMISSIONS_CONTACT_PERMISSION)) {
     const roles = identity.roles?.length ? identity.roles.join(", ") : "none";
     return (
       <div className="mx-auto max-w-4xl space-y-6">
@@ -35,12 +36,15 @@ export default async function AdmissionsContactsPage() {
           backHref="/dashboard/admin"
         />
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-medium">This page needs one of: CEO, FOUNDER, SCHOOL_LEADER.</p>
+          <p className="font-medium">
+            This page needs the <span className="font-mono">{ADMISSIONS_CONTACT_PERMISSION}</span>{" "}
+            permission.
+          </p>
           <p className="mt-1">
             The roles on your account are: <span className="font-mono">{roles}</span>
           </p>
           <p className="mt-2 text-amber-800">
-            If that looks wrong, the roles are set under Platform Administration &rarr; Users.
+            Permissions are granted to roles under Platform Administration &rarr; Permissions.
           </p>
         </div>
       </div>

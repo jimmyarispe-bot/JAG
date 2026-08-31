@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { getIdentityContext } from "@/lib/platform/identity/context";
-import { canManageStudentLifecycle } from "@/lib/students/lifecycle";
+import { hasPermission } from "@/lib/platform/identity/authorization-service";
 import {
+  ADMISSIONS_CONTACT_PERMISSION,
   validateSchoolContact,
   type SchoolContactPatch,
 } from "@/lib/admissions/school-contacts-shared";
@@ -12,9 +13,8 @@ import {
 /**
  * Set a school's admissions contact and booking link.
  *
- * Gated to CEO / Founder / School Leader — the same bar as archiving a student.
- * This decides who receives prospective families' details and what address a
- * parent's reply reaches, so it is not an ordinary edit.
+ * Gated on the same permission as the page and the hub card, so the three
+ * cannot drift: a card you can see is a page you can open is a save that works.
  */
 
 export type ContactSaveResult =
@@ -32,10 +32,10 @@ export async function updateSchoolAdmissionsContact(input: {
 }): Promise<ContactSaveResult> {
   const identity = await getIdentityContext();
   if (!identity) return { ok: false, error: "Not signed in" };
-  if (!canManageStudentLifecycle(identity)) {
+  if (!hasPermission(identity, ADMISSIONS_CONTACT_PERMISSION)) {
     return {
       ok: false,
-      error: "Only a CEO, Founder or School Leader can change an admissions contact.",
+      error: `Changing an admissions contact needs the ${ADMISSIONS_CONTACT_PERMISSION} permission, which your account does not have.`,
     };
   }
   if (!input.schoolId) return { ok: false, error: "No school given" };
