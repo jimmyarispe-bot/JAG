@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useBranding } from "@/components/branding/BrandingContext";
+import { OrganizationName } from "@/components/branding/OrganizationName";
 
 export function ApplyShell({
   children,
@@ -43,11 +44,11 @@ export function ApplyShell({
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
           <div>
             {showNav ? (
-              <Link href="/apply" className="text-lg font-bold text-brand-700">
-                {name}
+              <Link href="/apply" className="text-lg font-bold">
+                <OrganizationName name={name} />
               </Link>
             ) : (
-              <span className="text-lg font-bold text-brand-700">{name}</span>
+              <OrganizationName name={name} className="text-lg font-bold" />
             )}
             <p className="text-xs text-slate-500">Admissions Inquiry Platform</p>
           </div>

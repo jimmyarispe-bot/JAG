@@ -7,6 +7,12 @@
   --color-brand-600: #4f46e5;
   --color-brand-700: #4338ca;
   --color-brand-900: #312e81;
+  /* The school network's own colour, distinct from the product's indigo.
+     Wherever "The Academy", "The Academy Way" or "The Academy Way Network of
+     Schools" is shown as a name rather than as body text, it is this. Used
+     through <OrganizationName>, so changing it here changes it everywhere. */
+  --color-academy: #1e3a8a;
+  --color-academy-light: #93c5fd;
   --color-sidebar: #0f172a;
   --color-sidebar-hover: #1e293b;
   --color-sidebar-border: #1e293b;

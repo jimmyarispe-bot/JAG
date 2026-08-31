@@ -31,7 +31,11 @@ export default async function ApplyInquiryPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Start Your Admissions Journey
           </h1>
-          <p className="mt-2 max-w-2xl text-slate-600">
+          {/* No max-width: the paragraph now runs to the same edge as the form
+              card below it. A narrower measure is easier to read in the
+              abstract, but a line that stops two-thirds of the way across while
+              the card beneath it does not reads as a mistake. */}
+          <p className="mt-2 text-slate-600">
             Complete this inquiry form to connect with our admissions team from one of our awesome
             schools. After submitting, you will receive an email with a link to signup for a tour,
             in-person, or virtual meeting so we can get to know more about your child&rsquo;s needs.

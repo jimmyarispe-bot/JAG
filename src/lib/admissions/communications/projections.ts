@@ -4,7 +4,7 @@
 
 /** Lead fields required to build MergeContext (plus schools.name + staff notify fields). */
 export const LEAD_MERGE_CONTEXT_COLS =
-  "id, school_id, assigned_to_user_id, first_name, last_name, preferred_name, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, program, schools(name)" as const;
+  "id, school_id, assigned_to_user_id, first_name, last_name, preferred_name, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, program, schools(name, admissions_contact_name, admissions_contact_email, admissions_booking_url)" as const;
 
 /** Full template shape used by deliver/render paths. */
 export const COMMUNICATION_TEMPLATE_COLS =

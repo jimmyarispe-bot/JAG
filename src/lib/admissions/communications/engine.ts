@@ -28,7 +28,14 @@ type LeadMergeRow = {
   guardian_email: string | null;
   guardian_phone: string | null;
   program: string | null;
-  schools: { name?: string } | { name?: string }[] | null;
+  schools: SchoolContact | SchoolContact[] | null;
+};
+
+type SchoolContact = {
+  name?: string;
+  admissions_contact_name?: string | null;
+  admissions_contact_email?: string | null;
+  admissions_booking_url?: string | null;
 };
 
 type LeadStaffHint = {
@@ -45,10 +52,20 @@ export interface TriggerCommunicationsOptions {
   skipQueue?: boolean;
 }
 
-function schoolNameFromLead(lead: LeadMergeRow): string | null {
+/** PostgREST returns an embedded row as an object or a single-element array. */
+function schoolOf(lead: LeadMergeRow): SchoolContact | null {
   const schools = lead.schools;
   if (!schools) return null;
-  return (Array.isArray(schools) ? schools[0] : schools)?.name ?? null;
+  return (Array.isArray(schools) ? schools[0] : schools) ?? null;
+}
+
+function schoolNameFromLead(lead: LeadMergeRow): string | null {
+  return schoolOf(lead)?.name ?? null;
+}
+
+function clean(value: unknown): string | null {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text ? text : null;
 }
 
 function buildMergeContextFromParts(
@@ -72,6 +89,9 @@ function buildMergeContextFromParts(
     guardianEmail: lead.guardian_email,
     guardianPhone: lead.guardian_phone,
     schoolName: schoolNameFromLead(lead),
+    admissionsContactName: clean(schoolOf(lead)?.admissions_contact_name),
+    admissionsContactEmail: clean(schoolOf(lead)?.admissions_contact_email),
+    schedulingUrl: clean(schoolOf(lead)?.admissions_booking_url),
     program: lead.program,
     campusName: tour.campusName,
     campusAddress: tour.campusAddress,
@@ -272,16 +292,47 @@ async function deliverCommunication(
       ? params.mergeCtx.guardianPhone ?? ""
       : channel === "internal_note"
         ? "staff"
-        : params.mergeCtx.guardianEmail ?? "";
+        : channel === "staff_email"
+          ? params.mergeCtx.admissionsContactEmail ?? ""
+          : params.mergeCtx.guardianEmail ?? "";
 
-  let deliveryStatus: string = channel === "email" || channel === "sms" ? "pending" : "sent";
+  const isEmail = channel === "email" || channel === "staff_email";
+
+  let deliveryStatus: string = isEmail || channel === "sms" ? "pending" : "sent";
   let deliveryError: string | null = null;
 
-  if (channel === "email" && sentTo) {
+  if (isEmail && sentTo) {
+    /**
+     * From a named person at a verified domain; replies go to their real inbox.
+     *
+     * The From *address* stays the verified sender. Sending as a leader's own
+     * @gmail.com would fail SPF and land the school in spam, which is a worse
+     * outcome than a noreply address with their name on it. Reply-to carries
+     * the actual conversation, which is the part a parent uses.
+     *
+     * Staff mail replies to the family, so a school leader can answer an
+     * inquiry alert without leaving their inbox.
+     */
+    const contactName = params.mergeCtx.admissionsContactName?.trim();
+    const schoolName = params.mergeCtx.schoolName?.trim();
+    const fromName =
+      channel === "staff_email"
+        ? undefined
+        : contactName && schoolName
+          ? `${contactName} · ${schoolName}`
+          : contactName || schoolName || undefined;
+
+    const replyTo =
+      channel === "staff_email"
+        ? params.mergeCtx.guardianEmail ?? undefined
+        : params.mergeCtx.admissionsContactEmail ?? undefined;
+
     const emailResult = await sendTransactionalEmail({
       to: sentTo,
       subject,
       body,
+      ...(fromName ? { fromName } : {}),
+      ...(replyTo ? { replyTo } : {}),
     });
     deliveryStatus = emailResult.success ? "sent" : "failed";
     deliveryError = emailResult.error ?? null;
@@ -382,7 +433,30 @@ export async function triggerCommunications(
   const schoolId = loaded.staff.schoolId;
   if (!schoolId) return;
 
-  const templates = await getTemplatesForTrigger(supabase, schoolId, options.triggerEvent);
+  const allTemplates = await getTemplatesForTrigger(supabase, schoolId, options.triggerEvent);
+
+  /**
+   * Two versions of the family's confirmation exist: one that offers the
+   * school's booking link, one that promises a person will be in touch. Exactly
+   * one is sent, chosen by whether the school actually has a link.
+   *
+   * This is the guard that matters. `renderTemplate` leaves an unresolved token
+   * in place as literal text, so a school with no booking URL would otherwise
+   * email a prospective family the characters `{{scheduling_link}}` — the
+   * clearest possible signal that nobody is home.
+   *
+   * A staff alert with no recipient is dropped the same way rather than queued
+   * as a delivery to the empty string.
+   */
+  const hasBookingLink = Boolean(loaded.mergeCtx.schedulingUrl);
+  const hasStaffEmail = Boolean(loaded.mergeCtx.admissionsContactEmail);
+
+  const templates = allTemplates.filter((t) => {
+    if (t.template_key === "inquiry_thank_you_email") return hasBookingLink;
+    if (t.template_key === "inquiry_thank_you_email_no_link") return !hasBookingLink;
+    if (t.channel === "staff_email") return hasStaffEmail;
+    return true;
+  });
 
   const delayed = templates.filter((t) => t.delay_hours > 0 && !options.skipQueue);
   const immediate = templates.filter((t) => !(t.delay_hours > 0 && !options.skipQueue));

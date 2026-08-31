@@ -10,6 +10,7 @@ import {
 import { FOUNDER_DASHBOARD_NAV, FOUNDERS_UTILITY_NAV } from "@/lib/dashboard/founders-navigation";
 import { EXECUTIVE_DIRECTOR_DASHBOARD_NAV } from "@/lib/dashboard/executive-director-dashboard";
 import { useBranding } from "@/components/branding/BrandingContext";
+import { OrganizationName } from "@/components/branding/OrganizationName";
 import { formatWorkspaceProductLine } from "@/lib/branding/workspace-edition";
 import { cn } from "@/components/workspace-design-system/utils";
 import { ModuleIcon } from "./ModuleIcons";
@@ -119,7 +120,13 @@ export function Sidebar({
             {branding.monogram}
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">{branding.productName}</p>
+            {/* tone="light" deliberately: the network's dark blue is
+                unreadable on the navy sidebar. Routed through the same
+                component so this stays a considered exception rather than a
+                place somebody forgot. */}
+            <p className="text-sm font-semibold">
+              <OrganizationName name={branding.productName} tone="light" />
+            </p>
             <p className="text-xs text-slate-400">{branding.productTagline}</p>
           </div>
         </div>

@@ -15,6 +15,17 @@ import type { PermissionKey } from "@/lib/platform/identity/types";
 
 export const PLATFORM_ADMINISTRATION_NAV = [
   {
+    // Listed here on purpose. An admin page nothing links to is a page nobody
+    // finds — which is how `admissions_interest_public` went a year with no UI
+    // and quietly hid every school created after its migration.
+    id: "admissions-contacts",
+    label: "Admissions contacts",
+    description:
+      "Who a family hears from at each school, their booking link, and which schools take public inquiries",
+    href: "/dashboard/admin/admissions-contacts",
+    permission: "school.configure" as PermissionKey,
+  },
+  {
     id: "organizations",
     label: "Organizations",
     description: "First-class organizations: type, owner, subscription, schools, and users",

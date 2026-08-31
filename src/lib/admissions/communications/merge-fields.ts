@@ -30,6 +30,16 @@ export interface MergeContext {
   rejectionReason?: string | null;
   customNotes?: string | null;
   deadline?: string | null;
+  /**
+   * The school's admissions contact, carried from `schools`.
+   *
+   * `schedulingUrl` is a public Google appointment-schedule link. Null is a
+   * supported state and the caller picks a template that does not mention one —
+   * see the note on `scheduling_link` below for why that matters.
+   */
+  admissionsContactName?: string | null;
+  admissionsContactEmail?: string | null;
+  schedulingUrl?: string | null;
 }
 
 function studentName(ctx: MergeContext): string {
@@ -72,6 +82,22 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     portal_link: portalLink(ctx),
     application_link: applicationLink(ctx),
     upload_link: uploadLink(ctx),
+    /**
+     * Empty string rather than a placeholder when unset.
+     *
+     * `renderTemplate` leaves an *unknown* token in place as literal text, so a
+     * template naming a field that does not exist mails a parent the characters
+     * `{{scheduling_link}}`. A known field with no value at least renders as
+     * nothing — but the real guard is upstream: the sender picks the no-link
+     * template when the school has no booking URL, so this should never be
+     * reached with an empty value on a link-bearing template.
+     */
+    scheduling_link: ctx.schedulingUrl ?? "",
+    admissions_contact_name: ctx.admissionsContactName ?? "Admissions",
+    admissions_contact_email: ctx.admissionsContactEmail ?? "",
+    lead_link: ctx.leadId
+      ? `${resolvePublicAppOrigin()}/dashboard/admissions/leads/${ctx.leadId}`
+      : `${resolvePublicAppOrigin()}/dashboard/people`,
     tour_datetime: ctx.tourDatetime ?? "",
     interview_datetime: ctx.interviewDatetime ?? "",
     missing_items: (ctx.missingItems ?? []).map((i) => `• ${i}`).join("\n") || "See portal for details",

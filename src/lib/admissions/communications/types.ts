@@ -3,6 +3,15 @@ export const COMMUNICATION_CHANNELS = [
   "sms",
   "portal_notification",
   "internal_note",
+  /**
+   * Email addressed to the school's admissions contact rather than the family.
+   *
+   * A channel of its own because the delivery path sends every `email` to the
+   * guardian — a staff template on that channel would be cheerfully mailed to
+   * the parent. `internal_note` was not an option either: it records a message
+   * and never sends one.
+   */
+  "staff_email",
 ] as const;
 
 export type CommunicationChannel = (typeof COMMUNICATION_CHANNELS)[number];
@@ -58,6 +67,12 @@ export const MERGE_FIELDS = [
   "portal_link",
   "application_link",
   "upload_link",
+  /** The school's own Google appointment-schedule URL. */
+  "scheduling_link",
+  "admissions_contact_name",
+  "admissions_contact_email",
+  /** Straight to the lead in the dashboard — for staff mail only. */
+  "lead_link",
   "tour_datetime",
   "interview_datetime",
   "missing_items",
@@ -122,6 +137,7 @@ export const CHANNEL_LABELS: Record<CommunicationChannel, string> = {
   sms: "SMS",
   portal_notification: "Portal Notification",
   internal_note: "Internal Note",
+  staff_email: "Email to school leader",
 };
 
 export const DECISION_TO_TRIGGER: Record<string, CommunicationTriggerEvent> = {

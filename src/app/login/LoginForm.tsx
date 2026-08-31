@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { assertLoginNotThrottled } from "@/lib/auth/login-throttle";
 import type { OrganizationBranding } from "@/lib/branding/types";
 import { ActionButton } from "@/components/experience-system/feedback/ActionButton";
+import { OrganizationName } from "@/components/branding/OrganizationName";
 
 interface LoginFormProps {
   branding: OrganizationBranding;
@@ -67,7 +68,9 @@ export default function LoginForm({ branding }: LoginFormProps) {
       <a href="#login-form" className="skip-link">
         Skip to sign-in form
       </a>
-      <h1 className="text-2xl font-bold text-slate-900">{signInTitle}</h1>
+      <h1 className="text-2xl font-bold">
+        <OrganizationName name={signInTitle} />
+      </h1>
       <p className="mt-1 text-sm text-slate-500">
         {branding.productTagline}
       </p>
