@@ -15,9 +15,37 @@ export const dynamic = "force-dynamic";
 export default async function AdmissionsContactsPage() {
   const identity = await getIdentityContext();
   if (!identity) redirect("/login");
-  // Same bar as the write action behind it. A page that loads and then refuses
-  // every save teaches nobody why.
-  if (!canManageStudentLifecycle(identity)) redirect("/dashboard");
+
+  /**
+   * Say no out loud.
+   *
+   * This guard used to `redirect("/dashboard")`, which is indistinguishable
+   * from a broken link: you click a card that exists, you land somewhere else,
+   * and nothing tells you whether the page is missing, the deploy is behind, or
+   * your role is short. It cost an hour of exactly that. A refusal that names
+   * the check and the roles it found is the whole difference.
+   */
+  if (!canManageStudentLifecycle(identity)) {
+    const roles = identity.roles?.length ? identity.roles.join(", ") : "none";
+    return (
+      <div className="mx-auto max-w-4xl space-y-6">
+        <PageHeader
+          title="Admissions contacts"
+          subtitle="You do not have access to this page"
+          backHref="/dashboard/admin"
+        />
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-medium">This page needs one of: CEO, FOUNDER, SCHOOL_LEADER.</p>
+          <p className="mt-1">
+            The roles on your account are: <span className="font-mono">{roles}</span>
+          </p>
+          <p className="mt-2 text-amber-800">
+            If that looks wrong, the roles are set under Platform Administration &rarr; Users.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const schools = await getSchoolAdmissionsContacts();
 
