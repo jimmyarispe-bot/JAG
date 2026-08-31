@@ -6,22 +6,52 @@ import { useBranding } from "@/components/branding/BrandingContext";
 export function ApplyShell({
   children,
   userEmail,
+  organizationName,
+  showNav = true,
 }: {
   children: React.ReactNode;
   userEmail?: string | null;
+  /**
+   * The school network's own name, resolved server-side.
+   *
+   * `useBranding()` alone is not enough here: this layout loads branding with
+   * the anon client, which cannot read the organization record, so it falls
+   * back to the generic "School Platform" — and a parent following an
+   * admissions link should land on their school's name, not a placeholder.
+   * The page resolves the organization properly (service role) and passes it
+   * down. Branding stays the fallback for the pages that have no organization
+   * in hand, such as the thank-you screen.
+   */
+  organizationName?: string | null;
+  /**
+   * The inquiry form turns this off.
+   *
+   * A family filling in an enquiry has no account, so every link in this bar
+   * leads either to a sign-in wall or to a part of the product that is not
+   * theirs yet. Offering six of them at the top of the one page we want them
+   * to finish is a way to lose them before they finish it. The portal keeps
+   * its navigation, because there the links go somewhere the family can use.
+   */
+  showNav?: boolean;
 }) {
   const branding = useBranding();
+  const name = organizationName?.trim() || branding.productName;
 
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
           <div>
-            <Link href="/apply" className="text-lg font-bold text-brand-700">
-              {branding.productName} Admissions
-            </Link>
-            <p className="text-xs text-slate-500">Enrollment inquiry & application portal</p>
+            {showNav ? (
+              <Link href="/apply" className="text-lg font-bold text-brand-700">
+                {name}
+              </Link>
+            ) : (
+              <span className="text-lg font-bold text-brand-700">{name}</span>
+            )}
+            <p className="text-xs text-slate-500">Admissions Inquiry Platform</p>
           </div>
+          {showNav && (
           <nav className="flex items-center gap-3 text-sm">
             <Link href="/admissions" className="text-slate-600 hover:text-slate-900">
               Admissions
@@ -54,6 +84,7 @@ export function ApplyShell({
               </Link>
             )}
           </nav>
+          )}
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">{children}</main>

@@ -29,13 +29,28 @@ function asString(value: unknown): string {
   return String(value).trim();
 }
 
+/**
+ * Fold the answers that have no column of their own onto `lead.referral_source`.
+ *
+ * The authoritative copy of every answer is `admissions_interest_answers`; this
+ * is the convenience copy, so that whoever opens the lead sees what the family
+ * said without a second query.
+ *
+ * `learning_concerns` is still read for form versions published before the
+ * question was split into greatness and challenges. Dropping it would lose the
+ * answer from any org still on version 1.
+ */
 function encodeLeadReferralExtras(values: InterestFormValues): string | null {
   const referral = asString(values.referral_source);
-  const concerns = asString(values.learning_concerns);
   const preferred = asString(values.preferred_contact_method);
+  const greatness = asString(values.student_greatness);
+  const challenges = asString(values.student_challenges);
+  const concerns = asString(values.learning_concerns);
   const parts = [
     referral,
     preferred ? `preferred_contact:${preferred}` : "",
+    greatness ? `greatness:${greatness}` : "",
+    challenges ? `challenges:${challenges}` : "",
     concerns ? `learning_concerns:${concerns}` : "",
   ].filter(Boolean);
   return parts.length ? parts.join(" | ") : null;
