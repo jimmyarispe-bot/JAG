@@ -14,6 +14,8 @@ export interface SchoolAdmissionsContact {
   readonly contactName: string | null;
   readonly contactEmail: string | null;
   readonly bookingUrl: string | null;
+  /** Null means "use the EMAIL_FROM environment variable". */
+  readonly fromEmail: string | null;
   /** Whether this school appears in the public inquiry form's dropdown. */
   readonly publicInquiries: boolean;
   /** Leads received, so a school nobody can reach is visible as such. */
@@ -32,7 +34,7 @@ export async function getSchoolAdmissionsContacts(): Promise<SchoolAdmissionsCon
     supabase
       .from("schools")
       .select(
-        "id, name, admissions_contact_name, admissions_contact_email, admissions_booking_url, admissions_interest_public"
+        "id, name, admissions_contact_name, admissions_contact_email, admissions_booking_url, admissions_from_email, admissions_interest_public"
       )
       .order("name"),
     supabase.from("admissions_leads").select("school_id"),
@@ -60,6 +62,7 @@ export async function getSchoolAdmissionsContacts(): Promise<SchoolAdmissionsCon
       contactName: clean(r.admissions_contact_name),
       contactEmail: clean(r.admissions_contact_email),
       bookingUrl: clean(r.admissions_booking_url),
+      fromEmail: clean(r.admissions_from_email),
       publicInquiries: r.admissions_interest_public === true,
       leadCount: leadsBySchool.get(id) ?? 0,
     };

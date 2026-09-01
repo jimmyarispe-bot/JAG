@@ -28,6 +28,7 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
     contactEmail: initial.contactEmail,
     bookingUrl: initial.bookingUrl,
     publicInquiries: initial.publicInquiries,
+    fromEmail: initial.fromEmail,
   });
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -40,7 +41,8 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
     patch.contactName !== initial.contactName ||
     patch.contactEmail !== initial.contactEmail ||
     patch.bookingUrl !== initial.bookingUrl ||
-    patch.publicInquiries !== initial.publicInquiries;
+    patch.publicInquiries !== initial.publicInquiries ||
+    patch.fromEmail !== initial.fromEmail;
 
   // A malformed value is refused; "public but nobody to tell" is a warning, and
   // saving it is a decision the user is allowed to make.
@@ -105,6 +107,26 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
           </span>
           {issueFor("contactEmail") && (
             <span className="mt-1 block text-xs text-amber-700">{issueFor("contactEmail")}</span>
+          )}
+        </label>
+
+        <label className="block sm:col-span-2">
+          <span className={label}>Send mail from</span>
+          <input
+            type="email"
+            value={patch.fromEmail ?? ""}
+            onChange={(e) => set("fromEmail", e.target.value || null)}
+            placeholder="Leave blank until the domain is verified in Resend"
+            className={field}
+          />
+          <span className="mt-1 block text-xs text-slate-400">
+            The address families see this school&rsquo;s email come from. The domain must be
+            verified in Resend first — an unverified sender is rejected and the email never
+            arrives. Blank uses the network default, which is the right setting until DNS is
+            done.
+          </span>
+          {issueFor("fromEmail") && (
+            <span className="mt-1 block text-xs text-rose-700">{issueFor("fromEmail")}</span>
           )}
         </label>
 

@@ -31,6 +31,15 @@ export interface SchoolContactPatch {
   contactEmail: string | null;
   bookingUrl: string | null;
   publicInquiries: boolean;
+  /**
+   * The address this school's mail is sent FROM.
+   *
+   * Null falls back to the EMAIL_FROM environment variable, and that is the
+   * correct state until the domain is verified in Resend — an unverified From
+   * domain is rejected outright, so filling this in early stops mail rather
+   * than improving it.
+   */
+  fromEmail: string | null;
 }
 
 export interface ContactIssue {
@@ -65,6 +74,10 @@ export function validateSchoolContact(patch: SchoolContactPatch): ContactIssue[]
     }
   }
 
+  if (patch.fromEmail && !EMAIL.test(patch.fromEmail)) {
+    issues.push({ field: "fromEmail", message: "That does not look like an email address." });
+  }
+
   // Not an error, but the combination that quietly does nothing: a school
   // taking public inquiries with nobody to send them to.
   if (patch.publicInquiries && !patch.contactEmail) {
@@ -87,14 +100,25 @@ export function describeOutcome(patch: SchoolContactPatch): string {
   if (!patch.publicInquiries) {
     return "Hidden from the public inquiry form — families cannot choose this school.";
   }
+  /**
+   * Appended, not substituted. An earlier cut returned this instead of the rest
+   * and the operator lost sight of whether the booking link and the leader
+   * alert were set the moment they filled in a sender — a warning that hides
+   * the thing it is warning about.
+   */
+  const sender = patch.fromEmail
+    ? ` Sends as ${patch.fromEmail} — mail will fail unless ${
+        patch.fromEmail.split("@")[1] ?? "that domain"
+      } is verified in Resend.`
+    : "";
   if (patch.bookingUrl && patch.contactEmail) {
-    return "Families get the booking link and a reply-to address; the leader is emailed each inquiry.";
+    return "Families get the booking link and a reply-to address; the leader is emailed each inquiry." + sender;
   }
   if (!patch.bookingUrl && patch.contactEmail) {
-    return "No booking link, so families are told someone will be in touch. The leader is still emailed.";
+    return "No booking link, so families are told someone will be in touch. The leader is still emailed." + sender;
   }
   if (patch.bookingUrl && !patch.contactEmail) {
-    return "Families get the booking link, but nobody is told an inquiry arrived.";
+    return "Families get the booking link, but nobody is told an inquiry arrived." + sender;
   }
-  return "Families are told someone will be in touch, and nobody is told an inquiry arrived.";
+  return "Families are told someone will be in touch, and nobody is told an inquiry arrived." + sender;
 }

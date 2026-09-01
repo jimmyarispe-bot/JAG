@@ -45,6 +45,7 @@ export async function updateSchoolAdmissionsContact(input: {
     contactEmail: text(input.patch.contactEmail)?.toLowerCase() ?? null,
     bookingUrl: text(input.patch.bookingUrl),
     publicInquiries: input.patch.publicInquiries === true,
+    fromEmail: text(input.patch.fromEmail)?.toLowerCase() ?? null,
   };
 
   // The same function the editor runs. A hand-made request gets the same answer
@@ -69,6 +70,7 @@ export async function updateSchoolAdmissionsContact(input: {
       admissions_contact_name: patch.contactName,
       admissions_contact_email: patch.contactEmail,
       admissions_booking_url: patch.bookingUrl,
+      admissions_from_email: patch.fromEmail,
       admissions_interest_public: patch.publicInquiries,
     })
     .eq("id", input.schoolId)

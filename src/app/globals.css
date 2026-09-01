@@ -13,6 +13,8 @@
      through <OrganizationName>, so changing it here changes it everywhere. */
   --color-academy: #1e3a8a;
   --color-academy-light: #93c5fd;
+  /* Hover/pressed state for solid academy-blue controls. */
+  --color-academy-dark: #172554;
   --color-sidebar: #0f172a;
   --color-sidebar-hover: #1e293b;
   --color-sidebar-border: #1e293b;

@@ -318,13 +318,19 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
         );
       })}
 
-      <div className="flex justify-end">
+      {/* Full width and the network's own blue, not tucked in a corner in the
+          product's indigo. This is the only button on the page and the whole
+          reason the page exists; a family who has just filled in sixteen fields
+          should not have to look for it. */}
+      <div className="flex justify-stretch">
         <ActionButton
           type="submit"
+          size="lg"
           status={action.status}
           verb="submit"
           labels={{ idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" }}
           errorMessage={action.errorMessage}
+          className="w-full rounded-xl bg-academy py-4 text-lg font-semibold text-white hover:bg-academy-dark focus-visible:ring-academy/40 disabled:bg-academy"
         />
       </div>
     </form>

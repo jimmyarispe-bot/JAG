@@ -10,6 +10,7 @@ const EMPTY: SchoolContactPatch = {
   contactEmail: null,
   bookingUrl: null,
   publicInquiries: false,
+  fromEmail: null,
 };
 
 const FULL: SchoolContactPatch = {
@@ -17,6 +18,7 @@ const FULL: SchoolContactPatch = {
   contactEmail: "vanessa@theacademyway.org",
   bookingUrl: "https://calendar.google.com/calendar/appointments/schedules/AcZ123",
   publicInquiries: true,
+  fromEmail: "admissions@theacademyga.org",
 };
 
 describe("validateSchoolContact", () => {
@@ -75,5 +77,35 @@ describe("describeOutcome", () => {
 
   it("calls out a link with nobody listening", () => {
     expect(describeOutcome({ ...FULL, contactEmail: null })).toMatch(/nobody is told/i);
+  });
+});
+
+/**
+ * The From address is the one field here that can stop mail entirely rather
+ * than degrade it: Resend rejects a sender on a domain it has not verified.
+ * Null is therefore the safe state, and the editor has to say so.
+ */
+describe("send-from address", () => {
+  it("accepts a school's own address", () => {
+    expect(validateSchoolContact(FULL)).toEqual([]);
+  });
+
+  it("rejects something that is not an address", () => {
+    const issues = validateSchoolContact({ ...FULL, fromEmail: "theacademyga.org" });
+    expect(issues.map((i) => i.field)).toContain("fromEmail");
+  });
+
+  it("treats blank as valid — it means fall back to the network default", () => {
+    expect(validateSchoolContact({ ...FULL, fromEmail: null })).toEqual([]);
+  });
+
+  it("warns about the verification requirement, naming the domain", () => {
+    const text = describeOutcome(FULL);
+    expect(text).toContain("theacademyga.org");
+    expect(text).toMatch(/verified in Resend/i);
+  });
+
+  it("says nothing about Resend when the school uses the default sender", () => {
+    expect(describeOutcome({ ...FULL, fromEmail: null })).not.toMatch(/Resend/i);
   });
 });

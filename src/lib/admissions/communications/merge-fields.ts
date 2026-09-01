@@ -40,6 +40,13 @@ export interface MergeContext {
   admissionsContactName?: string | null;
   admissionsContactEmail?: string | null;
   schedulingUrl?: string | null;
+  /**
+   * The school's own From address. Not a merge field — nothing renders it into
+   * a body — but it rides along here because this is the object the delivery
+   * path already carries, and threading a parallel one would be two things to
+   * keep in step instead of one.
+   */
+  fromEmail?: string | null;
 }
 
 function studentName(ctx: MergeContext): string {

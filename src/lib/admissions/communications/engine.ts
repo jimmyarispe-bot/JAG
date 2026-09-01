@@ -36,6 +36,7 @@ type SchoolContact = {
   admissions_contact_name?: string | null;
   admissions_contact_email?: string | null;
   admissions_booking_url?: string | null;
+  admissions_from_email?: string | null;
 };
 
 type LeadStaffHint = {
@@ -92,6 +93,7 @@ function buildMergeContextFromParts(
     admissionsContactName: clean(schoolOf(lead)?.admissions_contact_name),
     admissionsContactEmail: clean(schoolOf(lead)?.admissions_contact_email),
     schedulingUrl: clean(schoolOf(lead)?.admissions_booking_url),
+    fromEmail: clean(schoolOf(lead)?.admissions_from_email),
     program: lead.program,
     campusName: tour.campusName,
     campusAddress: tour.campusAddress,
@@ -327,10 +329,21 @@ async function deliverCommunication(
         ? params.mergeCtx.guardianEmail ?? undefined
         : params.mergeCtx.admissionsContactEmail ?? undefined;
 
+    /**
+     * The school's own domain when it has one, the network default otherwise.
+     *
+     * Left absent rather than defaulted here, so an unset school falls through
+     * to EMAIL_FROM in one place instead of two. An address on a domain Resend
+     * has not verified is rejected outright — which is why the editor tells the
+     * operator that before they type it, and why null is the safe state.
+     */
+    const from = params.mergeCtx.fromEmail?.trim() || undefined;
+
     const emailResult = await sendTransactionalEmail({
       to: sentTo,
       subject,
       body,
+      ...(from ? { from } : {}),
       ...(fromName ? { fromName } : {}),
       ...(replyTo ? { replyTo } : {}),
     });
