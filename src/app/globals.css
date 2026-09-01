@@ -95,3 +95,22 @@ textarea:focus:not(:focus-visible) {
   white-space: nowrap;
   border-width: 0;
 }
+
+/**
+ * The primary call-to-action on a public page, in the network's blue.
+ *
+ * A real class rather than utilities. ActionChip composes its classes with a
+ * plain string join - no conflict resolution - so `bg-academy` alongside the
+ * variant's own background is decided by whichever rule the stylesheet emits
+ * last, which is not something a call site can control. That is exactly how the
+ * inquiry form shipped with white text on a white button. Declared here, after
+ * the Tailwind import, this wins by order, and the :hover rule wins by
+ * specificity.
+ */
+.btn-academy {
+  background-color: var(--color-academy);
+  color: #fff;
+}
+.btn-academy:hover {
+  background-color: var(--color-academy-dark);
+}

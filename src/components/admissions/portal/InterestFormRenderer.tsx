@@ -318,19 +318,25 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
         );
       })}
 
-      {/* Full width and the network's own blue, not tucked in a corner in the
-          product's indigo. This is the only button on the page and the whole
-          reason the page exists; a family who has just filled in sixteen fields
-          should not have to look for it. */}
-      <div className="flex justify-stretch">
+      {/* Large, centred, and in the network's blue.
+          Not full width: ActionChip wraps every button in an inline-flex,
+          items-start container, so w-full on the button resolves against a
+          shrink-to-fit parent and does nothing. Not utility classes for the
+          colour either - ActionChip joins its class strings without conflict
+          resolution, so `bg-academy` against the variant's own background is
+          settled by whichever rule the stylesheet emits last. That is how this
+          page shipped with white text on a white button. `.btn-academy` is a
+          real rule declared after the Tailwind import, which wins by order. */}
+      <div className="flex justify-center pt-2">
         <ActionButton
           type="submit"
           size="lg"
+          variant="primary"
           status={action.status}
           verb="submit"
           labels={{ idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" }}
           errorMessage={action.errorMessage}
-          className="w-full rounded-xl bg-academy py-4 text-lg font-semibold text-white hover:bg-academy-dark focus-visible:ring-academy/40 disabled:bg-academy"
+          className="btn-academy rounded-xl px-12 py-4 text-lg font-semibold"
         />
       </div>
     </form>
