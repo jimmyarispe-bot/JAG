@@ -74,6 +74,7 @@ function mapJob(row: JobRow, importedByName?: string | null): ImportJob {
     startedAt: row.started_at,
     completedAt: row.completed_at,
     metadata: row.metadata ?? {},
+    rawHeaders: row.raw_headers ?? null,
   };
 }
 

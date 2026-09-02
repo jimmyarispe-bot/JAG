@@ -407,7 +407,9 @@ export function StudentImportWizard({
         <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
           <h2 className="text-lg font-semibold">Column mapping</h2>
           <p className="text-sm text-slate-500">
-            Columns were auto-matched. Remap any field before validation.
+            Columns were matched automatically. Anything marked{" "}
+            <span className="font-medium text-amber-700">Guess</span> was matched on a
+            partial name, not an exact one &mdash; check it before validating.
           </p>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -420,15 +422,32 @@ export function StudentImportWizard({
               <tbody>
                 {fields.map((field) => {
                   const current = mappings.find((m) => m.targetField === field.key);
+                  // A mapping below 1.0 came from a partial name match, not an exact
+                  // one. Saying so is the difference between catching a wrong column
+                  // here and finding it in the database afterwards.
+                  const isGuess =
+                    !!current?.sourceField && (current.confidence ?? 1) < 1;
                   return (
                     <tr key={field.key} className="border-b border-slate-100">
                       <td className="py-2 pr-4">
                         {field.label}
                         {field.required ? <span className="text-rose-600"> *</span> : null}
+                        {isGuess ? (
+                          <span
+                            className="ml-2 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800"
+                            title={`Matched "${current?.sourceField}" on a partial name match (confidence ${Math.round(
+                              (current?.confidence ?? 0) * 100
+                            )}%). Confirm this is the right column.`}
+                          >
+                            Guess
+                          </span>
+                        ) : null}
                       </td>
                       <td className="py-2">
                         <select
-                          className="w-full max-w-xs rounded-lg border border-slate-300 px-2 py-1.5"
+                          className={`w-full max-w-xs rounded-lg border px-2 py-1.5 ${
+                            isGuess ? "border-amber-400 bg-amber-50" : "border-slate-300"
+                          }`}
                           value={current?.sourceField ?? ""}
                           onChange={(e) => {
                             const sourceField = e.target.value;

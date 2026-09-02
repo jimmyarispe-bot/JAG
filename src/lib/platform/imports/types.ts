@@ -133,6 +133,8 @@ export interface ImportJob {
   startedAt: string;
   completedAt: string | null;
   metadata: Record<string, unknown>;
+  /** Header row exactly as parsed from the uploaded file (platform_import_jobs.raw_headers). */
+  rawHeaders?: string[] | null;
 }
 
 export interface ImportRow {

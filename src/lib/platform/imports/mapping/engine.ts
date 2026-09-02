@@ -8,16 +8,50 @@ function normalizeHeader(value: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
+/**
+ * Leading qualifiers that say WHOSE field a column is.
+ *
+ * A spreadsheet column called "Parent First Name" normalizes to
+ * `parent_first_name`, which literally contains `first_name` -- the student's
+ * own field. Before this guard a fuzzy substring match scored that pairing 0.75
+ * and the parent's name was silently written into the child's name column.
+ *
+ * Qualifiers are grouped so that `parent` and `guardian` are interchangeable,
+ * and `student` and `child` are interchangeable, but the two groups never are.
+ */
+const QUALIFIER_GROUPS: Record<string, "adult" | "child"> = {
+  parent: "adult",
+  guardian: "adult",
+  mother: "adult",
+  father: "adult",
+  contact: "adult",
+  student: "child",
+  child: "child",
+};
+
+/** The qualifier group a normalized header/alias belongs to, or null if none. */
+function qualifierGroup(normalized: string): "adult" | "child" | null {
+  const first = normalized.split("_")[0];
+  if (!first) return null;
+  return QUALIFIER_GROUPS[first] ?? null;
+}
+
 function scoreMatch(source: string, field: ImportFieldDefinition): number {
   const normSource = normalizeHeader(source);
   const candidates = [field.key, field.label, ...(field.aliases ?? [])].map(normalizeHeader);
 
+  // Exact matches are trusted as-is.
   if (candidates.includes(normSource)) return 1;
+
+  const sourceQualifier = qualifierGroup(normSource);
   for (const candidate of candidates) {
     if (!candidate) continue;
-    if (normSource.includes(candidate) || candidate.includes(normSource)) {
-      return 0.75;
-    }
+    if (!(normSource.includes(candidate) || candidate.includes(normSource))) continue;
+    // A substring match may not cross a qualifier boundary. If one side names an
+    // adult and the other does not (or names the child), the columns are about
+    // different people and the match is disqualified rather than downscored.
+    if (sourceQualifier !== qualifierGroup(candidate)) continue;
+    return 0.75;
   }
   return 0;
 }
@@ -28,6 +62,7 @@ export function autoMapColumns(
   fields: ImportFieldDefinition[]
 ): FieldMapping[] {
   const usedTargets = new Set<string>();
+  const usedSources = new Set<string>();
   const mappings: FieldMapping[] = [];
 
   const scored = headers.flatMap((sourceField) =>
@@ -43,7 +78,12 @@ export function autoMapColumns(
     .sort((a, b) => b.confidence - a.confidence)
     .forEach((match) => {
       if (usedTargets.has(match.field.key)) return;
+      // One source column may fill exactly one target field. Without this a
+      // single column could be consumed twice -- once at 1.0 by the field it
+      // really belongs to, and again at 0.75 by a field it merely resembles.
+      if (usedSources.has(match.sourceField)) return;
       usedTargets.add(match.field.key);
+      usedSources.add(match.sourceField);
       mappings.push({
         sourceField: match.sourceField,
         targetField: match.field.key,

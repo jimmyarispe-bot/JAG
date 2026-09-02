@@ -90,8 +90,15 @@ export async function runAutoMapping(
   if (!job) return { error: "Job not found" };
   const importer = requireImporter(job.entityType);
   const rows = await getImportRows(supabase, jobId);
-  const headers = rows[0] ? Object.keys(rows[0].raw) : ((job.metadata.headers as string[]) ?? []);
-  // Prefer stored raw_headers via first row keys
+  // Prefer the header row persisted at upload. Reconstructing headers from a
+  // row's JSON keys drops any column that was blank in row 1, and a missing
+  // header changes what the matcher will accept for the fields that remain.
+  const storedHeaders = job.rawHeaders ?? [];
+  const headers = storedHeaders.length
+    ? storedHeaders
+    : rows[0]
+      ? Object.keys(rows[0].raw)
+      : ((job.metadata.headers as string[]) ?? []);
   const sourceHeaders =
     headers.length > 0
       ? headers
