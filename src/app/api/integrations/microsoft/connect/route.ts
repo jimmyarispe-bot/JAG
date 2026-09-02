@@ -49,9 +49,21 @@ export async function POST(request: NextRequest) {
   }
 
   const { configured } = microsoft365ClientConfig();
-  const useDemo = body.demo === true || !configured;
 
-  if (useDemo) {
+  // Same silent fallback the Google route had: no credentials meant a recorded
+  // "connected" state backed by a placeholder token. Refuse and say why.
+  if (!configured && body.demo !== true) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message:
+          "Microsoft 365 is not configured. Set MICROSOFT_365_CLIENT_ID and MICROSOFT_365_CLIENT_SECRET in the environment and redeploy. Connecting without them would record a connection that cannot read anything from Microsoft.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (body.demo === true) {
     const result = await connectMicrosoft365Demo(supabase, {
       organizationId,
       userId: gate.userId,
@@ -66,9 +78,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       demo: true,
-      message: configured
-        ? "Connected (demo mode)."
-        : "Connected in demo mode — set MICROSOFT_365_CLIENT_ID/SECRET for live OAuth.",
+      message:
+        "Connected in DEMO MODE. No data will be read from Microsoft — every record this syncs is a fixture.",
       status,
     });
   }

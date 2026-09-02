@@ -13,10 +13,9 @@ import {
   type GoogleWorkspaceObjectType,
   type GoogleWorkspaceRawEntity,
 } from "@/lib/platform/integrations/connectors/google-workspace/entities";
-import {
-  createDemoGoogleWorkspaceClient,
-  type GoogleWorkspaceListPage,
-} from "@/lib/platform/integrations/connectors/google-workspace/services/demo-client";
+import type { GoogleWorkspaceListPage } from "@/lib/platform/integrations/connectors/google-workspace/services/demo-client";
+import { resolveGoogleWorkspaceClient } from "@/lib/platform/integrations/connectors/google-workspace/services/client-factory";
+import { encryptCredentialSecret } from "@/lib/integration-hub/vault-crypto";
 import {
   normalizeGoogleWorkspaceRecords,
   toSyncRecords,
@@ -146,7 +145,36 @@ export async function runGoogleWorkspaceSync(
   });
 
   try {
-    const workspaceClient = createDemoGoogleWorkspaceClient();
+    // The one line that decided this whole integration was fake. It used to read
+    // `createDemoGoogleWorkspaceClient()` unconditionally, so a real OAuth token
+    // was fetched, decrypted, and then never used for anything.
+    const { client: workspaceClient, mode: clientMode } = resolveGoogleWorkspaceClient({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      forceDemo: options.allowDemoClient === true,
+      // A token refreshed mid-run has to be written back, or the next run starts
+      // by 401-ing against a token this process already replaced in memory.
+      onTokenRefreshed: async (next) => {
+        await supabase
+          .from("integration_connections")
+          .update({
+            access_token: encryptCredentialSecret(next.accessToken),
+            refresh_token: next.refreshToken
+              ? encryptCredentialSecret(next.refreshToken)
+              : undefined,
+            expires_at: next.expiresAt,
+            status: "connected",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", tokens.connection.id);
+      },
+    });
+    if (clientMode === "demo" && !options.allowDemoClient) {
+      // Refuse rather than quietly ingest fixtures into a real knowledge graph.
+      throw new Error(
+        "Google Workspace credentials are not configured (GOOGLE_WORKSPACE_CLIENT_ID / GOOGLE_WORKSPACE_CLIENT_SECRET). Refusing to sync, because the only thing this could import is demo data. Pass allowDemoClient to run against fixtures on purpose."
+      );
+    }
     const gmailClient = createGmailClient({ workspaceClient });
     const calendarClient = createCalendarClient({ workspaceClient });
     const driveClient = createDriveClient({ workspaceClient });

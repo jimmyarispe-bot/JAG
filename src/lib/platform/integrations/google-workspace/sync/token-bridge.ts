@@ -8,7 +8,7 @@ import {
   GOOGLE_WORKSPACE_PROVIDER,
   type IntegrationConnectionRow,
 } from "@/lib/platform/integrations/connections";
-import { createDemoGoogleWorkspaceClient } from "@/lib/platform/integrations/connectors/google-workspace/services/demo-client";
+import { resolveGoogleWorkspaceClient } from "@/lib/platform/integrations/connectors/google-workspace/services/client-factory";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -49,7 +49,14 @@ export async function ensureGoogleWorkspaceAccessToken(
   let refreshed = false;
 
   if ((!accessToken || isExpired(expiresAt)) && refreshToken) {
-    const client = createDemoGoogleWorkspaceClient();
+    // Real credentials mean a real exchange against oauth2.googleapis.com. The
+    // fixture client used to sit here and would hand back a synthetic token that
+    // Google had never issued, so an expired connection "refreshed" successfully
+    // and then failed on every subsequent call for reasons nothing explained.
+    const { client } = resolveGoogleWorkspaceClient({
+      accessToken: accessToken ?? "",
+      refreshToken,
+    });
     const result = await client.refreshToken(refreshToken);
     if (!result.ok || !result.accessToken) {
       await supabase

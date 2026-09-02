@@ -20,6 +20,15 @@ export const GOOGLE_WORKSPACE_OAUTH_SCOPES = [
   "https://www.googleapis.com/auth/admin.directory.user.readonly",
   "https://www.googleapis.com/auth/admin.directory.group.readonly",
   "https://www.googleapis.com/auth/admin.directory.orgunit.readonly",
+  // Google Classroom rides on this same connection rather than a second Google
+  // login — one consent screen, one refresh token. An org connected before these
+  // were added must reconnect once to grant them; until it does, Classroom calls
+  // return 403 and the error says so.
+  "https://www.googleapis.com/auth/classroom.courses.readonly",
+  "https://www.googleapis.com/auth/classroom.rosters.readonly",
+  "https://www.googleapis.com/auth/classroom.coursework.students.readonly",
+  "https://www.googleapis.com/auth/classroom.student-submissions.students.readonly",
+  "https://www.googleapis.com/auth/classroom.profile.emails",
 ] as const;
 
 export type GoogleWorkspaceOAuthConfig = OAuth2Config & {

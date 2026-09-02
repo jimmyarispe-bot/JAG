@@ -60,6 +60,15 @@ export type GoogleSyncOptions = {
   objectTypes?: readonly GoogleWorkspaceObjectType[] | readonly string[];
   /** Force full even when mode is scheduled. */
   forceFull?: boolean;
+  /**
+   * Run against the fixture client instead of Google.
+   *
+   * Off by default and deliberately awkward to reach: without it, a sync in an
+   * environment missing Google credentials fails loudly rather than importing
+   * demo records into a real knowledge graph. Tests and demo orgs opt in; nothing
+   * in a production path should.
+   */
+  allowDemoClient?: boolean;
 };
 
 export type GoogleSyncResult = {

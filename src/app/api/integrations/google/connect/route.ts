@@ -49,9 +49,24 @@ export async function POST(request: NextRequest) {
   }
 
   const { configured } = googleWorkspaceClientConfig();
-  const useDemo = body.demo === true || !configured;
 
-  if (useDemo) {
+  // Missing credentials used to fall through to the demo connect, which wrote
+  // status='connected' with a placeholder token and returned ok:true. The
+  // settings page then showed a healthy connection that could never sync.
+  // Refuse instead, and say what is missing.
+  if (!configured && body.demo !== true) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message:
+          "Google Workspace is not configured. Set GOOGLE_WORKSPACE_CLIENT_ID and GOOGLE_WORKSPACE_CLIENT_SECRET in the environment and redeploy. Connecting without them would record a connection that cannot read anything from Google.",
+      },
+      { status: 400 }
+    );
+  }
+
+  // Demo remains reachable, but only when a caller asks for it by name.
+  if (body.demo === true) {
     const result = await connectGoogleWorkspaceDemo(supabase, {
       organizationId,
       userId: gate.userId,
@@ -66,9 +81,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       demo: true,
-      message: configured
-        ? "Connected (demo mode)."
-        : "Connected in demo mode — set GOOGLE_WORKSPACE_CLIENT_ID/SECRET for live OAuth.",
+      message:
+        "Connected in DEMO MODE. No data will be read from Google — every record this syncs is a fixture.",
       status,
     });
   }

@@ -127,6 +127,8 @@ describe("RC-2.02 — Google Workspace Synchronization Engine", () => {
       mode: "manual",
       triggeredBy: "manual",
       forceFull: true,
+      // Fixtures on purpose: this suite exercises the sync engine, not Google.
+      allowDemoClient: true,
     });
 
     expect(result.ok).toBe(true);
@@ -148,6 +150,8 @@ describe("RC-2.02 — Google Workspace Synchronization Engine", () => {
       organizationId: ORG_ID,
       mode: "full",
       triggeredBy: "manual",
+      // Fixtures on purpose: this suite exercises the sync engine, not Google.
+      allowDemoClient: true,
     });
 
     const types = bus.list(100).map((e) => e.type);
@@ -162,6 +166,8 @@ describe("RC-2.02 — Google Workspace Synchronization Engine", () => {
       mode: "manual",
       triggeredBy: "manual",
       forceFull: true,
+      // Fixtures on purpose: this suite exercises the sync engine, not Google.
+      allowDemoClient: true,
     });
 
     const progress = await getGoogleWorkspaceSyncProgress(supabase, ORG_ID);
@@ -179,6 +185,8 @@ describe("RC-2.02 — Google Workspace Synchronization Engine", () => {
       organizationId: ORG_ID,
       mode: "full",
       triggeredBy: "manual",
+      // Fixtures on purpose: this suite exercises the sync engine, not Google.
+      allowDemoClient: true,
     });
     expect(full.ok).toBe(true);
 
@@ -186,6 +194,8 @@ describe("RC-2.02 — Google Workspace Synchronization Engine", () => {
       organizationId: ORG_ID,
       mode: "incremental",
       triggeredBy: "scheduler",
+      // Fixtures on purpose: this suite exercises the sync engine, not Google.
+      allowDemoClient: true,
     });
     expect(incremental.ok).toBe(true);
     // Demo catalog is stable; incremental still succeeds with checkpoint filtering.
