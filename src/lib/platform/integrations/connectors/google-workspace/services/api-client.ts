@@ -63,7 +63,6 @@ const PEOPLE = "https://people.googleapis.com/v1";
 const TASKS = "https://tasks.googleapis.com/tasks/v1";
 const ADMIN = "https://admin.googleapis.com/admin/directory/v1";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const USERINFO = "https://www.googleapis.com/oauth2/v3/userinfo";
 
 const PAGE_SIZE = 50;
 
@@ -732,10 +731,24 @@ export function createGoogleWorkspaceApiClient(
       if (input.accessToken) accessToken = input.accessToken;
       if (input.domain) domain = input.domain;
       try {
+        /**
+         * Identify the connected account using Gmail's own profile endpoint.
+         *
+         * This used to call oauth2/v3/userinfo, which returned
+         * 401 invalid_request "Invalid Credentials" against a perfectly good
+         * token: userinfo needs the `openid` / `userinfo.email` scope, and the
+         * consent screen never asks for one. The token was fine; the endpoint
+         * was simply not covered by anything the user had granted.
+         *
+         * users.getProfile is covered by gmail.metadata, which IS granted, and
+         * returns the address this connection belongs to — which is all that was
+         * wanted from userinfo in the first place.
+         */
         const me = await retrying(() =>
-          apiGet<{ email?: string; hd?: string }>(USERINFO)
+          apiGet<{ emailAddress?: string }>(`${GMAIL}/users/me/profile`)
         );
-        if (!domain) domain = me.hd ?? (me.email?.split("@")[1] ?? "");
+        const email = me.emailAddress ?? "";
+        if (!domain) domain = email.includes("@") ? email.split("@")[1] : "";
         let domains: GoogleWorkspaceDomain[] = [];
         try {
           domains = await this.listDomains(accessToken);
@@ -743,7 +756,7 @@ export function createGoogleWorkspaceApiClient(
           // Admin SDK needs a super-admin. A user-consent connection is still a
           // valid connection; it just cannot enumerate the customer's domains.
           domains = domain
-            ? [{ domain, customerId: "", displayName: domain, adminEmail: me.email ?? "" }]
+            ? [{ domain, customerId: "", displayName: domain, adminEmail: email }]
             : [];
         }
         const session: GoogleWorkspaceAuthSession = {

@@ -245,6 +245,28 @@ describe("google workspace api client — it actually calls Google", () => {
     await expect(c.list(ORG, "label", null, null)).rejects.toThrow(/Token has been revoked/);
   });
 
+
+  it("identifies the account via Gmail's profile, not oauth2 userinfo", async () => {
+    // Regression: authenticate() used to call oauth2/v3/userinfo, which needs the
+    // openid / userinfo.email scope. The consent screen never asks for one, so a
+    // valid token came back 401 "Invalid Credentials" and every sync failed at
+    // the first step. users.getProfile is covered by gmail.metadata, which IS
+    // granted.
+    const { c, calls } = client([
+      { match: /users\/me\/profile/, body: { emailAddress: "jimmy@theacademyway.org" } },
+      { match: /admin\/directory\/v1\/customer/, status: 403, body: {} },
+    ]);
+
+    const result = await c.authenticate({ accessToken: "access-1", consentType: "admin" });
+
+    expect(result.ok).toBe(true);
+    expect(calls.some((u) => u.includes("oauth2/v3/userinfo"))).toBe(false);
+    expect(calls[0]).toContain("https://gmail.googleapis.com/gmail/v1/users/me/profile");
+    // Domain is derived from the address, and a non-admin 403 on the Admin SDK
+    // still leaves a usable session rather than failing the connection.
+    expect(result.session?.domain).toBe("theacademyway.org");
+  });
+
   it("does not retry a 403 scope error — it must surface immediately", async () => {
     let attempts = 0;
     const stub = vi.fn(async () => {
