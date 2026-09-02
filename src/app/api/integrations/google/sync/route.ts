@@ -8,6 +8,13 @@ import { DRIVE_OBJECT_TYPES } from "@/lib/platform/integrations/google-workspace
 import { GMAIL_OBJECT_TYPES } from "@/lib/platform/integrations/google-workspace/gmail";
 import { runGoogleWorkspaceSync } from "@/lib/platform/integrations/google-workspace/sync";
 
+/**
+ * Ask for the longest execution window the plan allows. The default on this
+ * project is far shorter than a Google sync, and a killed function leaves the
+ * run row stuck at 'running' with no error to explain it.
+ */
+export const maxDuration = 60;
+
 async function guardIntegrations(supabase: Awaited<ReturnType<typeof createAuthClient>>) {
   let gate = await guardApiRoute(supabase, "integration.manage");
   if (gate instanceof NextResponse) {
@@ -52,6 +59,22 @@ export async function POST(request: NextRequest) {
     body = {};
   }
 
+  /**
+   * The default is Gmail plus Calendar, not everything.
+   *
+   * Left unset, runGoogleWorkspaceSync walks all seventeen object types, and
+   * Gmail alone is an N+1: the list endpoint returns ids and each message needs
+   * a second call for its metadata. On a real mailbox that is hundreds of round
+   * trips before Drive, Docs, Sheets, Slides, Contacts, Tasks and three
+   * directory types have even started. The serverless function is killed long
+   * before that finishes, and because nothing writes a terminal state when a
+   * process is killed, the run row sits at 'running' forever — a status that
+   * means "we have no idea" while reading as "in progress".
+   *
+   * Gmail and Calendar are the two that serve admissions today. The rest stay
+   * reachable: `module: "all"` asks for the full set, `objectTypes` for anything
+   * specific.
+   */
   const objectTypes = body.objectTypes?.length
     ? body.objectTypes
     : body.module === "gmail"
@@ -60,7 +83,9 @@ export async function POST(request: NextRequest) {
         ? [...CALENDAR_OBJECT_TYPES]
         : body.module === "drive"
           ? [...DRIVE_OBJECT_TYPES]
-          : undefined;
+          : body.module === "all"
+            ? undefined
+            : [...GMAIL_OBJECT_TYPES, ...CALENDAR_OBJECT_TYPES];
 
   try {
     const result = await runGoogleWorkspaceSync(supabase, {
