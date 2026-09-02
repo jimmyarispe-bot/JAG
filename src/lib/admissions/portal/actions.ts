@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import {
   checkRateLimitAsync,
@@ -86,11 +87,39 @@ export async function submitPublicInquiry(formData: FormData) {
   if (error) return { error: error.message };
 
   const leadId = data as string;
-  await recordInitialStage(supabase, leadId, null);
-  await onInquirySubmitted(supabase, leadId);
+
+  /**
+   * Post-RPC work runs as the service role, not as the anonymous visitor.
+   *
+   * The RPC above is SECURITY DEFINER, so the lead is created regardless. These
+   * two calls are not: RLS on admissions_leads hides the new row from an
+   * anonymous client, so `loadMergeContext` read back nothing and threw
+   * "Lead not found". The parent saw that error on /admissions/schedule-tour,
+   * /discovery-call and /assessment and reasonably concluded their request had
+   * failed — while the lead sat in the pipeline with no email sent to anyone.
+   *
+   * The interest form at /apply already did it this way, with the same comment.
+   * These three pages never got the fix.
+   */
+  const admin = createServiceRoleClient();
+  await recordInitialStage(admin, leadId, null);
+
+  /**
+   * A failed notification must not be reported as a failed submission. The
+   * family's request exists at this point; telling them otherwise invites a
+   * duplicate and loses their trust in the form. Log it and hand back the lead.
+   */
+  try {
+    await onInquirySubmitted(admin, leadId);
+  } catch (notifyError) {
+    console.error("[submitPublicInquiry] lead created but notification failed", {
+      leadId,
+      error: notifyError instanceof Error ? notifyError.message : String(notifyError),
+    });
+  }
 
   revalidatePath("/apply");
-  return { leadId: data as string };
+  return { leadId };
 }
 
 export async function startApplication(leadId: string, schoolYearId: string) {
