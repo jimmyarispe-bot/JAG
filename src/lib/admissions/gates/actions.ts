@@ -34,8 +34,23 @@ const GATE_TABLE = "admissions_decision_gates";
 export async function openDecisionGate(leadId: string, gateKey: GateKey) {
   const auth = await assertAnyPermission("admissions.manage", "admissions.accept");
   if ("error" in auth) return { error: auth.error };
-  const supabase = auth.supabase;
+  return openDecisionGateWith(auth.supabase, leadId, gateKey);
+}
 
+/**
+ * The same thing, for a caller that has already established authority.
+ *
+ * `transitionCaseStage` reaches this after a stage move it was permitted to
+ * make, and automation reaches it with no session at all. Re-asserting a
+ * user permission there would mean a scheduled job could never open a gate —
+ * and the process would stall silently, which is the failure mode this whole
+ * feature exists to remove.
+ */
+export async function openDecisionGateWith(
+  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  leadId: string,
+  gateKey: GateKey
+) {
   const gate = gateFor(gateKey);
   if (!gate) return { error: `Unknown gate: ${gateKey}` };
 

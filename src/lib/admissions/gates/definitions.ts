@@ -176,3 +176,16 @@ export interface PendingGate {
   readonly createdAt: string;
   readonly notifyCount: number;
 }
+
+/**
+ * Which gate, if any, opens when a lead arrives at a stage.
+ *
+ * Derived from the definitions rather than written out again, so a gate cannot
+ * be given an opening stage in one place and opened from another.
+ */
+export function gateOpeningAtStage(stage: string): GateKey | null {
+  for (const key of GATE_KEYS) {
+    if ((GATES[key].opensAtStage as readonly string[]).includes(stage)) return key;
+  }
+  return null;
+}

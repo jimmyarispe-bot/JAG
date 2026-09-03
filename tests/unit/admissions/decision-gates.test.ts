@@ -13,6 +13,7 @@ import {
   GATE_KEYS,
   branchFor,
   gateFor,
+  gateOpeningAtStage,
   type GateBranch,
 } from "@/lib/admissions/gates/definitions";
 import { LEAD_STAGES } from "@/lib/constants/admissions";
@@ -103,6 +104,46 @@ describe("gate definitions", () => {
     expect(gateFor("not_a_gate")).toBeNull();
     expect(branchFor(GATES.invite_to_apply, "accept")).toBeNull();
     expect(branchFor(GATES.accept_or_deny, "yes")).toBeNull();
+  });
+});
+
+describe("which gate opens at which stage", () => {
+  it("opens the right gate for each trigger stage", () => {
+    expect(gateOpeningAtStage("tour_completed")).toBe("invite_to_apply");
+    expect(gateOpeningAtStage("interest_meeting_held")).toBe("invite_to_apply");
+    expect(gateOpeningAtStage("application_submitted")).toBe("invite_to_shadow_days");
+    expect(gateOpeningAtStage("shadow_day_completed")).toBe("accept_or_deny");
+  });
+
+  it("opens nothing at the stages a gate would be wrong at", () => {
+    // A gate opening on "declined" or "enrolled" would ask a school leader to
+    // decide something that has already been decided.
+    for (const stage of ["new_inquiry", "declined", "enrolled", "accepted", "waitlisted"]) {
+      expect(gateOpeningAtStage(stage)).toBeNull();
+    }
+  });
+
+  it("never maps one stage to two gates", () => {
+    // Two gates opening on one transition means two questions about the same
+    // family at the same moment, and no defined order between them.
+    const seen = new Set<string>();
+    for (const key of GATE_KEYS) {
+      for (const stage of GATES[key].opensAtStage) {
+        expect(seen.has(stage)).toBe(false);
+        seen.add(stage);
+      }
+    }
+  });
+
+  it("never opens a gate at a stage one of its own branches sets", () => {
+    // Otherwise answering a gate re-opens it, and a family is asked about
+    // forever.
+    for (const key of GATE_KEYS) {
+      const opensAt = new Set<string>(GATES[key].opensAtStage);
+      for (const branch of GATES[key].branches) {
+        if (branch.stage) expect(opensAt.has(branch.stage)).toBe(false);
+      }
+    }
   });
 });
 

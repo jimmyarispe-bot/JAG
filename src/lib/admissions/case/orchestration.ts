@@ -20,6 +20,8 @@ import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { transitionLeadStage } from "@/lib/admissions/workflow";
 import type { LeadStageValue } from "@/lib/constants/admissions";
 import { leadStageLabel } from "@/lib/constants/admissions";
+import { openDecisionGateWith } from "@/lib/admissions/gates/actions";
+import { gateOpeningAtStage } from "@/lib/admissions/gates/definitions";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -260,6 +262,43 @@ export async function transitionCaseStage(
         taskName: registryTask.taskName,
         dueAt: dueDate.toISOString(),
         actorUserId: changedBy,
+      });
+    }
+  }
+
+  /**
+   * Open the decision gate this stage calls for, if there is one.
+   *
+   * Reaching tour_completed is the moment a school leader has to decide whether
+   * to invite the family to apply; application_submitted and
+   * shadow_day_completed are the other two. Opening the gate here means it
+   * happens however the stage moved — by hand, by automation, or by a parent
+   * finishing something — rather than only down the one path someone remembered
+   * to wire.
+   *
+   * Deliberately last, and deliberately swallowed. The stage HAS moved by this
+   * point and the caller is entitled to know that succeeded. A gate that fails
+   * to open leaves a decision unasked, which is visible and recoverable; a stage
+   * transition reported as failed after it committed is neither.
+   */
+  const gateKey = gateOpeningAtStage(newStage);
+  if (gateKey) {
+    try {
+      const opened = await openDecisionGateWith(supabase, leadId, gateKey);
+      if ("error" in opened) {
+        console.error("[transitionCaseStage] stage moved but gate did not open", {
+          leadId,
+          newStage,
+          gateKey,
+          error: opened.error,
+        });
+      }
+    } catch (gateError) {
+      console.error("[transitionCaseStage] gate opening threw", {
+        leadId,
+        newStage,
+        gateKey,
+        error: gateError instanceof Error ? gateError.message : String(gateError),
       });
     }
   }
