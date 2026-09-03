@@ -14,6 +14,7 @@ import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import { notifyAdmissionsEvent } from "@/lib/admissions/communications/triggers";
 import { submitAdmissionsDecision } from "@/lib/admissions/decisions";
+import { getInquiryHighlights } from "@/lib/admissions/interest-form/carry-forward";
 import {
   branchFor,
   gateFor,
@@ -100,14 +101,18 @@ function schoolName(row: GateRow): string | null {
 }
 
 /**
- * Pull the two answers that matter out of the lead's notes.
+ * The two answers that matter, from wherever this lead actually has them.
  *
- * The inquiry form's GREATNESS and challenges answers are the whole reason a
- * school leader can make this call at all, so they belong on the decision screen
- * rather than one click away. Notes are free text, so this is best-effort and
- * returns null rather than guessing.
+ * A lead that came through the inquiry form keeps them in
+ * `admissions_interest_answers`. A lead loaded by hand or by import has them in
+ * free-text notes instead. Both are real and both belong on the decision screen,
+ * so try the structured source first and fall back to parsing notes.
+ *
+ * An earlier version read notes only, which meant every lead from the actual
+ * inquiry form — the ones this gate exists to serve — showed a school leader a
+ * blank card.
  */
-function extractAnswer(notes: string | null, label: string): string | null {
+function extractFromNotes(notes: string | null, label: string): string | null {
   if (!notes) return null;
   const line = notes.split("\n").find((l) => l.toLowerCase().startsWith(label.toLowerCase()));
   if (!line) return null;
@@ -131,8 +136,17 @@ export async function listPendingGates(): Promise<
 
   if (error) return { error: error.message };
 
-  const gates = (data as unknown as GateRow[]).map((row): PendingGate => {
+  const rows = data as unknown as GateRow[];
+
+  // One lookup per waiting decision. The list is short by nature — it is the
+  // set of families a human has not yet answered for.
+  const highlights = await Promise.all(
+    rows.map((row) => getInquiryHighlights(row.lead_id).catch(() => ({ greatness: null, challenges: null })))
+  );
+
+  const gates = rows.map((row, index): PendingGate => {
     const lead = row.admissions_leads;
+    const fromInquiry = highlights[index];
     const guardian = [lead?.guardian_first_name, lead?.guardian_last_name]
       .filter(Boolean)
       .join(" ")
@@ -147,8 +161,8 @@ export async function listPendingGates(): Promise<
       schoolName: schoolName(row),
       grade: lead?.current_grade ?? null,
       leadStage: lead?.lead_stage ?? "",
-      greatness: extractAnswer(lead?.notes ?? null, "GREATNESS"),
-      challenges: extractAnswer(lead?.notes ?? null, "Challenges"),
+      greatness: fromInquiry.greatness ?? extractFromNotes(lead?.notes ?? null, "GREATNESS"),
+      challenges: fromInquiry.challenges ?? extractFromNotes(lead?.notes ?? null, "Challenges"),
       createdAt: row.created_at,
       notifyCount: row.notify_count,
     };

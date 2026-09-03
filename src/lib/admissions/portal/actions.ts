@@ -13,6 +13,7 @@ import type { GradeValue } from "@/lib/constants/grades";
 import { parseProgramValue } from "@/lib/constants/programs";
 import { parseFundingSourcesFromForm } from "@/lib/funding/helpers";
 import { recordInitialStage } from "@/lib/admissions/workflow";
+import { carryForwardInquiryAnswers } from "@/lib/admissions/interest-form/carry-forward";
 import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import {
   getApplicationDocuments,
@@ -141,6 +142,31 @@ export async function startApplication(leadId: string, schoolYearId: string) {
   await supabase.rpc("ensure_state_funding_verifications", {
     p_application_id: data.id,
   });
+
+  /**
+   * Carry forward what the family already told us on their inquiry.
+   *
+   * The application invitation email promises they will not have to repeat
+   * themselves. A failure here must not block the application from opening —
+   * a family who cannot start is worse off than one who retypes one answer —
+   * so it is logged and the application proceeds.
+   */
+  try {
+    const carried = await carryForwardInquiryAnswers(leadId, data.id);
+    if ("error" in carried) {
+      console.error("[startApplication] inquiry answers not carried forward", {
+        leadId,
+        applicationId: data.id,
+        error: carried.error,
+      });
+    }
+  } catch (carryError) {
+    console.error("[startApplication] inquiry carry-forward threw", {
+      leadId,
+      applicationId: data.id,
+      error: carryError instanceof Error ? carryError.message : String(carryError),
+    });
+  }
 
   await transitionCaseStage(supabase, leadId, "application_started", user?.id ?? null);
 
