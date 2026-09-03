@@ -29,6 +29,13 @@ export interface ActivateStudentResult {
   success: boolean;
   billingAccountId?: string;
   invoiceId?: string;
+  /**
+   * True when the student was enrolled but no tuition plan existed to bill
+   * from, so no invoice was created and a task was opened instead. The caller
+   * must surface this — an enrollment with no price is not a finished
+   * enrollment, it is one waiting on the business department.
+   */
+  tuitionPlanMissing?: boolean;
   journeyId?: string;
   courseSectionId?: string | null;
   assessmentInterviewId?: string | null;
@@ -51,7 +58,7 @@ export async function activateStudentFromAdmissions(
 
     await activateFamilyPortalAccess(supabase, input);
     const billingAccountId = await provisionFamilyBillingAccount(supabase, input);
-    const invoiceId = await activateTuitionBilling(supabase, {
+    const { invoiceId, planMissing } = await activateTuitionBilling(supabase, {
       ...input,
       billingAccountId,
     });
@@ -111,6 +118,7 @@ export async function activateStudentFromAdmissions(
         journeyId,
         assessmentInterviewId,
         invoiceId,
+        tuitionPlanMissing: planMissing,
       },
     });
 
@@ -118,6 +126,7 @@ export async function activateStudentFromAdmissions(
       success: true,
       billingAccountId,
       invoiceId,
+      tuitionPlanMissing: planMissing,
       journeyId,
       courseSectionId,
       assessmentInterviewId,
@@ -192,10 +201,26 @@ async function provisionFamilyBillingAccount(
   });
 }
 
+/**
+ * Bill the family for what they actually agreed to — or bill them nothing and
+ * say so.
+ *
+ * This used to end `if (!plan) return undefined;`: no tuition plan meant no
+ * invoice, no error, and `success: true`. In practice it never reached that
+ * branch, because migration 056 seeded every school a placeholder plan called
+ * "Standard Tuition — <school>" at $12,000/yr. So the real behaviour was worse
+ * than a silent skip: every enrolling family was invoiced $1,000/month from a
+ * number nobody chose, marked `invoice_status: "sent"` while nobody was told.
+ *
+ * Migration 248 archives those placeholders. That makes the no-plan branch the
+ * live one, so it can no longer be silent — it opens a task for the business
+ * department, which is what Jimmy's process says should happen the day after
+ * acceptance anyway.
+ */
 async function activateTuitionBilling(
   supabase: AuthClient,
   input: ActivateStudentFromAdmissionsInput & { billingAccountId: string }
-): Promise<string | undefined> {
+): Promise<{ invoiceId?: string; planMissing: boolean }> {
   const { data: existingInvoice } = await supabase
     .from("invoices")
     .select("id")
@@ -203,7 +228,7 @@ async function activateTuitionBilling(
     .limit(1)
     .maybeSingle();
 
-  if (existingInvoice) return existingInvoice.id;
+  if (existingInvoice) return { invoiceId: existingInvoice.id, planMissing: false };
 
   let planQuery = supabase
     .from("tuition_plans")
@@ -229,7 +254,26 @@ async function activateTuitionBilling(
     plan = fallbackPlan;
   }
 
-  if (!plan) return undefined;
+  if (!plan) {
+    // Enrollment still completes — the student is real, the family is real, the
+    // billing account is real. Only the price is unknown, and inventing one is
+    // how a family gets an invoice for a number nobody agreed to.
+    await supabase.from("admissions_tasks").insert({
+      lead_id: input.leadId,
+      task_name: "Set tuition before first invoice — no plan for this school",
+      due_date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+      task_status: "open",
+      assigned_to_user_id: null,
+    });
+
+    console.warn("[activateTuitionBilling] enrolled with no tuition plan; no invoice created", {
+      studentId: input.studentId,
+      schoolId: input.schoolId,
+      program: input.program,
+    });
+
+    return { planMissing: true };
+  }
 
   const dueDate = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0]!;
   const invoiceNumber = `ENR-${input.studentId.slice(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}`;
@@ -243,7 +287,7 @@ async function activateTuitionBilling(
     description: `Initial tuition — ${plan.name}`,
   });
 
-  return invoiceId;
+  return { invoiceId, planMissing: false };
 }
 
 /** Provision billing account — callable from admissions automation. */

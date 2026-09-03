@@ -73,17 +73,14 @@ export async function getEnrollmentPacket(applicationId: string): Promise<Enroll
 
   if (!packet) return null;
 
-  const { data: lead } = await supabase
-    .from("admissions_leads")
-    .select("school_id")
-    .eq("id", packet.lead_id)
-    .single();
-
+  // The packet carries its own school_id (set at generation). Re-deriving it
+  // from the lead added a second query that can fail, and `?? ""` turned that
+  // failure into an empty template list rather than an error.
   const [templatesResult, signaturesResult] = await Promise.all([
     supabase
       .from("enrollment_packet_templates")
       .select("*")
-      .eq("school_id", lead?.school_id ?? "")
+      .eq("school_id", packet.school_id)
       .eq("is_active", true)
       .order("sort_order"),
     supabase
@@ -140,10 +137,14 @@ export async function signEnrollmentDocument(formData: FormData) {
     .eq("id", packetId)
     .single();
 
-  const { data: templates } = await supabase
+  if (!packet) {
+    return { error: "That enrollment packet could not be found." };
+  }
+
+  const { data: templates, error: templatesError } = await supabase
     .from("enrollment_packet_templates")
     .select("template_key, requires_signature")
-    .eq("school_id", packet?.school_id ?? "")
+    .eq("school_id", packet.school_id)
     .eq("is_active", true)
     .eq("requires_signature", true);
 
@@ -154,6 +155,23 @@ export async function signEnrollmentDocument(formData: FormData) {
 
   const requiredKeys = new Set((templates ?? []).map((t) => t.template_key));
   const signedKeys = new Set((signatures ?? []).map((s) => s.template_key));
+
+  // An empty required set makes `.every()` vacuously true.
+  //
+  // That is not a theoretical edge: a failed read here — an RLS refusal, a
+  // school with no active templates, the old `school_id ?? ""` lookup — used to
+  // mark the packet "completed" on the FIRST signature, which passed
+  // completeEnrollmentHandoff's gate, which created a student, a family billing
+  // account and an invoice for a family that had signed nothing.
+  //
+  // A contract we cannot enumerate is a contract nobody has agreed to. Refuse.
+  if (templatesError || !templates || templates.length === 0) {
+    return {
+      error:
+        "This school has no active enrollment documents, so the packet cannot be completed. " +
+        "Set them up before enrolling this family.",
+    };
+  }
 
   const allSigned = [...requiredKeys].every((k) => signedKeys.has(k));
 
@@ -179,7 +197,7 @@ export async function signEnrollmentDocument(formData: FormData) {
       "@/lib/admissions/handoff/complete-enrollment-handoff"
     );
     const handoff = await completeEnrollmentHandoff(supabase, {
-      leadId: packet!.lead_id,
+      leadId: packet.lead_id,
       applicationId,
       actorUserId: null,
     });
@@ -193,18 +211,26 @@ export async function signEnrollmentDocument(formData: FormData) {
       };
     }
 
-    revalidatePath(`/dashboard/admissions/cases/${packet!.lead_id}`);
-    revalidatePath(`/dashboard/admissions/leads/${packet!.lead_id}`);
+    revalidatePath(`/dashboard/admissions/cases/${packet.lead_id}`);
+    revalidatePath(`/dashboard/admissions/leads/${packet.lead_id}`);
     revalidatePath("/dashboard/admissions");
     revalidatePath("/dashboard/students");
     revalidatePath("/dashboard/teacher");
     revalidatePath(`/apply/portal/${applicationId}`);
-  } else {
-    await supabase
-      .from("enrollment_packets")
-      .update({ packet_status: "partially_signed" })
-      .eq("id", packetId);
+
+    return {
+      success: true,
+      completed: true,
+      // The enrollment worked. The billing did not happen, and saying nothing
+      // here is how a student ends up enrolled and never invoiced.
+      tuitionPlanMissing: handoff.tuitionPlanMissing ?? false,
+    };
   }
 
-  return { success: true, completed: allSigned };
+  await supabase
+    .from("enrollment_packets")
+    .update({ packet_status: "partially_signed" })
+    .eq("id", packetId);
+
+  return { success: true, completed: false };
 }

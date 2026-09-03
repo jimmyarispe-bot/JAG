@@ -37,6 +37,8 @@ export interface CompleteEnrollmentHandoffResult {
   activationError?: string;
   loopErrors?: string[];
   error?: string;
+  /** Enrolled, but nothing was billed — no tuition plan existed. */
+  tuitionPlanMissing?: boolean;
 }
 
 /** Execute steps 9–16 after enrollment agreement is fully signed. */
@@ -190,5 +192,6 @@ export async function completeEnrollmentHandoff(
     success: true,
     studentId: conversion.studentId,
     conversion,
+    tuitionPlanMissing: activation.tuitionPlanMissing ?? false,
   };
 }
