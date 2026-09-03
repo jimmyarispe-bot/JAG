@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { answerDecisionGate, withdrawDecisionGate } from "@/lib/admissions/gates/actions";
 import { GATES, type PendingGate } from "@/lib/admissions/gates/definitions";
+import { gradeLabel } from "@/lib/constants/grades";
 
 /**
  * One card per waiting decision.
@@ -90,7 +91,12 @@ export function PendingDecisionsPanel({ initial }: { initial: PendingGate[] }) {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="text-lg font-semibold text-slate-900">{gate.studentName}</h2>
                 <p className="text-sm text-slate-500">
-                  {[gate.schoolName, gate.grade].filter(Boolean).join(" · ")}
+                  {/* gradeLabel, not the raw column. This rendered "11th_grade" to a school
+                      leader on the one screen where nothing should distract from the
+                      child. Every other surface in the product already uses it. */}
+                  {[gate.schoolName, gate.grade ? gradeLabel(gate.grade) : null]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </div>
               <p className="mt-2 text-base font-medium text-academy">{definition.question}</p>

@@ -17,6 +17,7 @@ import {
   type GateBranch,
 } from "@/lib/admissions/gates/definitions";
 import { LEAD_STAGES } from "@/lib/constants/admissions";
+import { GRADES, gradeLabel } from "@/lib/constants/grades";
 import { COMMUNICATION_TRIGGER_EVENTS, MERGE_FIELDS } from "@/lib/admissions/communications/types";
 
 const allBranches: GateBranch[] = GATE_KEYS.flatMap((k) => [...GATES[k].branches]);
@@ -163,6 +164,24 @@ describe("withdrawing a gate", () => {
       expect(answers).not.toContain("withdraw");
       expect(answers).toHaveLength(2);
     }
+  });
+});
+
+describe("what a school leader reads on the card", () => {
+  it("has a human label for every grade a lead can hold", () => {
+    // The card rendered the raw column once — "11th_grade" — on the one screen
+    // where nothing should distract from the child.
+    for (const grade of GRADES) {
+      expect(gradeLabel(grade.value)).toBe(grade.label);
+      expect(gradeLabel(grade.value)).not.toContain("_");
+    }
+  });
+
+  it("leaves an unrecognised grade readable rather than blank", () => {
+    // Leads imported from elsewhere carry free text. Showing it is better than
+    // showing nothing.
+    expect(gradeLabel("Year 9")).toBe("Year 9");
+    expect(gradeLabel(null)).toBe("—");
   });
 });
 
