@@ -35,6 +35,13 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   "interview_reminder_24h",
   "interview_reminder_2h",
   "additional_info_requested",
+  // Decision gates (247). A gate asks a school leader a question; these are the
+  // branches it can send.
+  "decision_gate_opened",
+  "application_invited",
+  "application_not_invited",
+  "shadow_days_invited",
+  "shadow_days_not_invited",
   "student_accepted",
   "student_waitlisted",
   "student_declined",
@@ -69,6 +76,10 @@ export const MERGE_FIELDS = [
   "upload_link",
   /** The school's own Google appointment-schedule URL. */
   "scheduling_link",
+  /** Shadow-days booking link. Separate calendar from tours -- see migration 247. */
+  "shadow_days_link",
+  /** Deep link to the pending-decisions page, for the staff gate notification. */
+  "decisions_link",
   "admissions_contact_name",
   "admissions_contact_email",
   /** Straight to the lead in the dashboard — for staff mail only. */
@@ -100,6 +111,11 @@ export type MergeField = (typeof MERGE_FIELDS)[number];
 
 export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   inquiry_submitted: "Inquiry Submitted",
+  decision_gate_opened: "Decision Waiting (staff)",
+  application_invited: "Invited to Apply",
+  application_not_invited: "Inquiry Closed With Thanks",
+  shadow_days_invited: "Invited to Shadow Days",
+  shadow_days_not_invited: "Application Declined",
   tour_scheduled: "Tour Scheduled",
   tour_reminder_24h: "Tour Reminder (24h)",
   tour_reminder_2h: "Tour Reminder (2h)",

@@ -3205,6 +3205,124 @@ export type Database = {
           },
         ]
       }
+      person_documents: {
+        Row: {
+          category: string | null
+          created_at: string
+          external_url: string | null
+          file_name: string | null
+          file_size_bytes: number | null
+          id: string
+          mime_type: string | null
+          notes: string | null
+          source: string
+          storage_path: string | null
+          subject_id: string
+          subject_type: string
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          external_url?: string | null
+          file_name?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          source?: string
+          storage_path?: string | null
+          subject_id: string
+          subject_type: string
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          external_url?: string | null
+          file_name?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          source?: string
+          storage_path?: string | null
+          subject_id?: string
+          subject_type?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admissions_decision_gates: {
+        Row: {
+          answer: string | null
+          answer_notes: string | null
+          answered_at: string | null
+          answered_by: string | null
+          created_at: string
+          decision_id: string | null
+          gate_key: string
+          id: string
+          lead_id: string
+          notified_at: string | null
+          notify_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          answer_notes?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          created_at?: string
+          decision_id?: string | null
+          gate_key: string
+          id?: string
+          lead_id: string
+          notified_at?: string | null
+          notify_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          answer_notes?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          created_at?: string
+          decision_id?: string | null
+          gate_key?: string
+          id?: string
+          lead_id?: string
+          notified_at?: string | null
+          notify_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admissions_decision_gates_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "admissions_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_adjustments: {
         Row: {
           adjustment_type: string

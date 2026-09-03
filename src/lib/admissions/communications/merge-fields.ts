@@ -41,6 +41,13 @@ export interface MergeContext {
   admissionsContactEmail?: string | null;
   schedulingUrl?: string | null;
   /**
+   * Shadow-days booking link. Deliberately not the same as schedulingUrl: tours
+   * and shadow days are different appointments with different lengths, and
+   * sending a family to the wrong calendar at that point in the process is not a
+   * small mistake.
+   */
+  shadowDaysUrl?: string | null;
+  /**
    * The school's own From address. Not a merge field — nothing renders it into
    * a body — but it rides along here because this is the object the delivery
    * path already carries, and threading a parallel one would be two things to
@@ -100,6 +107,8 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
      * reached with an empty value on a link-bearing template.
      */
     scheduling_link: ctx.schedulingUrl ?? "",
+    shadow_days_link: ctx.shadowDaysUrl ?? "",
+    decisions_link: `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
     admissions_contact_name: ctx.admissionsContactName ?? "Admissions",
     admissions_contact_email: ctx.admissionsContactEmail ?? "",
     lead_link: ctx.leadId

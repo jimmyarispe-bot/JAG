@@ -37,6 +37,7 @@ type SchoolContact = {
   admissions_contact_email?: string | null;
   admissions_booking_url?: string | null;
   admissions_from_email?: string | null;
+  shadow_days_url?: string | null;
 };
 
 type LeadStaffHint = {
@@ -93,6 +94,7 @@ function buildMergeContextFromParts(
     admissionsContactName: clean(schoolOf(lead)?.admissions_contact_name),
     admissionsContactEmail: clean(schoolOf(lead)?.admissions_contact_email),
     schedulingUrl: clean(schoolOf(lead)?.admissions_booking_url),
+    shadowDaysUrl: clean(schoolOf(lead)?.shadow_days_url),
     fromEmail: clean(schoolOf(lead)?.admissions_from_email),
     program: lead.program,
     campusName: tour.campusName,
