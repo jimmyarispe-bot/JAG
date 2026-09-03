@@ -293,3 +293,55 @@ export async function answerDecisionGate(formData: FormData) {
   revalidatePath("/dashboard/people");
   return { ok: true as const, answer: branch.answer };
 }
+
+/**
+ * Withdraw a gate without answering it.
+ *
+ * For the case that has no other exit: a gate opened by a stage change someone
+ * is undoing — a mistake, a test, a lead moved to the wrong stage. Answering it
+ * would email the family, which is precisely the thing that must not happen for
+ * a decision nobody meant to make.
+ *
+ * Withdrawing is not deleting. The row stays with its reason, so "why did this
+ * family's decision disappear?" has an answer. And because the partial unique
+ * index only covers pending rows, withdrawing frees the lead to have the gate
+ * open again if they genuinely reach that stage later.
+ */
+export async function withdrawDecisionGate(formData: FormData) {
+  const auth = await assertAnyPermission("admissions.accept", "admissions.manage");
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const gateId = String(formData.get("gate_id") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim();
+
+  if (!reason) {
+    // A withdrawal with no reason is indistinguishable later from a gate that
+    // vanished on its own.
+    return { error: "Say why this is being withdrawn — it stays on the record." };
+  }
+
+  const stamp = new Date().toISOString();
+  const { data: withdrawn, error } = await supabase
+    .from(GATE_TABLE)
+    .update({
+      status: "withdrawn",
+      answer_notes: `Withdrawn by ${user?.email ?? "unknown user"} on ${stamp}: ${reason}`,
+    })
+    .eq("id", gateId)
+    .eq("status", "pending")
+    .select("id");
+
+  if (error) return { error: error.message };
+  // Same race guard as answering: zero rows means it stopped being pending
+  // between the page loading and this click.
+  if (!withdrawn?.length) {
+    return { error: "That decision is no longer pending — it may have just been answered." };
+  }
+
+  revalidatePath("/dashboard/admissions/decisions");
+  return { ok: true as const };
+}

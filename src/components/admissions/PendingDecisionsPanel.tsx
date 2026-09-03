@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { answerDecisionGate } from "@/lib/admissions/gates/actions";
+import { answerDecisionGate, withdrawDecisionGate } from "@/lib/admissions/gates/actions";
 import { GATES, type PendingGate } from "@/lib/admissions/gates/definitions";
 
 /**
@@ -21,6 +21,8 @@ export function PendingDecisionsPanel({ initial }: { initial: PendingGate[] }) {
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
   const [pending, startTransition] = useTransition();
 
   function answer(gate: PendingGate, value: string) {
@@ -38,6 +40,26 @@ export function PendingDecisionsPanel({ initial }: { initial: PendingGate[] }) {
         setError(result.error);
         return;
       }
+      setGates((prev) => prev.filter((g) => g.id !== gate.id));
+    });
+  }
+
+  function withdraw(gate: PendingGate) {
+    setError(null);
+    setBusyId(gate.id);
+    const formData = new FormData();
+    formData.set("gate_id", gate.id);
+    formData.set("reason", reason);
+
+    startTransition(async () => {
+      const result = await withdrawDecisionGate(formData);
+      setBusyId(null);
+      if (result && "error" in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      setWithdrawing(null);
+      setReason("");
       setGates((prev) => prev.filter((g) => g.id !== gate.id));
     });
   }
@@ -132,6 +154,59 @@ export function PendingDecisionsPanel({ initial }: { initial: PendingGate[] }) {
                     <p className="mt-1 text-xs text-slate-500">{branch.consequence}</p>
                   </div>
                 ))}
+              </div>
+
+              {/* Deliberately small, plain, and set apart from the two answers.
+                  This is not a third way to decide about a child — it is the
+                  exit for a decision that should never have been asked. */}
+              <div className="mt-5 border-t border-slate-100 pt-3">
+                {withdrawing === gate.id ? (
+                  <div className="space-y-2">
+                    <label className="block">
+                      <span className="text-xs font-medium text-slate-600">
+                        Why is this being withdrawn? Kept on the record.
+                      </span>
+                      <input
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="e.g. stage was changed by mistake"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={busy || !reason.trim()}
+                        onClick={() => withdraw(gate)}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        {busy ? "Withdrawing…" : "Confirm withdraw"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWithdrawing(null);
+                          setReason("");
+                        }}
+                        className="rounded-lg px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      No email is sent to the family. The decision is removed from this list and
+                      the reason stays on the record.
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawing(gate.id)}
+                    className="text-xs text-slate-500 underline hover:text-slate-700"
+                  >
+                    Withdraw without answering
+                  </button>
+                )}
               </div>
             </div>
           </section>

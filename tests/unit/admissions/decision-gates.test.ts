@@ -147,6 +147,25 @@ describe("which gate opens at which stage", () => {
   });
 });
 
+describe("withdrawing a gate", () => {
+  // Withdrawal is not one of the branches, and must never be reachable as an
+  // answer — a family must not receive email because someone undid a stage.
+  it("is not an answer any gate accepts", () => {
+    for (const key of GATE_KEYS) {
+      expect(branchFor(GATES[key], "withdraw")).toBeNull();
+      expect(branchFor(GATES[key], "withdrawn")).toBeNull();
+    }
+  });
+
+  it("is not one of the two branches offered on any card", () => {
+    for (const key of GATE_KEYS) {
+      const answers = GATES[key].branches.map((b) => b.answer);
+      expect(answers).not.toContain("withdraw");
+      expect(answers).toHaveLength(2);
+    }
+  });
+});
+
 describe("merge fields the gate emails depend on", () => {
   it("knows shadow_days_link and decisions_link", () => {
     // renderTemplate leaves an UNKNOWN token in place as literal text, so a
