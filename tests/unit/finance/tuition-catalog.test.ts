@@ -15,7 +15,11 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { parseTuitionAmount } from "@/lib/finance/tuition-catalog-shared";
+import {
+  parseTuitionAmount,
+  periodLabel,
+  oneToOneMonthlyCharge,
+} from "@/lib/finance/tuition-catalog-shared";
 
 const createAuthClient = vi.fn();
 vi.mock("@/lib/supabase/server-auth", () => ({
@@ -143,7 +147,8 @@ describe("who pays is derived, not stored", () => {
               school_id: VIRTUAL,
               catalog_item_id: "item-lit-lab",
               standard_amount: 750,
-              one_to_one_amount: 1200,
+              offered_one_to_one: true,
+              one_to_one_session_rate: 95,
               billing_frequency: "monthly",
               is_active: true,
             },
@@ -172,7 +177,8 @@ describe("who pays is derived, not stored", () => {
               school_id: FL,
               catalog_item_id: "item-lit-lab",
               standard_amount: 500,
-              one_to_one_amount: null,
+              offered_one_to_one: false,
+              one_to_one_session_rate: null,
               billing_frequency: "monthly",
               is_active: true,
             },
@@ -205,7 +211,8 @@ describe("what the grid tells a school leader", () => {
               school_id: VIRTUAL,
               catalog_item_id: "item-lit-lab",
               standard_amount: null,
-              one_to_one_amount: null,
+              offered_one_to_one: false,
+              one_to_one_session_rate: null,
               billing_frequency: "monthly",
               is_active: true,
             },
@@ -214,7 +221,8 @@ describe("what the grid tells a school leader", () => {
               school_id: HS,
               catalog_item_id: "item-hs-experience",
               standard_amount: 850,
-              one_to_one_amount: null,
+              offered_one_to_one: false,
+              one_to_one_session_rate: null,
               billing_frequency: "monthly",
               is_active: true,
             },
@@ -260,7 +268,8 @@ describe("what the grid tells a school leader", () => {
               school_id: VIRTUAL,
               catalog_item_id: "item-that-was-deactivated",
               standard_amount: 100,
-              one_to_one_amount: null,
+              offered_one_to_one: false,
+              one_to_one_session_rate: null,
               billing_frequency: "monthly",
               is_active: true,
             },
@@ -272,5 +281,82 @@ describe("what the grid tells a school leader", () => {
     const result = await loadGrid();
     if ("error" in result) throw new Error(result.error);
     expect(result.groups).toHaveLength(0);
+  });
+});
+
+describe("1:1 is priced per session, not per month", () => {
+  it("multiplies the rate by the sessions a parent asked for", () => {
+    // Lit Lab at $95 a session, eight sessions this month.
+    expect(oneToOneMonthlyCharge(95, 8)).toBe(760);
+    expect(oneToOneMonthlyCharge(112.5, 4)).toBe(450);
+  });
+
+  it("charges nothing for no sessions", () => {
+    expect(oneToOneMonthlyCharge(95, 0)).toBe(0);
+  });
+
+  it("refuses to guess when the rate is unknown", () => {
+    // Null, not zero. Zero is a number somebody could bill; null is the system
+    // saying it does not know, which is the only honest answer.
+    expect(oneToOneMonthlyCharge(null, 8)).toBeNull();
+  });
+
+  it("refuses a session count that is not a whole non-negative number", () => {
+    expect(oneToOneMonthlyCharge(95, -1)).toBeNull();
+    expect(oneToOneMonthlyCharge(95, 2.5)).toBeNull();
+  });
+
+  it("rounds to cents", () => {
+    expect(oneToOneMonthlyCharge(33.333, 3)).toBe(100);
+  });
+});
+
+describe("every amount states its period", () => {
+  it("names the period for each billing frequency", () => {
+    expect(periodLabel("monthly")).toBe("month");
+    expect(periodLabel("annual")).toBe("year");
+    expect(periodLabel("semester")).toBe("semester");
+    expect(periodLabel("quarterly")).toBe("quarter");
+    expect(periodLabel("weekly")).toBe("week");
+    expect(periodLabel("per_session")).toBe("session");
+  });
+
+  it("shows an unknown frequency rather than asserting a period it does not know", () => {
+    // Silently calling something "month" because we have no label for it is
+    // how an annual figure gets read as monthly.
+    expect(periodLabel("fortnightly")).toBe("fortnightly");
+  });
+});
+
+describe("not offered and not priced are different facts", () => {
+  it("reads offered_one_to_one straight through rather than inferring it from a blank", async () => {
+    createAuthClient.mockResolvedValue(
+      makeClient({
+        schools: SCHOOLS,
+        tuition_catalog_items: ITEMS,
+        tuition_school_prices: {
+          data: [
+            {
+              id: "offered-unpriced",
+              school_id: VIRTUAL,
+              catalog_item_id: "item-lit-lab",
+              standard_amount: 750,
+              billing_frequency: "monthly",
+              offered_one_to_one: true,
+              one_to_one_session_rate: null,
+              is_active: true,
+            },
+          ],
+        },
+      })
+    );
+
+    const result = await loadGrid();
+    if ("error" in result) throw new Error(result.error);
+
+    const row = result.groups[0]!.rows[0]!;
+    // Sold 1:1, just not priced yet. The old screen called this "not offered".
+    expect(row.offeredOneToOne).toBe(true);
+    expect(row.oneToOneSessionRate).toBeNull();
   });
 });

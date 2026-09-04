@@ -21,9 +21,14 @@ export interface TuitionPriceRow {
   readonly providerSchoolName: string;
   /** False when the attending school is not the provider: owed school to school. */
   readonly billedToFamily: boolean;
+  /** Price for one billing period. The period is `billingFrequency`. */
   readonly standardAmount: number | null;
-  readonly oneToOneAmount: number | null;
+  /** Which period `standardAmount` covers. Monthly for Virtual and HS. */
   readonly billingFrequency: string;
+  /** Whether this item is sold 1:1 at all. */
+  readonly offeredOneToOne: boolean;
+  /** Price of ONE 1:1 session. The month's charge is sessions × this. */
+  readonly oneToOneSessionRate: number | null;
   readonly isActive: boolean;
   readonly sortOrder: number;
 }
@@ -34,6 +39,33 @@ export interface TuitionSchoolGroup {
   readonly rows: TuitionPriceRow[];
   /** How many rows still have no standard price. Nothing may bill for these. */
   readonly unpriced: number;
+}
+
+/**
+ * The word for one billing period, for putting after an amount.
+ *
+ * A price with no stated period is how a school-year figure gets typed into a
+ * monthly field. "$850" and "$850 / month" are not the same claim, and the
+ * screen should only ever make the second one.
+ */
+export function periodLabel(billingFrequency: string): string {
+  switch (billingFrequency) {
+    case "monthly":
+      return "month";
+    case "annual":
+      return "year";
+    case "semester":
+      return "semester";
+    case "quarterly":
+      return "quarter";
+    case "weekly":
+      return "week";
+    case "per_session":
+      return "session";
+    default:
+      // Better to show the raw value than to assert a period we do not know.
+      return billingFrequency;
+  }
 }
 
 /**
@@ -58,4 +90,20 @@ export function parseTuitionAmount(
   if (n > 1_000_000) return { error: "That price looks wrong — over $1,000,000." };
 
   return { value: Math.round(n * 100) / 100 };
+}
+
+/**
+ * What a family owes this month for 1:1 sessions of one class.
+ *
+ * Deliberately returns null rather than 0 when the rate is unknown or the item
+ * is not sold 1:1. Zero is a number somebody could bill; null is the system
+ * saying it does not know, which is the only honest answer here.
+ */
+export function oneToOneMonthlyCharge(
+  sessionRate: number | null,
+  sessions: number
+): number | null {
+  if (sessionRate === null) return null;
+  if (!Number.isInteger(sessions) || sessions < 0) return null;
+  return Math.round(sessionRate * sessions * 100) / 100;
 }

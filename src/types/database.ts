@@ -3276,7 +3276,9 @@ export type Database = {
           id: string
           is_active: boolean
           notes: string | null
+          offered_one_to_one: boolean
           one_to_one_amount: number | null
+          one_to_one_session_rate: number | null
           school_id: string
           standard_amount: number | null
           updated_at: string
@@ -3288,7 +3290,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
+          offered_one_to_one?: boolean
           one_to_one_amount?: number | null
+          one_to_one_session_rate?: number | null
           school_id: string
           standard_amount?: number | null
           updated_at?: string
@@ -3300,7 +3304,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
+          offered_one_to_one?: boolean
           one_to_one_amount?: number | null
+          one_to_one_session_rate?: number | null
           school_id?: string
           standard_amount?: number | null
           updated_at?: string

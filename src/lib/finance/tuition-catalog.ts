@@ -29,7 +29,7 @@ export async function listTuitionPriceGrid(): Promise<
     supabase
       .from("tuition_school_prices")
       .select(
-        "id, school_id, catalog_item_id, standard_amount, one_to_one_amount, billing_frequency, is_active"
+        "id, school_id, catalog_item_id, standard_amount, billing_frequency, offered_one_to_one, one_to_one_session_rate, is_active"
       ),
     supabase
       .from("tuition_catalog_items")
@@ -67,8 +67,9 @@ export async function listTuitionPriceGrid(): Promise<
       providerSchoolName: schoolNameById.get(item.provider_school_id) ?? "(unknown school)",
       billedToFamily: item.provider_school_id === price.school_id,
       standardAmount: price.standard_amount,
-      oneToOneAmount: price.one_to_one_amount,
       billingFrequency: price.billing_frequency,
+      offeredOneToOne: price.offered_one_to_one,
+      oneToOneSessionRate: price.one_to_one_session_rate,
       isActive: price.is_active,
       sortOrder: item.sort_order,
     });

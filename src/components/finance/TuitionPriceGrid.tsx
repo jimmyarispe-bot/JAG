@@ -2,21 +2,24 @@
 
 import { useState, useTransition } from "react";
 import { setTuitionPrice } from "@/lib/finance/tuition-catalog-actions";
-import type {
-  TuitionSchoolGroup,
-  TuitionPriceRow,
+import {
+  periodLabel,
+  type TuitionSchoolGroup,
+  type TuitionPriceRow,
 } from "@/lib/finance/tuition-catalog-shared";
 
 /**
  * The price grid, one school at a time.
  *
- * Two things this screen refuses to blur:
+ * Three things this screen refuses to blur:
  *
  *   - Blank is not zero. A blank price means the system may not bill for this
  *     item yet, and it says so rather than showing "$0.00".
- *   - A row the family does not pay for says who owes it instead. FL students
- *     take Virtual classes; that money is owed school to school, and the row
- *     should never read like something a parent will be charged.
+ *   - Every amount states its period. "$850" and "$850 / month" are different
+ *     claims, and a field that makes neither is how a school-year figure ends
+ *     up billed twelve times.
+ *   - "Not offered" and "not priced" are different facts. The 1:1 column used
+ *     to render one blank as both.
  */
 
 function money(n: number | null): string {
@@ -24,30 +27,38 @@ function money(n: number | null): string {
   return n.toFixed(2);
 }
 
-function Amount({ value }: { value: number | null }) {
-  if (value === null) {
-    return <span className="text-slate-400">not set</span>;
-  }
-  return <span className="tabular-nums">${value.toFixed(2)}</span>;
+function Blank({ children }: { children: string }) {
+  return <span className="text-slate-400">{children}</span>;
+}
+
+interface SavedState {
+  standard: number | null;
+  offeredOneToOne: boolean;
+  sessionRate: number | null;
 }
 
 function Row({ row }: { row: TuitionPriceRow }) {
   const [editing, setEditing] = useState(false);
   const [standard, setStandard] = useState(money(row.standardAmount));
-  const [oneToOne, setOneToOne] = useState(money(row.oneToOneAmount));
-  const [saved, setSaved] = useState<{ standard: number | null; oneToOne: number | null }>({
+  const [sessionRate, setSessionRate] = useState(money(row.oneToOneSessionRate));
+  const [offered, setOffered] = useState(row.offeredOneToOne);
+  const [saved, setSaved] = useState<SavedState>({
     standard: row.standardAmount,
-    oneToOne: row.oneToOneAmount,
+    offeredOneToOne: row.offeredOneToOne,
+    sessionRate: row.oneToOneSessionRate,
   });
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const period = periodLabel(row.billingFrequency);
 
   function save() {
     setError(null);
     const formData = new FormData();
     formData.set("price_id", row.priceId);
     formData.set("standard_amount", standard);
-    formData.set("one_to_one_amount", oneToOne);
+    formData.set("one_to_one_session_rate", sessionRate);
+    formData.set("offered_one_to_one", offered ? "true" : "false");
 
     startTransition(async () => {
       const result = await setTuitionPrice(formData);
@@ -57,12 +68,15 @@ function Row({ row }: { row: TuitionPriceRow }) {
       }
       if (result && "ok" in result) {
         // Read back what the server actually stored, not what was typed. If it
-        // parsed "1,200" to 1200 or an empty box to null, the row must show
-        // that rather than the string still sitting in the input.
+        // parsed "1,200" to 1200, or dropped a rate because the item is not
+        // sold 1:1, the row must show that rather than the string still sitting
+        // in the input.
         setSaved({
           standard: result.standardAmount ?? null,
-          oneToOne: result.oneToOneAmount ?? null,
+          offeredOneToOne: result.offeredOneToOne ?? false,
+          sessionRate: result.oneToOneSessionRate ?? null,
         });
+        setSessionRate(money(result.oneToOneSessionRate ?? null));
         setEditing(false);
       }
     });
@@ -70,7 +84,8 @@ function Row({ row }: { row: TuitionPriceRow }) {
 
   function cancel() {
     setStandard(money(saved.standard));
-    setOneToOne(money(saved.oneToOne));
+    setSessionRate(money(saved.sessionRate));
+    setOffered(saved.offeredOneToOne);
     setError(null);
     setEditing(false);
   }
@@ -93,22 +108,38 @@ function Row({ row }: { row: TuitionPriceRow }) {
       {editing ? (
         <>
           <td className="px-4 py-3">
-            <input
-              inputMode="decimal"
-              value={standard}
-              onChange={(e) => setStandard(e.target.value)}
-              placeholder="blank = not set"
-              className="w-28 rounded-lg border border-slate-200 px-2 py-1 text-sm tabular-nums"
-            />
+            <div className="flex items-baseline gap-1">
+              <input
+                inputMode="decimal"
+                value={standard}
+                onChange={(e) => setStandard(e.target.value)}
+                placeholder="blank = not set"
+                className="w-28 rounded-lg border border-slate-200 px-2 py-1 text-sm tabular-nums"
+              />
+              <span className="text-xs text-slate-500">/ {period}</span>
+            </div>
           </td>
           <td className="px-4 py-3">
-            <input
-              inputMode="decimal"
-              value={oneToOne}
-              onChange={(e) => setOneToOne(e.target.value)}
-              placeholder="blank = not offered"
-              className="w-28 rounded-lg border border-slate-200 px-2 py-1 text-sm tabular-nums"
-            />
+            <label className="flex items-center gap-2 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={offered}
+                onChange={(e) => setOffered(e.target.checked)}
+              />
+              Sold 1:1
+            </label>
+            {offered ? (
+              <div className="mt-1 flex items-baseline gap-1">
+                <input
+                  inputMode="decimal"
+                  value={sessionRate}
+                  onChange={(e) => setSessionRate(e.target.value)}
+                  placeholder="per session"
+                  className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-sm tabular-nums"
+                />
+                <span className="text-xs text-slate-500">/ session</span>
+              </div>
+            ) : null}
           </td>
           <td className="px-4 py-3 text-right">
             <button
@@ -132,13 +163,25 @@ function Row({ row }: { row: TuitionPriceRow }) {
       ) : (
         <>
           <td className="px-4 py-3 text-sm">
-            <Amount value={saved.standard} />
+            {saved.standard === null ? (
+              <Blank>not set</Blank>
+            ) : (
+              <>
+                <span className="tabular-nums">${saved.standard.toFixed(2)}</span>
+                <span className="ml-1 text-xs text-slate-500">/ {period}</span>
+              </>
+            )}
           </td>
           <td className="px-4 py-3 text-sm">
-            {saved.oneToOne === null ? (
-              <span className="text-slate-400">not offered</span>
+            {!saved.offeredOneToOne ? (
+              <Blank>not offered</Blank>
+            ) : saved.sessionRate === null ? (
+              <Blank>not set</Blank>
             ) : (
-              <Amount value={saved.oneToOne} />
+              <>
+                <span className="tabular-nums">${saved.sessionRate.toFixed(2)}</span>
+                <span className="ml-1 text-xs text-slate-500">/ session</span>
+              </>
             )}
           </td>
           <td className="px-4 py-3 text-right">
@@ -187,11 +230,12 @@ export function TuitionPriceGrid({ groups }: { groups: TuitionSchoolGroup[] }) {
                 <tr className="text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-4 py-2 font-medium">Item</th>
                   <th className="px-4 py-2 font-medium">
-                    Standard
+                    Tuition
                     <span className="ml-1 normal-case text-slate-400">(program or a la carte)</span>
                   </th>
                   <th className="px-4 py-2 font-medium">
-                    1:1<span className="ml-1 normal-case text-slate-400">(tutoring)</span>
+                    1:1 tutoring
+                    <span className="ml-1 normal-case text-slate-400">(rate per session)</span>
                   </th>
                   <th className="px-4 py-2" />
                 </tr>
@@ -203,6 +247,11 @@ export function TuitionPriceGrid({ groups }: { groups: TuitionSchoolGroup[] }) {
               </tbody>
             </table>
           </div>
+
+          <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+            A 1:1 month is sessions requested × the rate per session. The session count belongs to
+            the family&rsquo;s plan, not to the price.
+          </p>
         </section>
       ))}
     </div>

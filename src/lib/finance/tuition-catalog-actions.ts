@@ -27,12 +27,17 @@ export async function setTuitionPrice(formData: FormData) {
 
   const standard = parseTuitionAmount(formData.get("standard_amount"));
   if ("error" in standard) return { error: standard.error };
-  const oneToOne = parseTuitionAmount(formData.get("one_to_one_amount"));
-  if ("error" in oneToOne) return { error: oneToOne.error };
+  const sessionRate = parseTuitionAmount(formData.get("one_to_one_session_rate"));
+  if ("error" in sessionRate) return { error: sessionRate.error };
+  const offeredOneToOne = String(formData.get("offered_one_to_one") ?? "") === "true";
+
+  // A rate on an item nobody sells 1:1 is a number waiting to be billed by
+  // mistake. If it is not offered, it has no rate.
+  const rate = offeredOneToOne ? sessionRate.value : null;
 
   const { data: existing, error: readError } = await supabase
     .from("tuition_school_prices")
-    .select("id, school_id, catalog_item_id, standard_amount, one_to_one_amount")
+    .select("id, school_id, catalog_item_id, standard_amount, offered_one_to_one, one_to_one_session_rate")
     .eq("id", priceId)
     .maybeSingle();
 
@@ -49,7 +54,8 @@ export async function setTuitionPrice(formData: FormData) {
     .from("tuition_school_prices")
     .update({
       standard_amount: standard.value,
-      one_to_one_amount: oneToOne.value,
+      offered_one_to_one: offeredOneToOne,
+      one_to_one_session_rate: rate,
       updated_at: new Date().toISOString(),
     })
     .eq("id", priceId)
@@ -75,15 +81,22 @@ export async function setTuitionPrice(formData: FormData) {
       catalogItemId: existing.catalog_item_id,
       from: {
         standard: existing.standard_amount,
-        oneToOne: existing.one_to_one_amount,
+        offeredOneToOne: existing.offered_one_to_one,
+        sessionRate: existing.one_to_one_session_rate,
       },
       to: {
         standard: standard.value,
-        oneToOne: oneToOne.value,
+        offeredOneToOne,
+        sessionRate: rate,
       },
     },
   });
 
   revalidatePath("/dashboard/finance/tuition");
-  return { ok: true as const, standardAmount: standard.value, oneToOneAmount: oneToOne.value };
+  return {
+    ok: true as const,
+    standardAmount: standard.value,
+    offeredOneToOne,
+    oneToOneSessionRate: rate,
+  };
 }
