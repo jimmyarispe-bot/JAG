@@ -14,18 +14,23 @@
 
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import type {
+  BundleDiscountRow,
   TuitionPriceRow,
   TuitionSchoolGroup,
 } from "@/lib/finance/tuition-catalog-shared";
 
-export type { TuitionPriceRow, TuitionSchoolGroup } from "@/lib/finance/tuition-catalog-shared";
+export type {
+  BundleDiscountRow,
+  TuitionPriceRow,
+  TuitionSchoolGroup,
+} from "@/lib/finance/tuition-catalog-shared";
 
 export async function listTuitionPriceGrid(): Promise<
   { groups: TuitionSchoolGroup[] } | { error: string }
 > {
   const supabase = await createAuthClient();
 
-  const [pricesResult, itemsResult, schoolsResult] = await Promise.all([
+  const [pricesResult, itemsResult, schoolsResult, discountsResult] = await Promise.all([
     supabase
       .from("tuition_school_prices")
       .select(
@@ -36,6 +41,10 @@ export async function listTuitionPriceGrid(): Promise<
       .select("id, item_code, display_name, item_kind, provider_school_id, description, sort_order")
       .eq("is_active", true),
     supabase.from("schools").select("id, name"),
+    supabase
+      .from("tuition_bundle_discounts")
+      .select("id, school_id, name, package_item_id, min_additional_items, amount")
+      .eq("is_active", true),
   ]);
 
   // Every one of these can be refused by RLS, and an empty grid would look
@@ -43,6 +52,11 @@ export async function listTuitionPriceGrid(): Promise<
   if (pricesResult.error) return { error: `Could not read prices: ${pricesResult.error.message}` };
   if (itemsResult.error) return { error: `Could not read the catalog: ${itemsResult.error.message}` };
   if (schoolsResult.error) return { error: `Could not read schools: ${schoolsResult.error.message}` };
+  // A discount that silently fails to load would quietly overbill every family
+  // it applies to. Refuse the whole screen rather than render it short.
+  if (discountsResult.error) {
+    return { error: `Could not read bundle discounts: ${discountsResult.error.message}` };
+  }
 
   const itemById = new Map((itemsResult.data ?? []).map((i) => [i.id, i]));
   const schoolNameById = new Map((schoolsResult.data ?? []).map((s) => [s.id, s.name]));
@@ -82,12 +96,28 @@ export async function listTuitionPriceGrid(): Promise<
     bySchool.set(row.schoolId, list);
   }
 
+  const discountsBySchool = new Map<string, BundleDiscountRow[]>();
+  for (const d of discountsResult.data ?? []) {
+    const pkg = itemById.get(d.package_item_id);
+    const list = discountsBySchool.get(d.school_id) ?? [];
+    list.push({
+      id: d.id,
+      name: d.name,
+      packageItemId: d.package_item_id,
+      packageName: pkg?.display_name ?? "(unknown package)",
+      minAdditionalItems: d.min_additional_items,
+      amount: d.amount,
+    });
+    discountsBySchool.set(d.school_id, list);
+  }
+
   const groups: TuitionSchoolGroup[] = [...bySchool.entries()]
     .map(([schoolId, list]) => ({
       schoolId,
       schoolName: list[0]!.schoolName,
       rows: list.sort((a, b) => a.sortOrder - b.sortOrder || a.itemName.localeCompare(b.itemName)),
       unpriced: list.filter((r) => r.standardAmount === null).length,
+      bundleDiscounts: discountsBySchool.get(schoolId) ?? [],
     }))
     .sort((a, b) => a.schoolName.localeCompare(b.schoolName));
 

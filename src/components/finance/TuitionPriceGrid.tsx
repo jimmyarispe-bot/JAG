@@ -248,6 +248,24 @@ export function TuitionPriceGrid({ groups }: { groups: TuitionSchoolGroup[] }) {
             </table>
           </div>
 
+          {group.bundleDiscounts.length > 0 ? (
+            <div className="border-t border-slate-100 px-5 py-3">
+              <p className="text-xs font-medium text-slate-700">Bundle discounts</p>
+              <ul className="mt-1 space-y-1">
+                {group.bundleDiscounts.map((d) => (
+                  <li key={d.id} className="text-xs text-slate-600">
+                    <span className="font-medium">−${d.amount.toFixed(2)} / month</span> when a
+                    family holds {d.packageName} plus{" "}
+                    {d.minAdditionalItems === 1
+                      ? "at least one other class"
+                      : `at least ${d.minAdditionalItems} other classes`}
+                    . Applies once, however many they add.
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
             A 1:1 month is sessions requested × the rate per session. The session count belongs to
             the family&rsquo;s plan, not to the price.

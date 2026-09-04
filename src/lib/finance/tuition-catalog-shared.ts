@@ -33,12 +33,26 @@ export interface TuitionPriceRow {
   readonly sortOrder: number;
 }
 
+export interface BundleDiscountRow {
+  readonly id: string;
+  readonly name: string;
+  readonly packageItemId: string;
+  readonly packageName: string;
+  readonly minAdditionalItems: number;
+  readonly amount: number;
+}
+
 export interface TuitionSchoolGroup {
   readonly schoolId: string;
   readonly schoolName: string;
   readonly rows: TuitionPriceRow[];
   /** How many rows still have no standard price. Nothing may bill for these. */
   readonly unpriced: number;
+  /**
+   * Bundle discounts this school applies. Shown on the screen because a rule
+   * that silently takes money off an invoice is a rule nobody can check.
+   */
+  readonly bundleDiscounts: BundleDiscountRow[];
 }
 
 /**

@@ -3205,6 +3205,42 @@ export type Database = {
           },
         ]
       }
+      tuition_bundle_discounts: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          is_active: boolean
+          min_additional_items: number
+          name: string
+          package_item_id: string
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_additional_items?: number
+          name: string
+          package_item_id: string
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_additional_items?: number
+          name?: string
+          package_item_id?: string
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tuition_catalog_items: {
         Row: {
           created_at: string

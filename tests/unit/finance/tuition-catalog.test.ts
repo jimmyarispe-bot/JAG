@@ -140,6 +140,7 @@ describe("who pays is derived, not stored", () => {
       makeClient({
         schools: SCHOOLS,
         tuition_catalog_items: ITEMS,
+        tuition_bundle_discounts: { data: [] },
         tuition_school_prices: {
           data: [
             {
@@ -170,6 +171,7 @@ describe("who pays is derived, not stored", () => {
       makeClient({
         schools: SCHOOLS,
         tuition_catalog_items: ITEMS,
+        tuition_bundle_discounts: { data: [] },
         tuition_school_prices: {
           data: [
             {
@@ -204,6 +206,7 @@ describe("what the grid tells a school leader", () => {
       makeClient({
         schools: SCHOOLS,
         tuition_catalog_items: ITEMS,
+        tuition_bundle_discounts: { data: [] },
         tuition_school_prices: {
           data: [
             {
@@ -247,6 +250,7 @@ describe("what the grid tells a school leader", () => {
       makeClient({
         schools: SCHOOLS,
         tuition_catalog_items: ITEMS,
+        tuition_bundle_discounts: { data: [] },
         tuition_school_prices: { data: null, error: { message: "permission denied" } },
       })
     );
@@ -261,6 +265,7 @@ describe("what the grid tells a school leader", () => {
       makeClient({
         schools: SCHOOLS,
         tuition_catalog_items: ITEMS,
+        tuition_bundle_discounts: { data: [] },
         tuition_school_prices: {
           data: [
             {
@@ -334,6 +339,7 @@ describe("not offered and not priced are different facts", () => {
       makeClient({
         schools: SCHOOLS,
         tuition_catalog_items: ITEMS,
+        tuition_bundle_discounts: { data: [] },
         tuition_school_prices: {
           data: [
             {
