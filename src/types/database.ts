@@ -3205,6 +3205,159 @@ export type Database = {
           },
         ]
       }
+      tuition_catalog_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean
+          item_code: string
+          item_kind: string
+          provider_school_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          item_code: string
+          item_kind: string
+          provider_school_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          item_code?: string
+          item_kind?: string
+          provider_school_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tuition_package_items: {
+        Row: {
+          created_at: string
+          id: string
+          member_item_id: string
+          package_item_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_item_id: string
+          package_item_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_item_id?: string
+          package_item_id?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      tuition_school_prices: {
+        Row: {
+          billing_frequency: string
+          catalog_item_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          one_to_one_amount: number | null
+          school_id: string
+          standard_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          billing_frequency?: string
+          catalog_item_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          one_to_one_amount?: number | null
+          school_id: string
+          standard_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          billing_frequency?: string
+          catalog_item_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          one_to_one_amount?: number | null
+          school_id?: string
+          standard_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      interschool_tuition_charges: {
+        Row: {
+          amount: number
+          catalog_item_id: string
+          created_at: string
+          delivery_mode: string
+          id: string
+          owed_school_id: string
+          owing_school_id: string
+          period_end: string
+          period_start: string
+          settled_at: string | null
+          status: string
+          status_reason: string | null
+          student_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          catalog_item_id: string
+          created_at?: string
+          delivery_mode?: string
+          id?: string
+          owed_school_id: string
+          owing_school_id: string
+          period_end: string
+          period_start: string
+          settled_at?: string | null
+          status?: string
+          status_reason?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          catalog_item_id?: string
+          created_at?: string
+          delivery_mode?: string
+          id?: string
+          owed_school_id?: string
+          owing_school_id?: string
+          period_end?: string
+          period_start?: string
+          settled_at?: string | null
+          status?: string
+          status_reason?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       person_documents: {
         Row: {
           category: string | null
