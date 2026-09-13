@@ -12,7 +12,8 @@ import { PROSPECT_INVITE_BATCH_LIMIT } from "@/lib/admissions/portal/prospect-in
 type Candidate = {
   guardianId: string;
   email: string | null;
-  accountAlreadyExists: boolean;
+  /** undefined = no account. Otherwise, what kind of account it is. */
+  account?: { isStaff: boolean };
 };
 
 type Decision = { invite: true } | { invite: false; because: string };
@@ -21,22 +22,31 @@ function decide(c: Candidate): Decision {
   if (!c.email || c.email.trim() === "") {
     return { invite: false, because: "no_email" };
   }
-  if (c.accountAlreadyExists) {
-    return { invite: false, because: "account_exists" };
+  if (c.account?.isStaff) {
+    return { invite: false, because: "staff_account" };
+  }
+  if (c.account) {
+    return { invite: false, because: "already_invited" };
   }
   return { invite: true };
 }
 
+/** PARENT and nothing else is a parent account. Anything else is staff. */
+function classify(roles: readonly string[]): { isStaff: boolean } {
+  const parentOnly = roles.length > 0 && roles.every((r) => r === "PARENT");
+  return { isStaff: !parentOnly };
+}
+
 describe("who gets invited", () => {
   it("invites a parent with an email and no account", () => {
-    expect(decide({ guardianId: "g1", email: "parent@example.com", accountAlreadyExists: false }))
+    expect(decide({ guardianId: "g1", email: "parent@example.com" }))
       .toEqual({ invite: true });
   });
 
   it("skips a guardian with no email — there is nothing to send to", () => {
-    expect(decide({ guardianId: "g2", email: null, accountAlreadyExists: false }))
+    expect(decide({ guardianId: "g2", email: null }))
       .toEqual({ invite: false, because: "no_email" });
-    expect(decide({ guardianId: "g3", email: "   ", accountAlreadyExists: false }))
+    expect(decide({ guardianId: "g3", email: "   " }))
       .toEqual({ invite: false, because: "no_email" });
   });
 
@@ -55,24 +65,61 @@ describe("who gets invited", () => {
    * So an existing account is refused outright. Never upgraded, never merged,
    * never re-invited.
    */
-  it("refuses an address that already has an account, whoever it belongs to", () => {
-    expect(decide({ guardianId: "g4", email: "jimmy.arispe@gmail.com", accountAlreadyExists: true }))
-      .toEqual({ invite: false, because: "account_exists" });
+  it("refuses an address that belongs to a staff account", () => {
+    expect(decide({ guardianId: "g4", email: "jimmy.arispe@gmail.com", account: classify(["PLATFORM_OWNER", "TEAM_MEMBER"]) }))
+      .toEqual({ invite: false, because: "staff_account" });
   });
 
   it("refuses it even when everything else about the row is fine", () => {
-    const perfect = { guardianId: "g5", email: "nina.gaddy@theacademyga.org", accountAlreadyExists: true };
+    const perfect = {
+      guardianId: "g5",
+      email: "nina.gaddy@theacademyga.org",
+      account: classify(["SCHOOL_LEADER"]),
+    };
     expect(decide(perfect).invite).toBe(false);
+  });
+
+  /**
+   * THE ONE THAT CAUSED A BUG IN PRODUCTION, on 12 September, minutes after
+   * shipping. The page revalidates after a successful send, the candidate list
+   * re-runs, and it finds the account that did not exist when it last rendered.
+   * Wording that as "refused" put a warning directly above the words
+   * "Invitation sent" — the reader assumes they broke something and presses
+   * again.
+   *
+   * Sending is still refused. What changes is that it reads as done, not denied.
+   */
+  it("reports an existing PARENT account as already invited, not as a refusal", () => {
+    expect(decide({ guardianId: "g7", email: "lana@example.com", account: classify(["PARENT"]) }))
+      .toEqual({ invite: false, because: "already_invited" });
   });
 
   /**
    * Fail closed. If the check for existing accounts errors, every address is
    * treated as taken — not knowing is the one state in which inviting is unsafe.
    */
-  it("treats an unknown account state as taken", () => {
-    const unknownIsTreatedAsExisting = true;
-    expect(decide({ guardianId: "g6", email: "someone@example.com", accountAlreadyExists: unknownIsTreatedAsExisting }).invite)
-      .toBe(false);
+  it("treats an unknown account state as staff", () => {
+    // The lookup errored, so every address is treated as taken AND as staff —
+    // the reading that refuses.
+    expect(decide({ guardianId: "g6", email: "someone@example.com", account: { isStaff: true } }))
+      .toEqual({ invite: false, because: "staff_account" });
+  });
+});
+
+describe("classifying an existing account", () => {
+  it("calls PARENT-only a parent account", () => {
+    expect(classify(["PARENT"]).isStaff).toBe(false);
+  });
+
+  it("calls any other role staff", () => {
+    expect(classify(["SCHOOL_LEADER"]).isStaff).toBe(true);
+    expect(classify(["PARENT", "TEAM_MEMBER"]).isStaff).toBe(true);
+    expect(classify(["FOUNDER"]).isStaff).toBe(true);
+  });
+
+  /** An account with no roles is an unknown, and an unknown must refuse. */
+  it("calls no roles at all staff", () => {
+    expect(classify([]).isStaff).toBe(true);
   });
 });
 

@@ -43,15 +43,24 @@ export async function inviteProspectGuardiansAction(formData: FormData) {
   // browser is a school id somebody can change.
   const { data: lead, error: leadError } = await supabase
     .from("admissions_leads")
-    .select("id, school_id, schools(name, organization_id)")
+    .select(
+      "id, school_id, first_name, preferred_name, schools(name, organization_id, admissions_contact_name)"
+    )
     .eq("id", leadId)
     .maybeSingle();
 
   if (leadError) return { error: leadError.message };
   if (!lead) return { error: "That case could not be found." };
 
-  const school = (lead as { schools?: { name?: string; organization_id?: string } | null })
-    .schools;
+  const school = (
+    lead as {
+      schools?: {
+        name?: string;
+        organization_id?: string;
+        admissions_contact_name?: string | null;
+      } | null;
+    }
+  ).schools;
 
   if (!school?.organization_id) {
     return {
@@ -60,11 +69,24 @@ export async function inviteProspectGuardiansAction(formData: FormData) {
     };
   }
 
+  // The letter is about a child and is signed by a person, so both come from
+  // the record rather than from anything the browser sent. A preferred name is
+  // what the family calls them and beats the legal first name in a letter home.
+  const leadRow = lead as {
+    school_id: string;
+    first_name?: string | null;
+    preferred_name?: string | null;
+  };
+  const childName =
+    (leadRow.preferred_name ?? "").trim() || (leadRow.first_name ?? "").trim();
+
   const result = await inviteProspectGuardians({
     leadId,
     guardianIds,
     organizationId: school.organization_id,
-    schoolId: String((lead as { school_id: string }).school_id),
+    schoolId: String(leadRow.school_id),
+    childName,
+    signatory: (school.admissions_contact_name ?? "").trim() || "The Admissions Team",
   });
 
   revalidatePath(`/dashboard/admissions/cases/${leadId}`);

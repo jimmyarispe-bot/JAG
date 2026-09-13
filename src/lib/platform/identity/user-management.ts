@@ -11,6 +11,7 @@ import { recordActivity } from "@/lib/platform/activity";
 import {
   sendInvitationEmail,
   sendPasswordResetEmail,
+  sendTransactionalEmail,
   sendWelcomeEmail,
 } from "@/lib/platform/email";
 import { resolveActorUserId } from "@/lib/platform/shared/context";
@@ -38,6 +39,35 @@ export type ManagedUserInput = {
   department?: string | null;
   managerUserId?: string | null;
   status: UserManagementStatus;
+  /**
+   * Replaces the invitation email for this one account.
+   *
+   * The default is staff onboarding copy — "You've been invited to join The
+   * Academy Way" — which is right for a colleague and wrong for a parent. A
+   * family who enquired about their child receives that and is being invited to
+   * join an organisation, with no mention of the child and no explanation of
+   * what is behind the link.
+   *
+   * The caller supplies the subject and a function that builds the body around
+   * the activation link, because only the caller knows whose parent this is.
+   * Omitted, nothing changes.
+   */
+  invitation?: {
+    subject: string;
+    buildBody: (inviteLink: string) => string;
+  };
+  /**
+   * Where this person lands after setting their password.
+   *
+   * Without it the activation flow falls back to `/dashboard`, which requires
+   * ACADEMYOS_ACCESS. A staff invite is fine there. A PARENT is not: the
+   * PARENT_ACCESS group grants `portal.parent.access` and nothing else, so a
+   * family would follow a link promising their admissions application, set a
+   * password, and be bounced off a staff route.
+   *
+   * Must be a same-origin path; `safeInternalPath` rejects anything else.
+   */
+  activationNext?: string;
 };
 
 export type ManagedUserResult = {
@@ -256,12 +286,20 @@ export async function createManagedUser(
         appUrl: appUrl(),
         tokenHash,
         type: "invite",
+        next: input.activationNext,
       });
-      const inviteMail = await sendInvitationEmail({
-        to: email,
-        inviteLink,
-        recipientName: name,
-      });
+      const inviteMail = input.invitation
+        ? await sendTransactionalEmail({
+            kind: "invitation",
+            to: email,
+            subject: input.invitation.subject,
+            body: input.invitation.buildBody(inviteLink),
+          })
+        : await sendInvitationEmail({
+            to: email,
+            inviteLink,
+            recipientName: name,
+          });
       if (!inviteMail.success && process.env.NODE_ENV === "production") {
         return fail(inviteMail.error ?? "Failed to send invitation email");
       }

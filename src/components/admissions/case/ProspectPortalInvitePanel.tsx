@@ -20,10 +20,18 @@ import type { ProspectInviteCandidate } from "@/lib/admissions/portal/prospect-i
  * login credentials from their child's school, before anybody has spoken to
  * them, is a phone call somebody has to take.
  *
- * WHY SOME ROWS CANNOT BE SELECTED. A guardian with no email has nothing to
- * send to. A guardian whose address already has a JAG account is refused
- * outright — creating an account over an existing one replaces the roles on it,
- * and these addresses are typed by whoever filled in the public form.
+ * WHY SOME ROWS CANNOT BE SELECTED, and why the two reasons read differently.
+ * A guardian with no email has nothing to send to. A guardian whose address
+ * belongs to a STAFF account is refused outright in amber — creating an account
+ * over an existing one replaces the roles on it, and these addresses are typed
+ * by whoever filled in the public form. A guardian who already has a PARENT
+ * account is simply done, and says so quietly.
+ *
+ * The distinction is not cosmetic. The commonest way a row reaches the second
+ * state is that somebody pressed the button a moment ago: the page revalidates,
+ * the list re-runs, and the account it finds is the one just created. Wording
+ * both cases as a refusal produced a card reading "Invitation sent" directly
+ * beneath a warning that the invitation was refused.
  */
 export function ProspectPortalInvitePanel({
   leadId,
@@ -118,7 +126,14 @@ export function ProspectPortalInvitePanel({
                     {c.email ? <EmailLink email={c.email} /> : "No email address"}
                   </span>
                   {c.skipReason && (
-                    <span className="mt-1 block text-xs text-amber-700">{c.skipReason}</span>
+                    <span
+                      className={`mt-1 block text-xs ${
+                        c.skip === "staff_account" ? "text-amber-700" : "text-slate-500"
+                      }`}
+                    >
+                      {c.skip === "already_invited" && "✓ "}
+                      {c.skipReason}
+                    </span>
                   )}
                 </span>
               </label>

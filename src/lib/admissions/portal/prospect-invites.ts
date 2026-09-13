@@ -54,13 +54,20 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { createManagedUser } from "@/lib/platform/identity/user-management";
+import {
+  PROSPECT_INVITE_SUBJECT,
+  PROSPECT_PORTAL_PATH,
+  buildProspectInviteBody,
+} from "@/lib/admissions/portal/prospect-invite-email";
 
 /** One call, one family. Higher than this and a mistake stops being recoverable. */
 export const PROSPECT_INVITE_BATCH_LIMIT = 4;
 
 export type ProspectInviteSkip =
   | "no_email"
-  | "account_exists"
+  /** The address belongs to somebody with staff roles. Never invite. */
+  | "staff_account"
+  /** The address already has a parent account — usually one we just created. */
   | "already_invited";
 
 export type ProspectInviteCandidate = {
@@ -97,37 +104,84 @@ function clean(value: string | null | undefined): string | null {
 }
 
 /**
- * Which emails already have an account.
+ * Which emails already have an account, and what kind.
  *
- * One query for the whole batch rather than one per guardian — and it reads
- * `public.users` rather than `auth.users` because that is the table
- * `is_guardian_of_lead` joins, and the table `createManagedUser` would collide
- * with.
+ * WHY THE KIND MATTERS. Both cases are reasons not to send, and they are not the
+ * same sentence. A staff address must never be invited, because
+ * `createManagedUser` would replace that person's roles. A parent address that
+ * already has an account is simply done — and the commonest way to reach that
+ * state is to have pressed the button a moment ago, since the page revalidates
+ * and the list re-runs against an account that did not exist when it last
+ * rendered.
+ *
+ * Conflating them produced a card that said "Invitation sent" and, directly
+ * above it, that the invitation was refused. Somebody reading that assumes they
+ * broke something and presses it again.
+ *
+ * PARENT-only is treated as a parent account. Any other role, or no role at all,
+ * is treated as staff — an account with no roles is an unknown, and the safe
+ * reading of an unknown is the one that refuses.
+ *
+ * Reads `public.users` rather than `auth.users`: that is the table
+ * `is_guardian_of_lead` joins and the one `createManagedUser` would collide with.
  */
-async function existingAccountEmails(
+type ExistingAccount = { isStaff: boolean };
+
+async function existingAccounts(
   admin: ReturnType<typeof createServiceRoleClient>,
   emails: readonly string[]
-): Promise<Set<string>> {
+): Promise<Map<string, ExistingAccount>> {
   const wanted = [...new Set(emails.map((e) => e.toLowerCase()))].filter(Boolean);
-  if (!wanted.length) return new Set();
+  if (!wanted.length) return new Map();
 
   const { data, error } = await admin
     .from("users")
-    .select("email")
+    .select("id, email")
     .in("email", wanted);
 
   if (error) {
     // Fail closed. Not knowing whether an account exists is the one state in
-    // which inviting is unsafe, so treat every address as taken.
+    // which inviting is unsafe, so treat every address as taken AND as staff —
+    // the reading that refuses.
     console.error("[prospect-invites] could not check existing accounts", error.message);
-    return new Set(wanted);
+    return new Map(wanted.map((e) => [e, { isStaff: true }]));
   }
 
-  return new Set(
-    (data ?? [])
-      .map((row) => (row as { email: string | null }).email?.toLowerCase())
-      .filter((e): e is string => Boolean(e))
-  );
+  const rows = (data ?? []) as unknown as { id: string; email: string | null }[];
+  if (!rows.length) return new Map();
+
+  const { data: roleRows, error: roleError } = await admin
+    .from("user_roles")
+    .select("user_id, roles(name)")
+    .in("user_id", rows.map((r) => r.id));
+
+  if (roleError) {
+    console.error("[prospect-invites] could not read roles", roleError.message);
+    return new Map(rows.map((r) => [(r.email ?? "").toLowerCase(), { isStaff: true }]));
+  }
+
+  const rolesByUser = new Map<string, string[]>();
+  for (const row of (roleRows ?? []) as unknown as {
+    user_id: string;
+    roles: { name: string } | { name: string }[] | null;
+  }[]) {
+    const names = Array.isArray(row.roles)
+      ? row.roles.map((r) => r.name)
+      : row.roles
+        ? [row.roles.name]
+        : [];
+    rolesByUser.set(row.user_id, [...(rolesByUser.get(row.user_id) ?? []), ...names]);
+  }
+
+  const out = new Map<string, ExistingAccount>();
+  for (const row of rows) {
+    const email = (row.email ?? "").toLowerCase();
+    if (!email) continue;
+    const names = rolesByUser.get(row.id) ?? [];
+    const parentOnly = names.length > 0 && names.every((n) => n === "PARENT");
+    out.set(email, { isStaff: !parentOnly });
+  }
+  return out;
 }
 
 /**
@@ -152,7 +206,7 @@ export async function listProspectInviteCandidates(
   }
 
   const rows = (data ?? []) as unknown as LeadGuardianRow[];
-  const taken = await existingAccountEmails(
+  const taken = await existingAccounts(
     admin,
     rows.map((r) => clean(r.email) ?? "").filter(Boolean)
   );
@@ -160,6 +214,7 @@ export async function listProspectInviteCandidates(
   return rows.map((row) => {
     const email = clean(row.email);
     const lower = email?.toLowerCase() ?? "";
+    const account = lower ? taken.get(lower) : undefined;
 
     let skip: ProspectInviteSkip | null = null;
     let skipReason: string | null = null;
@@ -167,10 +222,14 @@ export async function listProspectInviteCandidates(
     if (!email) {
       skip = "no_email";
       skipReason = "No email address on this guardian, so there is nothing to send to.";
-    } else if (taken.has(lower)) {
-      skip = "account_exists";
+    } else if (account?.isStaff) {
+      skip = "staff_account";
       skipReason =
-        "This address already has a JAG account. Inviting it would replace that account's roles, so it is refused. If this parent should have portal access, check the existing account instead.";
+        "This address belongs to a staff account. Inviting it would replace that person's roles, so it is refused. If this parent needs portal access, use a different address.";
+    } else if (account) {
+      skip = "already_invited";
+      skipReason =
+        "Already has a parent account and can sign in — nothing more to send.";
     }
 
     return {
@@ -198,6 +257,10 @@ export async function inviteProspectGuardians(input: {
   guardianIds: readonly string[];
   organizationId: string;
   schoolId: string;
+  /** The child this family enquired about — the letter is about them. */
+  childName: string;
+  /** Campus admissions contact, who signs it. */
+  signatory: string;
 }): Promise<{ invited: ProspectInviteOutcome[]; skipped: number }> {
   const admin = createServiceRoleClient();
   const ids = input.guardianIds.slice(0, PROSPECT_INVITE_BATCH_LIMIT);
@@ -215,7 +278,7 @@ export async function inviteProspectGuardians(input: {
   }
 
   const rows = (data ?? []) as unknown as LeadGuardianRow[];
-  const taken = await existingAccountEmails(
+  const taken = await existingAccounts(
     admin,
     rows.map((r) => clean(r.email) ?? "").filter(Boolean)
   );
@@ -231,13 +294,23 @@ export async function inviteProspectGuardians(input: {
       continue;
     }
 
-    if (taken.has(email.toLowerCase())) {
+    const account = taken.get(email.toLowerCase());
+    if (account?.isStaff) {
       invited.push({
         guardianId: row.id,
         email,
         ok: false,
         error:
-          "Refused: that address already has a JAG account, and inviting it would replace the roles on it.",
+          "Refused: that address belongs to a staff account, and inviting it would replace the roles on it.",
+      });
+      continue;
+    }
+    if (account) {
+      invited.push({
+        guardianId: row.id,
+        email,
+        ok: false,
+        error: "Already has a parent account — nothing sent.",
       });
       continue;
     }
@@ -250,6 +323,27 @@ export async function inviteProspectGuardians(input: {
       schoolIds: [input.schoolId],
       role: "PARENT",
       status: "pending_invite",
+      /**
+       * Where the link actually ends.
+       *
+       * The letter says "create your JAG account and complete your admissions
+       * application", so it has to finish on the application. Without this the
+       * activation flow falls back to /dashboard, which needs ACADEMYOS_ACCESS
+       * — a parent sets a password and is bounced off a staff route, having
+       * been promised their child's application.
+       */
+      activationNext: PROSPECT_PORTAL_PATH,
+      // The parent letter, in place of the staff onboarding copy. See
+      // prospect-invite-email.ts for why that default is wrong here.
+      invitation: {
+        subject: PROSPECT_INVITE_SUBJECT,
+        buildBody: (inviteLink) =>
+          buildProspectInviteBody({
+            childName: input.childName,
+            signatory: input.signatory,
+            inviteLink,
+          }),
+      },
     });
 
     if (!result.success) {
