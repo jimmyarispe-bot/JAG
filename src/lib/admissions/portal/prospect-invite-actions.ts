@@ -87,6 +87,8 @@ export async function inviteProspectGuardiansAction(formData: FormData) {
     schoolId: String(leadRow.school_id),
     childName,
     signatory: (school.admissions_contact_name ?? "").trim() || "The Admissions Team",
+    // Under the signatory, so a family can tell which campus wrote to them.
+    schoolName: (school.name ?? "").trim(),
   });
 
   revalidatePath(`/dashboard/admissions/cases/${leadId}`);

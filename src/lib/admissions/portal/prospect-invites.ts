@@ -261,6 +261,8 @@ export async function inviteProspectGuardians(input: {
   childName: string;
   /** Campus admissions contact, who signs it. */
   signatory: string;
+  /** The campus name, printed under the signatory. */
+  schoolName?: string;
 }): Promise<{ invited: ProspectInviteOutcome[]; skipped: number }> {
   const admin = createServiceRoleClient();
   const ids = input.guardianIds.slice(0, PROSPECT_INVITE_BATCH_LIMIT);
@@ -339,8 +341,13 @@ export async function inviteProspectGuardians(input: {
         subject: PROSPECT_INVITE_SUBJECT,
         buildBody: (inviteLink) =>
           buildProspectInviteBody({
+            // The greeting. clean() returns null when the guardian row has no
+            // first name, and the builder drops the greeting rather than
+            // opening a letter home with a placeholder.
+            parentName: clean(row.first_name) ?? "",
             childName: input.childName,
             signatory: input.signatory,
+            schoolName: input.schoolName,
             inviteLink,
           }),
       },

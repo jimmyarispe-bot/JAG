@@ -81,15 +81,29 @@ function safe(value: string): string {
 }
 
 export function buildProspectInviteBody(input: {
+  /**
+   * The parent's own first name, for the greeting. A letter that opens
+   * "Thank you for spending time with us" with no name in front of it reads
+   * like a circular. Omitted when we do not have a real one — better no
+   * greeting than "Parent/Guardian,".
+   */
+  parentName?: string;
   /** The child this family enquired about. Their first name, as the parent wrote it. */
   childName: string;
   /** Who signs the letter. */
   signatory: string;
+  /**
+   * The campus, under the signatory. A family enquiring at one campus of a
+   * four-campus network should be able to tell from the letter which one wrote
+   * to them. Omitted when we do not have it, rather than printing a blank line.
+   */
+  schoolName?: string;
   /** The activation link. Appears twice, deliberately. */
   inviteLink: string;
 }): string {
   const child = safe(input.childName) || "your child";
   const signedBy = safe(input.signatory) || "The Admissions Team";
+  const campus = safe(input.schoolName ?? "");
   const link = input.inviteLink;
 
   const anchor = (text: string) =>
@@ -104,8 +118,18 @@ export function buildProspectInviteBody(input: {
 
   const paragraph = (html: string) => `  <p style="${PARAGRAPH_STYLE}">${html}</p>`;
 
+  /**
+   * "Parent/Guardian" is the placeholder the invite code falls back to when a
+   * guardian row has no first name. It is fine as a label in a staff list and
+   * wrong as the way to address somebody, so the greeting is dropped instead.
+   */
+  const parent = safe(input.parentName ?? "");
+  const greeting =
+    parent && parent.toLowerCase() !== "parent/guardian" ? [paragraph(`${parent},`)] : [];
+
   return [
     `<div style="${LETTER_STYLE}">`,
+    ...greeting,
     paragraph(
       `Thank you for spending time with us so we could learn about ${child}'s educational needs. As I'm sure you now realize, our school is a joyful, supportive, and positive learning environment where we focus on our students experiencing success and helping them identify their individual GREATNESS.`
     ),
@@ -115,9 +139,9 @@ export function buildProspectInviteBody(input: {
     paragraph(
       `Should you need anything at all during this process, please don't hesitate to reach out to me. Once we review ${child}'s application, you will receive a notice to schedule your shadow day(s). Now please ${completeApplication}.`
     ),
-    // The sign-off is one paragraph, not two: "Sincerely," and the name belong
-    // together, separated by a line break rather than a paragraph gap.
-    paragraph(`Sincerely,<br>${signedBy}`),
+    // The sign-off is one paragraph: "Sincerely,", the person, and the campus
+    // belong together, separated by line breaks rather than paragraph gaps.
+    paragraph(`Sincerely,<br>${signedBy}${campus ? `<br>${campus}` : ""}`),
     `</div>`,
   ].join("\n");
 }

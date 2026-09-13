@@ -12,6 +12,12 @@ import { portalSectionClass } from "./styles";
 interface PortalLeadListProps {
   leads: GuardianPortalLead[];
   schoolYearBySchool: Record<string, { id: string; name: string } | undefined>;
+  /**
+   * True when the school year could not be READ, as opposed to not existing.
+   * Both leave schoolYearBySchool empty and both disable the button, but only
+   * one of them is the family's problem to wait out.
+   */
+  schoolYearFailedBySchool?: Record<string, boolean>;
   /** Shown back to the family so a mismatch is visible rather than mysterious. */
   userEmail: string;
   /** Set when the read failed. Null means it succeeded and genuinely found nothing. */
@@ -21,6 +27,7 @@ interface PortalLeadListProps {
 export function PortalLeadList({
   leads,
   schoolYearBySchool,
+  schoolYearFailedBySchool,
   userEmail,
   loadError,
 }: PortalLeadListProps) {
@@ -101,7 +108,20 @@ export function PortalLeadList({
     <div className="space-y-4">
       {leads.map((lead) => {
         const schoolYear = schoolYearBySchool[lead.school_id];
+        const schoolYearFailed = Boolean(schoolYearFailedBySchool?.[lead.school_id]);
         const activeApplication = lead.applications[0];
+
+        /**
+         * Three states, not two. "School year unavailable" told a family the
+         * school had not set one up — which was a lie whenever the read had
+         * simply been refused, and that is precisely what was happening to
+         * every parent before migration 351.
+         */
+        const idleLabel = schoolYear
+          ? "Start Application"
+          : schoolYearFailed
+            ? "Couldn't load — try again"
+            : "School year unavailable";
 
         return (
           <article key={lead.id} className={portalSectionClass}>
@@ -131,7 +151,7 @@ export function PortalLeadList({
                     status={action.status}
                     verb="submit"
                     labels={{
-                      idle: schoolYear ? "Start Application" : "School year unavailable",
+                      idle: idleLabel,
                       loading: "Starting…",
                       success: "✓ Started",
                     }}

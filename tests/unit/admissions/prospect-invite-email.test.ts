@@ -17,14 +17,54 @@ import {
 const LINK = "https://theacademyway.thejag.org/auth/callback?token_hash=abc&type=invite";
 
 const body = buildProspectInviteBody({
+  parentName: "Lana",
   childName: "Savannah",
   signatory: "Nina Gaddy",
+  schoolName: "The Academy GA",
   inviteLink: LINK,
 });
 
 describe("the subject line", () => {
   it("is the one that was asked for", () => {
     expect(PROSPECT_INVITE_SUBJECT).toBe("Submit your application - The Academy");
+  });
+});
+
+describe("the greeting", () => {
+  /**
+   * A letter that opens "Thank you for spending time with us" with no name in
+   * front of it reads like a circular. The parent's own first name goes at the
+   * top, on its own line.
+   */
+  it("opens with the parent's first name", () => {
+    expect(body).toMatch(/^<div style="[^"]*">\n\s*<p style="[^"]*">Lana,<\/p>/);
+  });
+
+  it("greets the parent, not the child", () => {
+    expect(body).not.toContain("Savannah,</p>");
+  });
+
+  /** Better no greeting than one addressed to a placeholder. */
+  it("omits the greeting when there is no real name", () => {
+    for (const parentName of ["", "   ", "Parent/Guardian", "parent/guardian"]) {
+      const b = buildProspectInviteBody({
+        parentName,
+        childName: "Savannah",
+        signatory: "Nina Gaddy",
+        inviteLink: LINK,
+      });
+      expect(b).not.toMatch(/<p style="[^"]*">[^<]*,<\/p>/);
+      expect(b).toContain("Thank you for spending time with us");
+    }
+  });
+
+  it("still works when no parent name is passed at all", () => {
+    const b = buildProspectInviteBody({
+      childName: "Savannah",
+      signatory: "Nina Gaddy",
+      inviteLink: LINK,
+    });
+    expect(b).toContain("Thank you for spending time with us");
   });
 });
 
@@ -56,6 +96,26 @@ describe("what the letter says", () => {
 
   it("is signed by a person, on the line under the sign-off", () => {
     expect(body).toContain("Sincerely,<br>Nina Gaddy");
+  });
+
+  /**
+   * Four campuses share this letter. Without the campus under the signatory, a
+   * family that enquired at more than one — or simply forgot which — has no way
+   * to tell from the letter who wrote to them.
+   */
+  it("names the campus under the signatory", () => {
+    expect(body).toContain("Sincerely,<br>Nina Gaddy<br>The Academy GA");
+  });
+
+  it("omits the campus line rather than leaving a blank one", () => {
+    const b = buildProspectInviteBody({
+      parentName: "Lana",
+      childName: "Savannah",
+      signatory: "Nina Gaddy",
+      inviteLink: LINK,
+    });
+    expect(b).toContain("Sincerely,<br>Nina Gaddy</p>");
+    expect(b).not.toContain("Nina Gaddy<br></p>");
   });
 });
 
@@ -107,14 +167,15 @@ describe("paragraphs", () => {
    *
    * The layout is now explicit, so it is asserted as markup.
    */
-  it("sends four real paragraphs, not newline-separated text", () => {
+  /** Greeting, the three paragraphs Jimmy wrote, and the sign-off. */
+  it("sends five real paragraphs, not newline-separated text", () => {
     const paragraphs = body.match(/<p style="[^"]*">/g);
-    expect(paragraphs).toHaveLength(4);
+    expect(paragraphs).toHaveLength(5);
   });
 
   it("gives every paragraph a bottom margin, which is the gap itself", () => {
     const opens = [...body.matchAll(/<p style="([^"]*)">/g)];
-    expect(opens).toHaveLength(4);
+    expect(opens).toHaveLength(5);
     for (const [, style] of opens) {
       expect(style).toContain("margin:0 0 16px");
     }

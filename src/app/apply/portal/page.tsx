@@ -35,10 +35,23 @@ export default async function ApplyPortalPage() {
   const schoolYearEntries = await Promise.all(
     schoolIds.map(async (schoolId) => [schoolId, await getCurrentSchoolYear(schoolId)] as const)
   );
+
   const schoolYearBySchool: Record<string, { id: string; name: string } | undefined> =
     Object.fromEntries(
-      schoolYearEntries.map(([schoolId, year]) => [schoolId, year ?? undefined])
+      schoolYearEntries.map(([schoolId, result]) => [
+        schoolId,
+        result.ok ? (result.year ?? undefined) : undefined,
+      ])
     );
+
+  /**
+   * Kept apart from the map above on purpose. "No current year is set" and "we
+   * could not find out" both leave that map empty, and a family deserves to be
+   * told which of the two is standing between them and the application.
+   */
+  const schoolYearFailedBySchool: Record<string, boolean> = Object.fromEntries(
+    schoolYearEntries.map(([schoolId, result]) => [schoolId, !result.ok])
+  );
 
   return (
     <ApplyShell userEmail={sessionUser.email}>
@@ -53,6 +66,7 @@ export default async function ApplyPortalPage() {
         <PortalLeadList
           leads={leads}
           schoolYearBySchool={schoolYearBySchool}
+          schoolYearFailedBySchool={schoolYearFailedBySchool}
           userEmail={sessionUser.email}
           loadError={loadError}
         />

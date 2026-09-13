@@ -109,16 +109,51 @@ export async function getSchoolsForInquiry() {
   return listPublicSchoolsForOrganization(org.organizationId);
 }
 
-export async function getCurrentSchoolYear(schoolId: string) {
+export type CurrentSchoolYear = { id: string; name: string } | null;
+
+/**
+ * The row that decides whether a family can begin.
+ *
+ * Start Application is disabled without a current school year, so this one read
+ * stands between a family and the application they were invited to make. Until
+ * 13 September it was written `const { data } = await …` and returned `data`,
+ * which meant three different worlds arrived as the same `null`:
+ *
+ *   - there is no current year for this campus          (a data problem)
+ *   - the caller may not read school_years              (a policy problem)
+ *   - there is more than one current year, so
+ *     maybeSingle() returns an ERROR rather than a row  (a data problem that
+ *                                                        looks like neither)
+ *
+ * All three disabled the button and said "School year unavailable", which is
+ * true of the first and a lie about the other two. Migration 351 fixed the
+ * policy problem for prospective guardians; this makes the next one visible
+ * instead of leaving the family staring at a dead button.
+ */
+export type CurrentSchoolYearResult =
+  | { ok: true; year: CurrentSchoolYear }
+  | { ok: false };
+
+export async function getCurrentSchoolYear(
+  schoolId: string
+): Promise<CurrentSchoolYearResult> {
   const supabase = await createAuthClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("school_years")
     .select("id, name")
     .eq("school_id", schoolId)
     .eq("is_current", true)
     .maybeSingle();
 
-  return data;
+  if (error) {
+    console.error(
+      `[apply/portal] current school year read failed for school ${schoolId}`,
+      error.message
+    );
+    return { ok: false };
+  }
+
+  return { ok: true, year: (data as CurrentSchoolYear) ?? null };
 }
 
 /**
@@ -274,57 +309,116 @@ export async function getPortalApplication(applicationId: string) {
   };
 }
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * THE FIVE BELOW ARE HALF-FIXED, AND THAT IS DELIBERATE. READ THIS BEFORE
+ * COPYING THE PATTERN.
+ *
+ * Each one still returns an empty list or null when its read fails, so a
+ * refused read still reaches the family as "you have no documents". What has
+ * changed is that it is no longer SILENT: the error is logged, so the next
+ * person debugging an empty upload list has something to find.
+ *
+ * They are not returning a discriminated result like getGuardianPortalLeads and
+ * getCurrentSchoolYear do, because the honest reason is that nobody has ever
+ * walked the document-upload or scholarship screens as a parent. Those tables
+ * have never been read under a PARENT session, so which of these reads a parent
+ * can even perform is unknown. Making them throw would turn an unknown into a
+ * crash page on screens I have not exercised — trading a quiet wrong for a loud
+ * one, on a family mid-application.
+ *
+ * The right time to finish this is while walking the wizard as a parent, when
+ * the logs below will say exactly which reads a parent is refused. Do it then,
+ * and delete this comment.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
 export async function getApplicationDocuments(applicationId: string) {
   const supabase = await createAuthClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("application_documents")
     .select("*")
     .eq("application_id", applicationId)
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(
+      `[apply/portal] application documents read failed for ${applicationId}`,
+      error.message
+    );
+  }
 
   return (data ?? []) as PortalApplicationDocument[];
 }
 
 export async function getStateFundingVerifications(applicationId: string) {
   const supabase = await createAuthClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("state_funding_verifications")
     .select("*")
     .eq("application_id", applicationId)
     .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error(
+      `[apply/portal] state funding verifications read failed for ${applicationId}`,
+      error.message
+    );
+  }
 
   return (data ?? []) as PortalStateFundingVerification[];
 }
 
 export async function getScholarshipForApplication(applicationId: string) {
   const supabase = await createAuthClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("scholarship_applications")
     .select("*")
     .eq("application_id", applicationId)
     .maybeSingle();
+
+  if (error) {
+    console.error(
+      `[apply/portal] scholarship read failed for ${applicationId}`,
+      error.message
+    );
+  }
 
   return (data ?? null) as PortalScholarshipApplication | null;
 }
 
 export async function getScholarshipDocuments(scholarshipApplicationId: string) {
   const supabase = await createAuthClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("scholarship_documents")
     .select("*")
     .eq("scholarship_application_id", scholarshipApplicationId)
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(
+      `[apply/portal] scholarship documents read failed for ${scholarshipApplicationId}`,
+      error.message
+    );
+  }
 
   return (data ?? []) as PortalScholarshipDocument[];
 }
 
 export async function getLeadApplicationsForStaff(leadId: string) {
   const supabase = await createAuthClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("admissions_applications")
     .select(APPLICATION_SELECT)
     .eq("lead_id", leadId)
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(
+      `[admissions] staff application list read failed for lead ${leadId}`,
+      error.message
+    );
+  }
 
   return (data ?? []) as PortalApplication[];
 }
