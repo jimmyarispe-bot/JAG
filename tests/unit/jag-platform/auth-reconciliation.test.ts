@@ -238,7 +238,28 @@ describe("JAG entitlement + Supabase login orchestration", () => {
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.error).toBe(GENERIC_JAG_AUTH_FAILURE);
+
+    /**
+     * DENIAL IS THE ASSERTION. The wording changed on 13 September 2026 and the
+     * change was deliberate — see lib/jag-platform/wrong-door.ts.
+     *
+     * This case is a CORRECT password on an account that does not belong to the
+     * platform. Whoever is reading the screen has just proved they hold the
+     * credentials, so naming the account tells them nothing they did not
+     * demonstrate. Reusing the generic wording here sent a parent round a
+     * password-reset loop three times, being told her correct password was
+     * wrong, with no way to learn she was at the wrong door.
+     *
+     * The generic string still guards the case it exists for — a WRONG
+     * password — and case C below asserts exactly that. If the two ever converge
+     * again, the login form becomes an oracle for which addresses have accounts.
+     */
+    expect(result.error).not.toBe(GENERIC_JAG_AUTH_FAILURE);
+    expect(result.error).toContain("Your password is correct");
+    expect(result.error).toContain("not part of The JAG");
+
+    // Denied means denied: no session, whatever the wording.
+    expect("session" in result ? result.session : null).toBeFalsy();
   });
 
   it("C. invalid password is denied (no session)", async () => {
@@ -256,7 +277,16 @@ describe("JAG entitlement + Supabase login orchestration", () => {
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
+
+    /**
+     * THE LINE THAT MUST NOT MOVE. A wrong password says nothing — not whether
+     * the account exists, not what kind of account it is, not where else to
+     * try. Case B above now says more, on purpose, because there the password
+     * was right. This one is why that distinction has to stay a distinction.
+     */
     expect(result.error).toBe(GENERIC_JAG_AUTH_FAILURE);
+    expect(result.error).not.toContain("password is correct");
+    expect(result.error).not.toContain("thejag.org");
   });
 
   it("D. production rejects demo credentials", async () => {

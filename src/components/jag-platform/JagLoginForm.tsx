@@ -37,6 +37,13 @@ export function JagLoginForm({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  /**
+   * Where to go instead, when the password was right but this is the wrong
+   * door. Only ever set from a 401 that carries it — see
+   * lib/jag-platform/wrong-door.ts for why that case may say more than the
+   * generic failure.
+   */
+  const [helpLink, setHelpLink] = useState<{ href: string; label: string } | null>(null);
   const [mode, setMode] = useState<"password" | "magic">("password");
   const [magicSent, setMagicSent] = useState(false);
 
@@ -44,6 +51,7 @@ export function JagLoginForm({
     event.preventDefault();
     setLoading(true);
     setMessage("");
+    setHelpLink(null);
 
     const response = await fetch("/api/jag-platform/auth/login", {
       method: "POST",
@@ -56,10 +64,22 @@ export function JagLoginForm({
       requiresMfa?: boolean;
       requiresPasswordReset?: boolean;
       redirectTo?: string;
+      helpHref?: string | null;
+      helpLabel?: string | null;
     };
 
     if (!response.ok || !payload.ok) {
       setMessage(payload.error ?? "Sign-in failed.");
+      // Same-origin is not the test here: the whole point is to send somebody to
+      // a DIFFERENT host. Restrict to https on our own root domain so a bad
+      // value can never turn this into an open redirect dressed as help.
+      const href = payload.helpHref ?? "";
+      const label = payload.helpLabel ?? "";
+      setHelpLink(
+        /^https:\/\/[a-z0-9-]+\.thejag\.org\/login$/.test(href) && label
+          ? { href, label }
+          : null
+      );
       setLoading(false);
       return;
     }
@@ -93,6 +113,7 @@ export function JagLoginForm({
     setLoading(false);
     if (!result.ok) {
       setMessage(result.error);
+      setHelpLink(null);
       return;
     }
     setMagicSent(true);
@@ -168,6 +189,22 @@ export function JagLoginForm({
           {message ? (
             <p className="text-sm text-red-600" role="alert">
               {message}
+            </p>
+          ) : null}
+          {/**
+            * The way out. A family told only that something is wrong resets her
+            * password again; a family given the address arrives at her own
+            * school. Rendered as a link because expecting somebody mid-loop to
+            * retype a hostname correctly is how the loop continues.
+            */}
+          {helpLink ? (
+            <p className="text-sm">
+              <a
+                href={helpLink.href}
+                className="font-medium underline underline-offset-2"
+              >
+                {helpLink.label}
+              </a>
             </p>
           ) : null}
           {resetParam === "success" ? (

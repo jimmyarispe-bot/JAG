@@ -57,7 +57,15 @@ export async function POST(request: NextRequest) {
 
   if (!result.ok) {
     const response = NextResponse.json(
-      { ok: false, error: result.error },
+      {
+        ok: false,
+        error: result.error,
+        // Present only for the wrong-door case, where the password was correct.
+        // See lib/jag-platform/wrong-door.ts.
+        ...(result.helpHref
+          ? { helpHref: result.helpHref, helpLabel: result.helpLabel }
+          : {}),
+      },
       { status: 401 }
     );
     for (const { name, value, options } of cookiesToApply) {

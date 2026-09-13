@@ -23,6 +23,10 @@ import {
   tryAuthenticateJagPlatformDemo,
 } from "@/lib/jag-platform/auth";
 import type { JagAuthorityKind } from "@/lib/platform/identity/jag-authority";
+import {
+  buildWrongDoorFailure,
+  resolveTenantSignInHost,
+} from "@/lib/jag-platform/wrong-door";
 
 export const JAG_SESSION_ESTABLISH_PATH =
   "/api/jag-platform/auth/establish" as const;
@@ -55,6 +59,15 @@ export type JagLoginPasswordResetRequired = {
 export type JagLoginFailure = {
   readonly ok: false;
   readonly error: string;
+  /**
+   * Set only when the password was CORRECT and the account simply does not
+   * belong on this platform — a parent or school staff member who has arrived
+   * at the wrong door. See lib/jag-platform/wrong-door.ts for why saying more
+   * in that one case leaks nothing. Absent for a failed password check, which
+   * must stay generic.
+   */
+  readonly helpHref?: string | null;
+  readonly helpLabel?: string | null;
 };
 
 export type JagLoginResult =
@@ -137,7 +150,24 @@ export async function completeJagAuthorization(
 ): Promise<JagLoginSuccess | JagLoginMfaRequired | JagLoginFailure> {
   const snapshot = await loadAuthzSnapshot(supabase as SupabaseClient, user.id);
   if (!authorizeJagEntry(snapshot)) {
-    return { ok: false, error: GENERIC_JAG_AUTH_FAILURE };
+    /**
+     * The password was right and this account is not on this platform. Telling
+     * them so, and where to go, reveals nothing to somebody who has just
+     * authenticated — and not telling them sends families round a password-reset
+     * loop that never ends. The generic wording stays on the path that matters:
+     * a failed password check, further down.
+     */
+    const tenantHost = await resolveTenantSignInHost(
+      supabase as unknown as Parameters<typeof resolveTenantSignInHost>[0],
+      user.id
+    );
+    const wrongDoor = buildWrongDoorFailure(tenantHost);
+    return {
+      ok: false,
+      error: wrongDoor.message,
+      helpHref: wrongDoor.helpHref,
+      helpLabel: wrongDoor.helpLabel,
+    };
   }
 
   const orgContext = await resolveJagOrganizationContext(

@@ -1,6 +1,5 @@
 [
     "tests/unit/platform/crud-standards.test.ts :: entity capability registry marks archive preferred and hard-delete rules correctly",
     "tests/unit/studio/js004-knowledge-graph.test.ts :: JS-004 Knowledge Graph exposes knowledge dashboard health and graph consistency",
-    "tests/unit/studio/js005-knowledge-completion.test.ts :: JS-005 Knowledge Graph Completion exposes graph health metrics, trends, and extended dashboard",
-    "tests/unit/studio/js005-knowledge-completion.test.ts :: JS-005 Knowledge Graph Completion generates evidence-backed recommendations with confidence and impact"
+    "tests/unit/studio/js005-knowledge-completion.test.ts :: JS-005 Knowledge Graph Completion exposes graph health metrics, trends, and extended dashboard"
 ]
