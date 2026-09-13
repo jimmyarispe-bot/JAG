@@ -12,9 +12,18 @@ import { portalSectionClass } from "./styles";
 interface PortalLeadListProps {
   leads: GuardianPortalLead[];
   schoolYearBySchool: Record<string, { id: string; name: string } | undefined>;
+  /** Shown back to the family so a mismatch is visible rather than mysterious. */
+  userEmail: string;
+  /** Set when the read failed. Null means it succeeded and genuinely found nothing. */
+  loadError?: string | null;
 }
 
-export function PortalLeadList({ leads, schoolYearBySchool }: PortalLeadListProps) {
+export function PortalLeadList({
+  leads,
+  schoolYearBySchool,
+  userEmail,
+  loadError,
+}: PortalLeadListProps) {
   const action = useActionFeedback({
     verb: "submit",
     labels: { idle: "Start Application", loading: "Starting…", success: "✓ Started" },
@@ -23,19 +32,67 @@ export function PortalLeadList({ leads, schoolYearBySchool }: PortalLeadListProp
     progressLabel: "Starting application…",
   });
 
+  /**
+   * THE READ FAILED.
+   *
+   * Deliberately has no route back to the interest form. A family whose
+   * application we simply could not fetch must not be invited to fill the whole
+   * thing in again — that produces a duplicate lead, and admissions then has two
+   * records for one child with no way to tell which is real.
+   */
+  if (loadError) {
+    return (
+      <div className={`${portalSectionClass} text-center`}>
+        <h2 className="text-lg font-semibold text-slate-900">
+          We could not load your application
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
+          {loadError} Please try again in a moment. If it keeps happening, reply to the email
+          that invited you and we will sort it out for you.
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-4 inline-flex rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  /**
+   * NOTHING FOUND, and the read genuinely succeeded.
+   *
+   * The old wording here was "No inquiries found — submit an inquiry using the
+   * same email as your account", with Submit Inquiry as the primary button. For
+   * an invited parent that is wrong twice over: they already submitted one, and
+   * the button sends them back to the form to submit it again.
+   *
+   * The realistic cause is that the enquiry carries a different email from the
+   * one they were invited on, so the address they are signed in as is shown to
+   * them — that is the fact that makes the mismatch solvable. Starting a fresh
+   * enquiry stays available for somebody who really has not made one, but as a
+   * quiet line rather than the loudest thing on the page.
+   */
   if (leads.length === 0) {
     return (
       <div className={`${portalSectionClass} text-center`}>
-        <h2 className="text-lg font-semibold text-slate-900">No inquiries found</h2>
+        <h2 className="text-lg font-semibold text-slate-900">
+          We can&rsquo;t find an application for this email
+        </h2>
         <p className="mt-2 text-sm text-slate-500">
-          Submit an inquiry using the same email as your account, or contact admissions for help.
+          You are signed in as <span className="font-medium text-slate-700">{userEmail}</span>.
+          If the school invited you, your enquiry may have been submitted under a different email
+          address — reply to the email that invited you and we will connect it to this account.
         </p>
-        <Link
-          href="/apply"
-          className="mt-4 inline-flex rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          Submit Inquiry
-        </Link>
+        <p className="mt-4 text-xs text-slate-400">
+          Haven&rsquo;t enquired yet?{" "}
+          <Link href="/apply" className="font-medium text-brand-600 underline hover:text-brand-700">
+            Start here
+          </Link>
+          .
+        </p>
       </div>
     );
   }

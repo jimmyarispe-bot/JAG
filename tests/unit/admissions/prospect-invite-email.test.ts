@@ -54,8 +54,8 @@ describe("what the letter says", () => {
     expect(body).toContain("you will receive a notice to schedule your shadow day(s)");
   });
 
-  it("is signed by a person", () => {
-    expect(body.trimEnd().endsWith("Sincerely,\nNina Gaddy")).toBe(true);
+  it("is signed by a person, on the line under the sign-off", () => {
+    expect(body).toContain("Sincerely,<br>Nina Gaddy");
   });
 });
 
@@ -82,22 +82,58 @@ describe("the link", () => {
     // Each CLICK phrase must run from inside an opening anchor to its close
     // with no tag in between — that is what makes it clickable rather than
     // shouty plain text next to a link.
-    expect(body).toMatch(/<a href="[^"]+">CLICK ON THIS LINK[^<]*<\/a>/);
-    expect(body).toMatch(/<a href="[^"]+">CLICK THIS LINK[^<]*<\/a>/);
+    expect(body).toMatch(/<a href="[^"]+"[^>]*>CLICK ON THIS LINK[^<]*<\/a>/);
+    expect(body).toMatch(/<a href="[^"]+"[^>]*>CLICK THIS LINK[^<]*<\/a>/);
     expect(body.split("<a href=").length - 1).toBe(2);
   });
 });
 
 describe("paragraphs", () => {
   /**
-   * The sender converts newlines to <br> and escapes nothing, so a blank line
-   * between paragraphs must be exactly one empty line — more produces visible
-   * gaps, fewer runs the paragraphs together.
+   * WHAT WENT WRONG, and why these assertions changed shape.
+   *
+   * This letter used to be plain text with blank lines between paragraphs, and
+   * the test below used to assert exactly that. Both rested on a claim I wrote
+   * into a comment without reading the sender: that newlines become <br>. From
+   * providers/resend.ts:
+   *
+   *     if (/<[a-z][\s\S]*>/i.test(body)) return body;
+   *
+   * A body containing a tag is returned untouched, and this one contains
+   * anchors. So every newline stayed a newline, HTML treats it as whitespace,
+   * and the family received one unbroken wall of text. The tests passed the
+   * whole time, because they were checking the string I built rather than the
+   * markup that was sent.
+   *
+   * The layout is now explicit, so it is asserted as markup.
    */
-  it("separates the three paragraphs and the sign-off with single blank lines", () => {
-    expect(body).not.toContain("\n\n\n");
-    const blocks = body.split("\n\n");
-    expect(blocks).toHaveLength(4);
+  it("sends four real paragraphs, not newline-separated text", () => {
+    const paragraphs = body.match(/<p style="[^"]*">/g);
+    expect(paragraphs).toHaveLength(4);
+  });
+
+  it("gives every paragraph a bottom margin, which is the gap itself", () => {
+    const opens = [...body.matchAll(/<p style="([^"]*)">/g)];
+    expect(opens).toHaveLength(4);
+    for (const [, style] of opens) {
+      expect(style).toContain("margin:0 0 16px");
+    }
+  });
+
+  it("closes every paragraph it opens", () => {
+    expect(body.split("<p ").length - 1).toBe(body.split("</p>").length - 1);
+  });
+
+  it("does not lean on newlines for layout", () => {
+    // Strip the tags and the text must still be one run — proof that nothing
+    // depends on whitespace surviving the trip through an email client.
+    const withoutTags = body.replace(/<[^>]+>/g, "").trim();
+    expect(withoutTags).not.toContain("\n\n");
+  });
+
+  it("wraps the letter so it stays readable on a phone", () => {
+    expect(body).toMatch(/^<div style="[^"]*max-width:600px[^"]*">/);
+    expect(body.trimEnd().endsWith("</div>")).toBe(true);
   });
 });
 
@@ -111,7 +147,7 @@ describe("when a name is missing", () => {
   /** Better an honest collective than a person who does not exist. */
   it("signs off as the admissions team when no contact is set", () => {
     const b = buildProspectInviteBody({ childName: "Savannah", signatory: "", inviteLink: LINK });
-    expect(b.trimEnd().endsWith("Sincerely,\nThe Admissions Team")).toBe(true);
+    expect(b).toContain("Sincerely,<br>The Admissions Team");
   });
 });
 

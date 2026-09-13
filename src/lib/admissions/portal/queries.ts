@@ -121,21 +121,61 @@ export async function getCurrentSchoolYear(schoolId: string) {
   return data;
 }
 
-export async function getGuardianPortalLeads(userEmail: string): Promise<GuardianPortalLead[]> {
+/**
+ * What the portal found, or why it could not look.
+ *
+ * WHY THIS IS NOT JUST AN ARRAY. Until 13 September 2026 this function returned
+ * `GuardianPortalLead[]`, and every one of its five reads was written
+ * `const { data } = await …` — the `error` destructured into nothing. A read
+ * that failed produced `undefined`, `?? []` turned that into an empty array,
+ * and the page rendered "No inquiries found".
+ *
+ * On 12 September Lana Robinson followed her invitation, set a password, landed
+ * here, and was told there were no inquiries. There was one. Every read in this
+ * function was dying with `54001 stack depth limit exceeded`, because three RLS
+ * helper functions were SECURITY INVOKER and read the tables whose policies
+ * called them (fixed in migration 350). The database was screaming and the
+ * screen said everything was fine.
+ *
+ * An empty result and a failed result are different facts about the world, and
+ * a family deciding whether to fill the form in a second time needs to know
+ * which one they are looking at. So the caller is made to handle both.
+ */
+export type GuardianPortalResult =
+  | { ok: true; leads: GuardianPortalLead[] }
+  | { ok: false; message: string };
+
+/** Same message every time: what broke is our business, not the family's. */
+const PORTAL_READ_FAILED =
+  "We could not load your application just now. Nothing you have submitted is lost.";
+
+export async function getGuardianPortalLeads(
+  userEmail: string
+): Promise<GuardianPortalResult> {
   const supabase = await createAuthClient();
   const normalizedEmail = userEmail.trim().toLowerCase();
 
-  const { data: guardianLinks } = await supabase
+  const { data: guardianLinks, error: guardianLinksError } = await supabase
     .from("admissions_lead_guardians")
     .select("lead_id")
     .ilike("email", normalizedEmail);
 
+  if (guardianLinksError) {
+    console.error("[apply/portal] guardian link read failed", guardianLinksError.message);
+    return { ok: false, message: PORTAL_READ_FAILED };
+  }
+
   const leadIdsFromGuardians = guardianLinks?.map((g) => g.lead_id) ?? [];
 
-  const { data: directLeads } = await supabase
+  const { data: directLeads, error: directLeadsError } = await supabase
     .from("admissions_leads")
     .select("id")
     .ilike("guardian_email", normalizedEmail);
+
+  if (directLeadsError) {
+    console.error("[apply/portal] direct lead read failed", directLeadsError.message);
+    return { ok: false, message: PORTAL_READ_FAILED };
+  }
 
   const leadIds = [
     ...new Set([
@@ -144,23 +184,49 @@ export async function getGuardianPortalLeads(userEmail: string): Promise<Guardia
     ]),
   ];
 
-  if (leadIds.length === 0) return [];
+  if (leadIds.length === 0) return { ok: true, leads: [] };
 
-  const { data: leads } = await supabase
+  const { data: leads, error: leadsError } = await supabase
     .from("admissions_leads")
     .select("*, schools(name)")
     .in("id", leadIds)
     .order("created_at", { ascending: false });
 
-  if (!leads?.length) return [];
+  if (leadsError) {
+    console.error("[apply/portal] lead read failed", leadsError.message);
+    return { ok: false, message: PORTAL_READ_FAILED };
+  }
+
+  /**
+   * Not an error, but not nothing either. The guardian rows named leads that the
+   * lead read did not return — which under RLS means those rows are readable by
+   * one policy and not the other. Reporting "no inquiries" here would repeat the
+   * exact failure this function was rewritten for.
+   */
+  if (!leads?.length) {
+    console.error(
+      `[apply/portal] ${leadIds.length} lead id(s) matched this guardian but none could be read`
+    );
+    return { ok: false, message: PORTAL_READ_FAILED };
+  }
 
   const fundingByLeadId = await fetchLeadFundingCodesByLeadIds(supabase, leadIds);
 
-  const { data: applications } = await supabase
+  const { data: applications, error: applicationsError } = await supabase
     .from("admissions_applications")
     .select(APPLICATION_SELECT)
     .in("lead_id", leadIds)
     .order("created_at", { ascending: false });
+
+  /**
+   * This one does not fail the page. The enquiries are real and readable; only
+   * the applications attached to them could not be fetched. Showing the child's
+   * name with a Start Application button is far better than showing nothing, and
+   * the log carries the truth.
+   */
+  if (applicationsError) {
+    console.error("[apply/portal] application read failed", applicationsError.message);
+  }
 
   const appsByLead = (applications ?? []).reduce<Record<string, PortalApplication[]>>(
     (acc, app) => {
@@ -175,11 +241,14 @@ export async function getGuardianPortalLeads(userEmail: string): Promise<Guardia
     {}
   );
 
-  return leads.map((lead) => ({
-    ...(lead as Omit<GuardianPortalLead, "funding_sources" | "applications">),
-    funding_sources: fundingByLeadId.get(lead.id) ?? [],
-    applications: appsByLead[lead.id] ?? [],
-  }));
+  return {
+    ok: true,
+    leads: leads.map((lead) => ({
+      ...(lead as Omit<GuardianPortalLead, "funding_sources" | "applications">),
+      funding_sources: fundingByLeadId.get(lead.id) ?? [],
+      applications: appsByLead[lead.id] ?? [],
+    })),
+  };
 }
 
 export async function getPortalApplication(applicationId: string) {

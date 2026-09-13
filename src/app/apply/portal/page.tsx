@@ -22,7 +22,15 @@ export default async function ApplyPortalPage() {
     redirect("/login?next=/apply/portal");
   }
 
-  const leads = await getGuardianPortalLeads(sessionUser.email);
+  /**
+   * A failed read is not an empty list. See GuardianPortalResult — this page
+   * used to be unable to tell the difference, and told a mother with a live
+   * enquiry that she had none.
+   */
+  const result = await getGuardianPortalLeads(sessionUser.email);
+  const leads = result.ok ? result.leads : [];
+  const loadError = result.ok ? null : result.message;
+
   const schoolIds = [...new Set(leads.map((l) => l.school_id))];
   const schoolYearEntries = await Promise.all(
     schoolIds.map(async (schoolId) => [schoolId, await getCurrentSchoolYear(schoolId)] as const)
@@ -42,7 +50,12 @@ export default async function ApplyPortalPage() {
             Enrolled.
           </p>
         </div>
-        <PortalLeadList leads={leads} schoolYearBySchool={schoolYearBySchool} />
+        <PortalLeadList
+          leads={leads}
+          schoolYearBySchool={schoolYearBySchool}
+          userEmail={sessionUser.email}
+          loadError={loadError}
+        />
       </div>
     </ApplyShell>
   );
