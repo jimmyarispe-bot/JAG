@@ -25,6 +25,11 @@ import { ActionButton, useActionFeedback } from "@/components/experience-system/
 import { checkEmailAddress } from "@/lib/admissions/email-check";
 import { ageLabelFromDateOfBirth } from "@/lib/format/age";
 import {
+  MAX_UPLOAD_LABEL,
+  checkFileBeforeUpload,
+  describeUploadFailure,
+} from "@/lib/admissions/interest-form/upload-limits";
+import {
   portalInputClass,
   portalLabelClass,
   portalSectionClass,
@@ -59,19 +64,53 @@ function FileQuestion({
   const [fileName, setFileName] = useState<string | null>(null);
 
   async function upload(file: File) {
+    /**
+     * Refuse before the round trip. The platform rejects an oversized body
+     * before our route ever runs, so waiting for the server to say so means
+     * waiting for a plain-text 413 that this function then has to guess at.
+     */
+    const refusal = checkFileBeforeUpload(file);
+    if (refusal) {
+      onChange(question.key, "");
+      setFileName(null);
+      setStatus("error");
+      setMessage(refusal);
+      return;
+    }
+
     setStatus("uploading");
     setMessage(null);
     try {
       const body = new FormData();
       body.set("file", file);
       const response = await fetch("/api/apply/upload", { method: "POST", body });
-      const result = (await response.json()) as {
-        path?: string;
-        fileName?: string;
-        error?: string;
-      };
+
+      /**
+       * NOT response.json().
+       *
+       * This line used to be `await response.json()` with nothing guarding it.
+       * When the platform refused the request it answered "Request Entity Too
+       * Large" as plain text, the parse threw, and a family trying to attach
+       * proof of income was shown:
+       *
+       *     Unexpected token 'R', "Request En"... is not valid JSON
+       *
+       * Read the body as text first, parse only if it parses, and let the
+       * status decide the wording when it does not.
+       */
+      const raw = await response.text();
+      let result: { path?: string; fileName?: string; error?: string } = {};
+      try {
+        result = raw ? (JSON.parse(raw) as typeof result) : {};
+      } catch {
+        console.error(
+          `[apply/upload] non-JSON response, status ${response.status}:`,
+          raw.slice(0, 200)
+        );
+      }
+
       if (!response.ok || !result.path) {
-        throw new Error(result.error ?? "We could not save that file.");
+        throw new Error(result.error ?? describeUploadFailure(response.status));
       }
       onChange(question.key, result.path);
       setFileName(result.fileName ?? file.name);
@@ -100,7 +139,11 @@ function FileQuestion({
         id={id}
         type="file"
         accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
-        className="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
+        // Disabled while a file is in flight. A phone photograph can take
+        // several seconds on a bad connection, and choosing a second file
+        // mid-upload leaves two requests racing for one answer.
+        disabled={status === "uploading"}
+        className="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) void upload(file);
@@ -112,7 +155,13 @@ function FileQuestion({
       <input type="hidden" name={id} value={value} required={question.required} />
 
       {status === "uploading" && (
-        <p className="mt-1 text-sm text-slate-500">Uploading…</p>
+        <p className="mt-1 flex items-center gap-2 text-sm text-slate-600" role="status">
+          <span
+            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
+            aria-hidden
+          />
+          Uploading…
+        </p>
       )}
       {status === "error" && message && (
         <p className="mt-1 text-sm text-red-700" role="alert">
@@ -122,7 +171,9 @@ function FileQuestion({
       {value && fileName && status === "idle" && (
         <p className="mt-1 text-sm text-emerald-700">Attached: {fileName}</p>
       )}
-      <p className="mt-1 text-xs text-slate-400">PDF, JPG or PNG, up to 10MB.</p>
+      <p className="mt-1 text-xs text-slate-400">
+        PDF, JPG or PNG, up to {MAX_UPLOAD_LABEL}.
+      </p>
     </div>
   );
 }

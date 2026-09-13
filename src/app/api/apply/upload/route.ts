@@ -6,6 +6,11 @@ import {
   checkRateLimitAsync,
   getClientIpFromHeaders,
 } from "@/lib/platform/api-rate-limit";
+import {
+  ALLOWED_UPLOAD_TYPES,
+  MAX_UPLOAD_BYTES,
+  MAX_UPLOAD_LABEL,
+} from "@/lib/admissions/interest-form/upload-limits";
 
 /**
  * POST /api/apply/upload — a document from a family who has no account yet.
@@ -26,8 +31,9 @@ import {
  *   - Content type against an allowlist. GOAL asks for PDF, JPG or PNG and so
  *     does this. An allowlist rather than a blocklist, because the interesting
  *     file types are always the ones nobody thought of.
- *   - Size. Ten megabytes is generous for a phone photograph and small enough
- *     that nobody stores a film here.
+ *   - Size, from upload-limits.ts so the route, the caption and the browser
+ *     pre-flight cannot drift apart — which is exactly what happened, and cost a
+ *     family attaching proof of income a JSON parser error.
  *   - Rate limit by IP, the same mechanism the inquiry form itself uses.
  *
  * WHERE IT GOES. A quarantine prefix, under a name this server generates. The
@@ -40,15 +46,19 @@ import {
 
 const BUCKET = "admissions-documents";
 const PREFIX = "interest-uploads";
-const MAX_BYTES = 10 * 1024 * 1024;
 
-const ALLOWED: Record<string, string> = {
-  "application/pdf": "pdf",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/heic": "heic",
-  "image/heif": "heif",
-};
+/**
+ * ONE NUMBER, IN ONE PLACE. This route enforced 10MB, the form's caption
+ * promised 10MB, and Vercel refused the request at 4.5MB before either had a
+ * say — so the handler's polite JSON rejection never ran and the family got the
+ * platform's plain-text 413 through a client that called .json() on it.
+ *
+ * The limit and the allowlist now live in interest-form/upload-limits.ts, which
+ * the caption and the browser-side pre-flight read from too. See that file for
+ * why the number is 4 and what it costs.
+ */
+const MAX_BYTES = MAX_UPLOAD_BYTES;
+const ALLOWED = ALLOWED_UPLOAD_TYPES;
 
 export async function POST(request: Request) {
   const headerStore = await headers();
@@ -80,7 +90,7 @@ export async function POST(request: Request) {
 
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "That file is larger than 10MB. Please attach a smaller one." },
+      { error: `That file is larger than ${MAX_UPLOAD_LABEL}. Please attach a smaller one.` },
       { status: 400 }
     );
   }
