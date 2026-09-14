@@ -1,81 +1,91 @@
-the guard could not name the door
+the day the screens stopped lying
 
-Heather Badger-Brown, School Leader of The Academy HS, signed in at thejag.org
-with the correct password and was told:
+Seven fixes, five of them found by a founder clicking through his own product
+and asking why it looked wrong. Every one turned out to be a real fault behind a
+plausible surface.
 
-    Your password is correct, but this account is not part of The JAG™
-    Platform. ... Use the link in the email your school sent you, or ask your
-    school's admissions office for the sign-in address.
+1. THE GUARD COULD NOT NAME THE DOOR
 
-She is the school's admissions office.
+Heather Badger-Brown, School Leader, signed in with the correct password and was
+told to "ask your school's admissions office for the sign-in address". She IS the
+admissions office.
 
-That is the FALLBACK wording. The guard is built to name the address —
-"Sign in here instead: <campus>.thejag.org/login" — and falls back only when it
-cannot work out which campus somebody belongs to. It could never work it out.
-The named-address path has never once run.
+resolveTenantSignInHost read schools.organization_id — a uuid — and handed it to
+BrandRegistry, which is keyed by synthetic text ids. Migration 226 says so in its
+own header. A uuid could never match, so every school account fell through to the
+vague wording and the named-address path had never once run.
 
-TWO IDENTITY NAMESPACES, NOTHING BETWEEN THEM
+Migration 356 bridges the two namespaces on the table that exists, filled from
+the campuses themselves. The resolver tries the real uuid first and checks the
+error rather than reading data blindly. Nina now gets "Sign in here instead:
+academy.thejag.org".
 
-resolveTenantSignInHost reads schools.organization_id, a uuid, and hands it to
-BrandRegistry.getByOrganizationId. The registry is keyed by SYNTHETIC TEXT IDS.
-Migration 226 says so in its own header: "the registries use synthetic text ids
-(org.the-academy-way)".
+2. A SCHOOL LEADER WAS LOOKING AT PAYROLL
 
-Production holds exactly one brand row:
+Nina's sidebar carried Human Capital & Workforce, Executive Workspace, Mission
+Control and the whole executive band. /dashboard/hr opens with teacher and
+contractor pay per campus: $140,236 across 16 people.
 
-    organization_id       subdomain   organization_name
-    -------------------   ---------   -----------------
-    org.the-academy-way   academy     The Academy Way
+349 was written to the requirement's own words — money, scholarships, funds,
+funding, taxes — and denied exactly those. It does not deny `hr`. Payroll reached
+her through the one door not called payroll.
 
-A uuid cannot match that key. Every school account that ever reached this
-function fell through to the vague message. The brand was never missing and the
-lookup never failed — it compared across two namespaces with nothing bridging
-them, and null is what that returns.
+357 denies HR and the executive surfaces. 358 goes further and matches money
+words ANYWHERE in a key rather than as a prefix, because ssis.funding.view had
+survived both. On its first run it also caught ai.finance and cloud.finance,
+neither of which starts with "finance.".
 
-WHAT WAS NOT DONE, AND WHY
+Verified: nothing money-shaped left at allow; academic access untouched.
 
-Re-key the brand row to the uuid. 'org.the-academy-way' is load-bearing in five
-places — jag-platform/organizations.ts, the tenant admin loader, the branding
-loader twice, and BrandRegistry's own default. That fixes one lookup and breaks
-the JAG command centre.
+3. HER DASHBOARD WAS TITLED FOUNDER MORNING BRIEF
 
-Use tenant_profiles. It is the bridge the design intended, carrying both a
-synthetic organization_id and a real org_organization_id uuid. IT DOES NOT EXIST
-IN PRODUCTION. It is declared in the same migration 226 that created
-organization_brands, after a statement referencing org_organizations — so that
-file was applied partway and stopped. Asked of the database rather than assumed:
-organization_brands answers, tenant_profiles does not exist.
+The module at /dashboard is named that, and the Sidebar renamed it for
+non-founders while TopNav rendered the raw one. Same screen, same person: sidebar
+said "Home", header said "Founder Morning Brief". She never saw the founder's
+numbers — only the name was his, which is arguably worse.
 
-Building today's fix on a table that is not there would have been the third
-guess of the day.
+moduleForViewer() now does it once and both surfaces call it.
 
-MIGRATION 356
+4. 94 FAMILIES WITH NOBODY FOLLOWING UP
 
-Adds org_organization_id to the table that DOES exist, and fills it by reading
-the campuses themselves rather than from a uuid typed into a file, so it cannot
-drift from what the schools actually point at. Additive: nothing that reads the
-synthetic key changes behaviour. A partial unique index keeps one brand per real
-organization, because "which door is yours" must not be ambiguous.
+Started from "why has The Academy FL never had a single admissions task". FL is
+not special — it has five active leads and all five had nobody.
 
-THE RESOLVER
+createStageAutomatedTasks() runs only from transitionLeadStage(). Imports, hand
+SQL and the public form write lead_stage directly and never call it. 316 was a
+broom; between it and today GA alone accumulated 20 more.
 
-Real uuid first, registry second. The error is checked rather than the data read
-blindly — before 356 that column does not exist, and PostgREST answers with an
-error and a null body, the exact costume five faults in this codebase have worn.
-A failure to work out the address still cannot become a failure to sign in.
+359 sweeps ~69. 360 is the door: a trigger on lead_stage, the same hook 062 has
+used correctly for months, with the map in a table so it can be read and diffed —
+and a test that reads the seed out of the migration and compares it to the
+registry. 361 adds appointment reminders anchored one day BEFORE the date rather
+than after the booking.
 
-TESTS
+361 surfaced 28 families whose stage claims an interview, shadow day or tour that
+exists nowhere in the schedule. They now carry a task saying exactly that.
 
-5 new, 18 on the file. The one that matters asserts the lookup happens by
-org_organization_id, because both halves were always correct on their own.
+5. AN INQUIRY IS NOT AN APPLICATION
 
-STILL OPEN
+The public form asked six required mailing-address questions that NOTHING in src/
+has ever read. 362 removes them; the form ends at Preferred contact method.
 
-Which door the leaders should actually use. The brand row claims subdomain
-'academy'; theacademyway.thejag.org is what worked, showing generic "School
-Platform" branding precisely because nothing resolved. Confirm against
-academy.thejag.org once 356 is in.
+And the button said "Submit Application" while the thank-you email those same
+families receive calls it an inquiry. Both halves now say inquiry. The label
+lives in two places and reverting one fails the test.
 
-And the instructions that started this were mine. I sent Heather to thejag.org —
-the one address a school account can never pass. Nina and Danni have the same
-email.
+6. TWO REPOSITORY-WALKING TESTS HAD NO HEADROOM
+
+studio-foundation passes alone in 36.4s against a 90s timeout and exceeded it
+inside the full suite. Raised to 240s; js005 to 300s, matching what
+js003-governance already uses. No assertion touched, no baseline updated.
+
+WHAT THIS DAY KEPT TEACHING
+
+Prefer the query that returns a value over the reasoning that returns a story.
+Three theories died today — a stale deployment that was current, machine load
+that was a timeout, a broken stylesheet that was browser zoom. Each cost a round
+trip that a measurement would have saved.
+
+And: rules written to the words of a requirement miss the thing the requirement
+was about. Money under the word "HR", funding under the prefix "ssis.", an
+application that was an inquiry.

@@ -631,9 +631,26 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
   const [error, setError] = useState<string | null>(null);
   const [values, setValues] = useState<InterestFormValues>(() => defaultValues(published));
 
+  /*
+   * "Submit Inquiry", not "Submit Application".
+   *
+   * Jimmy, 14 September, after walking the live form as a parent:
+   * "this is an interest inquiry. not application."
+   *
+   * The distinction is the family's, not ours. This form starts a conversation;
+   * the application is the wizard behind the portal, after they have an account
+   * and a campus. Calling this an application tells a parent they have applied
+   * when they have not, and the email they get back is a thank-you for an
+   * inquiry — so the two would have contradicted each other.
+   *
+   * The label appears TWICE in this file: here for the busy/feedback state, and
+   * on the button itself below. Both must say the same thing. They are the kind
+   * of pair that drifts, and a button that changes its wording halfway through
+   * submitting reads as a bug to the person it happens to.
+   */
   const action = useActionFeedback({
     verb: "submit",
-    labels: { idle: "Submit Application", loading: "Submitting…", success: "✓ Submitted" },
+    labels: { idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" },
     successToast: "✓ Submitted",
     errorToast: "Unable to submit.",
     progressLabel: "Submitting inquiry…",
@@ -747,7 +764,7 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
           variant="primary"
           status={action.status}
           verb="submit"
-          labels={{ idle: "Submit Application", loading: "Submitting…", success: "✓ Submitted" }}
+          labels={{ idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" }}
           errorMessage={action.errorMessage}
           className="btn-academy rounded-xl px-12 py-4 text-lg font-semibold"
         />

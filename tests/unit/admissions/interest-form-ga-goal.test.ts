@@ -248,3 +248,43 @@ describe("the renderer can carry a section with no heading", () => {
     expect(renderer).not.toContain("sig-note");
   });
 });
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * The public form submits an INQUIRY, not an application.
+ *
+ * Jimmy, 14 September, after walking the live form as a parent would:
+ * "this is an interest inquiry. not application."
+ *
+ * The distinction belongs to the family. This form starts a conversation; the
+ * application is the wizard behind the portal, reached after they have an
+ * account and a campus. Telling a parent they have "applied" when they have not
+ * is wrong on its own — and the thank-you email they receive back calls it an
+ * inquiry, so the button and the email were contradicting each other.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+describe("the button says what the family is actually doing", () => {
+  /*
+   * Comments stripped, and it matters here more than usual: the note explaining
+   * this change quotes the old label, so a raw read would find "Submit
+   * Application" in prose and pass a test that should fail.
+   */
+  const renderer = readFileSync(
+    join(__dirname, "..", "..", "..", "src/components/admissions/portal/InterestFormRenderer.tsx"),
+    "utf8"
+  ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+  it("never calls this an application", () => {
+    expect(renderer).not.toContain('"Submit Application"');
+  });
+
+  /**
+   * THE ONE THAT MATTERS. The label lives in two places — the feedback hook and
+   * the button itself. A pair like that drifts, and a button that changes its
+   * wording halfway through submitting reads as a bug to whoever it happens to.
+   */
+  it("says Submit Inquiry in both places, not one", () => {
+    const hits = renderer.match(/idle: "Submit Inquiry"/g) ?? [];
+    expect(hits.length).toBe(2);
+  });
+});

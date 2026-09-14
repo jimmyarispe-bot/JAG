@@ -489,3 +489,39 @@ export function isModuleActive(pathname: string, module: DashboardModule): boole
   }
   return pathname.startsWith(module.href);
 }
+
+/**
+ * The home module, named for whoever is actually looking at it.
+ *
+ * THE BUG THIS FIXES. The module at `/dashboard` is called "Founder Morning
+ * Brief" — id `executive` — and every viewer got that name. Nina Gaddy and
+ * Heather Badger-Brown, School Leaders, opened their dashboard and the page was
+ * titled Founder Morning Brief. They do not see the founder's brief: the page
+ * itself branches on JAG_ACCESS and renders a plain greeting and Quick Launch
+ * for them. Only the NAME was the founder's.
+ *
+ * The Sidebar already renamed it, inline. TopNav called getModuleByPath and
+ * rendered the raw pageTitle, so the sidebar said "Home" and the header above it
+ * said "Founder Morning Brief" on the same screen. One rename, two places, only
+ * one of them doing it.
+ *
+ * So the rename lives here now and both callers use it. A third surface that
+ * renders this module gets the right name for free rather than inheriting the
+ * bug.
+ */
+export function moduleForViewer(
+  module: DashboardModule,
+  viewer: { isFounder: boolean; isExecutiveDirector: boolean }
+): DashboardModule {
+  if (module.id !== "executive" || viewer.isFounder) return module;
+
+  const label = viewer.isExecutiveDirector ? "Executive Director" : "Home";
+  return {
+    ...module,
+    sidebarLabel: label,
+    pageTitle: label,
+    pageSubtitle: viewer.isExecutiveDirector
+      ? "School operations command center"
+      : "Your workspace",
+  };
+}

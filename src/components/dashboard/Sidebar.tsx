@@ -8,6 +8,7 @@ import {
   isModuleActive,
 } from "@/lib/dashboard/navigation";
 import { visibleModules } from "@/lib/dashboard/module-visibility";
+import { moduleForViewer } from "@/lib/dashboard/navigation";
 import { FOUNDER_DASHBOARD_NAV, FOUNDERS_UTILITY_NAV } from "@/lib/dashboard/founders-navigation";
 import { EXECUTIVE_DIRECTOR_DASHBOARD_NAV } from "@/lib/dashboard/executive-director-dashboard";
 import { useBranding } from "@/components/branding/BrandingContext";
@@ -70,17 +71,8 @@ export function Sidebar({
   // The Modules list used to render every entry to everybody, so an admissions
   // School Leader saw Scholarships and Finance in her sidebar and was bounced
   // only after clicking. See lib/dashboard/module-visibility.
-  const modules = visibleModules(getBrandedDashboardModules(branding), permissions).map((module) =>
-    !isFounder && module.id === "executive"
-      ? {
-          ...module,
-          sidebarLabel: isExecutiveDirector ? "Executive Director" : "Home",
-          pageTitle: isExecutiveDirector ? "Executive Director" : "Home",
-          pageSubtitle: isExecutiveDirector
-            ? "School operations command center"
-            : "Your AcademyOS workspace",
-        }
-      : module
+  const modules = visibleModules(getBrandedDashboardModules(branding), permissions).map(
+    (module) => moduleForViewer(module, { isFounder, isExecutiveDirector })
   );
   // Dark logo first — this mark sits on the navy sidebar. Empty string is the
   // "not configured" value the branding resolver returns, so trim before

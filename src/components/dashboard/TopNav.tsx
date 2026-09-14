@@ -1,6 +1,6 @@
 "use client";
 
-import { getModuleByPath } from "@/lib/dashboard/navigation";
+import { getModuleByPath, moduleForViewer } from "@/lib/dashboard/navigation";
 import {
   NotificationCenter,
   type NavNotificationItem,
@@ -14,12 +14,27 @@ interface TopNavProps {
   roleLabel: string;
   notifications?: NavNotificationItem[];
   onMenuClick: () => void;
+  /* Needed so the header names the home module for the person reading it. A
+   * School Leader's dashboard was titled "Founder Morning Brief" because this
+   * component rendered the raw module while the sidebar beside it renamed. */
+  isFounder?: boolean;
+  isExecutiveDirector?: boolean;
 }
 
-export function TopNav({ fullName, roleLabel, notifications = [], onMenuClick }: TopNavProps) {
+export function TopNav({
+  fullName,
+  roleLabel,
+  notifications = [],
+  onMenuClick,
+  isFounder = false,
+  isExecutiveDirector = false,
+}: TopNavProps) {
   const pathname = usePathname();
   const branding = useBranding();
-  const currentModule = getModuleByPath(pathname, branding);
+  const currentModule = moduleForViewer(getModuleByPath(pathname, branding), {
+    isFounder,
+    isExecutiveDirector,
+  });
 
   const initials = fullName
     .split(" ")

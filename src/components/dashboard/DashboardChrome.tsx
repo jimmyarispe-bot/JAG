@@ -75,6 +75,8 @@ export function DashboardChrome({
           roleLabel={roleLabel}
           notifications={notifications}
           onMenuClick={openSidebar}
+          isFounder={isFounder}
+          isExecutiveDirector={isExecutiveDirector}
         />
         <main id="main-content" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
