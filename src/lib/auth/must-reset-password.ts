@@ -57,6 +57,29 @@ const PUBLIC_API_PATHS = new Set([
   // themselves, timing-safe, and fall back to a permission check.
   "/api/platform/process-queues",
   "/api/admissions/process-communications",
+  /**
+   * The public inquiry form's file upload — proof of income and proof of
+   * eligibility, both required fields.
+   *
+   * WHY IT HAS TO BE HERE. Everyone who uses that form is, by definition,
+   * somebody without an account. isProtectedApi treats every /api/ path as
+   * protected unless it is named here, so middleware answered
+   * {"error":"Unauthorized"} 401 before the route ever ran. File upload on the
+   * public inquiry form had therefore never worked once, and since both
+   * documents are required, no family who reached that section could submit —
+   * proof of income being exactly what GA GOAL needs.
+   *
+   * Found 13 September 2026, by filling the form in as a family.
+   *
+   * WHY IT IS SAFE TO BE HERE. Public at the edge does not mean unguarded. The
+   * route rate limits by IP, checks the content type against an allowlist,
+   * enforces a size cap, generates its own storage path rather than trusting a
+   * filename, and writes into a quarantine prefix that nothing is attached to
+   * until the form is actually submitted. It is designed for anonymous callers,
+   * which is the whole reason it exists as a route handler rather than a server
+   * action — see the comment at the top of it.
+   */
+  "/api/apply/upload",
 ]);
 
 export function isPublicApiPath(pathname: string): boolean {
