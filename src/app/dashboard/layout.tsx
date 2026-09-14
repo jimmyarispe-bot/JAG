@@ -118,6 +118,30 @@ export default async function DashboardLayout({
       isExecutiveDirector={canViewExecutiveDirectorDashboard(ctx)}
       notifications={shellData.notifications}
       impersonation={ctx.impersonation}
+      /*
+       * THE SIDEBAR CANNOT SEE WHO YOU ARE WITHOUT THIS.
+       *
+       * module-visibility hides every module that names a required permission
+       * unless the viewer holds one of them, and it fails CLOSED on purpose:
+       * "a page that could not work out who you are should not conclude you may
+       * see the money." Correct — but this prop was never passed, so it
+       * defaulted to [] through DashboardShell, DashboardChrome and Sidebar, and
+       * the answer for EVERY viewer was nobody.
+       *
+       * The result was a sidebar of exactly the modules that name no permission
+       * — Families, Communications, Workflows, Calendar, Documents — and the
+       * silent disappearance of every one that does: Admissions, Student
+       * Success, Scholarships, Finance, Workforce, Scheduling, Teacher Studio.
+       * Not for one role. For the Founder, and for every School Leader.
+       *
+       * It read as data loss rather than a hidden menu, which is why it went
+       * unreported: the modules were simply not on screen, and the pages behind
+       * them still worked if you knew the URL.
+       *
+       * The permission map had its own test and passed it. Nothing tested that
+       * the list ever arrived, so the seam was where it broke.
+       */
+      permissions={ctx.permissions}
     >
       {/* Renders nothing on a correctly-configured production deployment. */}
       <EnvironmentBanner />

@@ -25,6 +25,29 @@ type Defaults = {
   student_summary?: string | null;
 };
 
+/** The seven columns the wizard writes, as the family's answers-so-far. */
+type WizardValues = {
+  guardian_notes: string;
+  student_summary: string;
+  previous_school: string;
+  medical_notes: string;
+  learning_needs_summary: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+};
+
+function seedValues(defaults: Defaults): WizardValues {
+  return {
+    guardian_notes: defaults.guardian_notes ?? "",
+    student_summary: defaults.student_summary ?? "",
+    previous_school: defaults.previous_school ?? "",
+    medical_notes: defaults.medical_notes ?? "",
+    learning_needs_summary: defaults.learning_needs_summary ?? "",
+    emergency_contact_name: defaults.emergency_contact_name ?? "",
+    emergency_contact_phone: defaults.emergency_contact_phone ?? "",
+  };
+}
+
 export function ApplicationWizard({
   applicationId,
   defaults,
@@ -37,8 +60,38 @@ export function ApplicationWizard({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [autosaveFailed, setAutosaveFailed] = useState(false);
   const step = APPLICATION_WIZARD_STEPS[stepIndex]!;
   const progress = Math.round(((stepIndex + 1) / APPLICATION_WIZARD_STEPS.length) * 100);
+
+  /**
+   * THE FAMILY'S ANSWERS LIVE HERE, NOT IN THE DOM.
+   *
+   * `defaults` is a snapshot taken when the page was rendered on the server, and
+   * it never changes again while the wizard is open. Every step used to seed its
+   * fields from that snapshot through `defaultValue`, which was safe only while
+   * no column was rendered by more than one step.
+   *
+   * `previous_school` is rendered by two: step 3 "Educational history" as an
+   * input, step 7 "Previous schools" as a textarea. A family who typed their
+   * school on step 3 reached step 7 and found the box empty — the snapshot still
+   * said empty — and saving step 7 wrote that empty string straight over their
+   * answer. `saveApplicationDetails` could not defend against it: the field WAS
+   * present in the submission, so from its side the family had deliberately
+   * cleared it. The presence check fixed absent fields; this fixes stale ones.
+   *
+   * Holding the values in state means a step always renders what the family last
+   * typed, whichever step they typed it on, and Back shows their work rather
+   * than the state of the world when the page loaded.
+   */
+  const [values, setValues] = useState<WizardValues>(() => seedValues(defaults));
+
+  function set(name: keyof WizardValues) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const next = e.target.value;
+      setValues((v) => ({ ...v, [name]: next }));
+    };
+  }
 
   const saveAction = useActionFeedback({
     verb: "save",
@@ -54,14 +107,21 @@ export function ApplicationWizard({
     const result = await experienceSaveApplicationDraft(formData);
     if (result.error) throw new Error(result.error);
     setSavedAt(new Date().toLocaleTimeString());
+    setAutosaveFailed(false);
     return result;
   }
 
+  /**
+   * A failed autosave used to be discarded entirely. The family kept typing under
+   * a label reading "Autosaved 2:15 PM" — the last time it HAD worked — with an
+   * expired session and nothing reaching the database. Silence wearing a success
+   * costume. It now says so.
+   */
   useEffect(() => {
     const form = document.getElementById("application-wizard-form") as HTMLFormElement | null;
     if (!form) return;
     const timer = window.setInterval(() => {
-      void persist(form).catch(() => undefined);
+      void persist(form).catch(() => setAutosaveFailed(true));
     }, 45_000);
     return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- autosave bound to form id
@@ -100,8 +160,15 @@ export function ApplicationWizard({
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-slate-900">Online application</h2>
-          <p className="text-xs text-slate-500" aria-live="polite">
-            {savedAt ? `Autosaved ${savedAt}` : "Draft autosaves every 45s"}
+          <p
+            className={autosaveFailed ? "text-xs font-medium text-amber-700" : "text-xs text-slate-500"}
+            aria-live="polite"
+          >
+            {autosaveFailed
+              ? "Not saved — check your connection"
+              : savedAt
+                ? `Autosaved ${savedAt}`
+                : "Draft autosaves every 45s"}
           </p>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
@@ -131,6 +198,17 @@ export function ApplicationWizard({
         </div>
       )}
 
+      {autosaveFailed && !error && (
+        <div
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          role="alert"
+        >
+          <span className="font-medium">We could not save your draft just now.</span>{" "}
+          What you have typed is still on this page — please stay here and press
+          Save &amp; continue in a moment rather than closing the tab.
+        </div>
+      )}
+
       <form id="application-wizard-form" onSubmit={handleSubmit} className="space-y-4">
         <input type="hidden" name="application_id" value={applicationId} />
 
@@ -146,7 +224,8 @@ export function ApplicationWizard({
               name="guardian_notes"
               rows={3}
               className={portalInputClass}
-              defaultValue={defaults.guardian_notes ?? ""}
+              value={values.guardian_notes}
+              onChange={set("guardian_notes")}
             />
           </fieldset>
         )}
@@ -163,7 +242,8 @@ export function ApplicationWizard({
               name="student_summary"
               rows={4}
               className={portalInputClass}
-              defaultValue={defaults.student_summary ?? ""}
+              value={values.student_summary}
+              onChange={set("student_summary")}
             />
           </fieldset>
         )}
@@ -176,7 +256,8 @@ export function ApplicationWizard({
               id="previous_school"
               name="previous_school"
               className={portalInputClass}
-              defaultValue={defaults.previous_school ?? ""}
+              value={values.previous_school}
+              onChange={set("previous_school")}
             />
           </fieldset>
         )}
@@ -190,7 +271,8 @@ export function ApplicationWizard({
               name="medical_notes"
               rows={4}
               className={portalInputClass}
-              defaultValue={defaults.medical_notes ?? ""}
+              value={values.medical_notes}
+              onChange={set("medical_notes")}
               placeholder="Allergies, medications, accommodations (also upload medical docs)"
             />
           </fieldset>
@@ -208,7 +290,8 @@ export function ApplicationWizard({
               name="learning_needs_summary"
               rows={4}
               className={portalInputClass}
-              defaultValue={defaults.learning_needs_summary ?? ""}
+              value={values.learning_needs_summary}
+              onChange={set("learning_needs_summary")}
             />
           </fieldset>
         )}
@@ -222,7 +305,8 @@ export function ApplicationWizard({
                 id="emergency_contact_name"
                 name="emergency_contact_name"
                 className={portalInputClass}
-                defaultValue={defaults.emergency_contact_name ?? ""}
+                value={values.emergency_contact_name}
+                onChange={set("emergency_contact_name")}
               />
             </div>
             <div>
@@ -231,7 +315,8 @@ export function ApplicationWizard({
                 id="emergency_contact_phone"
                 name="emergency_contact_phone"
                 className={portalInputClass}
-                defaultValue={defaults.emergency_contact_phone ?? ""}
+                value={values.emergency_contact_phone}
+                onChange={set("emergency_contact_phone")}
               />
             </div>
           </fieldset>
@@ -246,7 +331,8 @@ export function ApplicationWizard({
               name="previous_school"
               rows={3}
               className={portalInputClass}
-              defaultValue={defaults.previous_school ?? ""}
+              value={values.previous_school}
+              onChange={set("previous_school")}
             />
           </fieldset>
         )}

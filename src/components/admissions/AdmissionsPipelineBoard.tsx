@@ -84,9 +84,32 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
                     >
                       {days}d
                     </span>
-                    {lead.program && (
-                      <p className="mt-1 text-xs text-slate-500">{programLabel(lead.program)}</p>
-                    )}
+                    {/*
+                      * Campus, falling back from programme.
+                      *
+                      * This line used to read `lead.program` alone and render
+                      * nothing at all when it was null. Since 9 September
+                      * (1f2cda2) the public inquiry form archives programmes of
+                      * interest on the interest answers and deliberately writes
+                      * `p_program: null` on the lead — a family may tick more
+                      * than one, and collapsing them onto a single column would
+                      * pick a winner nobody chose. So every inquiry taken since
+                      * has shown a blank where staff read the campus.
+                      *
+                      * The campus was never missing. `submit_public_admissions_inquiry`
+                      * raises 'school_id is required' and checks the id exists
+                      * before it will create the row, so a lead without a school
+                      * cannot be made. The board simply never displayed it,
+                      * though it has always been fetched — select("*, schools(name)").
+                      *
+                      * Programme first where it is known, because its label
+                      * already carries the campus ("The Academy GA – In-Person")
+                      * and showing both would only repeat it. Either way the
+                      * campus is on the card, which is what this line is read for.
+                      */}
+                    <p className="mt-1 text-xs text-slate-500">
+                      {lead.program ? programLabel(lead.program) : (lead.schools?.name ?? "—")}
+                    </p>
                     <p className="mt-1 text-xs text-slate-400 capitalize">
                       {pipelineStageLabel(resolvePipelineStageFromLeadStage(lead.lead_stage) ?? stage.key)}
                     </p>

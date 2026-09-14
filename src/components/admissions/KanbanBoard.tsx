@@ -75,9 +75,16 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
                     >
                       {days}d
                     </span>
-                    {lead.program && (
-                      <p className="mt-1 text-xs text-slate-500">{programLabel(lead.program)}</p>
-                    )}
+                    {/*
+                      * Same line, same fix as AdmissionsPipelineBoard — see the
+                      * long note there. Programme has been null on every lead
+                      * taken through the public form since 9 September, so this
+                      * rendered nothing; the campus was always present and
+                      * always fetched, just never shown.
+                      */}
+                    <p className="mt-1 text-xs text-slate-500">
+                      {lead.program ? programLabel(lead.program) : (lead.schools?.name ?? "—")}
+                    </p>
                     <select
                       value={lead.lead_stage}
                       disabled={action.isBusy}

@@ -1,24 +1,65 @@
-Admissions: the inquiry thank-you says why we want to talk
+the sidebar could not see who you are
 
-Adds to both parent-facing inquiry emails:
+"Alright so this is correct but I don't have any admissions information?!" —
+Jimmy, looking at a sidebar with six modules where there should be thirteen.
 
-  "We would love to hear what you are looking for in a learning environment for
-   your child."
+WHAT WAS MISSING
 
-Two templates, two placements, because they say different things. The one with
-the booking link puts it between "The next step is a conversation" and "Please
-pick a time that suits you" — so the reason reaches the parent before the link,
-rather than after it where people stop reading. The one without a link puts it
-before "If it is easier, simply reply to this email", so an invitation to write
-back follows a reason to write back.
+Admissions. Student Success. Scholarships. Finance. Workforce. Scheduling.
+Teacher Studio. Gone from the sidebar — for the Founder, and for every School
+Leader. What remained was Families, Communications, Workflows, Calendar and
+Documents, which is not a random six.
 
-Inserted with replace() rather than rewritten. These bodies were read through a
-grid that truncates, so parts of them were inferred rather than seen, and
-retyping a whole body would mean retyping sentences nobody has read in full.
-An insertion anchored on a phrase that was read in full changes exactly what it
-claims to and leaves everything else alone.
+THE SHAPE OF IT
 
-Guarded on the sentence not already being present, so it is re-runnable, and
-the check at the end prints whether each template actually took it — 344
-reported success while changing nothing, and that is the failure this pattern
-is avoiding.
+module-visibility hides every module naming a required permission unless the
+viewer holds one of them, and it fails CLOSED on purpose. Its own comment says
+why: "a page that could not work out who you are should not conclude you may see
+the money."
+
+That is right, and it is exactly why this hid so well. The list that answers
+"who you are" was never passed. `permissions` defaulted to [] in DashboardShell,
+again in DashboardChrome, again in Sidebar, and the answer for every viewer was
+nobody. So the sidebar rendered precisely the modules that name no permission
+and dropped every one that does.
+
+Not a random six. The complement of the map.
+
+  layout.tsx  ->  DashboardShell  ->  DashboardChrome  ->  Sidebar
+                  permissions=[]     permissions=[]       permissions=[]
+
+One line, three defaults deep, and no error anywhere. The pages themselves still
+worked if you knew the URL, so nothing refused and nothing logged — it read as
+data having gone missing rather than as a menu being hidden, which is why it was
+reported as "where is my admissions information" and not as a navigation bug.
+
+THE FIX
+
+    permissions={ctx.permissions}
+
+ctx already held them. The layout had ctx. It simply never handed them on.
+
+WHY THE TESTS DID NOT CATCH IT
+
+MODULE_REQUIRED_PERMISSIONS has its own test and passed the whole time. It
+checks the map. Nothing checked that the list ever arrived, so the seam between
+a correct rule and a correct caller was the one place with no cover. The new
+tests hold the seam: one assertion per hop, plus the cost of an empty list
+spelled out so nobody "fixes" this later by loosening the default instead.
+
+Failing closed stays. The bug was never that [] hides things. It is that [] was
+what the layout sent.
+
+ALSO IN THIS SHIP
+
+Two fixes from earlier today, if they have not already gone out:
+
+  the campus on both pipeline boards, blank since 9 September because the card
+  read lead.program and the public form deliberately stopped writing it
+
+  the application wizard destroying previous_school, and an autosave that
+  reported "Autosaved 2:15 PM" while nothing reached the database
+
+TESTS
+
+6 new here, 20 in the two above.
