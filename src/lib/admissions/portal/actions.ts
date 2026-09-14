@@ -16,11 +16,8 @@ import { recordInitialStage } from "@/lib/admissions/workflow";
 import { carryForwardInquiryAnswers } from "@/lib/admissions/interest-form/carry-forward";
 import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import {
-  getApplicationDocuments,
   getPortalApplication,
-  getScholarshipDocuments,
-  getScholarshipForApplication,
-  getStateFundingVerifications,
+  loadApplicationEvidence,
 } from "@/lib/admissions/portal/queries";
 import { runAutomatedAcceptanceWorkflow } from "@/lib/admissions/portal/acceptance";
 import { getLegacyUserFromAuthClient } from "@/lib/platform/authentication";
@@ -551,15 +548,24 @@ export async function submitApplication(applicationId: string) {
   const portalData = await getPortalApplication(applicationId);
   if (!portalData) return { error: "Application not found" };
 
-  const [documents, verifications, scholarship] = await Promise.all([
-    getApplicationDocuments(applicationId),
-    getStateFundingVerifications(applicationId),
-    getScholarshipForApplication(applicationId),
-  ]);
+  const evidence = await loadApplicationEvidence(applicationId);
+  const { documents, verifications, scholarship, scholarshipDocuments } = evidence;
 
-  const scholarshipDocuments = scholarship
-    ? await getScholarshipDocuments(scholarship.id)
-    : [];
+  /**
+   * REFUSE RATHER THAN DECIDE ON WHAT WE COULD NOT READ.
+   *
+   * A failed read returns an empty array, which at this point is
+   * indistinguishable from a family who uploaded nothing — and the next thing
+   * that happens is an automated decision about a child's admission. Better a
+   * family is told to try again in a moment than accepted or refused on
+   * evidence nobody actually saw.
+   */
+  if (evidence.failedReads.length) {
+    return {
+      error:
+        "We could not read part of this application just now, so it has not been submitted. Nothing you have uploaded is lost — please try again in a moment.",
+    };
+  }
 
   const now = new Date().toISOString();
 
@@ -619,15 +625,20 @@ async function maybeRunAutomatedAcceptance(
   const portalData = await getPortalApplication(applicationId);
   if (!portalData) return;
 
-  const [documents, verifications, scholarship] = await Promise.all([
-    getApplicationDocuments(applicationId),
-    getStateFundingVerifications(applicationId),
-    getScholarshipForApplication(applicationId),
-  ]);
+  const evidence = await loadApplicationEvidence(applicationId);
+  const { documents, verifications, scholarship, scholarshipDocuments } = evidence;
 
-  const scholarshipDocuments = scholarship
-    ? await getScholarshipDocuments(scholarship.id)
-    : [];
+  /**
+   * Same rule as submitApplication, with nowhere to report it: this hook returns
+   * void. Running the acceptance workflow on evidence we failed to read is the
+   * one outcome worse than not running it, so it stops and says so in the log.
+   */
+  if (evidence.failedReads.length) {
+    console.error(
+      `[apply/portal] acceptance workflow skipped for ${applicationId}: could not read ${evidence.failedReads.join(", ")}`
+    );
+    return;
+  }
 
   if (portalData.application.application_status !== "submitted") return;
 
@@ -648,15 +659,19 @@ export async function runStaffAcceptanceCheck(applicationId: string, leadId: str
   const portalData = await getPortalApplication(applicationId);
   if (!portalData) return { error: "Application not found" };
 
-  const [documents, verifications, scholarship] = await Promise.all([
-    getApplicationDocuments(applicationId),
-    getStateFundingVerifications(applicationId),
-    getScholarshipForApplication(applicationId),
-  ]);
+  const evidence = await loadApplicationEvidence(applicationId);
+  const { documents, verifications, scholarship, scholarshipDocuments } = evidence;
 
-  const scholarshipDocuments = scholarship
-    ? await getScholarshipDocuments(scholarship.id)
-    : [];
+  /**
+   * Staff-initiated, so the refusal is reported to a person who can act on it
+   * rather than swallowed. An acceptance check run on partial evidence would
+   * read as a considered answer.
+   */
+  if (evidence.failedReads.length) {
+    return {
+      error: `Could not read ${evidence.failedReads.join(", ")} for this application, so no acceptance check was run. Try again in a moment.`,
+    };
+  }
 
   const result = await runAutomatedAcceptanceWorkflow(
     supabase,

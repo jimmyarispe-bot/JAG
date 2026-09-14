@@ -23,7 +23,13 @@ export default async function ApplicationWizardPage({ params }: WizardPageProps)
   const portalData = await getPortalApplication(applicationId);
   if (!portalData) notFound();
 
-  const documents = await getApplicationDocuments(applicationId);
+  /**
+   * `.data` rather than the array itself: this read now reports whether it
+   * failed. The wizard shows the document list and nothing is decided from it
+   * here, so an incomplete list degrades rather than misleads — but the failure
+   * is logged inside the query and is no longer invisible.
+   */
+  const documents = (await getApplicationDocuments(applicationId)).data;
   const { application } = portalData;
 
   /**

@@ -44,11 +44,8 @@ import {
 } from "@/lib/constants/admissions-portal";
 import { programLabel } from "@/lib/constants/programs";
 import {
-  getApplicationDocuments,
   getPortalApplication,
-  getScholarshipDocuments,
-  getScholarshipForApplication,
-  getStateFundingVerifications,
+  loadApplicationEvidence,
 } from "@/lib/admissions/portal/queries";
 
 interface PortalApplicationPageProps {
@@ -68,15 +65,17 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
   const { application, fundingCodes } = portalData;
   const lead = application.admissions_leads;
 
-  const [documents, verifications, scholarship] = await Promise.all([
-    getApplicationDocuments(applicationId),
-    getStateFundingVerifications(applicationId),
-    getScholarshipForApplication(applicationId),
-  ]);
-
-  const scholarshipDocuments = scholarship
-    ? await getScholarshipDocuments(scholarship.id)
-    : [];
+  /**
+   * One load, and the failures come with it.
+   *
+   * These four used to be four separate calls whose errors were discarded, and
+   * the results went straight into computeAdmissionsProgress — so a read that
+   * failed showed the family a completion percentage calculated as though they
+   * had uploaded nothing. See loadApplicationEvidence.
+   */
+  const evidence = await loadApplicationEvidence(applicationId);
+  const { documents, verifications, scholarship, scholarshipDocuments } = evidence;
+  const evidenceIncomplete = evidence.failedReads.length > 0;
 
   const progress = computeAdmissionsProgress({
     application,
@@ -94,6 +93,24 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
   return (
     <ApplyShell userEmail={sessionUser.email}>
       <div className="space-y-6">
+        {/**
+          * Said before anything else on the page, because everything below it —
+          * the progress bar especially — is computed from evidence we know is
+          * incomplete. Telling a family they are 40% done when we simply could
+          * not read their documents is worse than telling them to come back.
+          */}
+        {evidenceIncomplete ? (
+          <div
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            role="alert"
+          >
+            <span className="font-medium">
+              We could not load part of this application just now.
+            </span>{" "}
+            Anything you have already submitted is safe. What is shown below may be
+            incomplete, so please try again in a moment before acting on it.
+          </div>
+        ) : null}
         <div>
           <ActionChip href="/apply/portal" size="sm" variant="ghost">
             Back to applications

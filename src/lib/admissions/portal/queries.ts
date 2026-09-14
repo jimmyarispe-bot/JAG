@@ -310,30 +310,34 @@ export async function getPortalApplication(applicationId: string) {
 }
 
 /**
+/**
  * ─────────────────────────────────────────────────────────────────────────────
- * THE FIVE BELOW ARE HALF-FIXED, AND THAT IS DELIBERATE. READ THIS BEFORE
- * COPYING THE PATTERN.
+ * READS THAT AN AUTOMATED DECISION DEPENDS ON.
  *
- * Each one still returns an empty list or null when its read fails, so a
- * refused read still reaches the family as "you have no documents". What has
- * changed is that it is no longer SILENT: the error is logged, so the next
- * person debugging an empty upload list has something to find.
+ * These four are loaded together by loadApplicationEvidence below and handed to
+ * runAutomatedAcceptanceWorkflow, which decides whether a child is accepted. A
+ * read that fails and returns an empty array does not look like a failure at
+ * that point — it looks exactly like a family who has uploaded nothing.
  *
- * They are not returning a discriminated result like getGuardianPortalLeads and
- * getCurrentSchoolYear do, because the honest reason is that nobody has ever
- * walked the document-upload or scholarship screens as a parent. Those tables
- * have never been read under a PARENT session, so which of these reads a parent
- * can even perform is unknown. Making them throw would turn an unknown into a
- * crash page on screens I have not exercised — trading a quiet wrong for a loud
- * one, on a family mid-application.
+ * They used to swallow their errors entirely. On 13 September they were given a
+ * console.error and left otherwise alone, because nobody had ever walked these
+ * screens as a parent and it was not known whether a parent could read these
+ * tables at all. Asking production on 14 September settled it: every one of
+ * these tables has a guardian SELECT policy, and all of them rest on
+ * is_guardian_of_lead — which was SECURITY INVOKER, and therefore recursing,
+ * until migration 350. The reads should work now.
  *
- * The right time to finish this is while walking the wizard as a parent, when
- * the logs below will say exactly which reads a parent is refused. Do it then,
- * and delete this comment.
+ * "Should" is not a basis for an admissions decision, so each one now reports
+ * whether it failed, and every caller is made to look.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-export async function getApplicationDocuments(applicationId: string) {
+/** A read that knows whether it worked. `failed` is never silently discarded. */
+export type PortalRead<T> = { data: T; failed: boolean };
+
+export async function getApplicationDocuments(
+  applicationId: string
+): Promise<PortalRead<PortalApplicationDocument[]>> {
   const supabase = await createAuthClient();
   const { data, error } = await supabase
     .from("application_documents")
@@ -348,10 +352,12 @@ export async function getApplicationDocuments(applicationId: string) {
     );
   }
 
-  return (data ?? []) as PortalApplicationDocument[];
+  return { data: (data ?? []) as PortalApplicationDocument[], failed: Boolean(error) };
 }
 
-export async function getStateFundingVerifications(applicationId: string) {
+export async function getStateFundingVerifications(
+  applicationId: string
+): Promise<PortalRead<PortalStateFundingVerification[]>> {
   const supabase = await createAuthClient();
   const { data, error } = await supabase
     .from("state_funding_verifications")
@@ -366,10 +372,15 @@ export async function getStateFundingVerifications(applicationId: string) {
     );
   }
 
-  return (data ?? []) as PortalStateFundingVerification[];
+  return {
+    data: (data ?? []) as PortalStateFundingVerification[],
+    failed: Boolean(error),
+  };
 }
 
-export async function getScholarshipForApplication(applicationId: string) {
+export async function getScholarshipForApplication(
+  applicationId: string
+): Promise<PortalRead<PortalScholarshipApplication | null>> {
   const supabase = await createAuthClient();
   const { data, error } = await supabase
     .from("scholarship_applications")
@@ -384,10 +395,15 @@ export async function getScholarshipForApplication(applicationId: string) {
     );
   }
 
-  return (data ?? null) as PortalScholarshipApplication | null;
+  return {
+    data: (data ?? null) as PortalScholarshipApplication | null,
+    failed: Boolean(error),
+  };
 }
 
-export async function getScholarshipDocuments(scholarshipApplicationId: string) {
+export async function getScholarshipDocuments(
+  scholarshipApplicationId: string
+): Promise<PortalRead<PortalScholarshipDocument[]>> {
   const supabase = await createAuthClient();
   const { data, error } = await supabase
     .from("scholarship_documents")
@@ -402,7 +418,7 @@ export async function getScholarshipDocuments(scholarshipApplicationId: string) 
     );
   }
 
-  return (data ?? []) as PortalScholarshipDocument[];
+  return { data: (data ?? []) as PortalScholarshipDocument[], failed: Boolean(error) };
 }
 
 export async function getLeadApplicationsForStaff(leadId: string) {
@@ -421,4 +437,71 @@ export async function getLeadApplicationsForStaff(leadId: string) {
   }
 
   return (data ?? []) as PortalApplication[];
+}
+
+/**
+ * Everything the acceptance workflow and the progress bar are computed from,
+ * loaded together, with the failures kept.
+ *
+ * WHY IT IS ONE FUNCTION. These four reads were made in three places
+ * (submitApplication, the post-submit hook, runStaffAcceptanceCheck) and on the
+ * application page, each time as four separate calls whose errors were dropped
+ * on the floor. Four chances per site to quietly turn "we could not read this"
+ * into "this family uploaded nothing" — and then hand that to something that
+ * decides whether a child is accepted.
+ *
+ * Loading them together means there is exactly one place that knows whether the
+ * evidence is complete, and `failedReads` cannot be destructured away by
+ * accident the way a discarded `error` could.
+ *
+ * WHAT A CALLER MUST DO. If `failedReads` is not empty, the data below is not
+ * the whole truth and no decision may rest on it. Say so and stop. Do not run
+ * the acceptance workflow, do not compute a completion percentage, and do not
+ * tell a family what they still have to upload.
+ */
+export type ApplicationEvidence = {
+  documents: PortalApplicationDocument[];
+  verifications: PortalStateFundingVerification[];
+  scholarship: PortalScholarshipApplication | null;
+  scholarshipDocuments: PortalScholarshipDocument[];
+  /** Plain names of the reads that failed. Empty means the rest is complete. */
+  failedReads: string[];
+};
+
+export async function loadApplicationEvidence(
+  applicationId: string
+): Promise<ApplicationEvidence> {
+  const [documents, verifications, scholarship] = await Promise.all([
+    getApplicationDocuments(applicationId),
+    getStateFundingVerifications(applicationId),
+    getScholarshipForApplication(applicationId),
+  ]);
+
+  // Only reachable when there is a scholarship to read documents for. A failure
+  // to read the scholarship itself is already recorded below, so this is not
+  // silently skipped — it is not applicable.
+  const scholarshipDocuments = scholarship.data
+    ? await getScholarshipDocuments(scholarship.data.id)
+    : { data: [] as PortalScholarshipDocument[], failed: false };
+
+  const failedReads = [
+    documents.failed ? "documents" : null,
+    verifications.failed ? "state funding verifications" : null,
+    scholarship.failed ? "scholarship" : null,
+    scholarshipDocuments.failed ? "scholarship documents" : null,
+  ].filter((name): name is string => name !== null);
+
+  if (failedReads.length) {
+    console.error(
+      `[apply/portal] application ${applicationId}: could not read ${failedReads.join(", ")}`
+    );
+  }
+
+  return {
+    documents: documents.data,
+    verifications: verifications.data,
+    scholarship: scholarship.data,
+    scholarshipDocuments: scholarshipDocuments.data,
+    failedReads,
+  };
 }
