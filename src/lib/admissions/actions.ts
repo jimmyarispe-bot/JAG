@@ -13,6 +13,11 @@ import { syncLeadFundingSources } from "@/lib/funding/sync";
 import { recordInitialStage } from "@/lib/admissions/workflow";
 import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import {
+  appointmentSpec,
+  stageRequiresAppointment,
+  type AppointmentStage,
+} from "@/lib/admissions/appointment-stages";
+import {
   onEnrollmentCompleted,
   onInquirySubmitted,
   onInterviewScheduled,
@@ -242,6 +247,156 @@ export async function completeTask(taskId: string, leadId: string) {
   return { success: true };
 }
 
+/**
+ * Enter an appointment stage the only honest way: book the thing first.
+ *
+ * WHY THIS EXISTS
+ *
+ * There were two doors into tour_scheduled, interview_scheduled and
+ * shadow_day_scheduled. scheduleTour and scheduleInterview did it properly —
+ * insert the appointment, move the stage, notify the family. The pipeline
+ * board's dropdown called updateLeadStage, which moves the stage and nothing
+ * else: no tour row, no interview row, no email, no date anywhere. The family
+ * appeared on screen with a shadow day scheduled and the only thing that had
+ * actually happened was that a word changed.
+ *
+ * The board is the door on the screen, so it is the door people used. Twenty-
+ * eight families, twenty-three of them at The Academy Virtual, and the only
+ * reason anybody knows is that migration 361 went looking on purpose.
+ *
+ * This is one door for both boards. It cannot be called without a date.
+ *
+ * ORDER, AND WHY IT IS THIS ORDER
+ *
+ * Appointment first, then the stage. The database trigger from migration 361
+ * fires on the stage change and reads the appointment to date its reminder, so
+ * a stage that moved first would find nothing and create the loud "no
+ * appointment is on record" task instead of the reminder. scheduleTour has
+ * always had this order; it is not a new invention, it is the existing correct
+ * one being made reachable.
+ *
+ * IF THE TRANSITION FAILS, THE APPOINTMENT IS REMOVED
+ *
+ * Otherwise a refused transition leaves a tour in the calendar for a family
+ * whose stage never moved — a different lie in the opposite direction. The
+ * delete is best-effort and its failure is reported, never swallowed.
+ */
+export async function scheduleAppointmentAndAdvance(input: {
+  leadId: string;
+  leadStage: AppointmentStage;
+  /** Local datetime from the dialog, e.g. "2026-10-02T14:30". */
+  scheduledAt: string;
+  appointmentType?: string;
+  notes?: string | null;
+}) {
+  const auth = await requireAdmissionsManage();
+  if ("error" in auth) return { error: auth.error };
+  const supabase = auth.supabase;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { leadId, leadStage } = input;
+
+  if (!leadId) return { error: "No family was named." };
+
+  // The stage is checked against the shared list rather than trusted from the
+  // client. A caller asking to "schedule" something this action has no table
+  // for would otherwise write an appointment into the wrong one.
+  if (!stageRequiresAppointment(leadStage)) {
+    return { error: `${leadStage} is not an appointment stage.` };
+  }
+
+  const spec = appointmentSpec(leadStage);
+
+  // A stage that claims a date needs a date that exists. An unparseable one is
+  // refused here rather than being handed to Postgres as null, which would
+  // reproduce the exact condition this action was written to prevent.
+  const when = new Date(input.scheduledAt);
+  if (!input.scheduledAt || Number.isNaN(when.getTime())) {
+    return { error: `Give the ${spec.noun} a date and time.` };
+  }
+  const scheduledAtIso = when.toISOString();
+
+  const appointmentType = input.appointmentType || spec.typeOptions[0].value;
+  const notes = input.notes?.trim() ? input.notes.trim() : null;
+
+  // ---- 1. The appointment -------------------------------------------------
+  // Branched rather than parameterised: a union table name gives supabase-js a
+  // union client, and the row type stops being checked against the table it is
+  // actually going into. Two literal calls keep both ends typed.
+  const created =
+    spec.table === "admissions_tours"
+      ? await supabase
+          .from("admissions_tours")
+          .insert({
+            lead_id: leadId,
+            scheduled_at: scheduledAtIso,
+            tour_type: appointmentType,
+            notes,
+          })
+          .select("id")
+          .single()
+      : await supabase
+          .from("admissions_interviews")
+          .insert({
+            lead_id: leadId,
+            scheduled_at: scheduledAtIso,
+            interview_type: appointmentType,
+            notes,
+            host_user_id: user?.id ?? null,
+          })
+          .select("id")
+          .single();
+
+  // Checked, because supabase-js resolves an RLS refusal rather than throwing.
+  if (created.error) {
+    return { error: `The ${spec.noun} was not saved: ${created.error.message}` };
+  }
+
+  const appointmentId = created.data?.id;
+  if (!appointmentId) {
+    return { error: `The ${spec.noun} was not saved and no reason was given.` };
+  }
+
+  // ---- 2. The stage -------------------------------------------------------
+  const result = await transitionCaseStage(supabase, leadId, leadStage, user?.id ?? null, {
+    tourScheduledAt: spec.table === "admissions_tours" ? scheduledAtIso : undefined,
+  });
+
+  if (result.error) {
+    const { error: rollbackError } =
+      spec.table === "admissions_tours"
+        ? await supabase.from("admissions_tours").delete().eq("id", appointmentId)
+        : await supabase.from("admissions_interviews").delete().eq("id", appointmentId);
+
+    if (rollbackError) {
+      return {
+        error:
+          `The stage did not move (${result.error}), and the ${spec.noun} that was ` +
+          `created for it could not be removed (${rollbackError.message}). ` +
+          `There is now a ${spec.noun} on record for a family whose stage is unchanged.`,
+      };
+    }
+    return { error: result.error };
+  }
+
+  // ---- 3. The family ------------------------------------------------------
+  // Whether anything actually reaches a parent is the automation gate's
+  // decision, not this action's. Calling the trigger is what the proper door
+  // has always done; the gate stays exactly where it is.
+  if (spec.table === "admissions_tours") {
+    await onTourScheduled(supabase, leadId, scheduledAtIso, user?.id ?? null);
+  } else {
+    await onInterviewScheduled(supabase, leadId, null, scheduledAtIso, user?.id ?? null);
+  }
+
+  revalidatePath("/dashboard/admissions");
+  revalidatePath(`/dashboard/admissions/cases/${leadId}`);
+  revalidatePath(`/dashboard/admissions/leads/${leadId}`);
+  return { success: true };
+}
+
 export async function scheduleTour(formData: FormData) {
   const auth = await requireAdmissionsManage();
   if ("error" in auth) return { error: auth.error };
@@ -292,7 +447,12 @@ export async function scheduleInterview(formData: FormData) {
   const scheduledAt = formData.get("scheduled_at") as string;
   const interviewType = (formData.get("interview_type") as string) || "virtual";
 
-  await supabase.from("admissions_interviews").insert({
+  /**
+   * The insert used to be awaited and thrown away, so an RLS refusal moved the
+   * stage and returned success with no interview behind it — the house pattern,
+   * and indistinguishable from what the board's dropdown did to 28 families.
+   */
+  const { error: interviewError } = await supabase.from("admissions_interviews").insert({
     lead_id: leadId,
     application_id: applicationId,
     scheduled_at: scheduledAt,
@@ -300,6 +460,8 @@ export async function scheduleInterview(formData: FormData) {
     notes: (formData.get("notes") as string) || null,
     host_user_id: user?.id ?? null,
   });
+
+  if (interviewError) return { error: interviewError.message };
 
   const pipelineStage =
     interviewType === "initial_assessment" ? "shadow_day_scheduled" : "interest_call_scheduled";

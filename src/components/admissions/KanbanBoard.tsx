@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useActionFeedback } from "@/components/experience-system/feedback";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
 import { LEAD_STAGES } from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
-import { updateLeadStage } from "@/lib/admissions/actions";
+import { scheduleAppointmentAndAdvance, updateLeadStage } from "@/lib/admissions/actions";
+import {
+  stageRequiresAppointment,
+  type AppointmentStage,
+} from "@/lib/admissions/appointment-stages";
+import { ScheduleAppointmentDialog } from "./ScheduleAppointmentDialog";
 import {
   daysInCurrentStage,
   pipelineAgingClasses,
@@ -26,14 +32,72 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
     progressLabel: "Updating lead stage…",
   });
 
-  function handleStageChange(leadId: string, stage: string) {
+  /**
+   * A stage that claims an appointment cannot be entered from a dropdown.
+   *
+   * Picking one opens the date dialog; the stage moves only once the tour,
+   * interview or shadow day has actually been booked. Every other stage is
+   * unchanged. See src/lib/admissions/appointment-stages.ts for why.
+   */
+  const [pending, setPending] = useState<{
+    leadId: string;
+    stage: AppointmentStage;
+    studentName: string;
+  } | null>(null);
+
+  function handleStageChange(leadId: string, stage: string, studentName: string) {
+    if (stageRequiresAppointment(stage)) {
+      setPending({ leadId, stage, studentName });
+      return;
+    }
     void action.run(async () => {
-      await updateLeadStage(leadId, stage as (typeof LEAD_STAGES)[number]["value"]);
+      const result = await updateLeadStage(
+        leadId,
+        stage as (typeof LEAD_STAGES)[number]["value"]
+      );
+      // useActionFeedback only treats a THROWN error as a failure, so a returned
+      // { error } used to render "✓ Updated" over a stage that never moved.
+      if (result && "error" in result && result.error) throw new Error(result.error);
+      return { success: true };
+    });
+  }
+
+  function confirmAppointment(input: {
+    scheduledAt: string;
+    appointmentType: string;
+    notes: string;
+  }) {
+    if (!pending) return;
+    const { leadId, stage } = pending;
+    void action.run(async () => {
+      const result = await scheduleAppointmentAndAdvance({
+        leadId,
+        leadStage: stage,
+        scheduledAt: input.scheduledAt,
+        appointmentType: input.appointmentType,
+        notes: input.notes,
+      });
+      // Thrown, not returned: useActionFeedback reads a rejection, not a shape.
+      // The dialog stays open so the date is not lost and the card does not
+      // appear to have moved.
+      if (result && "error" in result && result.error) throw new Error(result.error);
+      setPending(null);
       return { success: true };
     });
   }
 
   return (
+    <>
+    <ScheduleAppointmentDialog
+      /* Remount per family+stage, so no field carries over from the last one. */
+      key={pending ? `${pending.leadId}:${pending.stage}` : "closed"}
+      open={pending !== null}
+      stage={pending?.stage ?? null}
+      studentName={pending?.studentName ?? ""}
+      busy={action.isBusy}
+      onCancel={() => setPending(null)}
+      onConfirm={confirmAppointment}
+    />
     <div className="flex gap-4 overflow-x-auto pb-4">
       {LEAD_STAGES.map((stage) => {
         const stageLeads = leads.filter((l) => l.lead_stage === stage.value);
@@ -88,7 +152,13 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
                     <select
                       value={lead.lead_stage}
                       disabled={action.isBusy}
-                      onChange={(e) => handleStageChange(lead.id, e.target.value)}
+                      onChange={(e) =>
+                        handleStageChange(
+                          lead.id,
+                          e.target.value,
+                          `${lead.first_name} ${lead.last_name}`
+                        )
+                      }
                       className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
                       aria-busy={action.isBusy || undefined}
                     >
@@ -109,5 +179,6 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
         );
       })}
     </div>
+    </>
   );
 }

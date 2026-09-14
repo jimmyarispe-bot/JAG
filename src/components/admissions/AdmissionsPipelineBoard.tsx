@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useActionFeedback } from "@/components/experience-system/feedback";
 import {
   getActiveOrderedPipelineStages,
@@ -8,6 +9,12 @@ import {
   resolvePipelineStageFromLeadStage,
 } from "@/lib/admissions/registry";
 import { updateCaseStage } from "@/lib/admissions/case/actions";
+import { scheduleAppointmentAndAdvance } from "@/lib/admissions/actions";
+import {
+  stageRequiresAppointment,
+  type AppointmentStage,
+} from "@/lib/admissions/appointment-stages";
+import { ScheduleAppointmentDialog } from "./ScheduleAppointmentDialog";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
 import { LEAD_STAGES, type LeadStageValue } from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
@@ -33,14 +40,64 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
   });
   const stages = getActiveOrderedPipelineStages();
 
-  function handleStageChange(leadId: string, stage: LeadStageValue) {
+  /**
+   * Same rule as KanbanBoard, and it has to be on both: these are two boards
+   * over one pipeline, and closing one door while the other stands open would
+   * have fixed nothing. See src/lib/admissions/appointment-stages.ts.
+   */
+  const [pending, setPending] = useState<{
+    leadId: string;
+    stage: AppointmentStage;
+    studentName: string;
+  } | null>(null);
+
+  function handleStageChange(leadId: string, stage: LeadStageValue, studentName: string) {
+    if (stageRequiresAppointment(stage)) {
+      setPending({ leadId, stage, studentName });
+      return;
+    }
     void action.run(async () => {
-      await updateCaseStage(leadId, stage);
+      const result = await updateCaseStage(leadId, stage);
+      // A returned { error } is not a rejection, so without this the board
+      // showed "✓ Updated" over a stage that had not moved.
+      if (result && "error" in result && result.error) throw new Error(result.error);
+      return { success: true };
+    });
+  }
+
+  function confirmAppointment(input: {
+    scheduledAt: string;
+    appointmentType: string;
+    notes: string;
+  }) {
+    if (!pending) return;
+    const { leadId, stage } = pending;
+    void action.run(async () => {
+      const result = await scheduleAppointmentAndAdvance({
+        leadId,
+        leadStage: stage,
+        scheduledAt: input.scheduledAt,
+        appointmentType: input.appointmentType,
+        notes: input.notes,
+      });
+      if (result && "error" in result && result.error) throw new Error(result.error);
+      setPending(null);
       return { success: true };
     });
   }
 
   return (
+    <>
+    <ScheduleAppointmentDialog
+      /* Remount per family+stage, so no field carries over from the last one. */
+      key={pending ? `${pending.leadId}:${pending.stage}` : "closed"}
+      open={pending !== null}
+      stage={pending?.stage ?? null}
+      studentName={pending?.studentName ?? ""}
+      busy={action.isBusy}
+      onCancel={() => setPending(null)}
+      onConfirm={confirmAppointment}
+    />
     <div className="flex gap-4 overflow-x-auto pb-4">
       {stages.map((stage) => {
         const stageLeads = leads.filter(
@@ -116,7 +173,13 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
                     <select
                       value={lead.lead_stage}
                       disabled={action.isBusy}
-                      onChange={(e) => handleStageChange(lead.id, e.target.value as LeadStageValue)}
+                      onChange={(e) =>
+                        handleStageChange(
+                          lead.id,
+                          e.target.value as LeadStageValue,
+                          `${lead.first_name} ${lead.last_name}`
+                        )
+                      }
                       className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
                       aria-busy={action.isBusy || undefined}
                     >
@@ -137,6 +200,7 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
         );
       })}
     </div>
+    </>
   );
 }
 
