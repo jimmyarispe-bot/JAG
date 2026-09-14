@@ -510,8 +510,16 @@ function QuestionField({
     return (
       <div className="sm:col-span-2">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm leading-relaxed text-slate-800">{question.label}</p>
-          <div className="mt-4">
+          {/**
+            * The wording a family is signing. Omitted when the question has no
+            * label of its own, because from v18 the GA GOAL text lives in the
+            * section description above this box — and rendering the label
+            * anyway printed a second, unbolded "Signature" above the real one.
+            */}
+          {question.label ? (
+            <p className="text-sm leading-relaxed text-slate-800">{question.label}</p>
+          ) : null}
+          <div className={question.label ? "mt-4" : undefined}>
             <label className={portalLabelClass} htmlFor={id}>
               Signature{question.required ? " *" : ""}
             </label>
@@ -687,12 +695,24 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
 
         return (
           <section key={section.key} className="space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">{section.title}</h2>
-              {section.description ? (
-                <p className="text-sm text-slate-500">{section.description}</p>
-              ) : null}
-            </div>
+            {/**
+              * A section with neither title nor description renders no heading
+              * at all. Until v18 the <h2> was unconditional, so an empty title
+              * left a blank heading holding vertical space — which is what a
+              * section used purely to group questions needs to avoid. The GA
+              * campus block is split into three for that reason: one of them
+              * carries the GA GOAL heading, the other two carry nothing.
+              */}
+            {section.title || section.description ? (
+              <div>
+                {section.title ? (
+                  <h2 className="text-lg font-semibold text-slate-900">{section.title}</h2>
+                ) : null}
+                {section.description ? (
+                  <p className="text-sm text-slate-500">{section.description}</p>
+                ) : null}
+              </div>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               {questions.map((question) => (
                 <QuestionField

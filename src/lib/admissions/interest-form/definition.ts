@@ -235,7 +235,16 @@ export function validateInterestSubmission(input: {
       (Array.isArray(raw) && raw.length === 0);
 
     if (question.required && empty) {
-      issues.push({ path: question.key, message: `${question.label} is required.` });
+      /**
+       * A question can legitimately carry no label of its own — a signature
+       * whose wording lives in the section description above it, for instance.
+       * Without a fallback the family is told " is required.", which names
+       * nothing and helps nobody.
+       */
+      const name =
+        question.label?.trim() ||
+        (question.type === "signature" ? "Signature" : "This field");
+      issues.push({ path: question.key, message: `${name} is required.` });
       continue;
     }
     if (empty) {
