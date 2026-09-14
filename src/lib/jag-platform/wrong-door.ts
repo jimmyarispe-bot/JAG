@@ -78,6 +78,65 @@ export function buildWrongDoorFailure(tenantHost: string | null): WrongDoorFailu
 type SchoolRow = { schools?: { organization_id?: string | null } | null };
 
 /**
+ * The brand for a REAL organization uuid.
+ *
+ * WHY THIS EXISTS. BrandRegistry is keyed by synthetic text ids — migration 226
+ * says so in its header: "the registries use synthetic text ids
+ * (org.the-academy-way)". `schools.organization_id` is a uuid. Handing one to
+ * the other returned null for every school account that ever reached this
+ * function, which is why Heather Badger-Brown — a School Leader — was told to
+ * ask her school's admissions office, being the school's admissions office.
+ *
+ * Migration 356 adds `org_organization_id` to organization_brands and fills it
+ * from the campuses themselves. This reads that column, so the lookup finally
+ * joins the two identity namespaces instead of comparing across them.
+ *
+ * The registry is still tried afterwards, for any caller that does hold a
+ * synthetic id.
+ */
+type BrandLookupClient = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        maybeSingle: () => PromiseLike<{
+          data: { subdomain?: string | null } | null;
+          error: { message?: string } | null;
+        }>;
+      };
+    };
+  };
+};
+
+async function subdomainForRealOrganization(
+  supabase: unknown,
+  organizationId: string
+): Promise<string | null> {
+  try {
+    const { data, error } = await (supabase as BrandLookupClient)
+      .from("organization_brands")
+      .select("subdomain")
+      .eq("org_organization_id", organizationId)
+      .maybeSingle();
+
+    // Checked, not assumed. Before migration 356 the column does not exist and
+    // PostgREST answers that with an error and a null body — the exact shape
+    // that has hidden five faults in this codebase.
+    if (error) {
+      console.error("[jag/login] brand lookup by organization failed", error.message);
+      return null;
+    }
+
+    return data?.subdomain?.trim().toLowerCase() || null;
+  } catch (err) {
+    console.error(
+      "[jag/login] brand lookup threw",
+      err instanceof Error ? err.message : String(err)
+    );
+    return null;
+  }
+}
+
+/**
  * Which campus address this person should have used.
  *
  * BEST EFFORT, ON PURPOSE. Everything here is wrapped so that a failure to work
@@ -121,6 +180,15 @@ export async function resolveTenantSignInHost(
       .find((id): id is string => Boolean(id));
 
     if (!organizationId) return null;
+
+    /*
+     * The real uuid first, because that is what `schools.organization_id`
+     * actually holds. The registry lookup below only ever succeeded for a
+     * caller holding a synthetic id, and no school account has one — which is
+     * why this function returned null for every person it was written to help.
+     */
+    const fromBrandTable = await subdomainForRealOrganization(supabase, organizationId);
+    if (fromBrandTable) return `${fromBrandTable}.${DEFAULT_ROOT_DOMAIN}`;
 
     const brand = BrandRegistry.getByOrganizationId(organizationId);
     const subdomain = brand?.subdomain?.trim().toLowerCase();

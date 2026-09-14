@@ -1,65 +1,81 @@
-the sidebar could not see who you are
+the guard could not name the door
 
-"Alright so this is correct but I don't have any admissions information?!" —
-Jimmy, looking at a sidebar with six modules where there should be thirteen.
+Heather Badger-Brown, School Leader of The Academy HS, signed in at thejag.org
+with the correct password and was told:
 
-WHAT WAS MISSING
+    Your password is correct, but this account is not part of The JAG™
+    Platform. ... Use the link in the email your school sent you, or ask your
+    school's admissions office for the sign-in address.
 
-Admissions. Student Success. Scholarships. Finance. Workforce. Scheduling.
-Teacher Studio. Gone from the sidebar — for the Founder, and for every School
-Leader. What remained was Families, Communications, Workflows, Calendar and
-Documents, which is not a random six.
+She is the school's admissions office.
 
-THE SHAPE OF IT
+That is the FALLBACK wording. The guard is built to name the address —
+"Sign in here instead: <campus>.thejag.org/login" — and falls back only when it
+cannot work out which campus somebody belongs to. It could never work it out.
+The named-address path has never once run.
 
-module-visibility hides every module naming a required permission unless the
-viewer holds one of them, and it fails CLOSED on purpose. Its own comment says
-why: "a page that could not work out who you are should not conclude you may see
-the money."
+TWO IDENTITY NAMESPACES, NOTHING BETWEEN THEM
 
-That is right, and it is exactly why this hid so well. The list that answers
-"who you are" was never passed. `permissions` defaulted to [] in DashboardShell,
-again in DashboardChrome, again in Sidebar, and the answer for every viewer was
-nobody. So the sidebar rendered precisely the modules that name no permission
-and dropped every one that does.
+resolveTenantSignInHost reads schools.organization_id, a uuid, and hands it to
+BrandRegistry.getByOrganizationId. The registry is keyed by SYNTHETIC TEXT IDS.
+Migration 226 says so in its own header: "the registries use synthetic text ids
+(org.the-academy-way)".
 
-Not a random six. The complement of the map.
+Production holds exactly one brand row:
 
-  layout.tsx  ->  DashboardShell  ->  DashboardChrome  ->  Sidebar
-                  permissions=[]     permissions=[]       permissions=[]
+    organization_id       subdomain   organization_name
+    -------------------   ---------   -----------------
+    org.the-academy-way   academy     The Academy Way
 
-One line, three defaults deep, and no error anywhere. The pages themselves still
-worked if you knew the URL, so nothing refused and nothing logged — it read as
-data having gone missing rather than as a menu being hidden, which is why it was
-reported as "where is my admissions information" and not as a navigation bug.
+A uuid cannot match that key. Every school account that ever reached this
+function fell through to the vague message. The brand was never missing and the
+lookup never failed — it compared across two namespaces with nothing bridging
+them, and null is what that returns.
 
-THE FIX
+WHAT WAS NOT DONE, AND WHY
 
-    permissions={ctx.permissions}
+Re-key the brand row to the uuid. 'org.the-academy-way' is load-bearing in five
+places — jag-platform/organizations.ts, the tenant admin loader, the branding
+loader twice, and BrandRegistry's own default. That fixes one lookup and breaks
+the JAG command centre.
 
-ctx already held them. The layout had ctx. It simply never handed them on.
+Use tenant_profiles. It is the bridge the design intended, carrying both a
+synthetic organization_id and a real org_organization_id uuid. IT DOES NOT EXIST
+IN PRODUCTION. It is declared in the same migration 226 that created
+organization_brands, after a statement referencing org_organizations — so that
+file was applied partway and stopped. Asked of the database rather than assumed:
+organization_brands answers, tenant_profiles does not exist.
 
-WHY THE TESTS DID NOT CATCH IT
+Building today's fix on a table that is not there would have been the third
+guess of the day.
 
-MODULE_REQUIRED_PERMISSIONS has its own test and passed the whole time. It
-checks the map. Nothing checked that the list ever arrived, so the seam between
-a correct rule and a correct caller was the one place with no cover. The new
-tests hold the seam: one assertion per hop, plus the cost of an empty list
-spelled out so nobody "fixes" this later by loosening the default instead.
+MIGRATION 356
 
-Failing closed stays. The bug was never that [] hides things. It is that [] was
-what the layout sent.
+Adds org_organization_id to the table that DOES exist, and fills it by reading
+the campuses themselves rather than from a uuid typed into a file, so it cannot
+drift from what the schools actually point at. Additive: nothing that reads the
+synthetic key changes behaviour. A partial unique index keeps one brand per real
+organization, because "which door is yours" must not be ambiguous.
 
-ALSO IN THIS SHIP
+THE RESOLVER
 
-Two fixes from earlier today, if they have not already gone out:
-
-  the campus on both pipeline boards, blank since 9 September because the card
-  read lead.program and the public form deliberately stopped writing it
-
-  the application wizard destroying previous_school, and an autosave that
-  reported "Autosaved 2:15 PM" while nothing reached the database
+Real uuid first, registry second. The error is checked rather than the data read
+blindly — before 356 that column does not exist, and PostgREST answers with an
+error and a null body, the exact costume five faults in this codebase have worn.
+A failure to work out the address still cannot become a failure to sign in.
 
 TESTS
 
-6 new here, 20 in the two above.
+5 new, 18 on the file. The one that matters asserts the lookup happens by
+org_organization_id, because both halves were always correct on their own.
+
+STILL OPEN
+
+Which door the leaders should actually use. The brand row claims subdomain
+'academy'; theacademyway.thejag.org is what worked, showing generic "School
+Platform" branding precisely because nothing resolved. Confirm against
+academy.thejag.org once 356 is in.
+
+And the instructions that started this were mine. I sent Heather to thejag.org —
+the one address a school account can never pass. Nina and Danni have the same
+email.

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   TENANT_SIGN_IN_PATH,
@@ -119,5 +121,61 @@ describe("the generic message still guards the thing it guards", () => {
     expect(GENERIC_JAG_AUTH_FAILURE).toBe("Invalid credentials for The JAG™ Platform.");
     expect(GENERIC_JAG_AUTH_FAILURE).not.toContain("password is correct");
     expect(GENERIC_JAG_AUTH_FAILURE).not.toContain("thejag.org");
+  });
+});
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 14 September 2026 — the guard could not name the door.
+ *
+ * Heather Badger-Brown, a School Leader, signed in at thejag.org with the right
+ * password and got the FALLBACK wording: "ask your school's admissions office
+ * for the sign-in address." She is the admissions office.
+ *
+ * The named-address path existed and had never once run. resolveTenantSignInHost
+ * read schools.organization_id — a uuid — and asked BrandRegistry, which is
+ * keyed by synthetic text ids ("org.the-academy-way"). Production held exactly
+ * one brand row under that synthetic key. A uuid could never match it, so every
+ * school account fell through to the vague message.
+ *
+ * Migration 356 adds organization_brands.org_organization_id and fills it from
+ * the campuses. These tests hold the bridge, because the bug was not in either
+ * side — it was that nothing crossed between them.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+describe("the uuid a school actually carries resolves to a brand", () => {
+  const src = readFileSync(
+    join(__dirname, "..", "..", "..", "src/lib/jag-platform/wrong-door.ts"),
+    "utf8"
+  ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+  /** THE ONE THAT MATTERS. Without this column the lookup compares namespaces. */
+  it("looks the brand up by the real organization uuid", () => {
+    expect(src).toContain('.eq("org_organization_id", organizationId)');
+    expect(src).toContain('.from("organization_brands")');
+  });
+
+  it("tries the real uuid before the synthetic registry", () => {
+    expect(src.indexOf("subdomainForRealOrganization")).toBeLessThan(
+      src.indexOf("BrandRegistry.getByOrganizationId")
+    );
+  });
+
+  /**
+   * Before 356 the column does not exist and PostgREST answers with an error
+   * and a null body. Discarding that would turn a schema gap into a silent
+   * fallback — the same costume the original bug wore.
+   */
+  it("checks the error rather than reading data blindly", () => {
+    expect(src).toMatch(/if \(error\)[\s\S]{0,140}brand lookup by organization failed/);
+  });
+
+  it("still falls back to the registry rather than throwing", () => {
+    expect(src).toContain("BrandRegistry.getByOrganizationId(organizationId)");
+  });
+
+  /** A resolution failure must never become a sign-in failure. */
+  it("keeps the whole path wrapped", () => {
+    expect(src).toContain("brand lookup threw");
   });
 });

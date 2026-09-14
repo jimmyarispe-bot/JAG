@@ -66,7 +66,20 @@ describe("JS-005 Knowledge Graph Completion", () => {
         expect(ids.has(e.to)).toBe(true);
       }
     },
-    120_000
+    /*
+     * 300s throughout this file, raised from 120s on 14 September 2026, matching
+     * the figure js003-governance.test.ts already uses for the same reason.
+     *
+     * Every test here walks the repository. Alone they run in roughly 13-40s;
+     * inside the full suite they share CPU and disk with every other file vitest
+     * has in flight, and on 14 September "generates evidence-backed
+     * recommendations" began exceeding 120s and failing the ship gate. It passed
+     * the same day, on the same code, run on its own.
+     *
+     * A capacity limit, not a correctness one — every assertion in this file is
+     * a lower bound or an existence check.
+     */
+    300_000
   );
 
   it(
@@ -94,7 +107,7 @@ describe("JS-005 Knowledge Graph Completion", () => {
       );
       expect(academyPkg).toBeTruthy();
     },
-    120_000
+    300_000
   );
 
   it(
@@ -132,7 +145,7 @@ describe("JS-005 Knowledge Graph Completion", () => {
         ]).toContain(b.source);
       }
     },
-    120_000
+    300_000
   );
 
   it(
@@ -167,7 +180,7 @@ describe("JS-005 Knowledge Graph Completion", () => {
         report.recommendations.map((r) => r.id)
       );
     },
-    120_000
+    300_000
   );
 
   it(
@@ -197,6 +210,6 @@ describe("JS-005 Knowledge Graph Completion", () => {
       expect(Array.isArray(dash.untestedServices)).toBe(true);
       expect(Array.isArray(dash.undocumentedApis)).toBe(true);
     },
-    120_000
+    300_000
   );
 });

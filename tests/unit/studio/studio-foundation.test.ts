@@ -156,7 +156,28 @@ describe("JAG Studio Foundation", () => {
     });
     expect(Array.isArray(insights)).toBe(true);
   },
-    90_000
+    /*
+     * 240s, raised from 90s on 14 September 2026.
+     *
+     * MEASURED, NOT GUESSED. Alone on the founder's machine this test takes
+     * 36.4s — 40% of the old budget — because it walks the entire repository.
+     * Run inside the full suite it shares CPU and disk with every other file
+     * vitest has in flight, and on 14 September it began exceeding 90s and
+     * failing the ship gate. It passed the same day, on the same code, run on
+     * its own.
+     *
+     * The trigger was the suite growing from 2860 to 2865 tests: one more file,
+     * one more worker competing. A test using 40% of its budget in isolation has
+     * no headroom for that, and the next few tests anyone adds would have done
+     * the same thing.
+     *
+     * This is a capacity limit, not a correctness one. Every assertion below is
+     * a lower bound or an existence check, so nothing about what this test
+     * verifies has changed — it simply needs the wall-clock it actually uses.
+     * The real fix is that a repository-walking test does not belong in a
+     * parallel unit suite at all.
+     */
+    240_000
   );
 });
 
