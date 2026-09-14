@@ -3,11 +3,16 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Versions 18 and 19 of the inquiry form — the GA GOAL ask.
+ * Versions 18, 19 and 20 of the inquiry form — the GA GOAL ask.
  *
  * 19 is a one-line follow-up to 18: the pledge's label is emptied, because the
  * signature field renders the label as a paragraph on top of its own bolded
  * "Signature *" heading, and v18 left the label reading "Signature".
+ *
+ * 20 rewrites the confirmation a family signs at the end of the eligibility
+ * section — the whole application rather than the checkboxes above it, the
+ * school verifying rather than GA GOAL, and removal from the school named
+ * alongside withdrawal of the scholarship.
  *
  * These read the migration's own definition JSON rather than a copy, so the test
  * cannot drift from what is actually published. Every question key is checked to
@@ -22,7 +27,7 @@ const sql = readFileSync(
     "..",
     "..",
     "..",
-    "supabase/migrations/353_interest_form_v19_pledge_label_2026_09_14.sql"
+    "supabase/migrations/354_interest_form_v20_confirmation_wording_2026_09_14.sql"
   ),
   "utf8"
 );
@@ -89,6 +94,35 @@ describe("the GA GOAL fund block", () => {
   it("still takes a signature, and still requires one", () => {
     expect(sections.ga_goal_fund.questionKeys).toEqual(["ga_goal_taxpayer_pledge"]);
     expect(questions.ga_goal_taxpayer_pledge.required).toBe(true);
+  });
+});
+
+describe("the confirmation a family signs", () => {
+  const label = questions.ga_goal_eligibility_signature.label;
+
+  it("covers the whole application, not just the ticked criteria", () => {
+    expect(label).toContain("the application information I have provided above is true");
+    expect(label).not.toContain("the eligibility criteria I have ticked above");
+  });
+
+  it("says the school verifies, not GA GOAL", () => {
+    expect(label).toContain("the school verifies all information");
+    expect(label).not.toContain("GA GOAL verifies eligibility");
+  });
+
+  /** The consequence that was missing: it is not only the money at stake. */
+  it("names removal from the school alongside losing the scholarship", () => {
+    expect(label).toContain("my child may be removed from the school");
+    expect(label).toContain("scholarship(s) may be withdrawn");
+  });
+
+  it("still asks about the genuineness of the documents", () => {
+    expect(label).toContain("the documents I have uploaded are genuine");
+  });
+
+  it("is still required, and still inside the eligibility section", () => {
+    expect(questions.ga_goal_eligibility_signature.required).toBe(true);
+    expect(sections.ga_goal.questionKeys).toContain("ga_goal_eligibility_signature");
   });
 });
 
@@ -201,5 +235,16 @@ describe("the renderer can carry a section with no heading", () => {
 
   it("omits a signature's paragraph when the question has no label", () => {
     expect(renderer).toMatch(/question\.label \? \(/);
+  });
+
+  /**
+   * The grey note under every signature box is gone. By the GA GOAL block the
+   * section text already ends "Type your signature below acknowledging that you
+   * have read and understand...", so the note repeated the instruction it had
+   * just been given, in smaller type.
+   */
+  it("no longer prints the signature note under every box", () => {
+    expect(renderer).not.toContain("is your signature, dated today");
+    expect(renderer).not.toContain("sig-note");
   });
 });

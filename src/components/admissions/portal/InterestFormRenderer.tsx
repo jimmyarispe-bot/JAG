@@ -533,11 +533,14 @@ function QuestionField({
               value={text}
               onChange={(e) => onChange(question.key, e.target.value)}
               required={question.required}
-              aria-describedby={`${id}-sig-note`}
             />
-            <p id={`${id}-sig-note`} className="mt-1 text-sm text-slate-500">
-              Typing your full name here is your signature, dated today.
-            </p>
+            {/**
+              * No "Typing your full name here is your signature, dated today."
+              * It sat under every signature box on the form, and by the GA GOAL
+              * block the section above it already ends "Type your signature
+              * below acknowledging that you have read and understand..." — the
+              * same instruction, twice, in smaller grey type.
+              */}
           </div>
         </div>
       </div>
@@ -630,7 +633,7 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
 
   const action = useActionFeedback({
     verb: "submit",
-    labels: { idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" },
+    labels: { idle: "Submit Application", loading: "Submitting…", success: "✓ Submitted" },
     successToast: "✓ Submitted",
     errorToast: "Unable to submit.",
     progressLabel: "Submitting inquiry…",
@@ -744,7 +747,7 @@ export function InterestFormRenderer({ published }: InterestFormRendererProps) {
           variant="primary"
           status={action.status}
           verb="submit"
-          labels={{ idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" }}
+          labels={{ idle: "Submit Application", loading: "Submitting…", success: "✓ Submitted" }}
           errorMessage={action.errorMessage}
           className="btn-academy rounded-xl px-12 py-4 text-lg font-semibold"
         />
