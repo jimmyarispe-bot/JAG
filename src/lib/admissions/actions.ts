@@ -284,7 +284,15 @@ export async function completeTask(taskId: string, leadId: string) {
 export async function scheduleAppointmentAndAdvance(input: {
   leadId: string;
   leadStage: AppointmentStage;
-  /** Local datetime from the dialog, e.g. "2026-10-02T14:30". */
+  /**
+   * A full instant, e.g. "2026-10-02T18:30:00.000Z". The dialog resolves the
+   * person's local "2:30 PM" in the BROWSER and sends the ISO string, because a
+   * bare "2026-10-02T14:30" parsed here would be read against the server's
+   * clock — UTC on Vercel — and silently move the appointment by the length of
+   * the timezone. A bare local string is still accepted rather than rejected,
+   * since refusing it would break an appointment rather than merely mis-date
+   * it, but every caller in this codebase sends an instant.
+   */
   scheduledAt: string;
   appointmentType?: string;
   notes?: string | null;

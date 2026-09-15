@@ -114,6 +114,14 @@ export const MERGE_FIELDS = [
   "scheduling_link",
   /** Shadow-days booking link. Separate calendar from tours -- see migration 247. */
   "shadow_days_link",
+  /**
+   * The school leader's own words about what this child's day will look like,
+   * written when gate 2 is answered yes. Registered HERE as well as in the
+   * merge map, because this list is what migration 296's audit compares live
+   * template bodies against — a token in a body with no entry here is precisely
+   * the 294 failure, and it mails a parent literal braces.
+   */
+  "shadow_days_note",
   /** Deep link to the pending-decisions page, for the staff gate notification. */
   "decisions_link",
   "admissions_contact_name",

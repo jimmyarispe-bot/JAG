@@ -15,11 +15,24 @@ import {
  * The board's dropdown made that claim without ever asking when, which is how
  * 28 families ended up in a scheduled stage with nothing on any calendar.
  *
- * So the dropdown now opens this instead of changing the stage. Give it a date
- * and the appointment is booked and the stage moves together, through the same
- * action scheduleTour has always used. Cancel and NOTHING happens — the card
- * stays exactly where it was, because a half-finished booking that silently
- * moved the stage would be the original bug with an extra step.
+ * So the dropdown opens this instead of changing the stage. Give it a date and
+ * a time and the appointment is booked and the stage moves together, through
+ * the same action scheduleTour has always used. Cancel and NOTHING happens —
+ * the card stays exactly where it was, because a half-finished booking that
+ * silently moved the stage would be the original bug with an extra step.
+ *
+ * WHY TWO FIELDS RATHER THAN ONE datetime-local
+ *
+ * A single datetime-local is one native widget whose internal segments belong
+ * to the browser. Fill in the date and the minutes but leave the hour blank and
+ * it hands back an EMPTY STRING — not a partial value, nothing — so the guard
+ * fires and the screen says "needs a date" to somebody looking straight at the
+ * date they just typed. That happened within minutes of this shipping.
+ *
+ * Split in two, each field can be marked wrong on its own, and the one that is
+ * actually missing is the one that turns red. The readback line underneath then
+ * says, in words, exactly what is about to be saved — so nobody has to trust
+ * that the boxes were understood the way they were typed.
  */
 
 export interface ScheduleAppointmentDialogProps {
@@ -29,10 +42,26 @@ export interface ScheduleAppointmentDialogProps {
   busy?: boolean;
   onCancel: () => void;
   onConfirm: (input: {
+    /** "YYYY-MM-DDTHH:MM" — what the server action parses. */
     scheduledAt: string;
     appointmentType: string;
     notes: string;
   }) => void;
+}
+
+/** Spells the booking back in words, so the boxes cannot be misread. */
+function readback(date: string, time: string): string | null {
+  if (!date || !time) return null;
+  const when = new Date(`${date}T${time}`);
+  if (Number.isNaN(when.getTime())) return null;
+  return when.toLocaleString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export function ScheduleAppointmentDialog({
@@ -46,27 +75,26 @@ export function ScheduleAppointmentDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(open, dialogRef);
   const titleId = useId();
-  const whenId = useId();
+  const dateId = useId();
+  const timeId = useId();
   const typeId = useId();
   const notesId = useId();
 
   /**
-   * State is initialised once and never reset by an effect.
-   *
-   * The parent gives this component a key of leadId:stage, so opening it for a
-   * different family remounts it and every field starts empty. A date left over
-   * from the previous family is exactly the kind of quiet wrong answer this
-   * dialog exists to prevent, and a remount rules it out by construction rather
-   * than by remembering to clear five fields.
+   * Initialised once and never reset by an effect. The parent keys this
+   * component on leadId:stage, so opening it for a different family remounts it
+   * and every field starts empty — a date left over from the previous family is
+   * exactly the kind of quiet wrong answer this dialog exists to prevent.
    */
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [appointmentType, setAppointmentType] = useState<string>(() =>
     stage ? appointmentSpec(stage).typeOptions[0].value : ""
   );
   const [notes, setNotes] = useState("");
   const [touched, setTouched] = useState(false);
-  // Computed when the date changes, not during render: Date.now() in a render
-  // pass is impure and gives a different answer on every re-render.
+  // Computed in the handler, never in render: Date.now() during a render pass
+  // is impure and answers differently on every re-render.
   const [inThePast, setInThePast] = useState(false);
 
   useEffect(() => {
@@ -83,21 +111,46 @@ export function ScheduleAppointmentDialog({
   if (!open || !stage || typeof document === "undefined") return null;
 
   const spec = appointmentSpec(stage);
-  const missing = touched && !scheduledAt;
+  const dateMissing = touched && !date;
+  const timeMissing = touched && !time;
+  const complete = Boolean(date && time);
+  const spelled = readback(date, time);
 
-  function onDateChange(value: string) {
-    setScheduledAt(value);
-    // A date in the past is allowed — staff do record a booking made last week
-    // — but it is said out loud, because the reminder trigger creates nothing
-    // for a date that has already gone.
-    setInThePast(Boolean(value) && new Date(value).getTime() < Date.now());
+  function recomputePast(nextDate: string, nextTime: string) {
+    if (!nextDate || !nextTime) {
+      setInThePast(false);
+      return;
+    }
+    const when = new Date(`${nextDate}T${nextTime}`);
+    setInThePast(!Number.isNaN(when.getTime()) && when.getTime() < Date.now());
   }
 
   function submit() {
     setTouched(true);
-    if (!scheduledAt) return;
-    onConfirm({ scheduledAt, appointmentType, notes });
+    if (!date || !time) return;
+    /**
+     * Sent as a full instant, resolved HERE.
+     *
+     * "2026-09-15T10:00" carries no timezone, and a server action runs on
+     * Vercel, which is UTC. So the first booking ever made through this dialog
+     * stored 10am Eastern as 10:00+00 — six in the morning, four hours out.
+     * Nobody would have noticed until a reminder fired on the wrong part of the
+     * wrong day, because 361's reminders are dated off scheduled_at.
+     *
+     * The browser is the only place that knows what the person meant by ten
+     * o'clock. new Date() on that string resolves it against THIS machine's
+     * clock, and toISOString() makes it an unambiguous instant, so the server
+     * has nothing left to guess.
+     */
+    const instant = new Date(`${date}T${time}`);
+    if (Number.isNaN(instant.getTime())) return;
+    onConfirm({ scheduledAt: instant.toISOString(), appointmentType, notes });
   }
+
+  const fieldBase =
+    "mt-1 w-full rounded-lg border px-3 py-2 text-sm text-slate-900 disabled:opacity-50";
+  const ok = "border-slate-200";
+  const bad = "border-rose-500 bg-rose-50 ring-1 ring-rose-200";
 
   return createPortal(
     <div
@@ -122,34 +175,83 @@ export function ScheduleAppointmentDialog({
         </p>
 
         <div className="mt-4 space-y-3">
-          <div>
-            <label htmlFor={whenId} className="block text-xs font-medium text-slate-700">
-              Date and time
-            </label>
-            <input
-              id={whenId}
-              type="datetime-local"
-              value={scheduledAt}
-              disabled={busy}
-              onChange={(e) => onDateChange(e.target.value)}
-              aria-invalid={missing || undefined}
-              aria-describedby={missing ? `${whenId}-error` : undefined}
-              className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm text-slate-900 disabled:opacity-50 ${
-                missing ? "border-rose-400" : "border-slate-200"
-              }`}
-            />
-            {missing && (
-              <p id={`${whenId}-error`} className="mt-1 text-xs text-rose-600">
-                A {spec.noun} needs a date. That is the whole point of this stage.
-              </p>
-            )}
-            {inThePast && (
-              <p className="mt-1 text-xs text-amber-700">
-                That is in the past. It will be recorded, but no reminder is created for
-                a date that has already gone.
-              </p>
+          {/* Date and time, separately, so the missing one is the one that goes red. */}
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex-1">
+              <label htmlFor={dateId} className="block text-xs font-medium text-slate-700">
+                Date {dateMissing && <span className="text-rose-600">— required</span>}
+              </label>
+              <input
+                id={dateId}
+                type="date"
+                value={date}
+                disabled={busy}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  recomputePast(e.target.value, time);
+                }}
+                aria-invalid={dateMissing || undefined}
+                className={`${fieldBase} ${dateMissing ? bad : ok}`}
+              />
+              <p className="mt-1 text-xs text-slate-400">Example: 09/15/2026</p>
+            </div>
+
+            <div className="flex-1">
+              <label htmlFor={timeId} className="block text-xs font-medium text-slate-700">
+                Time {timeMissing && <span className="text-rose-600">— required</span>}
+              </label>
+              <input
+                id={timeId}
+                type="time"
+                value={time}
+                disabled={busy}
+                onChange={(e) => {
+                  setTime(e.target.value);
+                  recomputePast(date, e.target.value);
+                }}
+                aria-invalid={timeMissing || undefined}
+                className={`${fieldBase} ${timeMissing ? bad : ok}`}
+              />
+              <p className="mt-1 text-xs text-slate-400">Example: 10:30 AM</p>
+            </div>
+          </div>
+
+          {/*
+            * The readback. It says what is about to be saved, in words, so a
+            * half-typed box cannot pass for a booking — and so nobody has to
+            * take on trust that the fields were read the way they were typed.
+            */}
+          <div
+            aria-live="polite"
+            className={`rounded-lg border px-3 py-2 text-xs ${
+              complete
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-amber-200 bg-amber-50 text-amber-800"
+            }`}
+          >
+            {complete && spelled ? (
+              <>
+                <span className="font-medium">This books the {spec.noun} for:</span>{" "}
+                {spelled}
+              </>
+            ) : (
+              <>
+                <span className="font-medium">Not complete yet.</span>{" "}
+                {!date && !time
+                  ? "Both the date and the time are still empty."
+                  : !date
+                    ? "The time is set. The date is still empty."
+                    : "The date is set. The time is still empty."}
+              </>
             )}
           </div>
+
+          {inThePast && (
+            <p className="text-xs text-amber-700">
+              That is in the past. It will be recorded, but no reminder is created for a
+              date that has already gone.
+            </p>
+          )}
 
           {spec.typeOptions.length > 1 && (
             <div>
@@ -161,7 +263,7 @@ export function ScheduleAppointmentDialog({
                 value={appointmentType}
                 disabled={busy}
                 onChange={(e) => setAppointmentType(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
+                className={`${fieldBase} ${ok}`}
               >
                 {spec.typeOptions.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -182,7 +284,7 @@ export function ScheduleAppointmentDialog({
               value={notes}
               disabled={busy}
               onChange={(e) => setNotes(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
+              className={`${fieldBase} ${ok}`}
             />
           </div>
         </div>

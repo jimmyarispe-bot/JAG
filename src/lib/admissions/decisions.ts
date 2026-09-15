@@ -25,12 +25,25 @@ const DECISION_APP_STATUS: Partial<Record<DecisionType, string>> = {
   deny: "denied",
 };
 
+/**
+ * Null for `deny`, and that is the point.
+ *
+ * There is no approved decline letter in code. The one that used to be here was
+ * never approved, nor was student_declined_email in the database (both removed
+ * 15 September 2026). The letter Jimmy wrote — application_declined_email,
+ * migration 247 — belongs to gate 2, and whether it should also speak for
+ * gate 3 is his decision, not this function's.
+ *
+ * Until he makes it, a deny records the decision and sends the family nothing,
+ * visibly. See the email_sent_at handling below: it refuses to stamp a
+ * timestamp for a letter that does not exist.
+ */
 function buildDecisionEmail(
   decision: DecisionType,
   studentName: string,
   branding: Awaited<ReturnType<typeof loadOrganizationBranding>>,
   customNotes?: string
-): { subject: string; body: string } {
+): { subject: string; body: string } | null {
   return buildAdmissionsDecisionEmail(decision, studentName, branding, customNotes);
 }
 
@@ -61,6 +74,17 @@ export async function submitAdmissionsDecision(formData: FormData) {
   const branding = await loadOrganizationBranding(supabase);
   const email = buildDecisionEmail(decisionType, studentName, branding, customNotes);
 
+  /**
+   * No approved letter means no letter, and no claim that one was sent.
+   *
+   * Before this, email_sent_at was stamped whenever the caller asked to send,
+   * regardless of whether anything reached the family — the house pattern at
+   * its most expensive, because the record of a decline is the only evidence
+   * anybody would ever check.
+   */
+  const hasApprovedLetter = email !== null;
+  const willEmailFamily = sendEmail && hasApprovedLetter;
+
   const { data: decision, error: decisionError } = await supabase
     .from("admissions_decisions")
     .insert({
@@ -68,9 +92,9 @@ export async function submitAdmissionsDecision(formData: FormData) {
       application_id: applicationId,
       decision_type: decisionType,
       decision_notes: customNotes || null,
-      email_subject: email.subject,
-      email_body: email.body,
-      email_sent_at: sendEmail ? new Date().toISOString() : null,
+      email_subject: email?.subject ?? null,
+      email_body: email?.body ?? null,
+      email_sent_at: willEmailFamily ? new Date().toISOString() : null,
       decided_by: user?.id ?? null,
     })
     .select("id")
@@ -78,7 +102,7 @@ export async function submitAdmissionsDecision(formData: FormData) {
 
   if (decisionError) return { error: decisionError.message };
 
-  if (sendEmail) {
+  if (willEmailFamily) {
     await onDecisionSubmitted(
       supabase,
       leadId,
@@ -142,6 +166,11 @@ export async function submitAdmissionsDecision(formData: FormData) {
       decisionType,
       applicationId,
       sendEmail,
+      // What was actually asked for vs what actually happened. A deny with
+      // sendEmail true and emailedFamily false is the deliberate gap, and the
+      // audit trail should say so rather than leaving it to be inferred.
+      emailedFamily: willEmailFamily,
+      noApprovedLetter: sendEmail && !hasApprovedLetter ? decisionType : null,
     },
   });
 

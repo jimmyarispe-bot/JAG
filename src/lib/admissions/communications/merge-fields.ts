@@ -55,6 +55,16 @@ export interface MergeContext {
    */
   shadowDaysUrl?: string | null;
   /**
+   * What the school leader wrote, for THIS family, about what their child's day
+   * will look like. Captured when gate 2 is answered yes — the moment the
+   * application arrives — and prefilled from the last one that school sent.
+   *
+   * Deliberately carries no label of its own in the template. An empty note has
+   * to collapse to nothing; shadow_days_link already shows what happens
+   * otherwise, mailing "You can book here: " with nothing after it.
+   */
+  shadowDaysNote?: string | null;
+  /**
    * The school's own From address. Not a merge field — nothing renders it into
    * a body — but it rides along here because this is the object the delivery
    * path already carries, and threading a parallel one would be two things to
@@ -143,6 +153,7 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
      */
     scheduling_link: ctx.schedulingUrl ?? "",
     shadow_days_link: ctx.shadowDaysUrl ?? "",
+    shadow_days_note: (ctx.shadowDaysNote ?? "").trim(),
     decisions_link: `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
     admissions_contact_name: ctx.admissionsContactName ?? "Admissions",
     admissions_contact_email: ctx.admissionsContactEmail ?? "",

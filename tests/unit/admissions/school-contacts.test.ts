@@ -9,6 +9,7 @@ const EMPTY: SchoolContactPatch = {
   contactName: null,
   contactEmail: null,
   bookingUrl: null,
+  shadowDaysUrl: null,
   publicInquiries: false,
   fromEmail: null,
 };
@@ -17,6 +18,7 @@ const FULL: SchoolContactPatch = {
   contactName: "Vanessa Alvarado",
   contactEmail: "vanessa@theacademyway.org",
   bookingUrl: "https://calendar.google.com/calendar/appointments/schedules/AcZ123",
+  shadowDaysUrl: "https://calendar.app.google/AcZ456",
   publicInquiries: true,
   fromEmail: "admissions@theacademyga.org",
 };
@@ -107,5 +109,68 @@ describe("send-from address", () => {
 
   it("says nothing about Resend when the school uses the default sender", () => {
     expect(describeOutcome({ ...FULL, fromEmail: null })).not.toMatch(/Resend/i);
+  });
+});
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * The second link.
+ *
+ * This card carried ONE field — "Google appointment schedule link" — writing
+ * admissions_booking_url. shadow_days_url, which {{shadow_days_link}} merges
+ * into when gate 2 invites a family, had no editor anywhere in the product and
+ * could only be set by hand in SQL. Migrations 257 and 262 exist for exactly
+ * that reason: each one is a person typing a link into the database because
+ * there was nowhere else to put it.
+ *
+ * Both links were collected from every school leader. Only one had somewhere
+ * to go.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+describe("the shadow day link", () => {
+  it("is validated by the same rules as the interest call link", () => {
+    for (const bad of ["calendar.app.google/AcZ456", "http://calendar.app.google/AcZ456"]) {
+      const issues = validateSchoolContact({ ...FULL, shadowDaysUrl: bad });
+      expect(issues.map((i) => i.field), bad).toContain("shadowDaysUrl");
+    }
+  });
+
+  it("names the shadow day link, not the booking link, when the shadow one is wrong", () => {
+    const issues = validateSchoolContact({ ...FULL, shadowDaysUrl: "http://x.test/y" });
+    const message = issues.find((i) => i.field === "shadowDaysUrl")?.message ?? "";
+    expect(message).toContain("shadow day link");
+    expect(message).not.toContain("interest call link");
+  });
+
+  it("accepts a blank one — a school with no shadow days yet is legitimate", () => {
+    expect(
+      validateSchoolContact({ ...FULL, shadowDaysUrl: null }).map((i) => i.field)
+    ).not.toContain("shadowDaysUrl");
+  });
+
+  /**
+   * THE ONE THAT MATTERS. {{shadow_days_link}} resolves to `ctx.shadowDaysUrl ?? ""`
+   * — an empty STRING, not an unresolved token — so a blank link mails a family
+   * "You can book here: " with nothing after it, and migration 296's placeholder
+   * audit cannot catch it because the field is known and merely empty. The only
+   * place an operator can learn this is the editor.
+   */
+  it("warns in the outcome text when it is blank", () => {
+    expect(describeOutcome({ ...FULL, shadowDaysUrl: null })).toContain("You can book here:");
+  });
+
+  it("says nothing about it once it is set", () => {
+    expect(describeOutcome(FULL)).not.toContain("You can book here:");
+  });
+
+  /** A school hidden from the form sends nothing, so the warning would be noise. */
+  it("stays quiet for a school that is switched off", () => {
+    expect(describeOutcome(EMPTY)).not.toContain("You can book here:");
+  });
+
+  it("still reports the sender warning alongside it", () => {
+    const text = describeOutcome({ ...FULL, shadowDaysUrl: null });
+    expect(text).toContain("theacademyga.org");
+    expect(text).toContain("You can book here:");
   });
 });

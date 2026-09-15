@@ -29,7 +29,21 @@ export const ADMISSIONS_CONTACT_PERMISSION = "school.configure" as const;
 export interface SchoolContactPatch {
   contactName: string | null;
   contactEmail: string | null;
+  /**
+   * `schools.admissions_booking_url` — the INTEREST CALL link, sent when an
+   * inquiry arrives. Migration 262 named the pair.
+   */
   bookingUrl: string | null;
+  /**
+   * `schools.shadow_days_url` — the SHADOW DAY link, merged into
+   * {{shadow_days_link}} and sent when gate 2 invites a family.
+   *
+   * It had no editor until now. Both links were collected from each school
+   * leader, one of them had a field on this page and the other could only be
+   * set by hand in SQL — which is why migrations 257 and 262 exist, each doing
+   * by hand what this field now does.
+   */
+  shadowDaysUrl: string | null;
   publicInquiries: boolean;
   /**
    * The address this school's mail is sent FROM.
@@ -57,20 +71,24 @@ export function validateSchoolContact(patch: SchoolContactPatch): ContactIssue[]
     issues.push({ field: "contactEmail", message: "That does not look like an email address." });
   }
 
-  if (patch.bookingUrl) {
-    // https only, matching the CHECK on the column. A booking "URL" that is not
-    // a URL gets mailed to a parent verbatim.
-    if (!/^https:\/\//i.test(patch.bookingUrl)) {
+  // Both links, same rules: https only, matching the CHECK on each column
+  // (247 for shadow_days_url, and the booking one before it). A "URL" that is
+  // not a URL gets mailed to a parent verbatim.
+  for (const field of ["bookingUrl", "shadowDaysUrl"] as const) {
+    const value = patch[field];
+    if (!value) continue;
+    const label = field === "bookingUrl" ? "interest call link" : "shadow day link";
+    if (!/^https:\/\//i.test(value)) {
       issues.push({
-        field: "bookingUrl",
-        message: "The booking link must start with https:// — paste the whole link from Google Calendar.",
+        field,
+        message: `The ${label} must start with https:// — paste the whole link from Google Calendar.`,
       });
-    } else {
-      try {
-        new URL(patch.bookingUrl);
-      } catch {
-        issues.push({ field: "bookingUrl", message: "That link could not be read as a URL." });
-      }
+      continue;
+    }
+    try {
+      new URL(value);
+    } catch {
+      issues.push({ field, message: `That ${label} could not be read as a URL.` });
     }
   }
 
@@ -111,14 +129,38 @@ export function describeOutcome(patch: SchoolContactPatch): string {
         patch.fromEmail.split("@")[1] ?? "that domain"
       } is verified in Resend.`
     : "";
+
+  /**
+   * A blank shadow day link is worse than it looks, and this is the only place
+   * an operator can see it.
+   *
+   * {{shadow_days_link}} renders as `ctx.shadowDaysUrl ?? ""` — an EMPTY
+   * STRING, not an unresolved token. So the gate-2 invitation mails a family
+   * "You can book here: " with nothing after it, and migration 296's audit
+   * cannot catch it because the field is known and merely empty. Said out loud
+   * here rather than discovered by a parent.
+   */
+  const shadow = patch.shadowDaysUrl
+    ? ""
+    : " No shadow day link: the shadow-day invitation will say “You can book here:” with nothing after it.";
   if (patch.bookingUrl && patch.contactEmail) {
-    return "Families get the booking link and a reply-to address; the leader is emailed each inquiry." + sender;
+    return (
+      "Families get the interest call link and a reply-to address; the leader is emailed each inquiry." +
+      sender +
+      shadow
+    );
   }
   if (!patch.bookingUrl && patch.contactEmail) {
-    return "No booking link, so families are told someone will be in touch. The leader is still emailed." + sender;
+    return (
+      "No interest call link, so families are told someone will be in touch. The leader is still emailed." +
+      sender +
+      shadow
+    );
   }
   if (patch.bookingUrl && !patch.contactEmail) {
-    return "Families get the booking link, but nobody is told an inquiry arrived." + sender;
+    return "Families get the interest call link, but nobody is told an inquiry arrived." + sender + shadow;
   }
-  return "Families are told someone will be in touch, and nobody is told an inquiry arrived." + sender;
+  return (
+    "Families are told someone will be in touch, and nobody is told an inquiry arrived." + sender + shadow
+  );
 }
