@@ -24,7 +24,22 @@ export async function requireSchoolLeaderExperienceContext() {
   if (!allowed) redirect("/dashboard");
 
   const supabase = await createAuthClient();
-  const schoolId = ctx.orgAssignments[0]?.school_id ?? null;
+  /**
+   * Her campus, chosen deliberately rather than by row order.
+   *
+   * The primary assignment if there is one; otherwise the first, which is now
+   * itself ordered (see loadOrgAssignmentsCached). Asking for the primary
+   * EXPLICITLY here means this keeps working even if somebody adds an
+   * unordered read upstream later — the thing that caused this.
+   *
+   * Heather Badger-Brown runs Academy Virtual and The Academy HS. Before this,
+   * with four campuses on her account and no ordering anywhere, the page could
+   * show her Florida.
+   */
+  const schoolId =
+    ctx.orgAssignments.find((a) => a.is_primary)?.school_id ??
+    ctx.orgAssignments[0]?.school_id ??
+    null;
   const organizationId =
     schoolId ??
     ctx.accessibleSchoolIds[0] ??

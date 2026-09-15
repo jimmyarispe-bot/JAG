@@ -111,10 +111,27 @@ export const getIdentityContext = cache(async (): Promise<IdentityContext | null
 
 const loadOrgAssignmentsCached = cache(async (userId: string): Promise<OrgAssignment[]> => {
   const supabase = await createAuthClient();
+  /**
+   * Ordered, because callers read orgAssignments[0] as "their campus".
+   *
+   * 15 September 2026. This select had no ORDER BY, so [0] was whatever
+   * Postgres happened to return first — and every caller treating it as the
+   * person's primary campus was reading a coin flip. `is_primary` was written
+   * into the data and then never read by anything.
+   *
+   * It stayed invisible because it only misbehaves for somebody holding more
+   * than one campus, and it lands quietly: a school leader sees a real
+   * workspace with real children in it, just not hers.
+   *
+   * Primary first, then oldest, so the order is total and stable. A tie broken
+   * by nothing is the same bug with a smaller blast radius.
+   */
   const { data: orgRows } = await supabase
     .from("user_org_assignments")
     .select("*, schools(name)")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .order("is_primary", { ascending: false })
+    .order("created_at", { ascending: true });
 
   if (orgRows?.length) {
     return orgRows as OrgAssignment[];

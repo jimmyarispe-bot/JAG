@@ -56,6 +56,7 @@ export function PipelineFilters({
 }: PipelineFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchId = useId();
   const campusId = useId();
   const waitingId = useId();
   const programId = useId();
@@ -77,7 +78,7 @@ export function PipelineFilters({
     // Preserve anything else already in the URL — ?view=pipeline above all,
     // which is what put the user on this board in the first place.
     for (const [key, value] of searchParams.entries()) {
-      if (!["campus", "program", "owner", "waiting"].includes(key)) {
+      if (!["q", "campus", "program", "owner", "waiting"].includes(key)) {
         next.set(key, value);
       }
     }
@@ -104,6 +105,50 @@ export function PipelineFilters({
 
   return (
     <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      {/*
+        * Search first, and on its own line.
+        *
+        * Everything below this is a way to make a big board smaller. This is
+        * the different thing: it is how somebody finds ONE named child, which
+        * is the question staff actually arrive with. On 15 September a School
+        * Leader could not find Julian Oubre Towa, who had been sitting in the
+        * tenth column since 25 August. There was no search on this board at
+        * all.
+        */}
+      <div className="mb-3">
+        <label htmlFor={searchId} className={label}>
+          Find a child or family
+        </label>
+        <div className="mt-1 flex items-center gap-2">
+          <input
+            id={searchId}
+            type="search"
+            value={filters.q}
+            onChange={(e) => onChange({ ...filters, q: e.target.value })}
+            placeholder="Name, parent's name, email or phone — any part of it"
+            className="w-full max-w-xl rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400"
+          />
+          {filters.q.trim() && (
+            <button
+              type="button"
+              onClick={() => onChange({ ...filters, q: "" })}
+              className="shrink-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {filters.q.trim() && (
+          <p className="mt-1 text-xs text-slate-500">
+            {/* Says where they went, because a board that silently drops from
+                nineteen columns to one looks broken rather than filtered. */}
+            {shownCount === 0
+              ? "Nobody matches that. Try just the first name, or just the surname."
+              : `${shownCount} match${shownCount === 1 ? "" : "es"} — empty stages are hidden while you are searching.`}
+          </p>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <label htmlFor={campusId} className={label}>
@@ -207,7 +252,7 @@ export function PipelineFilters({
             <button
               type="button"
               onClick={() =>
-                onChange({ campus: "", waitingAtLeast: 0, program: "", owner: "" })
+                onChange({ q: "", campus: "", waitingAtLeast: 0, program: "", owner: "" })
               }
               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
             >
@@ -217,7 +262,7 @@ export function PipelineFilters({
         </div>
       </div>
 
-      {shownCount === 0 && (
+      {shownCount === 0 && !filters.q.trim() && (
         <p className="mt-3 text-sm text-amber-800">
           No families match these filters. The board is empty because of the
           controls above, not because there is nobody in the pipeline.

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useActionFeedback } from "@/components/experience-system/feedback";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
 import { LEAD_STAGES } from "@/lib/constants/admissions";
@@ -12,6 +12,8 @@ import {
   type AppointmentStage,
 } from "@/lib/admissions/appointment-stages";
 import { ScheduleAppointmentDialog } from "./ScheduleAppointmentDialog";
+import { BoardScroller } from "./BoardScroller";
+import { matchesQuery, type BoardLead } from "@/lib/admissions/board-filters";
 import {
   daysInCurrentStage,
   pipelineAgingClasses,
@@ -24,6 +26,28 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ leads }: KanbanBoardProps) {
+  const searchId = useId();
+  /**
+   * Search, on this board too.
+   *
+   * There are two boards over one pipeline, and closing one door while the
+   * other stands open fixes nothing — the same reason the appointment guard had
+   * to be on both. A School Leader does not know which view she is looking at;
+   * she knows she is looking for a child.
+   *
+   * The predicate is the shared one from board-filters, so "Towa" finds
+   * "Oubre Towa" here exactly as it does on the pipeline board.
+   */
+  const [query, setQuery] = useState("");
+  const searching = query.trim().length > 0;
+  const visibleLeads = useMemo(
+    () =>
+      searching
+        ? leads.filter((lead) => matchesQuery(lead as BoardLead, query))
+        : leads,
+    [leads, query, searching]
+  );
+
   const action = useActionFeedback({
     verb: "save",
     labels: { idle: "Update stage", loading: "Updating…", success: "✓ Updated" },
@@ -86,6 +110,15 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
     });
   }
 
+  /** Same rule as the pipeline board: hide empty stages only while searching. */
+  const visibleStages = useMemo(() => {
+    const byStage = LEAD_STAGES.map((stage) => ({
+      stage,
+      stageLeads: visibleLeads.filter((l) => l.lead_stage === stage.value),
+    }));
+    return searching ? byStage.filter((s) => s.stageLeads.length > 0) : byStage;
+  }, [visibleLeads, searching]);
+
   return (
     <>
     <ScheduleAppointmentDialog
@@ -98,9 +131,39 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
       onCancel={() => setPending(null)}
       onConfirm={confirmAppointment}
     />
-    <div className="flex gap-4 overflow-x-auto pb-4">
-      {LEAD_STAGES.map((stage) => {
-        const stageLeads = leads.filter((l) => l.lead_stage === stage.value);
+    <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <label htmlFor={searchId} className="block text-xs font-medium text-slate-600">
+        Find a child or family
+      </label>
+      <div className="mt-1 flex items-center gap-2">
+        <input
+          id={searchId}
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Name, parent's name, email or phone — any part of it"
+          className="w-full max-w-xl rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400"
+        />
+        {searching && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="shrink-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {searching && (
+        <p className="mt-1 text-xs text-slate-500">
+          {visibleLeads.length === 0
+            ? "Nobody matches that. Try just the first name, or just the surname."
+            : `${visibleLeads.length} match${visibleLeads.length === 1 ? "" : "es"} — empty stages are hidden while you are searching.`}
+        </p>
+      )}
+    </div>
+    <BoardScroller columnCount={visibleStages.length}>
+      {visibleStages.map(({ stage, stageLeads }) => {
         return (
           <div
             key={stage.value}
@@ -178,7 +241,7 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
           </div>
         );
       })}
-    </div>
+    </BoardScroller>
     </>
   );
 }

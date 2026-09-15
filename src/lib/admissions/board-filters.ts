@@ -32,6 +32,25 @@ export type BoardLead = AdmissionLead & {
 };
 
 export interface BoardFilters {
+  /**
+   * Free text, matched against the child's and the guardian's names and the
+   * guardian's email.
+   *
+   * WHY THIS EXISTS, AND WHY IT MATCHES ANYWHERE IN THE FIELD
+   *
+   * 15 September 2026: a School Leader could not find Julian Oubre Towa. He was
+   * in JAG the whole time — a lead on The Academy Virtual, at Shadow Days
+   * Scheduled, sitting there since 25 August. Two things hid him. There was no
+   * search at all, and his surname is stored as "Oubre Towa", two words in one
+   * field, so anyone typing "Towa" against a match-from-the-start search finds
+   * nothing.
+   *
+   * So: substring, case-insensitive, and every term has to appear SOMEWHERE in
+   * the row rather than all of them in one field. "julian towa" finds him even
+   * though no single field contains that phrase. A staff member should not have
+   * to know how a name was typed in to find a child.
+   */
+  q: string;
   /** School name exactly as it appears on the card, or "" for every campus. */
   campus: string;
   /** Minimum days in the current stage. 0 means no lower bound. */
@@ -43,6 +62,7 @@ export interface BoardFilters {
 }
 
 export const NO_FILTERS: BoardFilters = {
+  q: "",
   campus: "",
   waitingAtLeast: 0,
   program: "",
@@ -74,6 +94,47 @@ export function daysWaiting(lead: BoardLead, now: number = Date.now()): number {
   const started = new Date(anchor).getTime();
   if (Number.isNaN(started)) return 0;
   return Math.max(0, Math.floor((now - started) / 86_400_000));
+}
+
+/**
+ * Everything about a lead that a person might type when looking for them.
+ *
+ * The child's names first, because that is what is searched for; the guardian
+ * after, because "the Oubre family" and a parent's email address are both real
+ * ways staff look someone up.
+ */
+function searchableText(lead: BoardLead): string {
+  return [
+    lead.first_name,
+    lead.last_name,
+    lead.preferred_name,
+    lead.guardian_first_name,
+    lead.guardian_last_name,
+    lead.guardian_email,
+    lead.guardian_phone,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+/**
+ * Every term must appear somewhere in the row — not all in one field.
+ *
+ * "julian towa" has to find a child whose first_name is "Julian" and whose
+ * last_name is "Oubre Towa". Requiring the whole phrase in a single column is
+ * exactly the rule that hid him.
+ */
+export function matchesQuery(lead: BoardLead, query: string): boolean {
+  // Tolerates undefined deliberately. A BoardFilters built before `q` existed —
+  // a stale bookmark, an older caller, a hand-made object in a test — must not
+  // throw and blank the entire board over one absent string. The type says
+  // string; reality has already handed this codebase five nulls that the types
+  // swore were impossible.
+  const terms = (query ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const haystack = searchableText(lead);
+  return terms.every((term) => haystack.includes(term));
 }
 
 function campusOf(lead: BoardLead): string {
@@ -124,6 +185,9 @@ export function matchesFilters(
   filters: BoardFilters,
   now: number = Date.now()
 ): boolean {
+  if (filters.q && !matchesQuery(lead, filters.q)) return false;
+
+
   if (filters.campus && campusOf(lead) !== filters.campus) return false;
 
   if (filters.program && (lead.program ?? "").trim() !== filters.program) return false;
@@ -156,6 +220,7 @@ export function applyFilters(
 /** How many are set — for the "3 filters" badge and for deciding whether to show Clear. */
 export function activeFilterCount(filters: BoardFilters): number {
   let n = 0;
+  if ((filters.q ?? "").trim()) n += 1;
   if (filters.campus) n += 1;
   if (filters.program) n += 1;
   if (filters.owner) n += 1;
@@ -176,6 +241,8 @@ export function activeFilterCount(filters: BoardFilters): number {
  */
 export function filtersToParams(filters: BoardFilters): URLSearchParams {
   const params = new URLSearchParams();
+  const q = (filters.q ?? "").trim();
+  if (q) params.set("q", q);
   if (filters.campus) params.set("campus", filters.campus);
   if (filters.program) params.set("program", filters.program);
   if (filters.owner) params.set("owner", filters.owner);
@@ -198,6 +265,7 @@ export function filtersFromParams(
     Number.isFinite(waitingRaw) && waitingRaw > 0 ? waitingRaw : 0;
 
   return {
+    q: get("q"),
     campus: get("campus"),
     program: get("program"),
     owner: get("owner"),

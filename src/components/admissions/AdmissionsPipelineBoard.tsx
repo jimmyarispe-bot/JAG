@@ -16,6 +16,7 @@ import {
 } from "@/lib/admissions/appointment-stages";
 import { ScheduleAppointmentDialog } from "./ScheduleAppointmentDialog";
 import { PipelineFilters } from "./PipelineFilters";
+import { BoardScroller } from "./BoardScroller";
 import {
   applyFilters,
   filtersFromParams,
@@ -62,6 +63,29 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
 
   const allLeads = leads as readonly BoardLead[];
   const visibleLeads = useMemo(() => applyFilters(allLeads, filters), [allLeads, filters]);
+
+  /**
+   * While somebody is SEARCHING, empty stages are hidden.
+   *
+   * Nineteen columns to reach one child is the problem, not the scenery. Type a
+   * name and the board collapses to the stage that child is actually in, which
+   * also answers the question underneath the search — "where is he?" — without
+   * anybody having to scroll at all.
+   *
+   * Only for the free-text search, deliberately. The dropdown filters are about
+   * looking at a SHAPE — how many are stuck at Application Started, whether
+   * anything has reached Accepted — and a stage with nobody in it is part of
+   * that answer. Removing an empty column there would hide the finding.
+   */
+  const stagesWithLeads = useMemo(() => {
+    const byStage = stages.map((stage) => ({
+      stage,
+      stageLeads: visibleLeads.filter(
+        (lead) => resolvePipelineStageFromLeadStage(lead.lead_stage) === stage.key
+      ),
+    }));
+    return filters.q.trim() ? byStage.filter((s) => s.stageLeads.length > 0) : byStage;
+  }, [stages, visibleLeads, filters.q]);
 
   /**
    * Same rule as KanbanBoard, and it has to be on both: these are two boards
@@ -127,11 +151,8 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
       shownCount={visibleLeads.length}
       onChange={setFilters}
     />
-    <div className="flex gap-4 overflow-x-auto pb-4">
-      {stages.map((stage) => {
-        const stageLeads = visibleLeads.filter(
-          (lead) => resolvePipelineStageFromLeadStage(lead.lead_stage) === stage.key
-        );
+    <BoardScroller columnCount={stagesWithLeads.length}>
+      {stagesWithLeads.map(({ stage, stageLeads }) => {
         return (
           <div
             key={stage.key}
@@ -228,7 +249,7 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
           </div>
         );
       })}
-    </div>
+    </BoardScroller>
     </>
   );
 }

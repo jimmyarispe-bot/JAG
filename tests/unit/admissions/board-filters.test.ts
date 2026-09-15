@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   NO_FILTERS,
+  matchesQuery,
   UNASSIGNED,
   WAITING_BANDS,
   activeFilterCount,
@@ -200,6 +201,7 @@ describe("the URL survives the round trip, and survives being edited by hand", (
 
   it("round trips every filter", () => {
     const filters: BoardFilters = {
+      q: "oubre towa",
       campus: "The Academy HS",
       waitingAtLeast: 14,
       program: "academy_virtual",
@@ -222,6 +224,7 @@ describe("the URL survives the round trip, and survives being edited by hand", (
 
   it("reads a plain object as well as URLSearchParams", () => {
     expect(filtersFromParams({ campus: "The Academy FL", waiting: "30" })).toEqual({
+      q: "",
       campus: "The Academy FL",
       program: "",
       owner: "",
@@ -271,5 +274,108 @@ describe("the People filters are visible without being hunted for", () => {
   it("labels the control with what clicking it does", () => {
     expect(table).toContain("Filter each column");
     expect(table).toContain("Hide filters");
+  });
+});
+
+/**
+ * THE JULIAN TEST.
+ *
+ * 15 September 2026. A School Leader on a live call could not find Julian Oubre
+ * Towa. He was in JAG the entire time — a lead on The Academy Virtual, at
+ * Shadow Days Scheduled, waiting since 25 August. It took a hand-written SQL
+ * query with wildcards on both sides to locate him.
+ *
+ * Two things hid him, and this file only fixes one of them. There was no search
+ * on the board at all; and his surname is stored as "Oubre Towa", two words in
+ * one field, which defeats any search that matches from the start of a field or
+ * requires the whole phrase to live in one column.
+ *
+ * Every case below is that child. If one of these ever goes red, a real family
+ * has become invisible again.
+ */
+describe("finding a named child", () => {
+  const julian = lead({
+    id: "julian",
+    first_name: "Julian",
+    last_name: "Oubre Towa",
+    lead_stage: "shadow_day_scheduled",
+    guardian_email: "tara1n6@yahoo.com",
+    guardian_first_name: "Tara",
+    guardian_last_name: "Oubre",
+  });
+
+  const other = lead({
+    id: "other",
+    first_name: "Julian",
+    last_name: "Wiley",
+    guardian_email: "kaelinj85@gmail.com",
+  });
+
+  it("finds him by his first name", () => {
+    expect(matchesQuery(julian, "julian")).toBe(true);
+  });
+
+  /** The one that mattered: the SECOND word of a two-word surname. */
+  it("finds him by the second word of his surname", () => {
+    expect(matchesQuery(julian, "towa")).toBe(true);
+  });
+
+  it("finds him by the first word of his surname", () => {
+    expect(matchesQuery(julian, "oubre")).toBe(true);
+  });
+
+  /**
+   * "julian towa" appears in no single field. Requiring one field to contain
+   * the whole phrase is precisely the rule that lost him.
+   */
+  it("finds him from terms that live in different fields", () => {
+    expect(matchesQuery(julian, "julian towa")).toBe(true);
+    expect(matchesQuery(julian, "towa julian")).toBe(true);
+  });
+
+  it("does not care about case or stray spaces", () => {
+    expect(matchesQuery(julian, "  JULIAN   Towa ")).toBe(true);
+  });
+
+  it("finds him by his mother's email", () => {
+    expect(matchesQuery(julian, "tara1n6")).toBe(true);
+  });
+
+  it("finds him by his mother's name", () => {
+    expect(matchesQuery(julian, "tara")).toBe(true);
+  });
+
+  /** Two Julians came back from the real query. The surname has to separate them. */
+  it("tells the two Julians apart", () => {
+    expect(matchesQuery(other, "julian")).toBe(true);
+    expect(matchesQuery(other, "towa")).toBe(false);
+    expect(matchesQuery(julian, "wiley")).toBe(false);
+  });
+
+  it("matches everybody when nothing is typed", () => {
+    expect(matchesQuery(julian, "")).toBe(true);
+    expect(matchesQuery(julian, "   ")).toBe(true);
+  });
+
+  it("finds nobody for a word that is in no row", () => {
+    expect(matchesQuery(julian, "zzzqqx")).toBe(false);
+  });
+
+  it("searches through applyFilters, not only on its own", () => {
+    const found = applyFilters([julian, other], { ...NO_FILTERS, q: "towa" }, NOW);
+    expect(found.map((l) => l.id)).toEqual(["julian"]);
+  });
+
+  it("combines with the other filters rather than replacing them", () => {
+    const withCampus = { ...NO_FILTERS, q: "julian", campus: "The Academy GA" };
+    // Neither lead has a campus set, so the campus filter must still exclude both.
+    expect(applyFilters([julian, other], withCampus, NOW)).toHaveLength(0);
+  });
+
+  it("counts as an active filter and survives the URL", () => {
+    expect(activeFilterCount({ ...NO_FILTERS, q: "towa" })).toBe(1);
+    expect(activeFilterCount({ ...NO_FILTERS, q: "   " })).toBe(0);
+    expect(filtersToParams({ ...NO_FILTERS, q: "oubre towa" }).get("q")).toBe("oubre towa");
+    expect(filtersFromParams(new URLSearchParams("q=towa")).q).toBe("towa");
   });
 });
