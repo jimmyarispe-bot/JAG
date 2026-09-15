@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { LEAD_STAGES } from "@/lib/constants/admissions";
 import {
@@ -63,5 +65,80 @@ describe("every lead stage resolves to a pipeline column", () => {
   it("still counts the stages either side of it", () => {
     expect(ACTIVE_PIPELINE_LEGACY_STAGES).toContain("shadow_day_scheduled");
     expect(ACTIVE_PIPELINE_LEGACY_STAGES).toContain("application_started");
+  });
+});
+
+/**
+ * THE GUARANTEE, NOT THE SPOT CHECK.
+ *
+ * "How can we be sure Julian was the only one?"
+ *
+ * Checking LEAD_STAGES above proves the dropdown agrees with the board. It does
+ * not prove the DATABASE agrees, and the database is the only thing that
+ * decides what a row may actually contain. A value could exist in a lead row
+ * that no TypeScript constant ever mentions - written by an import, a migration
+ * or an RPC - and it would vanish from the board exactly as he did.
+ *
+ * So this reads the CHECK constraint straight out of the migrations directory
+ * and asserts that EVERY value Postgres will accept resolves to a column.
+ *
+ * That closes it completely. The database physically refuses any stage outside
+ * this list, and every stage in the list now has somewhere to land. There is no
+ * third place a value could come from. A future migration that widens the
+ * constraint without teaching the registry fails here, on the migration, before
+ * a single family can reach the new stage.
+ */
+const MIGRATIONS_DIR = path.join(process.cwd(), "supabase", "migrations");
+
+/** Last write wins: migrations replay in filename order. */
+function stagesThePostgresConstraintAllows(): string[] {
+  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")).sort();
+  let allowed: string[] | null = null;
+
+  for (const file of files) {
+    // Comments first. Prose inside them carries apostrophes and parentheses
+    // that otherwise terminate the value list early.
+    const sql = readFileSync(path.join(MIGRATIONS_DIR, file), "utf8").replace(/--[^\n]*/g, "");
+    const re = /admissions_leads_lead_stage_check[\s\S]*?in\s*\(([^)]*)\)/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(sql))) {
+      allowed = m[1]
+        .split(",")
+        .map((v) => v.trim().replace(/'/g, ""))
+        .filter(Boolean);
+    }
+  }
+
+  if (!allowed || allowed.length === 0) {
+    throw new Error("no admissions_leads_lead_stage_check found in migrations");
+  }
+  return allowed;
+}
+
+describe("every stage the DATABASE allows resolves to a column", () => {
+  const allowed = stagesThePostgresConstraintAllows();
+
+  /** If this ever reads as a handful, the parse broke and the test is lying. */
+  it("found a real constraint to read", () => {
+    expect(allowed.length).toBeGreaterThanOrEqual(19);
+    expect(allowed).toContain("new_inquiry");
+    expect(allowed).toContain("enrolled");
+  });
+
+  /** THE ONE THAT MATTERS. */
+  it.each(stagesThePostgresConstraintAllows())(
+    "a lead stored as %s appears on the board",
+    (stage) => {
+      expect(
+        resolvePipelineStageFromLeadStage(stage),
+        `Postgres accepts ${stage}, but it maps to no column - any child stored at it is invisible`
+      ).toBeTruthy();
+    }
+  );
+
+  /** The stage that started this. Belt and braces. */
+  it("includes the stage that erased Julian", () => {
+    expect(allowed).toContain("shadow_day_completed");
+    expect(resolvePipelineStageFromLeadStage("shadow_day_completed")).toBeTruthy();
   });
 });
