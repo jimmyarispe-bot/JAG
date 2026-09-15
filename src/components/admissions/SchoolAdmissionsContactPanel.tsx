@@ -27,6 +27,7 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
     contactName: initial.contactName,
     contactEmail: initial.contactEmail,
     bookingUrl: initial.bookingUrl,
+    shadowDaysUrl: initial.shadowDaysUrl,
     publicInquiries: initial.publicInquiries,
     fromEmail: initial.fromEmail,
   });
@@ -41,6 +42,7 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
     patch.contactName !== initial.contactName ||
     patch.contactEmail !== initial.contactEmail ||
     patch.bookingUrl !== initial.bookingUrl ||
+    patch.shadowDaysUrl !== initial.shadowDaysUrl ||
     patch.publicInquiries !== initial.publicInquiries ||
     patch.fromEmail !== initial.fromEmail;
 
@@ -130,8 +132,18 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
           )}
         </label>
 
+        {/*
+          * TWO links, not one, because there are two moments.
+          *
+          * This card had a single "Google appointment schedule link" field
+          * writing admissions_booking_url, while shadow_days_url — the one the
+          * gate-2 invitation merges into {{shadow_days_link}} — had no editor
+          * anywhere and could only be set by hand in SQL. Migrations 257 and
+          * 262 exist solely because of that gap. Both links were collected from
+          * each school leader; only one of them had somewhere to go.
+          */}
         <label className="block sm:col-span-2">
-          <span className={label}>Google appointment schedule link</span>
+          <span className={label}>Interest call booking link</span>
           <input
             value={patch.bookingUrl ?? ""}
             onChange={(e) => set("bookingUrl", e.target.value || null)}
@@ -139,11 +151,43 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
             className={field}
           />
           <span className="mt-1 block text-xs text-slate-400">
-            Google Calendar → Create → Appointment schedule → Share → copy the booking page
-            link. Leave blank and families are told someone will be in touch instead.
+            Sent when an inquiry arrives — the first conversation. Google Calendar → Create →
+            Appointment schedule → Share → copy the booking page link. Leave blank and
+            families are told someone will be in touch instead.
           </span>
           {issueFor("bookingUrl") && (
             <span className="mt-1 block text-xs text-rose-700">{issueFor("bookingUrl")}</span>
+          )}
+        </label>
+
+        <label className="block sm:col-span-2">
+          <span className={label}>Shadow day booking link</span>
+          <input
+            value={patch.shadowDaysUrl ?? ""}
+            onChange={(e) => set("shadowDaysUrl", e.target.value || null)}
+            placeholder="https://calendar.app.google/…"
+            className={field}
+          />
+          <span className="mt-1 block text-xs text-slate-400">
+            A different schedule, sent later — when the school invites the family to spend a
+            day. This is what {"{{shadow_days_link}}"} becomes in that email.
+          </span>
+          {/*
+            * A blank one is not neutral. The merge field resolves to an EMPTY
+            * STRING rather than an unresolved token, so the invitation mails
+            * "You can book here: " with nothing after it — and migration 296's
+            * placeholder audit cannot see it, because the field is known and
+            * merely empty. Warned, not blocked: a school with no shadow days
+            * yet is a legitimate state.
+            */}
+          {!patch.shadowDaysUrl && (
+            <span className="mt-1 block text-xs text-amber-700">
+              Blank. The shadow-day invitation will read &ldquo;You can book here:&rdquo; with
+              nothing after it.
+            </span>
+          )}
+          {issueFor("shadowDaysUrl") && (
+            <span className="mt-1 block text-xs text-rose-700">{issueFor("shadowDaysUrl")}</span>
           )}
         </label>
       </div>
