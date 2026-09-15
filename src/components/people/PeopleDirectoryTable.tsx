@@ -219,7 +219,18 @@ export function PeopleDirectoryTable({
   const [filters, setFilters] = useState<Partial<Record<FilterKey, string>>>({});
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+  /**
+   * OPEN BY DEFAULT.
+   *
+   * Every per-column filter on this table already worked — search, school,
+   * group, date range, and a control under each heading. On 15 September 2026
+   * the person who commissioned the screen asked for filtering to be added to
+   * it, having never found the button. A feature nobody can see is the same
+   * cost as a feature nobody built, and the fix is cheaper: show the row,
+   * label the control with what it will do, and let someone who wants a
+   * narrower table collapse it.
+   */
+  const [showFilters, setShowFilters] = useState(true);
   // Held locally so a reclassification shows immediately rather than after a
   // round trip; the server action revalidates the page behind it.
   const [people, setPeople] = useState(initial);
@@ -905,7 +916,11 @@ export function PeopleDirectoryTable({
               : "border-slate-300 text-slate-700 hover:bg-slate-50"
           }`}
         >
-          Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+          {/* Says what the click DOES, not what the panel is called. "Filters"
+              on its own reads as a heading; a person scanning a toolbar for a
+              way in does not see a verb. */}
+          {showFilters ? "Hide filters" : "Filter each column"}
+          {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
         </button>
         <button
           type="button"

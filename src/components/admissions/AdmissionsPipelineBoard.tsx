@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useActionFeedback } from "@/components/experience-system/feedback";
 import {
   getActiveOrderedPipelineStages,
@@ -15,6 +15,13 @@ import {
   type AppointmentStage,
 } from "@/lib/admissions/appointment-stages";
 import { ScheduleAppointmentDialog } from "./ScheduleAppointmentDialog";
+import { PipelineFilters } from "./PipelineFilters";
+import {
+  applyFilters,
+  filtersFromParams,
+  type BoardFilters,
+  type BoardLead,
+} from "@/lib/admissions/board-filters";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
 import { LEAD_STAGES, type LeadStageValue } from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
@@ -39,6 +46,22 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
     progressLabel: "Updating case stage…",
   });
   const stages = getActiveOrderedPipelineStages();
+
+  /**
+   * Filters, seeded from the URL so a narrowed board survives a refresh and can
+   * be sent to somebody. PipelineFilters writes the query string back as they
+   * change; this only reads it once, on mount.
+   */
+  const [filters, setFilters] = useState<BoardFilters>(() =>
+    filtersFromParams(
+      typeof window === "undefined"
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search)
+    )
+  );
+
+  const allLeads = leads as readonly BoardLead[];
+  const visibleLeads = useMemo(() => applyFilters(allLeads, filters), [allLeads, filters]);
 
   /**
    * Same rule as KanbanBoard, and it has to be on both: these are two boards
@@ -98,9 +121,15 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
       onCancel={() => setPending(null)}
       onConfirm={confirmAppointment}
     />
+    <PipelineFilters
+      leads={allLeads}
+      filters={filters}
+      shownCount={visibleLeads.length}
+      onChange={setFilters}
+    />
     <div className="flex gap-4 overflow-x-auto pb-4">
       {stages.map((stage) => {
-        const stageLeads = leads.filter(
+        const stageLeads = visibleLeads.filter(
           (lead) => resolvePipelineStageFromLeadStage(lead.lead_stage) === stage.key
         );
         return (
