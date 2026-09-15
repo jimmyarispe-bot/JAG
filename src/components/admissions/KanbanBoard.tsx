@@ -141,7 +141,7 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
                     </span>
                     {/*
                       * Same line, same fix as AdmissionsPipelineBoard — see the
-                      * long note there. Programme has been null on every lead
+                      * long note there. Program has been null on every lead
                       * taken through the public form since 9 September, so this
                       * rendered nothing; the campus was always present and
                       * always fetched, just never shown.

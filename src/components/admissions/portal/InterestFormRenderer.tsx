@@ -225,7 +225,7 @@ function QuestionField({
   if (question.type === "program_selector") {
     const selected = new Set(normalizeInterestProgramSelections(value));
     /**
-     * The network's five programme types are the default, not the law. A
+     * The network's five program types are the default, not the law. A
      * campus that runs two of them says so in its own question, and the
      * validator holds the server to the same narrower list.
      */

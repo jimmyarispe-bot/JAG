@@ -24,9 +24,9 @@ import {
  *
  * EVERY OPTION COMES OUT OF THE ROWS ON SCREEN
  *
- * Campus, programme and owner are derived from the leads themselves — see
+ * Campus, program and owner are derived from the leads themselves — see
  * deriveOptions. A dropdown that offers a campus with nobody in it, or a
- * programme nobody is enrolled in, promises a result and returns an empty
+ * program nobody is enrolled in, promises a result and returns an empty
  * board. "Unassigned" appears only when some lead actually has no owner, so
  * even that is an answer about the data rather than a guess at it.
  *
@@ -147,7 +147,7 @@ export function PipelineFilters({
         {options.programs.length > 0 && (
           <div>
             <label htmlFor={programId} className={label}>
-              Programme
+              Program
             </label>
             <select
               id={programId}
@@ -155,7 +155,7 @@ export function PipelineFilters({
               onChange={(e) => onChange({ ...filters, program: e.target.value })}
               className={`mt-1 ${select}`}
             >
-              <option value="">All programmes ({countWith({ program: "" })})</option>
+              <option value="">All programs ({countWith({ program: "" })})</option>
               {options.programs.map((value) => (
                 <option key={value} value={value}>
                   {programLabel(value)} ({countWith({ program: value })})

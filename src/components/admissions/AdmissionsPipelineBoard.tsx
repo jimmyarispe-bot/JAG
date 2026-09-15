@@ -171,11 +171,11 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
                       {days}d
                     </span>
                     {/*
-                      * Campus, falling back from programme.
+                      * Campus, falling back from program.
                       *
                       * This line used to read `lead.program` alone and render
                       * nothing at all when it was null. Since 9 September
-                      * (1f2cda2) the public inquiry form archives programmes of
+                      * (1f2cda2) the public inquiry form archives programs of
                       * interest on the interest answers and deliberately writes
                       * `p_program: null` on the lead — a family may tick more
                       * than one, and collapsing them onto a single column would
@@ -188,7 +188,7 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
                       * cannot be made. The board simply never displayed it,
                       * though it has always been fetched — select("*, schools(name)").
                       *
-                      * Programme first where it is known, because its label
+                      * Program first where it is known, because its label
                       * already carries the campus ("The Academy GA – In-Person")
                       * and showing both would only repeat it. Either way the
                       * campus is on the card, which is what this line is read for.

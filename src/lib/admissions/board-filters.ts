@@ -6,11 +6,11 @@
  * whoever has been waiting longest, has to read all of it.
  *
  * Four filters, asked for on 15 September 2026: campus, how long they have been
- * waiting, programme, and who owns the lead.
+ * waiting, program, and who owns the lead.
  *
  * OPTIONS ARE DERIVED FROM THE LEADS ON SCREEN, NOT HARDCODED
  *
- * A dropdown offering "The Academy NJ" after NJ closed, or a programme nobody
+ * A dropdown offering "The Academy NJ" after NJ closed, or a program nobody
  * is enrolled in, is a filter that promises a result and returns an empty
  * board. Every option here is read out of the rows actually loaded, so the list
  * shrinks as reality does and a choice always matches at least one family.
@@ -36,7 +36,7 @@ export interface BoardFilters {
   campus: string;
   /** Minimum days in the current stage. 0 means no lower bound. */
   waitingAtLeast: number;
-  /** Programme value, or "" for all. */
+  /** Program value, or "" for all. */
   program: string;
   /** A user id, the literal "unassigned", or "" for anyone. */
   owner: string;

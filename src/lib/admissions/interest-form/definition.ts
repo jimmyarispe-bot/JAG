@@ -290,7 +290,7 @@ export function validateInterestSubmission(input: {
          * virtual and hybrid, and its question says so. Where it does, that
          * narrower list is what the server accepts: otherwise the page would
          * show two choices while the server quietly took all five, and a posted
-         * form could record interest in a programme the campus does not run.
+         * form could record interest in a program the campus does not run.
          */
         const declared = question.options ?? [];
         const permitted = declared.length

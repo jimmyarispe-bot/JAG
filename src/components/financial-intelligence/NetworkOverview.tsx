@@ -137,7 +137,7 @@ export function NetworkOverview({ figures }: { figures: NetworkFigures }) {
         {figures.booksSkipped > 0
           ? ` ${figures.booksSkipped} row(s) reported a different period and were left out rather than folded into a total that would not be any period at all.`
           : ""}{" "}
-        Class, teacher, programme and family analysis is per campus — pick one above.
+        Class, teacher, program and family analysis is per campus — pick one above.
       </p>
     </div>
   );

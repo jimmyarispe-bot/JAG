@@ -12,7 +12,7 @@ interface LeadListProps {
   /**
    * Whether to show the Funding column.
    *
-   * A lead's funding source is which scholarship or state programme the family
+   * A lead's funding source is which scholarship or state program the family
    * intends to pay with. That is money, and a School Leader whose remit is
    * admissions is not shown money — so the column is omitted rather than
    * emptied. An empty column headed "Funding" tells the reader there is
