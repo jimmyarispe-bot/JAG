@@ -31,6 +31,7 @@ const LEGACY_LEAD_STAGES = [
   "tour_scheduled",
   "tour_completed",
   "shadow_day_scheduled",
+  "shadow_day_completed",
   "assessment_scheduled",
   "application_started",
   "application_submitted",

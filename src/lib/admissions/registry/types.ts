@@ -21,6 +21,7 @@ export type AdmissionsPipelineStageKey =
   | "tour_scheduled"
   | "tour_conducted"
   | "shadow_day_scheduled"
+  | "shadow_day_completed"
   | "application_started"
   | "application_submitted"
   | "documents_pending"

@@ -36,8 +36,19 @@ const ALLOWED_TRANSITIONS: Partial<
   tour_scheduled: ["tour_conducted", "declined", "not_returning"],
   tour_conducted: ["shadow_day_scheduled", "application_started", "declined", "not_returning"],
   shadow_day_scheduled: [
+    "shadow_day_completed",
     "application_started",
     "committee_review",
+    "declined",
+    "not_returning",
+  ],
+  // Gate 3 (accept_or_deny) opens here, so acceptance and decline are both
+  // reachable without passing through committee review.
+  shadow_day_completed: [
+    "application_started",
+    "committee_review",
+    "accepted",
+    "waitlisted",
     "declined",
     "not_returning",
   ],

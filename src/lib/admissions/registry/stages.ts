@@ -91,6 +91,45 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
     legacyLeadStages: ["shadow_day_scheduled", "assessment_scheduled"],
   },
   {
+    /**
+     * THE STAGE THAT ERASED A CHILD.
+     *
+     * 15 September 2026. Heather Badger-Brown clicked "finished shadow day"
+     * for Julian Oubre Towa, which is the correct action - it is what opens
+     * gate 3, the accept-or-deny decision. He then vanished from the pipeline
+     * board completely.
+     *
+     * `shadow_day_completed` is a real lead stage. It is in LEAD_STAGES, so it
+     * sits in the dropdown on every card. shadow-days-actions.ts writes it.
+     * gates/definitions.ts opens the final decision at it. It arrived in
+     * migration 246 and THIS REGISTRY WAS NEVER TOLD.
+     *
+     * With no stage claiming it, resolvePipelineStageFromLeadStage returned
+     * null, the card matched no column, and it was simply not drawn. No error,
+     * no empty state, no "1 hidden" - the exact failure this codebase keeps
+     * producing: a silent disappearance that looks like data loss.
+     *
+     * It was not only the board. ACTIVE_PIPELINE_LEGACY_STAGES is built by
+     * flat-mapping the legacyLeadStages of active stages, and executive/kpis.ts
+     * and dashboard/metrics.ts both count from it. So every family who
+     * completed a shadow day was missing from the network's own numbers too -
+     * the ones furthest down the funnel, closest to enrolling, uncounted.
+     *
+     * Its own column rather than folding into Shadow Days Scheduled, because
+     * "the shadow day happened and a decision is waiting on a human" is the
+     * single most actionable state in the pipeline, and labelling it
+     * "Scheduled" would hide that under a word that says the opposite.
+     */
+    key: "shadow_day_completed",
+    label: "Shadow Days Completed",
+    color: "bg-lime-200 text-lime-900",
+    order: 75,
+    isTerminal: false,
+    isActivePipeline: true,
+    legacyLeadStages: ["shadow_day_completed"],
+    automatedTask: { taskName: "Answer the accept or deny decision", dueDays: 2 },
+  },
+  {
     key: "application_started",
     label: "Application Started",
     color: "bg-indigo-100 text-indigo-700",
