@@ -25,9 +25,30 @@ function unindexBrand(brand: OrganizationBrand): void {
 function seedDemoBrands(): void {
   const at = new Date().toISOString();
 
-  // The Academy Way — primary demo tenant (matches JAG platform org card)
+  /**
+   * The Academy Way.
+   *
+   * THIS STRING IS THE FRONT DOOR.
+   *
+   * resolveFromHost -> extractSubdomainFromHost -> getBySubdomain reads this
+   * map and nothing else, so whatever is written here is the address that
+   * serves The Academy Way's sign-in page. Everything else is a mirror.
+   *
+   * It said "academy" from Sprint 211 until 16 September 2026, which is why
+   * school leaders were sent to academy.thejag.org. Nobody chose that as a
+   * public address - it was a short slug typed next to org.the-academy-way, in
+   * here and again in migration 226's seed. Jimmy asked why it was not
+   * theacademyway.thejag.org and there was no better answer than "a migration
+   * typed something else".
+   *
+   * The lesson that cost the most: the database column with the same name is
+   * NOT the source of truth. Changing organization_brands.subdomain alone moved
+   * nothing, because this map never reads it - it only made wrong-door.ts point
+   * at a host the site would not serve. brand-subdomain.test.ts now asserts the
+   * two agree, so they cannot drift apart again.
+   */
   const academy: OrganizationBrand = {
-    ...tenantDefaultBrand("org.the-academy-way", "The Academy Way", "academy"),
+    ...tenantDefaultBrand("org.the-academy-way", "The Academy Way", "theacademyway"),
     display_name: "The Academy Way",
     primary_color: "#0F172A",
     secondary_color: "#1E293B",
@@ -80,6 +101,28 @@ function seedDemoBrands(): void {
   };
 
   indexBrand(academy);
+
+  /**
+   * The old door still opens.
+   *
+   * academy.thejag.org is the address every school leader was given, is in
+   * their bookmarks, and is what JAG's own wrong-door screen has been telling
+   * locked-out people to use all week. Moving the front door without leaving
+   * this open would break the one person most likely to be standing at it.
+   *
+   * An alias rather than a redirect, deliberately: a Vercel redirect is a
+   * separate manual step that can be forgotten or mis-saved, and until it is
+   * saved anyone on the old host lands on the JAG marketing site. This costs
+   * one line and cannot be forgotten.
+   *
+   * Set directly rather than through indexBrand because the brand's own
+   * subdomain is theacademyway - this is a second key pointing at the same
+   * object, not a second brand. unindexBrand removes only the primary key, so
+   * an alias outlives an upsert; harmless for a seeded tenant, and worth
+   * knowing before adding aliases to brands that are edited at runtime.
+   */
+  bySubdomain.set("academy", academy);
+
   indexBrand(acme);
   indexBrand(signal);
 }
