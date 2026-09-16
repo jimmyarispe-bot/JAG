@@ -1,6 +1,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { GuideProvider } from "@/components/guides/GuideProvider";
+import { GuideChooser } from "@/components/guides/GuideChooser";
+import { GuidePanel } from "@/components/guides/GuidePanel";
 import { EnvironmentBanner } from "@/components/platform/EnvironmentBanner";
 import { redirectIfPasswordResetRequired } from "@/lib/auth/must-reset-password";
 import { getAuthUser } from "@/lib/auth/auth-user";
@@ -145,7 +148,32 @@ export default async function DashboardLayout({
     >
       {/* Renders nothing on a correctly-configured production deployment. */}
       <EnvironmentBanner />
-      {children}
+      {/*
+        * "I want to work on..." — the walkthroughs.
+        *
+        * THIS MOUNT IS THE WHOLE FEATURE. Without it GuideProvider,
+        * GuideChooser and GuidePanel are three files nothing ever renders.
+        *
+        * Which is exactly what happened. The components shipped on 15
+        * September in ea503a21 — provider, chooser, panel, a fifty-walkthrough
+        * catalog and 84 passing tests — and this line was left out of the git
+        * add. Everything built, everything green, and for two days the feature
+        * existed in production and rendered nothing at all. Jimmy found it by
+        * opening the dashboard and looking for it.
+        *
+        * The same shape as the comment below about `permissions`: the piece had
+        * its own tests and passed them, and nothing tested that it was ever
+        * CONNECTED. The seam is always where it breaks.
+        * guides-mounted.test.ts now asserts this file mounts all three.
+        *
+        * userId keys the per-person progress and the "stop opening this"
+        * choice, so two people at one machine do not inherit each other's.
+        */}
+      <GuideProvider userId={auth.user.id}>
+        <GuideChooser />
+        <GuidePanel />
+        {children}
+      </GuideProvider>
     </DashboardShell>
   );
 }
