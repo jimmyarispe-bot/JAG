@@ -12,6 +12,7 @@ import {
 import {
   canAccessProfileKind,
   resolveProfileSection,
+  resolveSectionVisibility,
 } from "@/lib/platform/profile/access";
 import type { ProfileEnvelopeBase, ProfileResolveOptions } from "@/lib/platform/profile/types";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
@@ -65,17 +66,42 @@ export async function resolveProfile(
   };
 }
 
-/** Load data for the active profile section (lazy per-section fetch). */
+/**
+ * Load data for the active profile section (lazy per-section fetch).
+ *
+ * THE PERMISSION CHECK HERE IS NOT DUPLICATION.
+ *
+ * Until 16 September 2026 this function resolved a section and called its
+ * loadData with no permission test of any kind. Visibility was decided in
+ * navigation.ts, which decides what appears in the MENU - so a section could be
+ * absent from the tabs and still load and return its data to anyone who typed
+ * `?section=<key>` in the address bar.
+ *
+ * That was found while closing a hole in the Scholarships & Funding section,
+ * which renders families' household incomes. Fixing only the section's
+ * permissions would have taken the tab away and left the data reachable, which
+ * is the worse kind of fix: it looks closed.
+ *
+ * Hiding a menu item is not access control. This is the gate.
+ *
+ * `options` is threaded through so a caller that has already resolved a
+ * viewer's permissions can pass them rather than having them re-read.
+ */
 export async function loadActiveSectionData(
   kind: ProfileKind,
   envelope: ProfileEnvelopeBase,
   sectionKey: string,
   supabase: AuthClient,
-  ctx: Record<string, unknown> = {}
+  ctx: Record<string, unknown> = {},
+  options?: ProfileResolveOptions
 ): Promise<unknown> {
   const canonical = resolveSectionKey(kind, sectionKey);
   const section = getProfileSection(kind, canonical);
   if (!section?.loadData) return null;
+
+  const { visible } = resolveSectionVisibility(section, envelope, options);
+  if (!visible) return null;
+
   return section.loadData(supabase, envelope, ctx);
 }
 

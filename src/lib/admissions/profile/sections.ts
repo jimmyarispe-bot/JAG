@@ -271,12 +271,47 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     },
   }),
   section({
+    /**
+     * MONEY. ASKED THE RIGHT QUESTION AS OF 16 SEPTEMBER 2026.
+     *
+     * This section renders, for every child, in formatted currency:
+     * the requested scholarship amount, the approved amount, and the family's
+     * HOUSEHOLD INCOME - plus an approve/decline control.
+     *
+     * It required ["admissions.view", "admissions.manage", "admissions.accept"],
+     * and section permissions are ANY-OF (userHasAnyPermission in
+     * platform/profile/access.ts). Heather Badger-Brown and Nina Gaddy hold all
+     * three. So every School Leader could read every family's household income,
+     * on every child's card.
+     *
+     * Migrations 349, 357 and 358 denied SCHOOL_LEADER every key matching
+     * fund/scholarship/financ/tuition. Those denies were real and they worked -
+     * on the pages under /dashboard/admissions/state-funding. This section asked
+     * for none of those keys, so nothing they denied was ever consulted. A guard
+     * that exists and is asked the wrong question is the same shape as Heather
+     * being shown a Florida family: the security was not broken, it was
+     * answering a question nobody meant to ask.
+     *
+     * Now it requires a MONEY key. Deliberately the same set the funding pages
+     * use (FUNDING_ANY_OF in AdmissionsPageContent.tsx) plus the scholarship
+     * keys, so one rule covers the pages and the card and they cannot drift.
+     * Jimmy holds everything as FOUNDER; Danni's CEO role carries
+     * scholarships.view. School Leaders hold none of them, by three migrations
+     * that meant exactly this.
+     */
     key: "scholarships",
     label: "Scholarships & Funding",
     group: "financial",
     sortOrder: 80,
     moduleKey: "admissions",
-    permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
+    permissions: [
+      "funding.view",
+      "funding.verify",
+      "finance.state_funding",
+      "finance.view",
+      "scholarships.view",
+      "scholarships.approve",
+    ],
     status: "live",
     loadData: async (supabase, envelope) => {
       const env = caseEnvelope(envelope);
