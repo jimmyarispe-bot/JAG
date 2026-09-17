@@ -15,6 +15,7 @@ import type { ProfileEnvelopeBase, ProfileSectionDefinition } from "@/lib/platfo
 import type { AdmissionsCaseProfileEnvelope } from "@/lib/admissions/profile/types";
 import { isAdmissionsCaseProfileEnvelope } from "@/lib/admissions/profile/types";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -33,6 +34,42 @@ async function loadLeadRecord(supabase: AuthClient, leadId: string) {
     .eq("id", leadId)
     .maybeSingle();
   return data;
+}
+
+/**
+ * Question labels out of a form version's `definition` jsonb.
+ *
+ * The definition's shape is owned by the interest-form builder and has changed
+ * across versions v1 to v20, so this walks it rather than assuming a path,
+ * collecting any object that carries both an identifier and a label. Anything
+ * it does not find falls back to humanising the question_key, which is plain
+ * rather than wrong - "student_greatness" reads as "Student greatness".
+ */
+export function extractQuestionLabels(definition: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  const seen = new Set<unknown>();
+
+  const walk = (node: unknown): void => {
+    if (!node || typeof node !== "object") return;
+    if (seen.has(node)) return;
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item);
+      return;
+    }
+
+    const rec = node as Record<string, unknown>;
+    const key = rec.key ?? rec.question_key ?? rec.id;
+    const label = rec.label ?? rec.question ?? rec.title ?? rec.prompt;
+    if (typeof key === "string" && typeof label === "string" && label.trim()) {
+      out[key] = label.trim();
+    }
+    for (const value of Object.values(rec)) walk(value);
+  };
+
+  walk(definition);
+  return out;
 }
 
 /** Admissions Case profile sections — workflow container over existing lead entities. */
@@ -101,6 +138,112 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
         listProspectInviteCandidates(env.leadId),
       ]);
       return { lead, guardians: guardians.data ?? [], inviteCandidates, leadId: env.leadId };
+    },
+  }),
+  section({
+    /**
+     * THE FAMILY'S OWN WORDS.
+     *
+     * Added 17 September 2026. Until then there was nowhere in JAG to read a
+     * family's inquiry form. The answers have been stored since migration 223
+     * and exactly one function read them - getInquiryHighlights - which returns
+     * two of them and feeds only the Decisions screen. So what a family wrote
+     * about their child was visible while a decision was open and disappeared
+     * the moment somebody answered it.
+     *
+     * The same for `admissions_leads.notes`: the September import wrote every
+     * family's GREATNESS and challenges into that column for 300-odd children,
+     * Overview loads the lead with select("*"), and nothing renders it. The
+     * Notes tab reads `admissions_notes`, a different table. This section shows
+     * both.
+     *
+     * SERVICE ROLE, DELIBERATELY. carry-forward.ts documents why: the interest
+     * tables are written by the service role and are unreadable to a parent's
+     * own session, so a staff read through the auth client can come back empty
+     * and look exactly like a family who never filled the form in. The
+     * authorization boundary is the CASE - the page already proved this viewer
+     * may open this lead, and loadActiveSectionData now checks this section's
+     * permissions before calling this function - so scoping the read to that
+     * one lead_id is the right grain.
+     *
+     * Not money, so ordinary admissions permissions.
+     */
+    key: "interest_form",
+    label: "Interest Form",
+    group: "relationships",
+    sortOrder: 12,
+    moduleKey: "admissions",
+    permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
+    status: "live",
+    loadData: async (supabase, envelope) => {
+      const env = caseEnvelope(envelope);
+      if (!env) return null;
+
+      // The lead's own notes column, through the caller's client - the lead is
+      // already inside this viewer's reach.
+      const { data: lead } = await supabase
+        .from("admissions_leads")
+        .select("notes")
+        .eq("id", env.leadId)
+        .maybeSingle();
+      const leadNotes = (lead as { notes?: string | null } | null)?.notes ?? null;
+
+      const admin = createServiceRoleClient();
+
+      const { data: submission, error: subError } = await admin
+        .from("admissions_interest_submissions" as never)
+        .select("id, submitted_at, form_version_id")
+        .eq("lead_id", env.leadId)
+        .order("submitted_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Checked, not assumed. An error and an empty form are different facts
+      // and the component says so rather than reporting silence as absence.
+      if (subError) {
+        return { submittedAt: null, answers: [], labels: {}, leadNotes, unavailable: subError.message };
+      }
+
+      const sub = submission as
+        | { id?: string; submitted_at?: string; form_version_id?: string }
+        | null;
+      if (!sub?.id) {
+        return { submittedAt: null, answers: [], labels: {}, leadNotes, unavailable: null };
+      }
+
+      const [answersResult, versionResult] = await Promise.all([
+        admin
+          .from("admissions_interest_answers" as never)
+          .select("question_key, value")
+          .eq("submission_id", sub.id),
+        sub.form_version_id
+          ? admin
+              .from("admissions_interest_form_versions" as never)
+              .select("definition")
+              .eq("id", sub.form_version_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (answersResult.error) {
+        return {
+          submittedAt: sub.submitted_at ?? null,
+          answers: [],
+          labels: {},
+          leadNotes,
+          unavailable: answersResult.error.message,
+        };
+      }
+
+      return {
+        submittedAt: sub.submitted_at ?? null,
+        answers: (answersResult.data ?? []) as { question_key: string; value: unknown }[],
+        labels: extractQuestionLabels(
+          (versionResult.data as { definition?: unknown } | null)?.definition
+        ),
+        leadNotes,
+        unavailable: null,
+      };
     },
   }),
   section({

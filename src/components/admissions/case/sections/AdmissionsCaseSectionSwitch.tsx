@@ -3,6 +3,7 @@ import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/ty
 
 import { OverviewSection } from "./OverviewSection";
 import { ProspectSection } from "./ProspectSection";
+import { InterestFormSection } from "./InterestFormSection";
 import { StudentQuestionnaireSection } from "./StudentQuestionnaireSection";
 import { PipelineSection } from "./PipelineSection";
 import { ApplicationsSection } from "./ApplicationsSection";
@@ -42,6 +43,8 @@ export function AdmissionsCaseSectionSwitch(props: ProfileSectionViewProps) {
       return <OverviewSection {...props} />;
     case "prospect":
       return <ProspectSection {...props} />;
+    case "interest_form":
+      return <InterestFormSection {...props} />;
     case "student_questionnaire":
       return <StudentQuestionnaireSection {...props} />;
     case "pipeline":
