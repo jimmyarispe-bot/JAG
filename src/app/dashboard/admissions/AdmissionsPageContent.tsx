@@ -3,7 +3,6 @@ import {
   AdmissionsExperienceShell,
   AiRecommendationCard,
   ExecutionPipeline,
-  JagOrganizationContextBar,
   JagOrganizationContextPanel,
   JagWorkPanel,
   KpiTilesSkeleton,
@@ -271,6 +270,7 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
       fullName={ctx.fullName}
       roleLabel={ctx.roleLabel}
       insightPanel={insightPanel}
+      leftNavFooter={<PublicInquiryLinkPanel links={publicLinks} />}
       subtitle={orgContext?.activeScope.schoolName ?? "Enrollment funnel"}
       headerActions={
         <>
@@ -286,7 +286,6 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
         </>
       }
     >
-      {orgContext && <JagOrganizationContextBar org={orgContext} />}
       {/* The lead list, the pipeline board and every admissions sub-route, on
           the screen the sidebar actually opens. See AdmissionsNavigation. */}
       <AdmissionsNavigation activeView="" permissions={ctx.permissions} />
@@ -300,11 +299,6 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
         href="/dashboard/admissions/waiting"
         linkLabel="Families waiting on us"
       />
-      {/* The public address, on the screen people actually open. A link to the
-          form already existed, in a sub-navigation row that renders only in the
-          legacy ?view= screens — it opened the form and never showed the URL,
-          which is not what anyone was looking for. */}
-      <PublicInquiryLinkPanel links={publicLinks} />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Work in queue" value={formatCount(activeItems.length)} description={perspectiveLabel} accent="brand" icon={<span className="text-lg font-bold">W</span>} />
         <MetricCard title="Active pipeline" value={formatCount(leads.filter((l) => !["enrolled", "declined"].includes(l.lead_stage)).length)} description="Open cases" accent="indigo" icon={<span className="text-lg font-bold">P</span>} />

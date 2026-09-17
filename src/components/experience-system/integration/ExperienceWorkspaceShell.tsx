@@ -34,6 +34,9 @@ export interface ExperienceWorkspaceShellProps {
   searchPlaceholder?: string;
   leftNavTitle?: string;
   insightPanel?: ReactNode;
+  /** Rendered in the left rail, directly under Recent. For the one or two
+      things a workspace needs permanently to hand rather than scrolled to. */
+  leftNavFooter?: ReactNode;
   insightTitle?: string;
   activityEntries?: { id: string; label: string; timestamp: string }[];
   headerActions?: ReactNode;
@@ -54,6 +57,7 @@ export function ExperienceWorkspaceShell({
   searchPlaceholder = "Search workspace…",
   leftNavTitle = "Workspace",
   insightPanel,
+  leftNavFooter,
   insightTitle = "Insights",
   activityEntries = [],
   headerActions,
@@ -75,6 +79,7 @@ export function ExperienceWorkspaceShell({
     <div className="space-y-4">
       <WorkspaceNavLinks items={navItems} />
       <RecentItems items={recentItems} />
+      {leftNavFooter}
       <Favorites items={favorites} />
     </div>
   );

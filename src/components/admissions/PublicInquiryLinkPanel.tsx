@@ -29,17 +29,25 @@ export function PublicInquiryLinkPanel({ links }: { links: PublicInquiryLinks })
     }
   }
 
+  /*
+     ONE ADDRESS.
+     
+     This listed every host mapped to the organization - five rows, one of them
+     a duplicate, all serving the identical form. The intent was honesty about
+     what resolves; the effect was a wall of near-identical URLs and no answer
+     to "which one do I put on the website?". public-form-links ranks the org's
+     own door on the platform domain first, because that one is served directly
+     and always resolves. The rest are real and still work; they are simply not
+     the answer to the question being asked.
+  */
   const primary = links.urls[0] ?? null;
-  const alternates = links.urls.slice(1);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-slate-900">Parent inquiry link</h2>
-        <p className="text-xs text-slate-500">
-          Put this on the school websites. Families who submit it land in JAG automatically.
-        </p>
-      </div>
+      <h2 className="text-sm font-semibold text-slate-900">Parent inquiry link</h2>
+      <p className="mt-0.5 text-xs text-slate-500">
+        Put this on the school websites. Families who submit it land in JAG automatically.
+      </p>
 
       {links.unavailable ? (
         /* The reason, never a blank box. A panel that renders nothing when the
@@ -50,52 +58,32 @@ export function PublicInquiryLinkPanel({ links }: { links: PublicInquiryLinks })
       ) : null}
 
       {primary ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <code className="min-w-0 flex-1 truncate rounded-lg bg-slate-50 px-3 py-2 font-mono text-sm text-slate-800">
+        <div className="mt-3 space-y-2">
+          <code className="block w-full break-all rounded-lg bg-slate-50 px-3 py-2 font-mono text-xs text-slate-800">
             {primary}
           </code>
-          <button
-            type="button"
-            onClick={() => copy(primary)}
-            className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700"
-          >
-            {copied === primary ? "Copied" : "Copy"}
-          </button>
-          <a
-            href={primary}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
-          >
-            Open
-          </a>
-        </div>
-      ) : null}
-
-      {alternates.length ? (
-        <div className="mt-2 space-y-1">
-          {alternates.map((url) => (
-            <div key={url} className="flex flex-wrap items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded-lg bg-slate-50 px-3 py-1.5 font-mono text-xs text-slate-600">
-                {url}
-              </code>
-              <button
-                type="button"
-                onClick={() => copy(url)}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
-              >
-                {copied === url ? "Copied" : "Copy"}
-              </button>
-            </div>
-          ))}
-          <p className="text-[11px] text-slate-400">
-            Every address above serves the same form. Any of them is safe to publish.
-          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => copy(primary)}
+              className="flex-1 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700"
+            >
+              {copied === primary ? "Copied" : "Copy"}
+            </button>
+            <a
+              href={primary}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Open
+            </a>
+          </div>
         </div>
       ) : null}
 
       {links.campuses.length ? (
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
           <span className="font-medium text-slate-700">Campuses a parent can choose:</span>{" "}
           {links.campuses.map((c) => c.name).join(" · ")}
         </p>

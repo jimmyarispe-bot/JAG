@@ -92,40 +92,71 @@ export function BoardScroller({ columnCount, children }: BoardScrollerProps) {
   const arrow =
     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-sm enabled:hover:bg-slate-100 disabled:opacity-30";
 
+  /**
+   * Dragging the slider drives the board directly.
+   *
+   * The arrows move a column at a time, which is right for "show me the next
+   * one" and wrong for "take me to the end". Thirteen stages is four presses.
+   * A range input spans the whole section, so the far right is one drag - or
+   * one click on the track, which jumps straight there.
+   *
+   * It is a real input, so it is keyboard-operable and screen readers announce
+   * it, which the bare overflow container never was.
+   */
+  function slideTo(value: number) {
+    const node = ref.current;
+    if (!node) return;
+    node.scrollLeft = value;
+  }
+
   return (
     <div>
       {/*
         * Only drawn when there is genuinely something off screen. A disabled
-        * pair of arrows over a board that fits is furniture implying a feature.
+        * slider over a board that fits is furniture implying a feature.
         */}
       {scrollable && (
-        <div className="mb-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => scrollBy(-1)}
-            disabled={!canLeft}
-            className={arrow}
-            aria-label="Scroll the board left"
-          >
-            ←
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollBy(1)}
-            disabled={!canRight}
-            className={arrow}
-            aria-label="Scroll the board right"
-          >
-            →
-          </button>
-          <span className="text-xs text-slate-500">
+        <div className="mb-3 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => scrollBy(-1)}
+              disabled={!canLeft}
+              className={arrow}
+              aria-label="Scroll the board left one stage"
+            >
+              ←
+            </button>
+
+            <input
+              type="range"
+              min={0}
+              max={Math.max(1, pos.max)}
+              value={Math.min(pos.left, pos.max)}
+              onChange={(e) => slideTo(Number(e.target.value))}
+              aria-label="Scroll across the admissions pipeline stages"
+              className="jag-board-slider h-3 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200"
+            />
+
+            <button
+              type="button"
+              onClick={() => scrollBy(1)}
+              disabled={!canRight}
+              className={arrow}
+              aria-label="Scroll the board right one stage"
+            >
+              →
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-500">
             Stages{" "}
             <strong className="text-slate-700">
               {firstVisible}–{lastVisible}
             </strong>{" "}
             of {columnCount}
-            {canRight && " — there are more to the right"}
-          </span>
+            {canRight && " — drag the bar to reach the ones on the right"}
+          </p>
         </div>
       )}
 
@@ -154,6 +185,38 @@ export function BoardScroller({ columnCount, children }: BoardScrollerProps) {
         }
         .jag-board-scroll::-webkit-scrollbar-thumb:hover {
           background: #64748b;
+        }
+
+        /* A thumb big enough to grab without aiming. The default range thumb is
+           a small circle on a hairline; this is the control that replaces four
+           presses of an arrow, so it is sized like one. */
+        .jag-board-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 44px;
+          height: 18px;
+          border-radius: 9999px;
+          background: #64748b;
+          border: 2px solid #ffffff;
+          box-shadow: 0 1px 2px rgb(15 23 42 / 0.2);
+          cursor: grab;
+        }
+        .jag-board-slider::-webkit-slider-thumb:active {
+          cursor: grabbing;
+          background: #475569;
+        }
+        .jag-board-slider::-moz-range-thumb {
+          width: 44px;
+          height: 18px;
+          border-radius: 9999px;
+          background: #64748b;
+          border: 2px solid #ffffff;
+          cursor: grab;
+        }
+        .jag-board-slider::-moz-range-track {
+          height: 12px;
+          border-radius: 9999px;
+          background: #e2e8f0;
         }
       `}</style>
 

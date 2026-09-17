@@ -44,16 +44,29 @@ function toUrl(host: string): string {
 }
 
 /**
- * Order the hosts so the one to put on a website comes first.
+ * Order the hosts so the one to publish comes first.
  *
- * A parent-facing domain beats the platform domain, and an apex beats its `www`
- * twin. Beyond that, alphabetical — stable, so the panel does not reshuffle
- * between loads.
+ * THE ORG'S OWN DOOR ON THE PLATFORM DOMAIN WINS.
+ *
+ * This used to rank a custom parent-facing domain above the platform one, which
+ * reads well and was wrong in practice: a vanity domain resolves only if
+ * somebody has pointed DNS at it, and an unmapped host does not error - /apply
+ * renders a polite "not available for this organization yet" and no form. The
+ * platform subdomain is served directly and always resolves, so it is the one
+ * that is safe to hand to a parent on the phone.
+ *
+ * The apex and its `www` twin rank last: they serve the form but say nothing
+ * about which school, and staff have been sent to the wrong sign-in door by
+ * exactly that ambiguity all week.
  */
 function rankHost(host: string): number {
-  const isPlatform = host.endsWith("thejag.org");
-  const isWww = host.startsWith("www.");
-  return (isPlatform ? 2 : 0) + (isWww ? 1 : 0);
+  const lower = host.toLowerCase();
+  const isPlatform = lower === "thejag.org" || lower.endsWith(".thejag.org");
+  const isBarePlatform = lower === "thejag.org" || lower === "www.thejag.org";
+
+  if (isPlatform && !isBarePlatform) return 0; // theacademyway.thejag.org
+  if (!isPlatform) return lower.startsWith("www.") ? 2 : 1; // a custom domain
+  return 3; // thejag.org / www.thejag.org
 }
 
 export async function getPublicInquiryLinks(): Promise<PublicInquiryLinks> {
@@ -102,7 +115,13 @@ export async function getPublicInquiryLinks(): Promise<PublicInquiryLinks> {
     };
   }
 
-  const urls = [...hosts].sort((a, b) => rankHost(a) - rankHost(b) || a.localeCompare(b)).map(toUrl);
+  /* Deduplicated by host, case-insensitively. The settings list had the same
+     domain twice and the panel dutifully printed it twice, which is how a list
+     of one useful address became five rows of noise. */
+  const unique = [...new Set([...hosts].map((h) => h.trim().toLowerCase()).filter(Boolean))];
+  const urls = unique
+    .sort((a, b) => rankHost(a) - rankHost(b) || a.localeCompare(b))
+    .map(toUrl);
 
   if (!published) {
     return {
