@@ -4,6 +4,7 @@ import {
   ProfileEmpty,
 } from "@/components/platform/profile-workspace/ProfilePrimitives";
 import { PersonDocumentsPanel } from "@/components/people/PersonDocumentsPanel";
+import { CaseDocumentOpenButton } from "./CaseDocumentOpenButton";
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import { missing } from "./shared";
 
@@ -21,6 +22,8 @@ interface ApplicationDocumentRow {
   document_type: string | null;
   document_subtype: string | null;
   file_name: string | null;
+  storage_path: string | null;
+  application_id: string | null;
   created_at: string | null;
 }
 
@@ -53,9 +56,46 @@ function whenever(value: string | null): string {
   });
 }
 
+const ACRONYMS: Record<string, string> = {
+  ga: "GA",
+  hs: "HS",
+  fl: "FL",
+  iep: "IEP",
+  goal: "GOAL",
+  sped: "SpEd",
+  id: "ID",
+};
+
 function humanise(value: string | null): string {
   if (!value) return "Document";
-  return value.replace(/[_-]+/g, " ").replace(/^./, (c) => c.toUpperCase());
+  return value
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((word, i) => {
+      const acronym = ACRONYMS[word.toLowerCase()];
+      if (acronym) return acronym;
+      return i === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+    })
+    .join(" ");
+}
+
+/**
+ * What to call an uploaded file.
+ *
+ * `file_name` holds the form's own question - "Upload your scholarship award
+ * letter" - because that is the only human string the upload path has: the
+ * stored object is a bare UUID and the name the browser supplied is never
+ * trusted. Dropping the imperative turns the question back into a noun.
+ */
+function documentLabel(doc: ApplicationDocumentRow): string {
+  const fromQuestion = (doc.file_name ?? "")
+    .replace(/^\s*(please\s+)?(upload|attach)\s+(your|the|a)?\s*/i, "")
+    .trim();
+  if (fromQuestion) {
+    return fromQuestion.charAt(0).toUpperCase() + fromQuestion.slice(1);
+  }
+  return humanise(doc.document_type);
 }
 
 const CHECKLIST_DONE = new Set(["completed", "waived", "not_applicable"]);
@@ -128,25 +168,21 @@ export function DocumentsSection(props: ProfileSectionViewProps) {
       )}
 
       {applicationDocuments.length > 0 && (
-        <ProfileCard title="Sent with the application">
+        <ProfileCard title="Sent by the family">
           <ul className="divide-y divide-slate-100">
             {applicationDocuments.map((doc) => (
               <li key={doc.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-2">
-                <span className="text-sm font-medium text-slate-800">
-                  {doc.file_name || humanise(doc.document_type)}
+                <CaseDocumentOpenButton documentId={doc.id} label={documentLabel(doc)} />
+                <span className="text-xs text-slate-500">
+                  {doc.application_id ? "With the application" : "With the inquiry form"}
+                  {whenever(doc.created_at) ? ` \u00b7 ${whenever(doc.created_at)}` : ""}
                 </span>
-                <span className="text-xs uppercase tracking-wide text-slate-400">
-                  {humanise(doc.document_subtype || doc.document_type)}
-                </span>
-                {whenever(doc.created_at) && (
-                  <span className="text-xs text-slate-500">{whenever(doc.created_at)}</span>
-                )}
               </li>
             ))}
           </ul>
           <p className="pt-2 text-xs text-slate-500">
-            These arrived with the application form. They are listed here so nothing is
-            invisible; opening them from this tab is not built yet.
+            Click a document to open it. The link is created when you click and expires a
+            few minutes later, so these files stay private.
           </p>
         </ProfileCard>
       )}

@@ -370,13 +370,28 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
           .from("platform_document_relations")
           .select("document_id, entity_id")
           .in("entity_id", entityIds),
-        applicationId
-          ? supabase
-              .from("application_documents")
-              .select("id, document_type, document_subtype, file_name, created_at")
-              .eq("application_id", applicationId)
-              .order("created_at", { ascending: false })
-          : Promise.resolve({ data: [] }),
+        /*
+           BY LEAD, NOT ONLY BY APPLICATION.
+           
+           application_documents carries lead_id (migration 326) precisely so a
+           document uploaded with the inquiry can attach to a lead before any
+           application exists - that is what attachInquiryDocuments writes, with
+           application_id deliberately null.
+           
+           Reading this table by application_id alone is how Maddox Mixon's,
+           Ziare Moore's and Alana Swan's scholarship award letters sat in the
+           database, correctly attached to their leads, and appeared on nobody's
+           card. `.or` takes a raw filter string, which also keeps lead_id
+           usable while migration 326 is still absent from the generated types. */
+        supabase
+          .from("application_documents")
+          .select("*")
+          .or(
+            applicationId
+              ? `lead_id.eq.${env.leadId},application_id.eq.${applicationId}`
+              : `lead_id.eq.${env.leadId}`
+          )
+          .order("created_at", { ascending: false }),
         applicationId
           ? import("@/lib/admissions/checklist").then((m) =>
               m.getApplicationChecklist(applicationId)
@@ -433,6 +448,8 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
           document_type: string | null;
           document_subtype: string | null;
           file_name: string | null;
+          storage_path: string | null;
+          application_id: string | null;
           created_at: string | null;
         }[],
         platformDocuments,

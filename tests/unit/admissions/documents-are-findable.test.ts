@@ -51,6 +51,26 @@ describe("the case Documents tab reads every store", () => {
     expect(loader).toContain("application_documents");
   });
 
+  /**
+   * THE ONE THAT COST THREE FAMILIES.
+   *
+   * application_documents carries lead_id (migration 326) so an inquiry upload
+   * can attach to a lead before any application exists. attachInquiryDocuments
+   * writes it with application_id deliberately null.
+   *
+   * Read this table by application_id alone and every one of those files is
+   * invisible. On 17 September that was Maddox Mixon's, Ziare Moore's and Alana
+   * Swan's scholarship award letters - uploaded, stored, correctly attached,
+   * and on nobody's card. There is no error to notice: the query succeeds and
+   * returns nothing.
+   */
+  it("reads them by lead, not only by application", () => {
+    expect(
+      loader,
+      "the case Documents tab is back to application_id only - inquiry uploads are invisible again"
+    ).toContain("lead_id.eq.");
+  });
+
   it("still reads the checklist", () => {
     expect(loader).toContain("getApplicationChecklist");
   });
@@ -86,6 +106,21 @@ describe("the tab shows the files, not a percentage", () => {
 
   it("says where each file is filed", () => {
     expect(view).toContain("filedOn");
+  });
+
+  /** A list you cannot open is a list of things you still have to go and find. */
+  it("can open a file the family uploaded", () => {
+    expect(view).toContain("CaseDocumentOpenButton");
+  });
+
+  /**
+   * file_name holds the form's question, not a filename, because the stored
+   * object is a bare UUID and a browser-supplied name is never trusted. Showing
+   * it raw puts "Upload your scholarship award letter" in a list of things that
+   * have already been uploaded.
+   */
+  it("does not label an uploaded file with the question that asked for it", () => {
+    expect(view).toContain("documentLabel");
   });
 
   /**
