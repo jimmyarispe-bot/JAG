@@ -50,3 +50,61 @@ describe("every case section can actually render", () => {
     expect(switchKeys.has("student_questionnaire")).toBe(true);
   });
 });
+
+/**
+ * THERE IS A THIRD LIST, AND IT IS THE ONE THAT DECIDES.
+ *
+ * register-modules.ts holds SECTION_COMPONENTS and registers only the sections
+ * that appear in it:
+ *
+ *     const component = SECTION_COMPONENTS[def.key];
+ *     if (!component) continue;
+ *
+ * getProfileSections reads that registry, so a section missing from this map is
+ * never registered, never navigated to, and never drawn — with no error and no
+ * warning anywhere.
+ *
+ * 17 September 2026: the Interest Form section was defined, given a case in the
+ * switch, shipped, and deployed Ready to production. It did not exist. The
+ * checks above passed the whole time, because they compare the definition with
+ * the SWITCH and this is a different file.
+ *
+ * Read as source for the same reason as above: importing register-modules pulls
+ * fifteen client components into a unit test for no benefit.
+ */
+describe("every case section is actually registered", () => {
+  const registerSource = readFileSync(
+    resolve(process.cwd(), "src/lib/admissions/profile/sections/register-modules.ts"),
+    "utf8"
+  );
+
+  /** Keys in the SECTION_COMPONENTS map: `  overview: OverviewSection,` */
+  const mapped = new Set(
+    [...registerSource.matchAll(/^\s{2}([a-z_]+):\s*[A-Za-z]+Section,/gm)].map((m) => m[1])
+  );
+
+  it("found the map to read", () => {
+    expect(registerSource).toContain("SECTION_COMPONENTS");
+    expect(mapped.size).toBeGreaterThan(10);
+  });
+
+  /** THE ONE THAT MATTERS. */
+  it("has a component in SECTION_COMPONENTS for each defined section", () => {
+    const defined = ADMISSIONS_CASE_PROFILE_SECTIONS.map((s) => s.key);
+    const unregistered = defined.filter((key) => !mapped.has(key));
+    expect(
+      unregistered,
+      `defined but never registered, so they render no tab at all: ${unregistered.join(", ")}`
+    ).toEqual([]);
+  });
+
+  it("registers nothing that is not defined", () => {
+    const defined = new Set(ADMISSIONS_CASE_PROFILE_SECTIONS.map((s) => s.key));
+    const orphans = [...mapped].filter((key) => !defined.has(key));
+    expect(orphans, `mapped components with no definition: ${orphans.join(", ")}`).toEqual([]);
+  });
+
+  it("includes the interest form, which is what caught this", () => {
+    expect(mapped.has("interest_form")).toBe(true);
+  });
+});

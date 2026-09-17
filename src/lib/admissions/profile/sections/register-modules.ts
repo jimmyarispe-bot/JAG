@@ -9,6 +9,7 @@ import { ADMISSIONS_CASE_PROFILE_SECTIONS } from "@/lib/admissions/profile/secti
 // references. Client-side code splitting is still handled by Next.
 import { OverviewSection } from "@/components/admissions/case/sections/OverviewSection";
 import { ProspectSection } from "@/components/admissions/case/sections/ProspectSection";
+import { InterestFormSection } from "@/components/admissions/case/sections/InterestFormSection";
 import { StudentQuestionnaireSection } from "@/components/admissions/case/sections/StudentQuestionnaireSection";
 import { PipelineSection } from "@/components/admissions/case/sections/PipelineSection";
 import { ApplicationsSection } from "@/components/admissions/case/sections/ApplicationsSection";
@@ -28,6 +29,7 @@ const SECTION_VERSION = "1.0.0";
 const SECTION_COMPONENTS: Record<string, ProfileSectionComponent> = {
   overview: OverviewSection,
   prospect: ProspectSection,
+  interest_form: InterestFormSection,
   student_questionnaire: StudentQuestionnaireSection,
   pipeline: PipelineSection,
   applications: ApplicationsSection,
@@ -47,7 +49,30 @@ const SECTION_COMPONENTS: Record<string, ProfileSectionComponent> = {
 export function registerAdmissionsCaseProfileSectionModules(): void {
   for (const def of ADMISSIONS_CASE_PROFILE_SECTIONS) {
     const component = SECTION_COMPONENTS[def.key];
-    if (!component) continue;
+
+    /*
+     * A defined section with no component here is skipped SILENTLY, and that
+     * silence is expensive.
+     *
+     * 17 September 2026: the Interest Form section was defined in
+     * ADMISSIONS_CASE_PROFILE_SECTIONS and given a case in
+     * AdmissionsCaseSectionSwitch, shipped, deployed Ready to production - and
+     * did not exist. No tab, no error, no warning. getProfileSections reads this
+     * registry, this loop skipped the section because SECTION_COMPONENTS had no
+     * entry, and nothing anywhere said so.
+     *
+     * There are THREE lists that must agree, not the two the comment in the
+     * switch describes. case-sections-registered.test.ts now checks all three,
+     * which is the real guard. This warning is for the case where something
+     * reaches production anyway: a line in the log beats a silent skip.
+     */
+    if (!component) {
+      console.warn(
+        `[admissions-case] section "${def.key}" is defined but has no component in ` +
+          "SECTION_COMPONENTS (register-modules.ts). It will not appear as a tab."
+      );
+      continue;
+    }
 
     registerProfileSectionModule({
       kind: "admissions_case",
