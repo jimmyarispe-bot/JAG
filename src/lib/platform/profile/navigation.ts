@@ -11,6 +11,7 @@ import {
   type ResolvedProfileSection,
 } from "@/lib/platform/profile/types";
 import {
+  getProfileKindDefinition,
   getProfileSections,
   resolveSectionKey,
 } from "@/lib/platform/profile/registry";
@@ -58,7 +59,25 @@ export function buildProfileNavigation(
     sections: grouped.filter((s) => s.group === group),
   })).filter((g) => g.sections.length > 0);
 
-  const flatGrouped = groups.flatMap((g) => g.sections);
+  /*
+     Tab order.
+
+     A grouped kind reads group by group, which is why the admissions case used
+     to open with Scholarships & Funding and then jump back to Pipeline: money
+     is the "financial" group and financial sorts before operations. Nobody
+     works a case in that order.
+
+     A flat kind reads sortOrder straight through, so the strip can be laid out
+     as the process actually runs. `groups` is untouched either way - it still
+     answers what belongs with what for groupForSection and the legend. */
+  const flat = getProfileKindDefinition(envelope.profileKind)?.tabOrder === "flat";
+
+  const flatGrouped = flat
+    ? [...grouped].sort(
+        (a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label)
+      )
+    : groups.flatMap((g) => g.sections);
+
   const overflow =
     flatGrouped.length > OVERFLOW_THRESHOLD ? flatGrouped.slice(OVERFLOW_THRESHOLD) : [];
   const overflowKeys = new Set(overflow.map((s) => s.key));
@@ -77,6 +96,8 @@ export function buildProfileNavigation(
           sections: g.sections.filter((s) => !overflowKeys.has(s.key)),
         }))
       : groups,
+    order: [...pinned, ...flatGrouped.filter((s) => !overflowKeys.has(s.key))],
+    flat,
     overflow,
     overflowGroups,
     activeSection: activeSectionDef?.key ?? envelope.defaultSection,
@@ -87,11 +108,7 @@ export function buildProfileNavigation(
 export function sectionsForViewTabs(
   navigation: ProfileNavigationModel
 ): ResolvedProfileSection[] {
-  return [
-    ...navigation.pinned,
-    ...navigation.groups.flatMap((g) => g.sections),
-    ...navigation.overflow,
-  ];
+  return [...navigation.order, ...navigation.overflow];
 }
 
 export function groupForSection(
@@ -145,6 +162,8 @@ export function toClientProfileNavigation(
 ): ClientProfileNavigation {
   return {
     pinned: navigation.pinned.map(toClientNavSection),
+    order: navigation.order.map(toClientNavSection),
+    flat: navigation.flat,
     groups: navigation.groups.map((group) => ({
       group: group.group,
       label: group.label,

@@ -23,6 +23,9 @@ export const ADMISSIONS_CASE_PROFILE_KIND: ProfileKindDefinition = {
   sectionParam: "section",
   defaultSection: "overview",
   viewPermissions: ["admissions.view", "admissions.manage", "admissions.accept"],
+  /* A case is a process, not a filing cabinet. Tabs run in the order the work
+     happens, then everything else alphabetically. See sections.ts. */
+  tabOrder: "flat",
   buildEnvelope: buildAdmissionsCaseProfileEnvelope,
   legacySectionRedirects: ADMISSIONS_CASE_LEGACY_REDIRECTS,
 };

@@ -72,6 +72,20 @@ export function extractQuestionLabels(definition: unknown): Record<string, strin
   return out;
 }
 
+/**
+ * Admissions Case profile sections.
+ *
+ * ORDER MATTERS AND IT IS NOT THE GROUP ORDER.
+ *
+ * The case tab strip is flat (see kind.ts, tabOrder: "flat"), so sortOrder here
+ * is read straight through. Sections 0-100 are the admissions process in the
+ * order it is actually walked - inquiry, who the family is, shadow day,
+ * application, documents, decision, funding, enrollment. Sections 200+ are
+ * everything else, alphabetically by label.
+ *
+ * Adding a section? Put it where the work happens, or give it a 200+ number and
+ * keep that block alphabetical. Leave gaps of ten so the next one can slot in.
+ */
 /** Admissions Case profile sections — workflow container over existing lead entities. */
 export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
   section({
@@ -122,7 +136,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "prospect",
     label: "Prospective Family",
     group: "relationships",
-    sortOrder: 10,
+    sortOrder: 30,
     moduleKey: "admissions",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",
@@ -171,7 +185,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "interest_form",
     label: "Interest Form",
     group: "relationships",
-    sortOrder: 12,
+    sortOrder: 20,
     moduleKey: "admissions",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",
@@ -250,7 +264,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "pipeline",
     label: "Pipeline",
     group: "operations",
-    sortOrder: 20,
+    sortOrder: 10,
     moduleKey: "admissions",
     permissions: ["admissions.manage", "admissions.accept"],
     status: "live",
@@ -274,7 +288,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "applications",
     label: "Applications",
     group: "operations",
-    sortOrder: 30,
+    sortOrder: 60,
     moduleKey: "admissions",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",
@@ -296,24 +310,137 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "documents",
     label: "Documents",
     group: "operations",
-    sortOrder: 40,
+    sortOrder: 70,
     moduleKey: "admissions",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",
+    /*
+       A child's paperwork is scattered across four stores, and this tab used to
+       read one of them.
+
+       It asked for the application checklist and rendered a single percentage.
+       No filename, no link, nothing to open - and if the child had no
+       application row it returned an empty checklist, so a case with four
+       uploaded PDFs said "No checklist items". Staff filed documents exactly
+       where the system told them to and then could not find them from the case.
+
+       The four stores, all of which are real and all of which are now read:
+         person_documents      - subject_type 'lead' or 'student'. The upload
+                                 panel on people pages writes here.
+         platform_documents    - the Documents module, joined through
+                                 platform_document_relations by lead, student
+                                 or family id.
+         application_documents - files posted with an application.
+         the checklist         - what is still outstanding.
+
+       Nobody should have to know which of the four a file landed in. */
     loadData: async (supabase, envelope) => {
       const env = caseEnvelope(envelope);
       if (!env) return null;
-      const { data: applications } = await supabase
-        .from("admissions_applications")
-        .select("id")
-        .eq("lead_id", env.leadId)
-        .limit(1);
-      const appId = applications?.[0]?.id;
-      if (!appId) return { items: [], percentComplete: 0 };
-      const checklist = await import("@/lib/admissions/checklist").then((m) =>
-        m.getApplicationChecklist(appId)
+
+      const [studentResult, applicationResult] = await Promise.all([
+        supabase
+          .from("students")
+          .select("id, first_name, last_name, family_id")
+          .eq("admissions_lead_id", env.leadId)
+          .maybeSingle(),
+        supabase
+          .from("admissions_applications")
+          .select("id")
+          .eq("lead_id", env.leadId)
+          .order("created_at", { ascending: true })
+          .limit(1),
+      ]);
+
+      const student = studentResult.data as {
+        id: string;
+        first_name: string | null;
+        last_name: string | null;
+        family_id: string | null;
+      } | null;
+      const applicationId = (applicationResult.data?.[0]?.id as string | undefined) ?? null;
+
+      // Every id this case could have documents filed against.
+      const entityIds = [env.leadId, student?.id, student?.family_id].filter(
+        (value): value is string => Boolean(value)
       );
-      return checklist;
+
+      const [relationsResult, applicationDocumentsResult, checklist] = await Promise.all([
+        supabase
+          .from("platform_document_relations")
+          .select("document_id, entity_id")
+          .in("entity_id", entityIds),
+        applicationId
+          ? supabase
+              .from("application_documents")
+              .select("id, document_type, document_subtype, file_name, created_at")
+              .eq("application_id", applicationId)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] }),
+        applicationId
+          ? import("@/lib/admissions/checklist").then((m) =>
+              m.getApplicationChecklist(applicationId)
+            )
+          : Promise.resolve(null),
+      ]);
+
+      // Where each document is filed, so the reader knows why it is on this tab.
+      const filedOn = new Map<string, string>();
+      for (const row of (relationsResult.data ?? []) as {
+        document_id: string;
+        entity_id: string;
+      }[]) {
+        if (filedOn.has(row.document_id)) continue;
+        filedOn.set(
+          row.document_id,
+          row.entity_id === env.leadId
+            ? "this case"
+            : row.entity_id === student?.id
+              ? "the student record"
+              : "the family record"
+        );
+      }
+
+      const documentIds = [...filedOn.keys()];
+      const platformDocumentsResult = documentIds.length
+        ? await supabase
+            .from("platform_documents")
+            .select("id, title, file_name, category, status, created_at")
+            .in("id", documentIds)
+            .neq("status", "archived")
+            .order("created_at", { ascending: false })
+        : { data: [] };
+
+      const platformDocuments = (
+        (platformDocumentsResult.data ?? []) as {
+          id: string;
+          title: string | null;
+          file_name: string | null;
+          category: string | null;
+          created_at: string | null;
+        }[]
+      ).map((doc) => ({ ...doc, filedOn: filedOn.get(doc.id) ?? "this case" }));
+
+      return {
+        leadId: env.leadId,
+        studentId: student?.id ?? null,
+        studentName: student
+          ? [student.first_name, student.last_name].filter(Boolean).join(" ")
+          : null,
+        applicationId,
+        applicationDocuments: (applicationDocumentsResult.data ?? []) as {
+          id: string;
+          document_type: string | null;
+          document_subtype: string | null;
+          file_name: string | null;
+          created_at: string | null;
+        }[],
+        platformDocuments,
+        checklist,
+        canEdit:
+          envelope.permissions.includes("admissions.manage") ||
+          envelope.permissions.includes("students.edit"),
+      };
     },
   }),
   section({
@@ -338,7 +465,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "communications",
     label: "Communications",
     group: "communication",
-    sortOrder: 60,
+    sortOrder: 210,
     moduleKey: "admissions",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",
@@ -367,7 +494,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "tasks",
     label: "Tasks",
     group: "operations",
-    sortOrder: 70,
+    sortOrder: 240,
     moduleKey: "admissions",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",
@@ -382,7 +509,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "student_questionnaire",
     label: "Student Questionnaire",
     group: "relationships",
-    sortOrder: 15,
+    sortOrder: 40,
     moduleKey: "admissions",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",
@@ -445,7 +572,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "scholarships",
     label: "Scholarships & Funding",
     group: "financial",
-    sortOrder: 80,
+    sortOrder: 90,
     moduleKey: "admissions",
     permissions: [
       "funding.view",
@@ -483,7 +610,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "decisions",
     label: "Decisions",
     group: "operations",
-    sortOrder: 90,
+    sortOrder: 80,
     moduleKey: "admissions",
     permissions: ["admissions.accept", "admissions.manage"],
     status: "live",
@@ -545,7 +672,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "notes",
     label: "Notes",
     group: "communication",
-    sortOrder: 110,
+    sortOrder: 220,
     moduleKey: "platform",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",
@@ -567,7 +694,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "activity",
     label: "Activity",
     group: "communication",
-    sortOrder: 120,
+    sortOrder: 200,
     moduleKey: "platform",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",
@@ -596,7 +723,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
     key: "relationships",
     label: "Relationships",
     group: "relationships",
-    sortOrder: 130,
+    sortOrder: 230,
     moduleKey: "platform",
     permissions: ["admissions.view", "admissions.manage", "admissions.accept"],
     status: "live",

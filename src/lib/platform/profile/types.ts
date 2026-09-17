@@ -117,6 +117,19 @@ export interface ProfileKindDefinition {
   defaultSection: string;
   /** Permissions required to view this profile kind at all */
   viewPermissions: string[];
+  /**
+   * How the tab strip orders sections.
+   *
+   * "grouped" (the default) walks the group taxonomy - Financial, then
+   * Operations, then Communication, then Relationships - and reads sortOrder
+   * only inside each group. That suits a record you browse.
+   *
+   * "flat" ignores the groups and reads sortOrder straight through. That suits
+   * a record that is a PROCESS: an admissions case is walked left to right in
+   * the order the work happens, and a group boundary in the middle of that run
+   * puts Scholarships before Applications for no reason the user can see.
+   */
+  tabOrder?: "grouped" | "flat";
   buildEnvelope: (
     supabase: AuthClient,
     entityId: string,
@@ -140,6 +153,16 @@ export interface ProfileNavigationGroup {
 export interface ProfileNavigationModel {
   pinned: ResolvedProfileSection[];
   groups: ProfileNavigationGroup[];
+  /**
+   * The order the tab strip draws in, pinned sections first.
+   *
+   * This is the single authority on tab order. `groups` still says what belongs
+   * with what - `groupForSection` and the group legend read it - but reading
+   * order out of `groups` is what forced every kind into group order.
+   */
+  order: ResolvedProfileSection[];
+  /** True when `order` ignores groups and runs straight through sortOrder. */
+  flat: boolean;
   overflow: ResolvedProfileSection[];
   /** Overflow sections regrouped for the "More" menu */
   overflowGroups: ProfileNavigationGroup[];
@@ -171,6 +194,10 @@ export interface ClientProfileNavigationGroup {
 export interface ClientProfileNavigation {
   pinned: ClientProfileNavSection[];
   groups: ClientProfileNavigationGroup[];
+  /** The order the tab strip draws in, pinned sections first. */
+  order: ClientProfileNavSection[];
+  /** True when `order` ignores groups; the group legend is hidden. */
+  flat: boolean;
   overflow: ClientProfileNavSection[];
   overflowGroups: ClientProfileNavigationGroup[];
   activeSection: string;

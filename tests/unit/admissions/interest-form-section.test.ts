@@ -50,8 +50,25 @@ describe("the interest form section", () => {
     ).toBe(false);
   });
 
+  /**
+   * Still the same intent - near the front, beside the family, not buried at
+   * the end where it sat when it shipped thirteenth, after Activity.
+   *
+   * The numbers moved on 17 September when the tab strip went flat and started
+   * running in the order the admissions process runs, so Pipeline now sorts
+   * ahead of the interest form. Comparing against whatever happens to be second
+   * was pinning the old layout rather than the property, so this asserts the
+   * property: it is next to the family, and it comes before the application.
+   * Full ordering lives in case-tab-order.test.ts.
+   */
   it("sits with the family, not at the end of the card", () => {
-    expect(interest.sortOrder).toBeLessThan(section("pipeline").sortOrder);
+    const ordered = [...ADMISSIONS_CASE_PROFILE_SECTIONS].sort(
+      (a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label)
+    );
+    const at = (key: string) => ordered.findIndex((s) => s.key === key);
+
+    expect(Math.abs(at("interest_form") - at("prospect"))).toBe(1);
+    expect(at("interest_form")).toBeLessThan(at("applications"));
   });
 });
 

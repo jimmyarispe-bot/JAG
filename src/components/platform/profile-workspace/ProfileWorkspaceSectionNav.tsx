@@ -23,10 +23,9 @@ export function ProfileWorkspaceSectionNav({
   navigation,
   compact = false,
 }: ProfileWorkspaceSectionNavProps) {
-  const primary = [
-    ...navigation.pinned,
-    ...navigation.groups.flatMap((g) => g.sections),
-  ].filter((s) => s.visible);
+  /* navigation.order is the authority on tab order. Rebuilding it here out of
+     pinned + groups is what pinned every kind to group order. */
+  const primary = navigation.order.filter((s) => s.visible);
 
   if (!primary.length && !navigation.overflow.length) return null;
 
@@ -67,7 +66,11 @@ export function ProfileWorkspaceSectionNav({
         />
       </div>
 
-      {!compact && navigation.groups.length > 0 && (
+      {/* The group legend restates the same sections in GROUP order. On a flat
+          strip that contradicts the tabs directly above it - the tabs run in
+          process order, the legend would run Financial first - so it is hidden
+          rather than left to argue with them. */}
+      {!compact && !navigation.flat && navigation.groups.length > 0 && (
         <div className="hidden flex-wrap gap-2 xl:flex">
           {navigation.groups.map((group) => (
             <div
