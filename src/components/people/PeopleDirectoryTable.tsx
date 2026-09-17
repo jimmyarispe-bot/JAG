@@ -619,6 +619,41 @@ export function PeopleDirectoryTable({
     });
   }, [people, query, filters, dateFrom, dateTo, group, showArchived, sortKey, sortDir]);
 
+  /*
+     WHAT AM I ACTUALLY LOOKING AT.
+
+     The default sort is newest enquiry first, for a good reason - a daily list
+     whose top row is whoever comes first alphabetically answers a question
+     nobody asked. But 413 rows sorted newest-first means every family who came
+     in before this month is below the fold, and the first instinct on not
+     seeing them is "the record is gone" rather than "I am at the top of five
+     months of enquiries". Julian Oubre Towa enquired on 22 April and was
+     reported missing twice.
+
+     So the list says out loud how far back it runs. Seeing "back to 22 Apr
+     2026" turns an absent child from a fault into a scroll - or, better, into
+     a search.
+  */
+  const orientation = useMemo(() => {
+    if (sortKey !== "inquired" || rows.length < 2) return null;
+    const first = rows[0]?.inquiryDate;
+    const last = rows[rows.length - 1]?.inquiryDate;
+    if (!first || !last || first === last) return null;
+    const show = (value: string) => {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime())
+        ? value
+        : date.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
+    };
+    const newest = sortDir === "desc" ? first : last;
+    const oldest = sortDir === "desc" ? last : first;
+    return `by enquiry date, ${show(newest)} back to ${show(oldest)}`;
+  }, [rows, sortKey, sortDir]);
+
   function cell(key: ColumnKey, p: DirectoryPerson): ReactNode {
     switch (key) {
       case "select":
@@ -1025,6 +1060,7 @@ export function PeopleDirectoryTable({
         <p>
           Showing {rows.length} of {people.length}
           {pending ? " · saving…" : ""}
+          {orientation && <span className="text-slate-400"> · {orientation}</span>}
         </p>
         <span className="flex items-center gap-4">
           <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
@@ -1176,7 +1212,16 @@ export function PeopleDirectoryTable({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={COLUMNS.length} className="px-4 py-10 text-center text-slate-500">
-                  Nobody matches those filters.
+                  <p className="font-medium text-slate-700">Nobody matches those filters.</p>
+                  {/* The two things that actually hide a real person, named,
+                      rather than leaving the reader to conclude the record is
+                      gone. Searching matches the guardian too, which is how you
+                      find a child entered under a different surname. */}
+                  <p className="mt-1 text-sm">
+                    Searching matches the child&rsquo;s name, the guardian&rsquo;s name, email
+                    and phone &mdash; try the parent&rsquo;s last name.
+                    {!showArchived && " Archived records are hidden; tick Show archived to include them."}
+                  </p>
                 </td>
               </tr>
             )}

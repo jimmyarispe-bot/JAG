@@ -14,6 +14,19 @@ export interface AdmissionsCaseProfileEnvelope extends ProfileEnvelopeBase {
   program: string | null;
   inquiryDate: string | null;
   stageEnteredAt: string | null;
+  /*
+     The facts staff need on every screen, not just the one that happens to
+     render them. Heather does not open a child's card to admire the stage
+     badge - she opens it to call the parent, and the number was four tabs away
+     on Prospective Family. These ride on the envelope so the header can show
+     them beside the name whatever section is open.
+  */
+  schoolName: string | null;
+  applyingForGrade: string | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  /** From the interest form's `desired_start_date` answer; no column holds it. */
+  desiredStartDate: string | null;
 }
 
 export function isAdmissionsCaseProfileEnvelope(
