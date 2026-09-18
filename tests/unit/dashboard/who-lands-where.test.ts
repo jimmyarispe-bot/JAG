@@ -22,9 +22,16 @@ function person(...roles: string[]): IdentityContext {
   return { roles } as unknown as IdentityContext;
 }
 
+/** Danni Treu's actual roles, read out of the database on 18 September 2026. */
+const DANNI = person("EXECUTIVE_DIRECTOR", "PLATFORM_OWNER", "JAG_ORG_ADMIN");
+
 describe("Admissions opens on the board", () => {
-  it.each(["FOUNDER", "CEO"])("for %s", (role) => {
+  it.each(["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR"])("for %s", (role) => {
     expect(admissionsOpensOnBoard(person(role))).toBe(true);
+  });
+
+  it("for Danni, with all three of her roles", () => {
+    expect(admissionsOpensOnBoard(DANNI)).toBe(true);
   });
 
   it.each(["SCHOOL_LEADER", "TEACHER", "REGISTRAR"])("not for %s", (role) => {
@@ -41,8 +48,24 @@ describe("Admissions opens on the board", () => {
 });
 
 describe("Signing in goes straight to the board", () => {
-  /** Danni. Admissions, not money. */
-  it("for the CEO", () => {
+  /**
+   * THE ONE THAT MATTERS, AND THE ONE THAT WAS WRONG.
+   *
+   * The first version checked for CEO - a role name that appears in an RLS
+   * policy and on nobody's account. The redirect matched no one, and Danni kept
+   * landing on the founder dashboard, which her PLATFORM_OWNER and
+   * JAG_ORG_ADMIN roles unlock through JAG_ACCESS. Asserting against her real
+   * roles is what stops that being guessed at again.
+   */
+  it("for Danni", () => {
+    expect(landsOnAdmissionsBoard(DANNI)).toBe(true);
+  });
+
+  it("for a plain Executive Director", () => {
+    expect(landsOnAdmissionsBoard(person("EXECUTIVE_DIRECTOR"))).toBe(true);
+  });
+
+  it("for a CEO, if anyone ever holds it", () => {
     expect(landsOnAdmissionsBoard(person("CEO"))).toBe(true);
   });
 
@@ -53,6 +76,12 @@ describe("Signing in goes straight to the board", () => {
   it("never for the founder", () => {
     expect(landsOnAdmissionsBoard(person("FOUNDER"))).toBe(false);
     expect(landsOnAdmissionsBoard(person("FOUNDER", "CEO"))).toBe(false);
+    expect(landsOnAdmissionsBoard(person("FOUNDER", "EXECUTIVE_DIRECTOR"))).toBe(false);
+  });
+
+  /** Platform admin is not an operating role and must not move anybody. */
+  it.each(["PLATFORM_OWNER", "JAG_ORG_ADMIN"])("not for %s alone", (role) => {
+    expect(landsOnAdmissionsBoard(person(role))).toBe(false);
   });
 
   it("not for a School Leader", () => {

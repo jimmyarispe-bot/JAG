@@ -19,15 +19,27 @@ function roles(ctx: IdentityContext): string[] {
 }
 
 /**
+ * The roles that run the admissions funnel rather than work a queue from it.
+ *
+ * These are role NAMES out of `roles.name`, which is what ctx.roles carries -
+ * not display names, and not the strings used in RLS policies. Migration 289's
+ * policy says has_role('CEO'), and CEO is not a role anybody in this network
+ * actually holds; assuming it was Danni's cost a deploy. Hers are
+ * EXECUTIVE_DIRECTOR, PLATFORM_OWNER and JAG_ORG_ADMIN.
+ *
+ * CEO stays in the list because the policy implies somebody could hold it, and
+ * a name that matches nobody costs nothing.
+ */
+const FUNNEL_ROLES = ["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR"];
+
+/**
  * Admissions opens on the Pipeline Board rather than Today's Work.
  *
- * For the two people who run the funnel rather than work a queue. A task list
- * answers "what is assigned to me"; the board answers "where is every family",
- * which is the question these two open the page with.
+ * A task list answers "what is assigned to me"; the board answers "where is
+ * every family", which is the question these people open the page with.
  */
 export function admissionsOpensOnBoard(ctx: IdentityContext): boolean {
-  const held = roles(ctx);
-  return held.includes("FOUNDER") || held.includes("CEO");
+  return roles(ctx).some((role) => FUNNEL_ROLES.includes(role));
 }
 
 /**
@@ -38,12 +50,18 @@ export function admissionsOpensOnBoard(ctx: IdentityContext): boolean {
  * changes what she may open - but the screen that greets her is children in a
  * pipeline rather than a revenue brief.
  *
+ * She is EXECUTIVE_DIRECTOR. The first version of this checked for CEO, which
+ * is a role name that appears in an RLS policy and on nobody's account, so the
+ * redirect matched no one and she kept landing on the founder dashboard - which
+ * her PLATFORM_OWNER and JAG_ORG_ADMIN roles unlock through JAG_ACCESS.
+ *
  * FOUNDER is deliberately excluded: the founder dashboard leads with the
  * numbers, on purpose, and that is a different job.
  */
 export function landsOnAdmissionsBoard(ctx: IdentityContext): boolean {
   const held = roles(ctx);
-  return held.includes("CEO") && !held.includes("FOUNDER");
+  if (held.includes("FOUNDER")) return false;
+  return held.includes("EXECUTIVE_DIRECTOR") || held.includes("CEO");
 }
 
 /** The board, as a URL, in one place so the two callers cannot drift. */

@@ -4,9 +4,26 @@ import { canAccessExecutiveIntelligence } from "@/lib/executive/access";
 import { canViewFi } from "@/lib/financial-intelligence/access";
 import type { PermissionKey } from "@/lib/platform/identity/types";
 
-/** Founder dashboard + widgets require JAG_ACCESS (granted by FOUNDER role). */
+/**
+ * The founder dashboard requires being the founder.
+ *
+ * It used to require the JAG_ACCESS permission, on the belief that JAG_ACCESS
+ * is "granted by FOUNDER role" - which is true and is not the whole truth.
+ * PLATFORM_OWNER and JAG_ORG_ADMIN grant it too, so Danni Treu, whose operating
+ * role is Executive Director of Schools, signed in every morning to a
+ * revenue-first founder brief that was never meant for her.
+ *
+ * A permission that two administration roles also carry cannot answer "is this
+ * the founder". The role can, and this screen is named after it.
+ *
+ * NOT a money boundary. Danni keeps every finance key she holds and Finance is
+ * one click away in the sidebar; what changes is that the founder's own morning
+ * brief is the founder's. See lib/dashboard/landing.ts for where she lands
+ * instead.
+ */
 export function canViewFounderDashboard(ctx: IdentityContext): boolean {
-  return hasPermission(ctx, "JAG_ACCESS");
+  const held = (ctx.roles ?? []).map((role) => String(role).toUpperCase());
+  return held.includes("FOUNDER");
 }
 
 export type FounderDashboardCardKey =

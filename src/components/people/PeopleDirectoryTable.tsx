@@ -1098,7 +1098,22 @@ export function PeopleDirectoryTable({
 
       {/* The header sticks: several hundred rows scroll past, and a column of
           bare status chips means nothing once "Status" has scrolled off. */}
-      <div className="max-h-[calc(100vh-19rem)] overflow-auto rounded-2xl border border-slate-200 bg-white">
+      {/*
+          AS MANY CHILDREN ON SCREEN AS THE SCREEN ALLOWS.
+          
+          This reserved 19rem - 304px - of viewport for everything above it.
+          That is generous on a big monitor and ruinous on a laptop: with a
+          browser sharing bar and the filter row, Danni's list was showing two
+          students out of 415, in a window shorter than the toolbar above it.
+          
+          12rem is measured against the header and filter stack that is actually
+          there. The min-height is the important half: when the viewport is
+          short the table keeps a usable window and the PAGE scrolls instead,
+          which is a scrollbar people understand. A list that collapses to two
+          rows reads as a broken screen, and the instinct it produces is to
+          filter harder rather than to scroll.
+      */}
+      <div className="max-h-[calc(100vh-12rem)] min-h-[32rem] overflow-auto rounded-2xl border border-slate-200 bg-white">
         <table className="w-full table-fixed text-sm" style={{ minWidth: minTableWidth }}>
           {/* Every column but the last is sized here; the last takes the slack. */}
           <colgroup>
