@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ListSkeleton } from "@/components/experience-system";
 import { getMissionControlDashboard } from "@/lib/platform/automation/queries";
+import { JobRunsPanel } from "@/components/platform/JobRunsPanel";
 
 const MissionControlView = dynamic(
   () =>
@@ -26,6 +27,10 @@ export default async function MissionControlPage() {
         subtitle="The JAG™ operational command center — health, priorities, alerts, and real-time operations"
         backHref="/dashboard"
       />
+      {/* Whether the nightly job ran. Recorded since migration 289 and read by
+          nothing until now, which is why "did it run?" stayed unanswerable
+          while the answer sat in the database. */}
+      <JobRunsPanel />
       <MissionControlView {...data} />
     </div>
   );

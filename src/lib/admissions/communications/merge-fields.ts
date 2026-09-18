@@ -154,7 +154,31 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     scheduling_link: ctx.schedulingUrl ?? "",
     shadow_days_link: ctx.shadowDaysUrl ?? "",
     shadow_days_note: (ctx.shadowDaysNote ?? "").trim(),
-    decisions_link: `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
+    /*
+       THE DECISION FOR THIS CHILD, NOT THE OLDEST ONE WAITING.
+       
+       This was a bare list URL. The template around it (migration 247) reads:
+       
+         {{student_name}} is waiting on your decision.
+         Open JAG to review the family's information and answer:
+         {{decisions_link}}
+         The answer is recorded against your name, so please do not forward
+         this email for someone else to action.
+       
+       So the email names a child, warns that the answer is attributed to the
+       reader, and then opens a queue whose first row is whoever has been
+       waiting longest. On 15 September a School Leader opened an email about
+       Julian Oubre Towa and was shown a decision about Trisha Wilkerson - a
+       3rd grader at a campus that is not even hers.
+       
+       The lead id is already in the merge context. Pointing at that child's own
+       case makes the link agree with the sentence above it. The list remains
+       the fallback for a template rendered without a lead, where a queue is at
+       least honest about being a queue.
+    */
+    decisions_link: ctx.leadId
+      ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}?section=decisions`
+      : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
     admissions_contact_name: ctx.admissionsContactName ?? "Admissions",
     admissions_contact_email: ctx.admissionsContactEmail ?? "",
     lead_link: ctx.leadId
