@@ -30,6 +30,7 @@ import { getPublicInquiryLinks } from "@/lib/admissions/public-form-links";
 import { executeWorkspace } from "@/lib/platform/execution-engine";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { ADMISSIONS_WORK_PERSPECTIVES, resolveJagWorkPerspective, resolveJagWorkQueue } from "@/lib/platform/jag-work";
+import { admissionsOpensOnBoard } from "@/lib/dashboard/landing";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import "@/lib/platform/execution-engine";
 
@@ -182,6 +183,13 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
 
   const ctx = await getIdentityContext();
   if (!ctx) return null;
+
+  /* Nothing asked for: whose Admissions opens on the board rather than a task
+     list? See lib/dashboard/landing.ts. A default, not a boundary - every tab
+     is still one click away. */
+  if (!sp.view && !sp.work && admissionsOpensOnBoard(ctx)) {
+    return <AdmissionsLegacyView view="pipeline" drill={sp.drill ?? "active"} />;
+  }
 
   const workPerspective = resolveJagWorkPerspective("admissions", sp.work);
   // P004: overlap engine with independent admissions domain loads.

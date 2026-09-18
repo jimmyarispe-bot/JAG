@@ -9,6 +9,8 @@ import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-acces
 import { getFounderMorningBrief } from "@/lib/dashboard/morning-brief";
 import { getVisibleQuickLaunchModuleIds } from "@/lib/dashboard/morning-brief-access";
 import { getRequestWorkspaceContext } from "@/lib/platform/identity/request-context";
+import { redirect } from "next/navigation";
+import { ADMISSIONS_BOARD_HREF, landsOnAdmissionsBoard } from "@/lib/dashboard/landing";
 
 export default async function DashboardHomePage() {
   // Sprint P002 — shared request context (identity + branding already loaded by layout).
@@ -16,6 +18,22 @@ export default async function DashboardHomePage() {
   if (!workspace) return null;
 
   const { identity: ctx, branding } = workspace;
+
+  /*
+     Danni's morning is admissions, not money.
+     
+     She holds the finance keys and keeps them - Finance is one click away in
+     the sidebar and nothing here changes what she may open. What changes is the
+     screen that greets her: children in a pipeline rather than a revenue brief
+     or a greeting banner.
+     
+     A redirect rather than a different component, so there is one board and one
+     set of filters, not a second copy that drifts. See lib/dashboard/landing.ts
+     for who this applies to and why the founder is excluded.
+  */
+  if (landsOnAdmissionsBoard(ctx)) {
+    redirect(ADMISSIONS_BOARD_HREF);
+  }
 
   const greeting = getGreeting();
   const today = new Date().toLocaleDateString("en-US", {
