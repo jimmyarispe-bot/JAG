@@ -165,6 +165,23 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     missing_items: (ctx.missingItems ?? []).map((i) => `• ${i}`).join("\n") || "See portal for details",
     missing_documents: (ctx.missingDocuments ?? []).map((d) => `• ${d}`).join("\n") || "See portal",
     uploaded_documents: (ctx.uploadedDocuments ?? []).join(", ") || "",
+    /*
+       ATTACHMENT NOTE - either silent, or a whole sentence.
+       
+       `uploaded_documents` is a bare list, so a template that says
+       "Attached: {{uploaded_documents}}" reads "Attached:" and nothing when a
+       family sent no files. Templates have no conditionals, so the condition
+       lives here: empty means empty, and otherwise the token carries its own
+       label and full stop.
+       
+       This is what the staff inquiry notice was missing. Maddox Mixon, Ziare
+       Moore and Alana Swan each attached a scholarship award letter on 14-15
+       September, and each notification read exactly like one from a family who
+       attached nothing. All three sat unopened for three days.
+    */
+    attachment_note: (ctx.uploadedDocuments ?? []).length
+      ? `Attached: ${(ctx.uploadedDocuments ?? []).join(", ")}.`
+      : "",
     award_amount: ctx.awardAmount ?? "",
     award_id: ctx.awardId ?? "",
     state_student_id: ctx.stateStudentId ?? "",

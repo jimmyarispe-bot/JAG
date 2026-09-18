@@ -201,9 +201,12 @@ export async function onApplicationStarted(
 export async function onInquirySubmitted(
   supabase: AuthClient,
   leadId: string,
-  sentBy?: string | null
+  sentBy?: string | null,
+  /* What arrived with the inquiry. The caller knows; a query here would not -
+     see the ordering note in interest-form/submit.ts. */
+  mergeOverrides?: Partial<MergeContext>
 ) {
-  await dispatch(supabase, "inquiry_submitted", { leadId, sentBy });
+  await dispatch(supabase, "inquiry_submitted", { leadId, sentBy, mergeOverrides });
 }
 
 export async function onTourScheduled(

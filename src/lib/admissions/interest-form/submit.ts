@@ -190,7 +190,7 @@ async function attachInquiryDocuments(input: {
   leadId: string;
   definition: PublishedInterestForm["definition"];
   values: InterestFormValues;
-}): Promise<void> {
+}): Promise<string[]> {
   const uploads = input.definition.questions
     .filter((question) => question.type === "file")
     .map((question) => ({
@@ -201,7 +201,17 @@ async function attachInquiryDocuments(input: {
     }))
     .filter((entry) => entry.path !== "");
 
-  if (!uploads.length) return;
+  if (!uploads.length) return [];
+
+  /* The form's question, turned back into the noun it was asking for, so the
+     staff notice reads "Attached: Scholarship award letter." rather than
+     "Attached: Upload your scholarship award letter." */
+  const labels = uploads.map((entry) =>
+    entry.question.label
+      .replace(/^\s*(please\s+)?(upload|attach)\s+(your|the|a)?\s*/i, "")
+      .trim()
+      .replace(/^./, (c) => c.toUpperCase())
+  );
 
   const admin = createServiceRoleClient();
   const { error } = await admin.from("application_documents").insert(
@@ -221,7 +231,11 @@ async function attachInquiryDocuments(input: {
       count: uploads.length,
       error: error.message,
     });
+    // Nothing was attached, so the notice must not claim otherwise.
+    return [];
   }
+
+  return labels;
 }
 
 /**
@@ -377,12 +391,28 @@ export async function submitPublishedInterestForm(
   }
 
   await recordInitialStage(admin, leadId, null);
-  await onInquirySubmitted(admin, leadId);
 
-  await attachInquiryDocuments({
+  /*
+     DOCUMENTS FIRST, THEN THE NOTICE THAT MENTIONS THEM.
+     
+     These two ran the other way round, and the timestamps show what it cost:
+     Maddox Mixon's staff notification was written at 11:12:00 on 15 September
+     and his scholarship award letter at 11:12:44. The notice went out
+     forty-four seconds before the file it should have mentioned existed.
+     
+     Swapping the order is not enough on its own - a notice that queried the
+     documents would still be racing a write in the same function. So the
+     labels travel as a merge override: the caller already knows what it just
+     attached, and nothing has to look it up.
+  */
+  const attachedDocuments = await attachInquiryDocuments({
     leadId,
     definition: published.definition,
     values: visible,
+  });
+
+  await onInquirySubmitted(admin, leadId, null, {
+    uploadedDocuments: attachedDocuments,
   });
 
   await sendStudentQuestionnaireIfAsked({

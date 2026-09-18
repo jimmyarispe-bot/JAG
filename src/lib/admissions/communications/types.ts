@@ -149,6 +149,20 @@ export const MERGE_FIELDS = [
   "teacher_assignment",
   "first_day_info",
   "handbook_link",
+  /*
+     Either silent, or a whole sentence naming what the family attached.
+     
+     MERGE_FIELDS is the closed list of tokens a template may use, and adding a
+     value to the renderer without adding its name here is a type error - which
+     is exactly what caught this on 17 September, after the template had already
+     been updated in production to reference a token the deployed code did not
+     know. renderTemplate leaves an unresolved token in place as literal text,
+     so every new staff notice would have read "{{attachment_note}}".
+     
+     The gate did its job. The ordering did not: a template change and the token
+     it depends on have to ship together, code first.
+  */
+  "attachment_note",
 ] as const;
 
 export type MergeField = (typeof MERGE_FIELDS)[number];
