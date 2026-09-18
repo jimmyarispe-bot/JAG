@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { GlobalShell, WorkspaceLayout } from "@/components/workspace-design-system";
 import {
   Breadcrumbs,
   ContextNavigation,
   Favorites,
-  RecentItems,
   WorkspaceNavLinks,
   useFavorites,
-  useRecentItems,
   useKeyboardShortcuts,
   type XesBreadcrumb,
   type XesNavItem,
@@ -63,22 +61,27 @@ export function ExperienceWorkspaceShell({
   headerActions,
   children,
 }: ExperienceWorkspaceShellProps) {
-  const { items: recentItems, track } = useRecentItems(`xes-recent-${workspaceKey}`);
   const { items: favorites } = useFavorites(`xes-favorites-${workspaceKey}`);
 
   useKeyboardShortcuts({
     "Ctrl+K": () => document.getElementById("wds-shell-search")?.focus(),
   });
 
-  useEffect(() => {
-    const active = navItems.find((n) => n.active);
-    if (active) track({ id: active.id, label: active.label, href: active.href });
-  }, [navItems, track]);
-
+  /*
+     RECENT IS GONE, AND IT WAS NEVER TELLING ANYONE ANYTHING.
+     
+     It was fed by an effect that tracked the ACTIVE nav item, so the list could
+     only ever contain links already sitting a few pixels above it in the same
+     rail. On Admissions it rendered "Today's Work, Highest Priorities, Awaiting
+     My Review" - verbatim, the three items in the nav directly overhead.
+     
+     A recent list that can only show where you already are costs a heading and
+     three rows of the one column narrow enough to matter, and pushes the things
+     staff do reach for further down.
+  */
   const leftNav = (
     <div className="space-y-4">
       <WorkspaceNavLinks items={navItems} />
-      <RecentItems items={recentItems} />
       {leftNavFooter}
       <Favorites items={favorites} />
     </div>

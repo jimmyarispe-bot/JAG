@@ -2,8 +2,6 @@ import Link from "next/link";
 import {
   AdmissionsExperienceShell,
   AiRecommendationCard,
-  ExecutionPipeline,
-  JagOrganizationContextPanel,
   JagWorkPanel,
   KpiTilesSkeleton,
   ListSkeleton,
@@ -229,10 +227,22 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
     ADMISSIONS_WORK_PERSPECTIVES.find((p) => p.id === workPerspective)?.label ?? "Today's Work";
   const activeItems = workQueue.perspectives[workPerspective] ?? [];
 
+  /*
+     The right rail used to open with two panels nobody acts on.
+     
+     THE JAG ORGANIZATION restated the campus, the reporting chain and the
+     permission count - the same facts the sidebar and the page header already
+     carry, in a third place.
+     
+     WORK RESOLUTION drew a ten-step pipeline of the engine's own internal
+     phases - Read Hierarchy, Load Standard, Load Protocol - which describe how
+     the software thinks, not what anybody is meant to do about a family.
+     
+     Both are gone. What remains is the recommendations, which are about
+     children.
+  */
   const insightPanel = (
     <div className="space-y-4">
-      {orgContext && <JagOrganizationContextPanel org={orgContext} />}
-      <ExecutionPipeline title="Work resolution" currentStepId="execute" compact />
       {(workspaceState?.recommendations ?? []).slice(0, 2).map((rec) => (
         <AiRecommendationCard
           key={rec.id}
@@ -300,10 +310,11 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
         linkLabel="Families waiting on us"
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Work in queue" value={formatCount(activeItems.length)} description={perspectiveLabel} accent="brand" icon={<span className="text-lg font-bold">W</span>} />
-        <MetricCard title="Active pipeline" value={formatCount(leads.filter((l) => !["enrolled", "declined"].includes(l.lead_stage)).length)} description="Open cases" accent="indigo" icon={<span className="text-lg font-bold">P</span>} />
-        <MetricCard title="Documents pending" value={formatCount(workQueue.counts.documents_pending ?? 0)} description="Cases needing records" accent="amber" icon={<span className="text-lg font-bold">D</span>} />
-        <MetricCard title="Ready to enroll" value={formatCount(workQueue.counts.ready_for_enrollment ?? 0)} description="Accepted families" accent="emerald" icon={<span className="text-lg font-bold">E</span>} />
+        {/* Each number is a question. Clicking it goes to the answer. */}
+        <MetricCard href="/dashboard/admissions?work=today" title="Work in queue" value={formatCount(activeItems.length)} description={perspectiveLabel} accent="brand" icon={<span className="text-lg font-bold">W</span>} />
+        <MetricCard href="/dashboard/admissions?view=pipeline" title="Active pipeline" value={formatCount(leads.filter((l) => !["enrolled", "declined"].includes(l.lead_stage)).length)} description="Open cases" accent="indigo" icon={<span className="text-lg font-bold">P</span>} />
+        <MetricCard href="/dashboard/admissions/checklist" title="Documents pending" value={formatCount(workQueue.counts.documents_pending ?? 0)} description="Cases needing records" accent="amber" icon={<span className="text-lg font-bold">D</span>} />
+        <MetricCard href="/dashboard/admissions/decisions" title="Ready to enroll" value={formatCount(workQueue.counts.ready_for_enrollment ?? 0)} description="Accepted families" accent="emerald" icon={<span className="text-lg font-bold">E</span>} />
       </div>
       <JagWorkPanel queue={workQueue} perspective={workPerspective} />
     </AdmissionsExperienceShell>

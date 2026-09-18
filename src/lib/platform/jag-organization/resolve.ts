@@ -148,12 +148,48 @@ function buildReportingChainFromScope(
   return chain;
 }
 
+/**
+ * WHICH SCHOOL AM I LOOKING AT.
+ *
+ * This read `primary?.school_id ?? accessibleSchoolIds[0]`, and the fallback is
+ * the bug. `accessibleSchoolIds` comes back in no defined order, so "[0]" means
+ * "whichever school Postgres happened to return first" - and for everybody in
+ * the network that turned out to be The Academy FL. Jimmy, who runs all four
+ * campuses, had his workspace titled The Academy FL. So did every School Leader
+ * regardless of assignment. It is the same class of fault as reading
+ * orgAssignments[0] with no ORDER BY, in a third place.
+ *
+ * The rule now, in order:
+ *
+ *   1. UNRESTRICTED ACCESS MEANS THE NETWORK. A Founder or CEO who can see
+ *      every campus is not "at" one of them. Naming a school here would be
+ *      picking one of four arbitrarily, which is what was happening. This
+ *      overrides an assignment, because a historical row attaching Jimmy to FL
+ *      should not retitle the whole network.
+ *   2. An explicit primary assignment. Heather is School Leader for Virtual and
+ *      HS with Virtual marked primary (migration 370); she gets Virtual.
+ *   3. Exactly one accessible school, and it is therefore not a guess.
+ *   4. Otherwise nothing, and the screen says the organization's name. An
+ *      honest "The Academy Way Network of Schools" beats a confident wrong
+ *      campus - the wrong campus is what sent a School Leader into another
+ *      family's accept/decline.
+ */
+function scopedSchoolId(
+  identity: IdentityContext,
+  primary: IdentityContext["orgAssignments"][number] | null
+): string | null {
+  if (identity.hasUnrestrictedSchoolAccess) return null;
+  if (primary?.school_id) return primary.school_id;
+  if (identity.accessibleSchoolIds.length === 1) return identity.accessibleSchoolIds[0];
+  return null;
+}
+
 function resolveActiveScope(
   identity: IdentityContext,
   snapshot: JagOrgHierarchySnapshot,
   primary: IdentityContext["orgAssignments"][number] | null
 ): JagOrgActiveScope {
-  const schoolId = primary?.school_id ?? identity.accessibleSchoolIds[0] ?? null;
+  const schoolId = scopedSchoolId(identity, primary);
   const school = snapshot.schools.find((s) => s.id === schoolId) ?? null;
   const region = school?.region_id
     ? snapshot.regions.find((r) => r.id === school.region_id) ?? null
@@ -344,7 +380,12 @@ export async function resolveJagOrganizationContext(
 
   try {
     const primary = base.primaryAssignment;
-    const schoolId = primary?.school_id ?? identity.accessibleSchoolIds[0] ?? null;
+    /* The organization lookup still needs SOME school to resolve through when
+       the scope is deliberately network-wide, so it falls back to any
+       accessible one. That is a lookup key, not a label - it never reaches the
+       screen. */
+    const schoolId =
+      scopedSchoolId(identity, primary) ?? primary?.school_id ?? identity.accessibleSchoolIds[0] ?? null;
     const organizationId = await resolveOrganizationIdForSchool(options.supabase, schoolId);
     const snapshot = await loadHierarchySnapshot(options.supabase, organizationId);
     const activeScope = resolveActiveScope(identity, snapshot, primary);
