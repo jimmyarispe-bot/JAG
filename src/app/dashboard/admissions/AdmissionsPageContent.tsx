@@ -60,8 +60,18 @@ const FUNDING_ANY_OF = [
   "finance.view",
 ] as const;
 
+/* Converting a lead into a student is a decision about a child's record, not a
+   view of one. Same permissions the convert page itself checks - a reader who
+   cannot press the buttons is not shown the door. */
+const CONVERT_ANY_OF = ["admissions.manage", "admissions.accept"] as const;
+
 const SUB_NAV: Array<{ href: string; label: string; anyOf?: readonly string[] }> = [
   { href: "/dashboard/admissions/waiting", label: "Waiting on us" },
+  {
+    href: "/dashboard/admissions/convert",
+    label: "Not on the roster",
+    anyOf: CONVERT_ANY_OF,
+  },
   { href: "/dashboard/admissions/automation", label: "Automation" },
   { href: "/dashboard/admissions/workflows", label: "Workflows" },
   { href: "/dashboard/admissions/communications", label: "Templates" },
