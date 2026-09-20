@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   grossForClass,
+  attendanceDays,
   onRosterOn,
   rateOn,
   totalsByTeacher,
@@ -29,41 +30,43 @@ import {
 const enrolment = (
   enrolledAt: string,
   droppedAt: string | null = null,
-  status = "enrolled"
-): EnrollmentWindow => ({ enrolledAt, droppedAt, status });
+  status = "enrolled",
+  attendsDays = "M-F",
+  campusStudent = false
+): EnrollmentWindow => ({ enrolledAt, droppedAt, status, attendsDays, campusStudent });
 
 describe("who was on the roster that day", () => {
   it("counts a student enrolled before the class", () => {
-    expect(onRosterOn(enrolment("2026-08-01"), "2026-09-15")).toBe(true);
+    expect(onRosterOn(enrolment("2026-08-01"), "2026-09-15", "09:00")).toBe(true);
   });
 
   it("does not count a student who enrolled afterwards", () => {
-    expect(onRosterOn(enrolment("2026-10-01"), "2026-09-15")).toBe(false);
+    expect(onRosterOn(enrolment("2026-10-01"), "2026-09-15", "09:00")).toBe(false);
   });
 
   it("counts a student who enrolled that same day", () => {
-    expect(onRosterOn(enrolment("2026-09-15"), "2026-09-15")).toBe(true);
+    expect(onRosterOn(enrolment("2026-09-15"), "2026-09-15", "09:00")).toBe(true);
   });
 
   it("does not count a student who had already dropped", () => {
-    expect(onRosterOn(enrolment("2026-08-01", "2026-09-01"), "2026-09-15")).toBe(false);
+    expect(onRosterOn(enrolment("2026-08-01", "2026-09-01"), "2026-09-15", "09:00")).toBe(false);
   });
 
   /** They were taught that morning. */
   it("counts a student who dropped on the day of the class", () => {
-    expect(onRosterOn(enrolment("2026-08-01", "2026-09-15"), "2026-09-15")).toBe(true);
+    expect(onRosterOn(enrolment("2026-08-01", "2026-09-15"), "2026-09-15", "09:00")).toBe(true);
   });
 
   it("counts a student who dropped later", () => {
-    expect(onRosterOn(enrolment("2026-08-01", "2026-12-01"), "2026-09-15")).toBe(true);
+    expect(onRosterOn(enrolment("2026-08-01", "2026-12-01"), "2026-09-15", "09:00")).toBe(true);
   });
 
   it.each(["waitlisted", "pending", "dropped"])("does not count a %s student", (status) => {
-    expect(onRosterOn(enrolment("2026-08-01", null, status), "2026-09-15")).toBe(false);
+    expect(onRosterOn(enrolment("2026-08-01", null, status), "2026-09-15", "09:00")).toBe(false);
   });
 
   it("counts a student who completed the course", () => {
-    expect(onRosterOn(enrolment("2026-08-01", null, "completed"), "2026-09-15")).toBe(true);
+    expect(onRosterOn(enrolment("2026-08-01", null, "completed"), "2026-09-15", "09:00")).toBe(true);
   });
 
   /**
@@ -73,11 +76,11 @@ describe("who was on the roster that day", () => {
   it("gives the same answer after the student later drops", () => {
     const august = enrolment("2026-08-01");
     const afterDrop = enrolment("2026-08-01", "2026-10-05");
-    expect(onRosterOn(august, "2026-09-15")).toBe(onRosterOn(afterDrop, "2026-09-15"));
+    expect(onRosterOn(august, "2026-09-15", "09:00")).toBe(onRosterOn(afterDrop, "2026-09-15", "09:00"));
   });
 
   it("handles a timestamp, not just a date", () => {
-    expect(onRosterOn(enrolment("2026-09-15T14:00:00Z"), "2026-09-15")).toBe(true);
+    expect(onRosterOn(enrolment("2026-09-15T14:00:00Z"), "2026-09-15", "09:00")).toBe(true);
   });
 });
 
@@ -266,5 +269,104 @@ describe("what each teacher is owed for the period", () => {
 
   it("is empty for a period with no classes", () => {
     expect(totalsByTeacher([])).toEqual([]);
+  });
+});
+
+/**
+ * WHICH DAYS A CHILD COMES.
+ *
+ * Jimmy, 19 September 2026: "all are m-f unless they are marked at FL or GA
+ * then those are campus students who are m-th", and "no this class isnt held if
+ * they are all campus students and the teacher should not be paid for it".
+ *
+ * The class runs five days; a campus child attends four. There are thirteen
+ * Fridays in the Fall term, so a class of eight with three campus children that
+ * ignored this would be counted as eight on all thirteen - the teacher overpaid
+ * thirteen times, invisibly, because the roster is right and only the day is
+ * wrong.
+ */
+describe("which weekdays a child attends", () => {
+  const days = (p: string) => [...attendanceDays(p)].sort();
+
+  it("treats M-F, and anything blank, as the whole week", () => {
+    expect(days("M-F")).toEqual([1, 2, 3, 4, 5]);
+    expect(days("")).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("reads a campus child as Monday to Thursday", () => {
+    expect(days("M-Th")).toEqual([1, 2, 3, 4]);
+  });
+
+  /* Th must beat T, or Thursday silently becomes Tuesday and two teachers are
+     paid the wrong amount on two different days. */
+  it("reads Th as Thursday, not Tuesday", () => {
+    expect(days("M/T/Th")).toEqual([1, 2, 4]);
+    expect(days("T/Th")).toEqual([2, 4]);
+  });
+
+  it("does not care about case or spaces", () => {
+    expect(days("m / t / th")).toEqual([1, 2, 4]);
+  });
+
+  /* A pattern nobody anticipated must produce a roster that is too BIG, which
+     somebody notices, rather than a child who vanishes from every class, which
+     nobody does. */
+  it("falls back to the whole week rather than to nobody", () => {
+    expect(days("banana")).toEqual([1, 2, 3, 4, 5]);
+    expect(days("F-M")).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe("a campus child on a Friday afternoon", () => {
+  /**
+   * Jimmy, 20 September 2026: "scratch fridays rule. campus kids do have class
+   * on fridays. but not after 1pm."
+   *
+   * This replaces an earlier rule that had campus children absent for the whole
+   * of Friday. That was wrong, and had it been acted on it would have deleted
+   * 65 classes that do happen. What is true is narrower: they are in the
+   * morning and gone by the afternoon.
+   *
+   * 13 of the 41 sections start at or after 13:00, across 13 Fridays - 169
+   * classes where a campus child must not be counted.
+   *
+   * 2026-08-14 is a Friday; 2026-08-13 a Thursday; 2026-08-10 a Monday.
+   */
+  const campus = enrolment("2026-08-10", null, "enrolled", "M-F", true);
+  const virtual = enrolment("2026-08-10", null, "enrolled", "M-F", false);
+
+  it("is in a Friday MORNING class", () => {
+    expect(onRosterOn(campus, "2026-08-14", "09:00")).toBe(true);
+    expect(onRosterOn(campus, "2026-08-14", "12:00")).toBe(true);
+  });
+
+  /* The boundary is deliberate: "no class after 1pm" reads as the school day
+     ending at one, so a one-o'clock class is not attended. */
+  it("is NOT in a Friday class starting at one o'clock", () => {
+    expect(onRosterOn(campus, "2026-08-14", "13:00")).toBe(false);
+  });
+
+  it("is NOT in any later Friday class", () => {
+    expect(onRosterOn(campus, "2026-08-14", "14:00")).toBe(false);
+    expect(onRosterOn(campus, "2026-08-14", "17:00")).toBe(false);
+  });
+
+  it("is in the same afternoon class on a Thursday", () => {
+    expect(onRosterOn(campus, "2026-08-13", "17:00")).toBe(true);
+  });
+
+  it("leaves a non-campus child in every Friday class", () => {
+    expect(onRosterOn(virtual, "2026-08-14", "13:00")).toBe(true);
+    expect(onRosterOn(virtual, "2026-08-14", "17:00")).toBe(true);
+  });
+
+  /* Isla Fitzgerald's 12:00 Structured Literacy is marked M/T/Th on the grid -
+     three days, nothing to do with campuses. Her own pattern still decides. */
+  it("leaves an individual day pattern alone", () => {
+    const isla = enrolment("2026-08-10", null, "enrolled", "M/T/Th", false);
+    expect(onRosterOn(isla, "2026-08-10", "12:00")).toBe(true);   // Monday
+    expect(onRosterOn(isla, "2026-08-12", "12:00")).toBe(false);  // Wednesday
+    expect(onRosterOn(isla, "2026-08-13", "12:00")).toBe(true);   // Thursday
+    expect(onRosterOn(isla, "2026-08-14", "12:00")).toBe(false);  // Friday
   });
 });

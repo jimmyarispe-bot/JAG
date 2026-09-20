@@ -33,26 +33,120 @@ export const VIRTUAL_SCHOOL_NAMES = ["The Academy Virtual", "The Academy HS"];
 /** Roster statuses that count as "this child was in the class". */
 const COUNTED_STATUSES = ["enrolled", "completed"];
 
+/** Session statuses that mean the class did not happen, so nobody is paid for it. */
+export const UNHELD_SESSION_STATUSES = ["cancelled", "no_show"];
+
 export interface EnrollmentWindow {
   enrolledAt: string;
   droppedAt: string | null;
   status: string;
+  /** Which weekdays this child attends: "M-F", "M/T/Th", ... */
+  attendsDays: string;
+  /** Tagged (FL) or (GA) on the schedule: attends a physical campus. */
+  campusStudent: boolean;
 }
 
 /**
- * Was this child on the roster on the day of the class?
+ * Campus children go to their campus on Friday afternoons, so they are not in
+ * any virtual class that starts at or after this time. Jimmy, 20 September
+ * 2026: "campus kids do have class on fridays. but not after 1pm".
+ *
+ * A class starting AT 13:00 is excluded - the school day ends at one, so a
+ * one-o'clock class is not attended. If it should mean "started before it
+ * turned one and may run past", this constant is the only thing to change.
+ */
+export const CAMPUS_FRIDAY_CUTOFF_ET = "13:00";
+
+const DAY_NUMBER: Record<string, number> = { M: 1, T: 2, W: 3, TH: 4, F: 5 };
+const ORDER = ["M", "T", "W", "TH", "F"];
+
+/**
+ * Which weekdays a pattern covers, as 1=Monday .. 5=Friday.
+ *
+ * Handles a range ("M-Th") and a list ("M/T/Th"). TH is checked before T so
+ * "Th" is Thursday rather than Tuesday followed by a stray letter - the kind of
+ * detail that would quietly move a child from Thursday to Tuesday and change
+ * what two teachers are paid.
+ *
+ * An unrecognised pattern returns Monday to Friday rather than nothing. Erring
+ * towards the full week means a strange value shows up as a roster that is too
+ * big, which somebody notices; erring towards empty means a child silently
+ * vanishes from every class, which nobody does.
+ */
+export function attendanceDays(pattern: string): Set<number> {
+  const clean = (pattern ?? "").toUpperCase().replace(/\s/g, "");
+  const full = new Set([1, 2, 3, 4, 5]);
+  if (!clean || clean === "M-F") return full;
+
+  const token = (t: string): number | null => DAY_NUMBER[t] ?? null;
+
+  if (clean.includes("-")) {
+    const [a, b] = clean.split("-");
+    const from = token(a);
+    const to = token(b);
+    if (from === null || to === null || from > to) return full;
+    const out = new Set<number>();
+    for (let d = from; d <= to; d += 1) out.add(d);
+    return out;
+  }
+
+  const parts = clean.split(/[/,]/).filter(Boolean);
+  const out = new Set<number>();
+  for (const part of parts) {
+    const d = token(part);
+    if (d === null) return full;
+    out.add(d);
+  }
+  return out.size > 0 ? out : full;
+}
+
+/** 1=Monday .. 7=Sunday. Noon UTC so no timezone can nudge it to the day before. */
+function weekdayOf(day: string): number {
+  const d = new Date(`${day.slice(0, 10)}T12:00:00Z`).getUTCDay();
+  return d === 0 ? 7 : d;
+}
+
+/**
+ * Was this child in the class on the day it ran?
  *
  * Pure, and tested, because it is the one rule that decides how much money a
  * person is owed.
+ *
+ * THREE QUESTIONS, ALL OF WHICH MUST BE YES.
+ *
+ * 1. Is their enrolment a kind that counts?
+ * 2. Had they started, and not yet left? Dropped ON the day still counts -
+ *    they were taught that morning.
+ * 3. DO THEY COME ON THAT WEEKDAY? Jimmy, 19 September 2026: "all are m-f
+ *    unless they are marked at FL or GA then those are campus students who are
+ *    m-th". The class runs five days; a campus child attends four. Without this
+ *    check a class of eight with three campus children is counted as eight on
+ *    every one of the term's thirteen Fridays, and the teacher is overpaid
+ *    thirteen times over - invisibly, because the roster is correct and only
+ *    the day is wrong.
  */
-export function onRosterOn(enrollment: EnrollmentWindow, classDate: string): boolean {
+export function onRosterOn(
+  enrollment: EnrollmentWindow,
+  classDate: string,
+  classStartsEt: string
+): boolean {
   if (!COUNTED_STATUSES.includes(enrollment.status)) return false;
 
   const day = classDate.slice(0, 10);
   if (enrollment.enrolledAt.slice(0, 10) > day) return false;
-
-  // Dropped ON the day still counts: they were taught that morning.
   if (enrollment.droppedAt && enrollment.droppedAt.slice(0, 10) < day) return false;
+
+  const weekday = weekdayOf(day);
+  if (!attendanceDays(enrollment.attendsDays).has(weekday)) return false;
+
+  /* FRIDAY AFTERNOONS BELONG TO THE CAMPUS. A campus child is in the morning
+     classes and gone by the afternoon, so a Friday class at 13:00 or later has
+     a smaller roster and pays less. Thirteen Fridays in the term across the
+     thirteen sections that start at or after one o'clock - get this wrong and
+     it is wrong 169 times. */
+  if (enrollment.campusStudent && weekday === 5) {
+    if (classStartsEt.slice(0, 5) >= CAMPUS_FRIDAY_CUTOFF_ET) return false;
+  }
 
   return true;
 }
@@ -185,13 +279,18 @@ export async function computeClassPay(
          When the session's instructor differs, somebody covered, and the class
          prices at the guest rate. */
       "id, scheduled_start, instructor_employee_id, course_section_id, " +
-        "course_sections(section_code, instructor_employee_id, " +
+        "course_sections(section_code, instructor_employee_id, start_time_et, " +
         "courses(id, name, school_id, class_pay_rates(employee_id, base_first_student, " +
         "per_additional_student, guest_base_first_student, effective_from))), " +
         "employees(id, employee_profiles(first_name, last_name, display_name))"
     )
     .gte("scheduled_start", `${periodStart}T00:00:00`)
     .lte("scheduled_start", `${periodEnd}T23:59:59`)
+    /* Jimmy, 19 September 2026: "if a teacher is absent or has technical issues
+       and does not hold the class then they are not paid for that class." The
+       default is paid; NOT holding it is the exception, and it is recorded by
+       cancelling the session rather than by silence. */
+    .not("session_status", "in", `(${UNHELD_SESSION_STATUSES.join(",")})`)
     .order("scheduled_start", { ascending: true });
 
   if (sessionError) {
@@ -240,7 +339,7 @@ export async function computeClassPay(
   const sectionIds = [...new Set(relevant.map((r) => r.sectionId))];
   const { data: enrollments, error: enrollmentError } = await supabase
     .from("student_enrollments")
-    .select("course_section_id, enrollment_status, enrolled_at, dropped_at")
+    .select("course_section_id, enrollment_status, enrolled_at, dropped_at, attends_days, campus_student")
     .in("course_section_id", sectionIds);
 
   if (enrollmentError) {
@@ -255,6 +354,8 @@ export async function computeClassPay(
       enrolledAt: String(e.enrolled_at ?? ""),
       droppedAt: (e.dropped_at as string | null) ?? null,
       status: String(e.enrollment_status ?? ""),
+      attendsDays: String(e.attends_days ?? "M-F"),
+      campusStudent: Boolean(e.campus_student),
     });
     rosterBySection.set(sectionId, list);
   }
@@ -298,8 +399,9 @@ export async function computeClassPay(
     const usualTeacher = section?.instructor_employee_id as string | undefined;
     const isGuest = Boolean(usualTeacher && usualTeacher !== employeeId);
 
+    const classStartsEt = String(section?.start_time_et ?? "00:00");
     const studentCount = (rosterBySection.get(sectionId) ?? []).filter((e) =>
-      onRosterOn(e, classDate)
+      onRosterOn(e, classDate, classStartsEt)
     ).length;
 
     rows.push({

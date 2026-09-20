@@ -1,0 +1,77 @@
+-- 373_the_subdomain_nobody_chose_2026_09_16.sql
+--
+-- ############################################################################
+-- DO NOT RUN THIS ON ITS OWN. IT WAS RUN ONCE AND REVERTED WITHIN MINUTES.
+-- ############################################################################
+--
+-- WHAT THIS FILE GOT WRONG
+--
+-- The question was why school leaders are sent to academy.thejag.org instead of
+-- theacademyway.thejag.org. Migration 226 seeds organization_brands with the
+-- subdomain 'academy', so this file changed that column, in both branding
+-- tables, and expected the door to move.
+--
+-- It did not. theacademyway.thejag.org kept serving the JAG marketing site.
+--
+-- THE HOST LOOKUP NEVER READS THE DATABASE
+--
+-- src/lib/platform/branding/BrandRegistry.ts builds an IN-MEMORY map at module
+-- load, and The Academy Way's subdomain is a hardcoded string in TypeScript:
+--
+--     const academy: OrganizationBrand = {
+--       ...tenantDefaultBrand("org.the-academy-way", "The Academy Way", "academy"),
+--
+-- resolveFromHost -> extractSubdomainFromHost -> BrandRegistry.getBySubdomain
+-- reads that map and nothing else. The database column is a mirror, written by
+-- 226 and read by exactly one thing: wrong-door.ts, which builds the
+-- "sign in here instead" link from it.
+--
+-- WHICH IS WHY RUNNING THIS ALONE IS WORSE THAN DOING NOTHING
+--
+-- The site kept resolving 'academy' from the hardcoded registry, while the
+-- wrong-door screen started telling people to use 'theacademyway' - a host that
+-- serves marketing, not a sign-in form. The two halves disagreed, and the half
+-- that talks to a locked-out human was the one pointing at the wrong place.
+-- Reverted at 16:35 on 16 September; organization_brands.subdomain reads
+-- 'academy' again.
+--
+-- WHAT THE REAL CHANGE LOOKS LIKE
+--
+-- One shipped change, three parts, all landing together:
+--
+--   1. BrandRegistry.ts: "academy" -> "theacademyway" in the seeded brand.
+--   2. These two UPDATEs, so wrong-door.ts agrees with the registry.
+--   3. Vercel: academy.thejag.org set to redirect to theacademyway.thejag.org,
+--      so existing bookmarks - including the one Heather Badger-Brown was told
+--      to use all week - keep working.
+--
+-- Part 1 is a deploy and parts 2 and 3 are instant, so they cannot be made
+-- truly simultaneous. Order: ship the code, confirm theacademyway.thejag.org
+-- serves the sign-in page, then run the SQL, then save the redirect. At no
+-- point in that order is anybody sent somewhere that does not work.
+--
+-- BLOCKED ON SOMETHING ELSE ENTIRELY
+--
+-- Part 1 needs a deploy that actually reaches the-jag-app, the Vercel project
+-- serving thejag.org, academy.thejag.org and theacademyway.thejag.org. Two
+-- sibling projects were found frozen on branches nobody pushes to - the-jag on
+-- 'main' since 15 August, the-jag-staging on 'staging' since 7 September - while
+-- the 'production' branch built as a preview in both. Until it is confirmed that
+-- the-jag-app deploys from 'production', shipping a code change is not known to
+-- change anything, and this file stays unrunnable.
+--
+-- The statements below are correct and are kept for part 2. They are commented
+-- out so this file cannot be executed by accident.
+
+-- update public.organization_brands
+--    set subdomain = 'theacademyway'
+--  where subdomain = 'academy';
+
+-- update public.organization_branding
+--    set subdomain = 'theacademyway'
+--  where subdomain = 'academy';
+
+-- Current state, safe to run: expect 'academy'.
+select subdomain
+  from public.organization_brands
+ where organization_id = 'org.the-academy-way';

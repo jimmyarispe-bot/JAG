@@ -14,7 +14,7 @@
 --   Parent/Student Conference        15.00  per student, December and May only
 --   GREATNESS Report                  5.00  per student, monthly except Dec & May
 --   Coaching with Heather Badger-Brown 15.00  per session
---   Structured Literacy Assessment   30.00  per student
+--   Structured Literacy Assessment   15.00  per student
 --   Math Assessment                  15.00  per student
 --
 -- Katie's 25.00 an hour is the seventh. A column named admin_hourly_rate would
@@ -245,7 +245,7 @@ values
   ('coaching_session', 'Coaching with Heather Badger-Brown', 'occurrence', 15.00, null, null,
    'Per session.', date '2026-09-01'),
 
-  ('structured_literacy_assessment', 'Structured Literacy assessment', 'student', 30.00, null, null,
+  ('structured_literacy_assessment', 'Structured Literacy assessment', 'student', 15.00, null, null,
    'Per student assessed.', date '2026-09-01'),
 
   ('math_assessment', 'Math assessment', 'student', 15.00, null, null,
