@@ -7,8 +7,30 @@ type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
 export type ConversionSource = "manual" | "decision" | "automation" | "portal";
 
+/**
+ * The lead stages that mean "this child is coming", and so may become a student
+ * without an application.
+ *
+ * Deliberately short. Every other stage - information_sent, shadow_day_scheduled,
+ * interview_scheduled, declined, not_returning - describes a family who has not
+ * committed, and converting one of those would create a student, a family and a
+ * guardian record for a child who never enrolled.
+ */
+export const CONVERTIBLE_LEAD_STAGES: readonly string[] = ["accepted", "enrolled"];
+
 export interface ConvertAcceptedApplicantInput {
-  applicationId: string;
+  /**
+   * The application this conversion comes from, when there is one.
+   *
+   * OPTIONAL, AND USUALLY ABSENT. Measured on 20 September 2026:
+   * admissions_applications held zero rows and sis_admissions_conversions held
+   * zero rows, against 102 students and 315 leads. There is no application form
+   * in the JAG, so requiring an application made conversion impossible and
+   * every student arrived by a route that recorded nothing.
+   *
+   * A lead alone is enough. Families here enquire, are accepted, and enrol.
+   */
+  applicationId?: string | null;
   leadId: string;
   convertedBy?: string | null;
   source?: ConversionSource;
@@ -43,26 +65,43 @@ function mapDocumentType(admissionsType: string): string {
 
 async function findExistingConversion(
   supabase: AuthClient,
-  applicationId: string
+  applicationId: string | null,
+  leadId: string
 ): Promise<{ studentId: string; conversionId: string } | null> {
-  const { data } = await supabase
-    .from("sis_admissions_conversions")
-    .select("id, student_id")
-    .eq("application_id", applicationId)
-    .maybeSingle();
+  /* Without an application the lead IS the identity of the conversion, so it
+     is what we look up by. Get this wrong and converting the same child twice
+     creates a second family, a second guardian and a duplicate enrolment -
+     silently, because every one of those inserts succeeds on its own. */
+  const byConversion = applicationId
+    ? await supabase
+        .from("sis_admissions_conversions")
+        .select("id, student_id")
+        .eq("application_id", applicationId)
+        .maybeSingle()
+    : await supabase
+        .from("sis_admissions_conversions")
+        .select("id, student_id")
+        .eq("lead_id", leadId)
+        .maybeSingle();
 
-  if (data) {
-    return { studentId: data.student_id, conversionId: data.id };
+  if (byConversion.data) {
+    return { studentId: byConversion.data.student_id, conversionId: byConversion.data.id };
   }
 
-  const { data: student } = await supabase
-    .from("students")
-    .select("id")
-    .eq("admissions_application_id", applicationId)
-    .maybeSingle();
+  const byStudent = applicationId
+    ? await supabase
+        .from("students")
+        .select("id")
+        .eq("admissions_application_id", applicationId)
+        .maybeSingle()
+    : await supabase
+        .from("students")
+        .select("id")
+        .eq("admissions_lead_id", leadId)
+        .maybeSingle();
 
-  if (student) {
-    return { studentId: student.id, conversionId: "" };
+  if (byStudent.data) {
+    return { studentId: byStudent.data.id, conversionId: "" };
   }
 
   return null;
@@ -72,9 +111,9 @@ export async function convertAcceptedApplicantToStudent(
   supabase: AuthClient,
   input: ConvertAcceptedApplicantInput
 ): Promise<ConversionResult> {
-  const { applicationId, leadId, convertedBy = null, source = "decision" } = input;
+  const { applicationId = null, leadId, convertedBy = null, source = "decision" } = input;
 
-  const existing = await findExistingConversion(supabase, applicationId);
+  const existing = await findExistingConversion(supabase, applicationId, leadId);
   if (existing) {
     return {
       success: true,
@@ -96,20 +135,142 @@ export async function convertAcceptedApplicantToStudent(
     return { success: false, error: leadError?.message ?? "Lead not found" };
   }
 
-  const { data: application, error: appError } = await supabase
-    .from("admissions_applications")
-    .select(
-      "id, school_year_id, application_status, emergency_contact_name, emergency_contact_phone, learning_needs_summary, previous_school"
-    )
-    .eq("id", applicationId)
-    .single();
+  type ApplicationRow = {
+    id: string;
+    school_year_id: string | null;
+    application_status: string | null;
+    emergency_contact_name: string | null;
+    emergency_contact_phone: string | null;
+    learning_needs_summary: string | null;
+    previous_school: string | null;
+  };
 
-  if (appError || !application) {
-    return { success: false, error: appError?.message ?? "Application not found" };
+  let application: ApplicationRow | null = null;
+
+  if (applicationId) {
+    const { data, error: appError } = await supabase
+      .from("admissions_applications")
+      .select(
+        "id, school_year_id, application_status, emergency_contact_name, emergency_contact_phone, learning_needs_summary, previous_school"
+      )
+      .eq("id", applicationId)
+      .single();
+
+    if (appError || !data) {
+      return { success: false, error: appError?.message ?? "Application not found" };
+    }
+    if (data.application_status !== "accepted") {
+      return { success: false, error: "Application is not accepted" };
+    }
+    application = data as ApplicationRow;
   }
 
-  if (application.application_status !== "accepted") {
-    return { success: false, error: "Application is not accepted" };
+  /* WHICH YEAR THIS CHILD IS ENROLLED IN.
+     With an application the year comes from it. Without one it comes from the
+     school's current year - and if the school has no current year this refuses
+     rather than creating a student enrolled in nothing. A conversion that
+     cannot say which year a child is in has not enrolled them, which is the
+     reasoning already written into the enrolment step below. */
+  let schoolYearId: string | null = application?.school_year_id ?? null;
+
+  if (!schoolYearId) {
+    const { data: currentYear } = await supabase
+      .from("school_years")
+      .select("id")
+      .eq("school_id", lead.school_id)
+      .eq("is_current", true)
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    schoolYearId = currentYear?.id ?? null;
+  }
+
+  /* A CHILD WHO IS ALREADY A STUDENT MUST BE LINKED, NOT CREATED AGAIN.
+   *
+   * findExistingConversion above looks for students.admissions_lead_id = leadId.
+   * That is the link this function exists to create, so it cannot find a child
+   * who is already a student but not yet linked - and 100 of 102 students are
+   * in exactly that state.
+   *
+   * Rylan Jex proved it on 20 September 2026: a real student, no link, and the
+   * candidate list said "no student record". Converting him would have produced
+   * a second Rylan, a second family and a second guardian, every insert
+   * succeeding on its own.
+   *
+   * So: match on name within the school. Exactly one match is linked and
+   * returned. More than one REFUSES - two children of the same name at one
+   * school is not something to resolve by guessing, and attaching a family's
+   * scholarship and guardian to the wrong child is the worst thing this
+   * function could do.
+   */
+  if (!applicationId) {
+    const { data: sameName, error: sameNameError } = await supabase
+      .from("students")
+      .select("id, admissions_lead_id, family_id, first_name, last_name")
+      .eq("school_id", lead.school_id)
+      .ilike("first_name", (lead.first_name ?? "").trim())
+      .ilike("last_name", (lead.last_name ?? "").trim());
+
+    if (sameNameError) {
+      return { success: false, error: sameNameError.message };
+    }
+
+    if ((sameName?.length ?? 0) > 1) {
+      return {
+        success: false,
+        error:
+          `${lead.first_name} ${lead.last_name} matches ${sameName!.length} students at this school. ` +
+          `Link the lead to the right record by hand - converting would create another.`,
+      };
+    }
+
+    const existingStudent = sameName?.[0];
+    if (existingStudent) {
+      if (!existingStudent.admissions_lead_id) {
+        const { error: linkError } = await supabase
+          .from("students")
+          .update({ admissions_lead_id: leadId, updated_at: new Date().toISOString() })
+          .eq("id", existingStudent.id);
+        if (linkError) {
+          return { success: false, error: linkError.message };
+        }
+      }
+
+      /* Record the conversion so the student's Admissions, Documents and
+         Scholarships tabs have something to read - they load through
+         getStudentConversion(), which is why they have been empty on every
+         student record since the day they were built. */
+      const { data: linkConversion } = await supabase
+        .from("sis_admissions_conversions")
+        .insert({
+          application_id: null,
+          lead_id: leadId,
+          student_id: existingStudent.id,
+          family_id: existingStudent.family_id ?? null,
+          converted_by: convertedBy,
+          conversion_source: source,
+          snapshot: {
+            lead_id: leadId,
+            application_id: null,
+            linked_existing_student: true,
+            converted_at: new Date().toISOString(),
+          },
+        })
+        .select("id")
+        .maybeSingle();
+
+      /* familyId is NOT optional to the caller. completeEnrollmentHandoff
+         refuses with "Conversion did not return student or family id", so
+         returning a student without their family would fail the handoff at the
+         one step that matters - after the link had already been written. */
+      return {
+        success: true,
+        studentId: existingStudent.id,
+        familyId: existingStudent.family_id ?? null,
+        alreadyExists: true,
+        conversionId: linkConversion?.id,
+      };
+    }
   }
 
   const { data: studentNumber } = await supabase.rpc("generate_student_number", {
@@ -160,14 +321,14 @@ export async function convertAcceptedApplicantToStudent(
       date_of_birth: lead.date_of_birth,
       grade_level: gradeLevel,
       program,
-      school_year_id: application.school_year_id,
+      school_year_id: schoolYearId,
       enrollment_status: "enrolled",
       enrollment_start_date: today,
       status: "active",
       lifecycle_stage: "accepted",
       student_number: studentNumber as string,
       admissions_lead_id: leadId,
-      admissions_application_id: applicationId,
+      admissions_application_id: applicationId ?? null,
     })
     .select("id")
     .single();
@@ -192,18 +353,18 @@ export async function convertAcceptedApplicantToStudent(
   // A missing school year did the same damage from the other end: the row
   // simply never appeared. Refuse instead. A conversion that cannot say which
   // year a child is enrolled in has not enrolled them.
-  if (!application.school_year_id) {
+  if (!schoolYearId) {
     return {
       success: false,
       error:
-        "This application has no school year, so the student cannot be enrolled. Set the school's current year and try again.",
+        "No school year could be found for this child, so they cannot be enrolled. Set the school's current year and try again.",
     };
   }
 
   const { error: enrollmentError } = await supabase.from("sis_enrollments").upsert(
     {
       student_id: student.id,
-      school_year_id: application.school_year_id,
+      school_year_id: schoolYearId,
       program: program ?? "academy_virtual",
       enrollment_status: "enrolled",
       enrolled_at: today,
@@ -277,7 +438,7 @@ export async function convertAcceptedApplicantToStudent(
     await supabase.from("guardians").insert(guardiansToInsert);
   }
 
-  if (application.emergency_contact_name) {
+  if (application?.emergency_contact_name) {
     const parts = application.emergency_contact_name.trim().split(/\s+/);
     const firstName = parts[0] ?? "Emergency";
     const lastName = parts.slice(1).join(" ") || "Contact";
@@ -286,7 +447,7 @@ export async function convertAcceptedApplicantToStudent(
       contact_type: "emergency",
       first_name: firstName,
       last_name: lastName,
-      phone: application.emergency_contact_phone,
+      phone: application?.emergency_contact_phone ?? null,
       can_pick_up: false,
       receives_communications: true,
     });
@@ -336,13 +497,13 @@ export async function convertAcceptedApplicantToStudent(
   await supabase.from("student_learning_profiles").upsert(
     {
       student_id: student.id,
-      support_notes: application.learning_needs_summary,
+      support_notes: application?.learning_needs_summary ?? null,
       iep_status: "none",
     },
     { onConflict: "student_id" }
   );
 
-  if (application.emergency_contact_name || application.emergency_contact_phone) {
+  if (application && (application.emergency_contact_name || application.emergency_contact_phone)) {
     await supabase.from("student_medical_profiles").insert({
       student_id: student.id,
       health_alerts: application.learning_needs_summary
@@ -354,11 +515,29 @@ export async function convertAcceptedApplicantToStudent(
     });
   }
 
-  const { data: appDocs } = await supabase
-    .from("application_documents")
-    .select("id, document_type, document_subtype, file_name, storage_path, mime_type, file_size_bytes, uploaded_by")
-    .eq("application_id", applicationId)
-    .eq("document_status", "approved");
+  /* THE DOCUMENTS FOLLOW THE CHILD.
+     application_documents carries BOTH application_id and lead_id - the lead_id
+     column added by migration 326 is what a family's interest-form upload
+     attaches to, and querying the wrong one of those two is what hid three
+     scholarship award letters for three days in September.
+     With no application, the lead is the only link there is.
+
+     NO STATUS FILTER ON THE LEAD PATH, deliberately. "approved" belongs to an
+     application review that never happens here; an inquiry upload has no such
+     workflow, so filtering on it would inherit nothing and report success. */
+  const DOCUMENT_COLUMNS =
+    "id, document_type, document_subtype, file_name, storage_path, mime_type, file_size_bytes, uploaded_by";
+
+  const { data: appDocs } = applicationId
+    ? await supabase
+        .from("application_documents")
+        .select(DOCUMENT_COLUMNS)
+        .eq("application_id", applicationId)
+        .eq("document_status", "approved")
+    : await supabase
+        .from("application_documents")
+        .select(DOCUMENT_COLUMNS)
+        .eq("lead_id", leadId);
 
   if (!appDocs?.length) {
     const { data: allDocs } = await supabase
@@ -378,14 +557,14 @@ export async function convertAcceptedApplicantToStudent(
     lead_id: leadId,
     application_id: applicationId,
     lead_stage: "accepted",
-    application_status: application.application_status,
+    application_status: application?.application_status ?? null,
     converted_at: new Date().toISOString(),
   };
 
   const { data: conversion, error: conversionError } = await supabase
     .from("sis_admissions_conversions")
     .insert({
-      application_id: applicationId,
+      application_id: applicationId ?? null,
       lead_id: leadId,
       student_id: student.id,
       family_id: family.id,
@@ -520,8 +699,45 @@ export async function convertAcceptedApplicantByLead(
     .limit(1)
     .maybeSingle();
 
+  /* NO APPLICATION IS THE NORMAL CASE, NOT AN ERROR.
+     This used to stop here and return "No accepted application found for lead".
+     Measured on 20 September 2026, admissions_applications held ZERO rows - so
+     this function could never return anything else, for any family, ever. The
+     handle existed on a door that was bolted shut.
+
+     There is no application form in the JAG. Families enquire, are accepted,
+     and enrol, and the application exists only on paper that never reaches the
+     platform. So a lead at a stage that means "this child is coming" is enough.
+
+     THE STAGE CHECK IS THE SAFETY. Without it this would happily convert a
+     prospect who declined, creating a student, a family and a guardian for a
+     child who never enrolled. */
   if (!application) {
-    return { success: false, error: "No accepted application found for lead" };
+    const { data: lead, error: leadError } = await supabase
+      .from("admissions_leads")
+      .select("id, lead_stage, first_name, last_name")
+      .eq("id", leadId)
+      .single();
+
+    if (leadError || !lead) {
+      return { success: false, error: leadError?.message ?? "Lead not found" };
+    }
+
+    if (!CONVERTIBLE_LEAD_STAGES.includes(lead.lead_stage ?? "")) {
+      return {
+        success: false,
+        error:
+          `${lead.first_name} ${lead.last_name} is at stage "${lead.lead_stage}". ` +
+          `Only a lead at ${CONVERTIBLE_LEAD_STAGES.join(" or ")} becomes a student.`,
+      };
+    }
+
+    return convertAcceptedApplicantToStudent(supabase, {
+      applicationId: null,
+      leadId,
+      convertedBy,
+      source,
+    });
   }
 
   return convertAcceptedApplicantToStudent(supabase, {
