@@ -9,6 +9,21 @@
  * These tests pin the two properties that make that impossible to reintroduce:
  * the post-RPC work runs as the service role, and a notification failure never
  * turns a successful submission into a reported error.
+ *
+ * WHY EVERY TEST HERE CARRIES A TIMEOUT.
+ *
+ * beforeEach calls vi.resetModules(), which is load-bearing - it is what makes
+ * the mocks fresh - so loadAction() re-imports and re-transforms the whole
+ * server-action module graph once per test. That cost is charged to the test's
+ * own budget, and vitest's default is 5s.
+ *
+ * Alone this file runs in 743ms. Inside the admissions folder it takes 3,664ms.
+ * Inside the full suite it went over 5s and failed on 20 September - not because
+ * anything regressed, but because eleven unrelated tests were added elsewhere
+ * and the machine got busier. The assertion had never stopped being true.
+ *
+ * So the ceiling is explicit. A test that fails when the suite grows is a trap
+ * for whoever adds the next one.
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -83,7 +98,7 @@ describe("submitPublicInquiry", () => {
     // which cannot see the row the RPC just created.
     expect(recordInitialStage).toHaveBeenCalledWith(ADMIN, "lead-123", null);
     expect(onInquirySubmitted).toHaveBeenCalledWith(ADMIN, "lead-123");
-  });
+  }, 60000);
 
   it("still returns the lead when notification fails — the family did submit", async () => {
     onInquirySubmitted.mockRejectedValue(new Error("Lead not found"));
@@ -97,7 +112,7 @@ describe("submitPublicInquiry", () => {
     expect(result).toEqual({ leadId: "lead-123" });
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
-  });
+  }, 60000);
 
   it("still reports a real failure when the lead itself was not created", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "school_id does not exist" } });
@@ -107,7 +122,7 @@ describe("submitPublicInquiry", () => {
 
     expect(result).toEqual({ error: "school_id does not exist" });
     expect(onInquirySubmitted).not.toHaveBeenCalled();
-  });
+  }, 60000);
 
   it("rejects a honeypot submission without creating anything", async () => {
     const fd = inquiryForm();
@@ -118,5 +133,5 @@ describe("submitPublicInquiry", () => {
 
     expect(result).toEqual({ error: "Unable to submit inquiry." });
     expect(rpc).not.toHaveBeenCalled();
-  });
+  }, 60000);
 });
