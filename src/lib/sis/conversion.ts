@@ -197,34 +197,107 @@ export async function convertAcceptedApplicantToStudent(
    * a second Rylan, a second family and a second guardian, every insert
    * succeeding on its own.
    *
-   * So: match on name within the school. Exactly one match is linked and
-   * returned. More than one REFUSES - two children of the same name at one
-   * school is not something to resolve by guessing, and attaching a family's
-   * scholarship and guardian to the wrong child is the worst thing this
-   * function could do.
+   * IT SEARCHES THE WHOLE NETWORK, NOT ONE SCHOOL - CORRECTED 20 SEPTEMBER.
+   *
+   * The first version of this guard filtered on the lead's school_id, and on
+   * 20 September that let a real child through. La'Marrieon Williams had been
+   * archived at The Academy GA on 5 September; his lead sat at The Academy HS;
+   * the guard looked only at HS, found nothing, and created a second record for
+   * a child already in the system. A family that moves campus, or was recorded
+   * at the wrong one, is exactly the case a duplicate guard exists for.
+   *
+   * A NEAR MATCH REFUSES. IT NEVER LINKS.
+   *
+   * Two real near misses turned up in one afternoon, both in the Google
+   * directory: Maximillian Salas against "Max Salas", and Kelvin McClean
+   * against a record reading "Kelvin Smith". Neither should be resolved by a
+   * machine - one is a shortened first name, the other a different surname
+   * entirely, and only a person knows which is the same child. Fuzziness here exists to STOP the conversion and
+   * name the candidates, not to pick one - because linking the wrong child
+   * attaches somebody else's family, guardian and scholarship to them, which is
+   * the worst thing this function can do.
+   *
+   * So: an exact name match anywhere in the network links. Anything merely
+   * close refuses and says who it found. Nothing at all creates.
    */
   if (!applicationId) {
-    const { data: sameName, error: sameNameError } = await supabase
-      .from("students")
-      .select("id, admissions_lead_id, family_id, first_name, last_name")
-      .eq("school_id", lead.school_id)
-      .ilike("first_name", (lead.first_name ?? "").trim())
-      .ilike("last_name", (lead.last_name ?? "").trim());
+    const leadFirst = (lead.first_name ?? "").trim();
+    const leadLast = (lead.last_name ?? "").trim();
+
+    /* Apostrophes, hyphens, spaces and case are noise - "La'Marrieon" and
+       "LaMarrieon" are one child. Everything else is signal. */
+    const squash = (value: string | null | undefined) =>
+      (value ?? "").toLowerCase().replace(/[^a-z]/g, "");
+
+    const leadFirstKey = squash(leadFirst);
+    const leadLastKey = squash(leadLast);
+
+    /* Cast a wide net in SQL, decide narrowly in code. A four-character
+       surname prefix catches a mistyped or hyphen-dropped surname; the
+       first-name arm catches a changed surname - Kelvin McClean against Kelvin
+       Smith - which no surname search could ever reach. */
+    const surnamePrefix = leadLastKey.slice(0, 4);
+    const orFilter = [
+      surnamePrefix ? `last_name.ilike.${surnamePrefix}%` : null,
+      leadFirstKey ? `first_name.ilike.${leadFirst}` : null,
+    ]
+      .filter(Boolean)
+      .join(",");
+
+    const { data: candidates, error: sameNameError } = orFilter
+      ? await supabase
+          .from("students")
+          .select("id, admissions_lead_id, family_id, first_name, last_name, school_id, status")
+          .or(orFilter)
+      : { data: [], error: null };
 
     if (sameNameError) {
       return { success: false, error: sameNameError.message };
     }
 
-    if ((sameName?.length ?? 0) > 1) {
+    const rows = (candidates ?? []) as Array<{
+      id: string;
+      admissions_lead_id: string | null;
+      family_id: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      status: string | null;
+    }>;
+
+    const exact = rows.filter(
+      (r) => squash(r.first_name) === leadFirstKey && squash(r.last_name) === leadLastKey
+    );
+
+    if (exact.length > 1) {
       return {
         success: false,
         error:
-          `${lead.first_name} ${lead.last_name} matches ${sameName!.length} students at this school. ` +
-          `Link the lead to the right record by hand - converting would create another.`,
+          `${leadFirst} ${leadLast} matches ${exact.length} student records across the network. ` +
+          `Link the lead to the right one by hand - converting would create another.`,
       };
     }
 
-    const existingStudent = sameName?.[0];
+    /* Nothing exact, but something close. STOP, and say what was found. An
+       archived record counts: La'Marrieon was archived, and archived is the
+       state a returning family arrives in. */
+    if (exact.length === 0 && rows.length > 0) {
+      const near = rows
+        .slice(0, 5)
+        .map(
+          (r) =>
+            `${r.first_name ?? "?"} ${r.last_name ?? "?"}${r.status === "archived" ? " (archived)" : ""}`
+        )
+        .join(", ");
+      return {
+        success: false,
+        error:
+          `${leadFirst} ${leadLast} is not an exact match for any student, but these are close: ${near}. ` +
+          `A person has to say whether one of them is this child. Converting now could create a second ` +
+          `record for a child who is already here.`,
+      };
+    }
+
+    const existingStudent = exact[0];
     if (existingStudent) {
       if (!existingStudent.admissions_lead_id) {
         const { error: linkError } = await supabase
