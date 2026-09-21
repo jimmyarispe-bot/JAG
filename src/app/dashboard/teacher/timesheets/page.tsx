@@ -1,77 +1,221 @@
 import Link from "next/link";
 import { requireTeacherExperienceContext } from "@/lib/teacher/experience/access";
-import { getTeacherTimesheetPreview } from "@/lib/teacher/experience/timesheets";
+import { ClassHeldToggle } from "@/components/teacher/ClassHeldToggle";
+import { SubmitWeekButton } from "@/components/teacher/SubmitWeekButton";
+import {
+  currentWeekStart,
+  getTeacherWeek,
+  mondayOf,
+  WEEKLY_SUBMISSION_GO_LIVE,
+} from "@/lib/finance/teacher-week";
 
-export default async function TeacherTimesheetsPage() {
-  const ctx = await requireTeacherExperienceContext();
-  const preview = await getTeacherTimesheetPreview(ctx.supabase, {
-    organizationId: ctx.organizationId,
-    employeeId: ctx.employeeId,
+export const metadata = {
+  title: "My week",
+  description: "Mark your classes held or not held, check the total, and submit by Friday",
+};
+
+export const dynamic = "force-dynamic";
+
+function money(value: number): string {
+  return value.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+function prettyDate(iso: string): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "long",
   });
+}
+
+/**
+ * The week a teacher submits.
+ *
+ * REPLACES a screen that read from globalThis Maps - in memory, per serverless
+ * instance, wiped on every cold start. Anything a teacher had ever typed into
+ * the old Timesheets page was never anywhere.
+ *
+ * Nothing here is typed from memory: every class already exists in
+ * instructional_sessions, so the week arrives prefilled and the teacher's job
+ * is to confirm it, not to reconstruct it.
+ */
+export default async function TeacherTimesheetsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ week?: string }>;
+}) {
+  const ctx = await requireTeacherExperienceContext();
+  const { week: weekParam } = await searchParams;
+
+  const weekStart = weekParam ? mondayOf(weekParam) : currentWeekStart();
+  const week = await getTeacherWeek(ctx.supabase, ctx.employeeId, weekStart);
+
+  const previous = mondayOf(
+    new Date(new Date(`${weekStart}T12:00:00Z`).getTime() - 7 * 86_400_000)
+      .toISOString()
+      .slice(0, 10)
+  );
+  const next = mondayOf(
+    new Date(new Date(`${weekStart}T12:00:00Z`).getTime() + 7 * 86_400_000)
+      .toISOString()
+      .slice(0, 10)
+  );
+
+  const submitted = week.status === "submitted";
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Timesheets</h1>
-        <p className="mt-1 text-slate-600">
-          Weekly hours, session summaries, and payroll preview — Finance / workforce timekeeping
-          only. No duplicated payroll logic.
-        </p>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">My week</h1>
+          <p className="mt-1 text-slate-600">
+            {prettyDate(week.weekStart)} – {prettyDate(week.weekEnd)}. Mark anything you did not
+            hold, check the total, and submit by <strong>11:59pm Friday</strong> Eastern.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          {previous >= WEEKLY_SUBMISSION_GO_LIVE ? (
+            <Link
+              href={`/dashboard/teacher/timesheets?week=${previous}`}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50"
+            >
+              ← Previous week
+            </Link>
+          ) : null}
+          <Link
+            href={`/dashboard/teacher/timesheets?week=${next}`}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Next week →
+          </Link>
+        </div>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <article className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-500">Completed sessions today</p>
-          <p className="text-2xl font-semibold">
-            {preview.payrollPreview.completedSessionsToday}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-500">Est. minutes (preview)</p>
-          <p className="text-2xl font-semibold">
-            {preview.payrollPreview.estimatedMinutesFromSessions}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-500">Timesheets on file</p>
-          <p className="text-2xl font-semibold">{preview.weeklySheets.length}</p>
-        </article>
-      </section>
+      {week.unavailable ? (
+        /* The reason, never a zero. A week that reads "$0.00" because a read was
+           refused looks exactly like a week with no work in it. */
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {week.unavailable}
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
+            <div className="flex flex-wrap gap-6 text-sm">
+              <div>
+                <p className="text-slate-500">Classes held</p>
+                <p className="text-2xl font-semibold text-slate-900">{week.classesHeld}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">Not held</p>
+                <p className="text-2xl font-semibold text-slate-500">{week.classesNotHeld}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">{submitted ? "Submitted total" : "This week so far"}</p>
+                <p className="text-2xl font-semibold text-slate-900">{money(week.gross)}</p>
+              </div>
+            </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold">Session summaries (today)</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {preview.sessionSummaries.map((s) => (
-            <li key={s.id} className="rounded-lg bg-slate-50 px-3 py-2">
-              {s.label} · {s.timeDisplay} · {s.status}
-            </li>
-          ))}
-          {!preview.sessionSummaries.length && (
-            <li className="text-slate-500">No completed sessions today yet.</li>
-          )}
-        </ul>
-      </section>
+            {submitted ? (
+              <div className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+                <p className="font-semibold">Submitted</p>
+                <p className="text-xs">
+                  This figure is fixed. If something is wrong, file an amendment saying what
+                  changed — the week itself does not reopen.
+                </p>
+              </div>
+            ) : week.classesHeld > 0 ? (
+              <SubmitWeekButton
+                weekStart={week.weekStart}
+                gross={week.gross}
+                classes={week.classesHeld}
+              />
+            ) : null}
+          </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold">Weekly timesheets</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {preview.weeklySheets.map((t) => (
-            <li key={t.id} className="rounded-lg bg-slate-50 px-3 py-2">
-              Week of {t.weekStarting} · {t.status} · {t.totalMinutes ?? 0} min
-            </li>
-          ))}
-          {!preview.weeklySheets.length && (
-            <li className="text-slate-500">
-              No pack timesheets yet for this organization/employee. Submission uses workforce
-              timekeeping APIs (`/api/academyos/timesheets`).
-            </li>
+          {!submitted ? (
+            <p className="px-1 text-sm text-slate-500">
+              Every class you were scheduled to teach is already here. A class counts as held
+              unless you say otherwise — if you were away, or it could not run, mark it{" "}
+              <strong>not held</strong> and it drops out of the total.
+            </p>
+          ) : null}
+
+          {week.days.every((d) => d.classes.length === 0) ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600">
+              No classes are scheduled for you this week. If you taught and nothing is here, say
+              so before Friday rather than submitting an empty week.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {week.days.map((day) => (
+                <section
+                  key={day.date}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                >
+                  <header className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+                    <h2 className="text-sm font-semibold text-slate-900">
+                      {day.label}{" "}
+                      <span className="font-normal text-slate-500">{prettyDate(day.date)}</span>
+                    </h2>
+                    <span className="text-sm font-medium text-slate-600">{money(day.gross)}</span>
+                  </header>
+
+                  {day.classes.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-slate-400">No classes.</p>
+                  ) : (
+                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                      <tbody className="divide-y divide-slate-100">
+                        {day.classes.map((c) => (
+                          <tr key={c.sessionId} className={c.held ? "" : "bg-slate-50/60"}>
+                            <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                              {c.startsEt || "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div
+                                className={
+                                  c.held ? "font-medium text-slate-900" : "text-slate-500 line-through"
+                                }
+                              >
+                                {c.courseName}
+                              </div>
+                              {c.sectionCode ? (
+                                <div className="text-xs text-slate-400">{c.sectionCode}</div>
+                              ) : null}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                              {c.held ? `${c.studentCount} on roster` : "—"}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-900">
+                              {c.unrated ? (
+                                /* Held but unpriced. Named as a problem rather
+                                   than counted as zero - a teacher should not
+                                   discover this after submitting. */
+                                <span className="text-rose-700">no agreed rate</span>
+                              ) : c.held ? (
+                                money(c.gross)
+                              ) : (
+                                <span className="text-slate-400">not paid</span>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right">
+                              <ClassHeldToggle
+                                sessionId={c.sessionId}
+                                held={c.held}
+                                courseName={c.courseName}
+                                disabled={submitted}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </section>
+              ))}
+            </div>
           )}
-        </ul>
-        <p className="mt-3 text-xs text-slate-500">{preview.payrollPreview.note}</p>
-        <Link href="/api/academyos/timesheets" className="mt-2 inline-block text-sm underline">
-          Timesheets API
-        </Link>
-      </section>
+        </>
+      )}
     </div>
   );
 }
