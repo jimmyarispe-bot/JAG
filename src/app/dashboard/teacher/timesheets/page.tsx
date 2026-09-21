@@ -13,7 +13,7 @@ import {
 
 export const metadata = {
   title: "My week",
-  description: "Mark your classes held or not held, check the total, and submit by Friday",
+  description: "Say which classes you taught, check the total, and submit by Friday",
 };
 
 export const dynamic = "force-dynamic";
@@ -108,11 +108,11 @@ export default async function TeacherTimesheetsPage({
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
             <div className="flex flex-wrap gap-6 text-sm">
               <div>
-                <p className="text-slate-500">Classes held</p>
+                <p className="text-slate-500">Classes taught</p>
                 <p className="text-2xl font-semibold text-slate-900">{week.classesHeld}</p>
               </div>
               <div>
-                <p className="text-slate-500">Not held</p>
+                <p className="text-slate-500">Not taught</p>
                 <p className="text-2xl font-semibold text-slate-500">{week.classesNotHeld}</p>
               </div>
               <div>
@@ -140,9 +140,9 @@ export default async function TeacherTimesheetsPage({
 
           {!submitted ? (
             <p className="px-1 text-sm text-slate-500">
-              Every class you were scheduled to teach is already here. A class counts as held
-              unless you say otherwise — if you were away, or it could not run, mark it{" "}
-              <strong>not held</strong> and it drops out of the total.
+              Every class you were scheduled to teach is already here. Each one counts as{" "}
+              <strong>taught</strong> unless you say otherwise — if you were away, or it could
+              not run, mark it <strong>did not teach</strong> and it drops out of the total.
             </p>
           ) : null}
 
