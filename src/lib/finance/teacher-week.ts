@@ -27,12 +27,61 @@ export const WEEKLY_SUBMISSION_GO_LIVE = "2026-09-21";
 /** Friday 23:59 Eastern. The network runs on Eastern; everyone else adjusts. */
 export const WEEK_DEADLINE_ET = "23:59";
 
+/**
+ * The network's own clock. Deadlines, pay weeks and every leadership screen are
+ * read in this zone and no other - Jimmy, Danni and Heather see Eastern whatever
+ * machine they are sitting at, because a payroll cutoff that moves with the
+ * reader is not a cutoff.
+ */
+export const NETWORK_TIME_ZONE = "America/New_York";
+
+/**
+ * A class time a person can read.
+ *
+ * TWELVE HOUR, WITH AM OR PM. "13:00" is a database value, not something to put
+ * in front of a teacher at seven in the morning.
+ *
+ * A TEACHER SEES HER OWN CLOCK. The instant is the same everywhere; only the
+ * reading changes. A teacher outside Eastern who is shown 1:00 PM for a class
+ * that starts at 10:00 her time will miss it, and be right to.
+ *
+ * THE ZONE IS NAMED ONLY WHEN IT IS NOT THE NETWORK'S. Eastern readers - almost
+ * everyone - get a clean "1:00 PM". Anyone else gets "10:00 AM MST", so the
+ * difference is visible rather than assumed.
+ *
+ * An unknown or malformed zone falls back to Eastern rather than throwing:
+ * Intl rejects a bad timeZone, and a timesheet must never fail to render
+ * because somebody typed their timezone in wrong.
+ */
+export function formatClassTime(
+  iso: string,
+  timeZone: string = NETWORK_TIME_ZONE
+): string {
+  if (!iso) return "";
+  const zone = timeZone || NETWORK_TIME_ZONE;
+  const render = (tz: string) =>
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      ...(tz === NETWORK_TIME_ZONE ? {} : { timeZoneName: "short" as const }),
+    }).format(new Date(iso));
+  try {
+    return render(zone);
+  } catch {
+    return render(NETWORK_TIME_ZONE);
+  }
+}
+
 export interface WeekClass {
   sessionId: string;
   courseName: string;
   sectionCode: string;
-  /** "09:00" in Eastern, for display. */
+  /** "09:00" in Eastern. Kept for sorting and for anything that reasons in ET. */
   startsEt: string;
+  /** The real instant the class starts, so it can be shown in any timezone. */
+  startsAtIso: string;
   classDate: string;
   held: boolean;
   sessionStatus: string;
@@ -192,6 +241,7 @@ export async function getTeacherWeek(
         courseName: (course?.name as string | null) ?? "Class",
         sectionCode: (section?.section_code as string | null) ?? "",
         startsEt: ((section?.start_time_et as string | null) ?? "").slice(0, 5),
+        startsAtIso: String(raw.scheduled_start ?? ""),
         classDate,
         held,
         sessionStatus: status,

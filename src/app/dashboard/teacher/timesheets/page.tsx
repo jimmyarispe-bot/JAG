@@ -4,8 +4,10 @@ import { ClassHeldToggle } from "@/components/teacher/ClassHeldToggle";
 import { SubmitWeekButton } from "@/components/teacher/SubmitWeekButton";
 import {
   currentWeekStart,
+  formatClassTime,
   getTeacherWeek,
   mondayOf,
+  NETWORK_TIME_ZONE,
   WEEKLY_SUBMISSION_GO_LIVE,
 } from "@/lib/finance/teacher-week";
 
@@ -46,6 +48,10 @@ export default async function TeacherTimesheetsPage({
 }) {
   const ctx = await requireTeacherExperienceContext();
   const { week: weekParam } = await searchParams;
+
+  /* Her own clock, not the database's. Falls back to the network's when she has
+     not set one, which is almost everybody. */
+  const viewerZone = ctx.identity.preferences?.timezone || NETWORK_TIME_ZONE;
 
   const weekStart = weekParam ? mondayOf(weekParam) : currentWeekStart();
   const week = await getTeacherWeek(ctx.supabase, ctx.employeeId, weekStart);
@@ -165,15 +171,49 @@ export default async function TeacherTimesheetsPage({
                   ) : (
                     <table className="min-w-full divide-y divide-slate-100 text-sm">
                       <tbody className="divide-y divide-slate-100">
-                        {day.classes.map((c) => (
-                          <tr key={c.sessionId} className={c.held ? "" : "bg-slate-50/60"}>
+                        {day.classes.map((c) => {
+                          /*
+                           * A CLASS NOBODY IS ON IS NOT A DECISION.
+                           *
+                           * 21 September 2026. Three Structured Literacy
+                           * sections are scheduled 52 weeks out with nobody
+                           * enrolled yet - 156 of the 2,137 forward classes.
+                           * Left as they were, Renne Tracewell, Kim Hawkins
+                           * and Holly Medlong would each be asked to rule on a
+                           * class that pays nothing, every week, for a year.
+                           *
+                           * The schedule is NOT wrong and was deliberately not
+                           * cancelled: the programme is real and simply has no
+                           * children in it yet.
+                           *
+                           * An empty roster is also the correct answer on a
+                           * Friday at or after 1pm, when campus children have
+                           * gone home - see CAMPUS_FRIDAY_CUTOFF_ET. So the
+                           * wording here says no students were on THIS class,
+                           * which is true in both cases, rather than "nobody
+                           * enrolled", which would be false on a Friday.
+                           *
+                           * Still shown, never hidden. A class that ran for
+                           * nobody is worth seeing. It just does not ask a
+                           * question it cannot pay for.
+                           */
+                          const empty = c.studentCount === 0;
+                          return (
+                          <tr
+                            key={c.sessionId}
+                            className={!c.held ? "bg-slate-50/60" : empty ? "bg-slate-50/40" : ""}
+                          >
                             <td className="whitespace-nowrap px-4 py-3 text-slate-500">
-                              {c.startsEt || "—"}
+                              {formatClassTime(c.startsAtIso, viewerZone) || c.startsEt || "—"}
                             </td>
                             <td className="px-4 py-3">
                               <div
                                 className={
-                                  c.held ? "font-medium text-slate-900" : "text-slate-500 line-through"
+                                  !c.held
+                                    ? "text-slate-500 line-through"
+                                    : empty
+                                      ? "text-slate-400"
+                                      : "font-medium text-slate-900"
                                 }
                               >
                                 {c.courseName}
@@ -183,7 +223,13 @@ export default async function TeacherTimesheetsPage({
                               ) : null}
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                              {c.held ? `${c.studentCount} on roster` : "—"}
+                              {!c.held ? (
+                                "—"
+                              ) : empty ? (
+                                <span className="text-slate-400">no students</span>
+                              ) : (
+                                `${c.studentCount} on roster`
+                              )}
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-900">
                               {c.unrated ? (
@@ -191,22 +237,29 @@ export default async function TeacherTimesheetsPage({
                                    than counted as zero - a teacher should not
                                    discover this after submitting. */
                                 <span className="text-rose-700">no agreed rate</span>
-                              ) : c.held ? (
-                                money(c.gross)
-                              ) : (
+                              ) : !c.held ? (
                                 <span className="text-slate-400">not paid</span>
+                              ) : empty ? (
+                                <span className="text-slate-300">—</span>
+                              ) : (
+                                money(c.gross)
                               )}
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right">
-                              <ClassHeldToggle
-                                sessionId={c.sessionId}
-                                held={c.held}
-                                courseName={c.courseName}
-                                disabled={submitted}
-                              />
+                              {empty && c.held ? (
+                                <span className="text-xs text-slate-400">nothing to submit</span>
+                              ) : (
+                                <ClassHeldToggle
+                                  sessionId={c.sessionId}
+                                  held={c.held}
+                                  courseName={c.courseName}
+                                  disabled={submitted}
+                                />
+                              )}
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}
