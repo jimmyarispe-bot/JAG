@@ -109,16 +109,48 @@ export const PERMISSION_GROUP_DEFINITIONS: PermissionGroupMap = {
     gate: "ACADEMYOS_ACCESS",
     label: PERMISSION_CATALOG_DEFINITIONS.ACADEMYOS_ACCESS.label,
     description: PERMISSION_CATALOG_DEFINITIONS.ACADEMYOS_ACCESS.description,
+    /*
+     * THE BASE GATE IS NOT AN EXECUTIVE GATE.
+     *
+     * 21 September 2026. This list used to also contain
+     * mission_control.access, executive.dashboard, executive.intelligence
+     * and school.configure.
+     *
+     * ACADEMYOS_ACCESS is the "you may use the platform" group. TEAM_MEMBER
+     * maps to it and nothing else, and TEAM_MEMBER is the role every newly
+     * provisioned user is given before anyone assigns them a real one. So
+     * every person who had ever logged in received Executive Workspace,
+     * Mission Control, Briefings, KPIs, Board Reports, Forecasting, Risk,
+     * Scenarios, Decisions, Recommendations, Strategy, Benchmarks, Capacity
+     * and Intelligence Network in their sidebar, plus the School Leader
+     * module by way of school.configure.
+     *
+     * Found by signing in as a test teacher and looking at the screen. Four
+     * database queries could not see it, because this half of the permission
+     * set never touches the database: loadUserPermissions() starts from this
+     * map and only then adds platform_role_permissions rows.
+     *
+     * Financial Intelligence was the one executive link that did NOT appear,
+     * because it needs FINANCE_ACCESS and this group does not grant it. That
+     * absence is what proved the sidebar filter was working correctly and the
+     * permission set was wrong.
+     *
+     * NOBODY WHO SHOULD HAVE THESE LOSES THEM. Founder holds the whole
+     * catalog; PLATFORM_OWNER and JAG_ORG_ADMIN receive all four through
+     * JAG_ACCESS and JAG_ORG_ACCESS; SCHOOL_LEADER holds mission_control.access
+     * and school.configure as real database rows written by migration 074, and
+     * migration 357 already denies executive.% to that role.
+     *
+     * TEAM_MEMBER also holds mission_control.access as a database row, granted
+     * by migration 175. Removing it here is only half the job - see the
+     * migration dated today.
+     */
     permissions: [
       "ACADEMYOS_ACCESS",
       "org.view",
       "directory.view",
-      "mission_control.access",
       "workflows.view",
-      "school.configure",
       "search.global",
-      "executive.dashboard",
-      "executive.intelligence",
       "certification.view",
     ],
   },

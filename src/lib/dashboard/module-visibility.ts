@@ -31,12 +31,18 @@ export const MODULE_REQUIRED_PERMISSIONS: Partial<Record<ModuleId, readonly stri
   scholarships: ["scholarships.view", "scholarships.approve"],
   finance: ["finance.view", "FINANCE_ACCESS", "finance.billing", "finance.executive"],
   hr: ["hr.view", "hr.manage", "HR_ACCESS"],
-  "school-leader": [
-    "school.configure",
-    "students.view",
-    "admissions.view",
-    "executive.dashboard",
-  ],
+  /*
+   * 21 September 2026 - students.view and admissions.view were removed.
+   *
+   * Every teacher holds students.view. It is the permission that lets them
+   * open their own roster, so it can never be the thing that reveals the
+   * School Leader module - and it was, which is why a teacher signing in saw
+   * a School Leader entry in her sidebar.
+   *
+   * Heather Badger-Brown and Nina Gaddy keep it: migration 074 wrote
+   * school.configure to SCHOOL_LEADER as a database row.
+   */
+  "school-leader": ["school.configure", "executive.dashboard"],
   teacher: ["teacher.view", "teacher.manage", "TEACHER_ACCESS"],
   scheduling: ["scheduling.view", "scheduling.manage", "scheduling.executive"],
 };
