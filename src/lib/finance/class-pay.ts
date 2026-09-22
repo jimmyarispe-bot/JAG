@@ -298,7 +298,15 @@ export async function computeClassPay(
         "course_sections(section_code, instructor_employee_id, start_time_et, " +
         "courses(id, name, school_id, class_pay_rates(employee_id, base_first_student, " +
         "per_additional_student, guest_base_first_student, effective_from))), " +
-        "employees(id, employee_profiles(first_name, last_name, display_name))"
+        /* NAME THE FOREIGN KEY. instructional_sessions now points at employees
+           TWICE - instructor_employee_id, and original_instructor_employee_id
+           added by migration 406 to remember whose class it was before
+           somebody covered it. A bare employees(...) embed became ambiguous
+           the moment that column existed, and PostgREST refused the whole
+           query: "more than one relationship was found". The teacher's screen
+           showed "Could not price your classes" and nothing else.
+           The hint says which one: the person who actually taught it. */
+        "employees!instructor_employee_id(id, employee_profiles(first_name, last_name, display_name))"
     )
     .gte("scheduled_start", `${periodStart}T00:00:00`)
     .lte("scheduled_start", `${periodEnd}T23:59:59`)
