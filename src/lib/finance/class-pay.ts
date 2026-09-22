@@ -37,6 +37,8 @@ const COUNTED_STATUSES = ["enrolled", "completed"];
 export const UNHELD_SESSION_STATUSES = ["cancelled", "no_show"];
 
 export interface EnrollmentWindow {
+  /** Who. Carried so a teacher can be shown the roster she is being paid for. */
+  studentId: string;
   enrolledAt: string;
   droppedAt: string | null;
   status: string;
@@ -225,6 +227,20 @@ export interface ClassPayRow {
   sectionCode: string;
   classDate: string;
   studentCount: number;
+  /*
+   * WHICH children, not just how many.
+   *
+   * 21 September 2026. "4 on roster" is a number a teacher cannot check. The
+   * fault found that day - 33 of 42 sections underpaying, because the pay
+   * calculator could only see children at the teacher's own school - would
+   * have been reported in week one if she could have seen "DigitLab: nobody"
+   * beside a class she knows has four children in it.
+   *
+   * Ids only here. Names are fetched separately, through
+   * student_names_for_my_classes(), so nothing in the pay path needs read
+   * access to a student record.
+   */
+  studentIds: string[];
   ratePerStudent: number;
   /** Covered by somebody other than the section's usual teacher. */
   isGuest: boolean;
@@ -339,7 +355,7 @@ export async function computeClassPay(
   const sectionIds = [...new Set(relevant.map((r) => r.sectionId))];
   const { data: enrollments, error: enrollmentError } = await supabase
     .from("student_enrollments")
-    .select("course_section_id, enrollment_status, enrolled_at, dropped_at, attends_days, campus_student")
+    .select("student_id, course_section_id, enrollment_status, enrolled_at, dropped_at, attends_days, campus_student")
     .in("course_section_id", sectionIds);
 
   if (enrollmentError) {
@@ -351,6 +367,7 @@ export async function computeClassPay(
     const sectionId = e.course_section_id as string;
     const list = rosterBySection.get(sectionId) ?? [];
     list.push({
+      studentId: String(e.student_id ?? ""),
       enrolledAt: String(e.enrolled_at ?? ""),
       droppedAt: (e.dropped_at as string | null) ?? null,
       status: String(e.enrollment_status ?? ""),
@@ -400,9 +417,13 @@ export async function computeClassPay(
     const isGuest = Boolean(usualTeacher && usualTeacher !== employeeId);
 
     const classStartsEt = String(section?.start_time_et ?? "00:00");
-    const studentCount = (rosterBySection.get(sectionId) ?? []).filter((e) =>
+    /* One pass, one predicate. The list and the count come from the same
+       filter so a screen can never show five names beside a four. */
+    const onRoster = (rosterBySection.get(sectionId) ?? []).filter((e) =>
       onRosterOn(e, classDate, classStartsEt)
-    ).length;
+    );
+    const studentCount = onRoster.length;
+    const studentIds = onRoster.map((e) => e.studentId).filter(Boolean);
 
     rows.push({
       sessionId: String(session.id),
@@ -414,6 +435,7 @@ export async function computeClassPay(
       sectionCode: String(section?.section_code ?? ""),
       classDate,
       studentCount,
+      studentIds,
       ratePerStudent: rate.perAdditionalStudent,
       isGuest,
       gross: grossForClass(rate, studentCount, isGuest),

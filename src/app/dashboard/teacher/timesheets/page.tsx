@@ -142,7 +142,9 @@ export default async function TeacherTimesheetsPage({
             <p className="px-1 text-sm text-slate-500">
               Every class you were scheduled to teach is already here. Each one counts as{" "}
               <strong>taught</strong> unless you say otherwise — if you were away, or it could
-              not run, mark it <strong>did not teach</strong> and it drops out of the total.
+              not run, mark it <strong>did not teach</strong> and it drops out of the total.{" "}
+              <strong>Tap a roster count to see which children it is.</strong> If a name is
+              missing, or one is there who should not be, say so before you submit.
             </p>
           ) : null}
 
@@ -222,13 +224,58 @@ export default async function TeacherTimesheetsPage({
                                 <div className="text-xs text-slate-400">{c.sectionCode}</div>
                               ) : null}
                             </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                            <td className="px-4 py-3 align-top text-slate-600">
+                              {/*
+                                * A NUMBER A TEACHER CAN CHECK.
+                                *
+                                * 21 September 2026. This cell used to read
+                                * "4 on roster" and stop there. On that day a
+                                * roster of four was showing as nothing at all
+                                * on 33 of 42 sections, and no teacher could
+                                * have seen it - the count was the only thing
+                                * on screen, and a wrong count looks exactly
+                                * like a right one.
+                                *
+                                * Now it opens. Names, so she can compare the
+                                * list against the children she actually
+                                * teaches before she submits a figure built
+                                * from it.
+                                *
+                                * A plain <details>: this is a server
+                                * component, and expanding a list should not
+                                * need JavaScript to arrive first.
+                                */}
                               {!c.held ? (
-                                "—"
+                                <span className="whitespace-nowrap">—</span>
                               ) : empty ? (
-                                <span className="text-slate-400">no students</span>
+                                <span className="whitespace-nowrap text-slate-400">
+                                  no students
+                                </span>
+                              ) : c.students.length > 0 ? (
+                                <details>
+                                  <summary className="cursor-pointer list-none whitespace-nowrap underline decoration-dotted underline-offset-4 hover:text-slate-900">
+                                    {c.studentCount} on roster
+                                  </summary>
+                                  <ul className="mt-2 space-y-1 text-xs text-slate-500">
+                                    {c.students.map((child) => (
+                                      <li key={child.id}>
+                                        {child.name || (
+                                          /* The name lookup failed, the pay did
+                                             not. Say so rather than show a
+                                             blank line that reads as a missing
+                                             child. */
+                                          <span className="italic text-slate-400">
+                                            name unavailable
+                                          </span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </details>
                               ) : (
-                                `${c.studentCount} on roster`
+                                <span className="whitespace-nowrap">
+                                  {c.studentCount} on roster
+                                </span>
                               )}
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-900">

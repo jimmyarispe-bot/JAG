@@ -87,6 +87,18 @@ export interface WeekClass {
   sessionStatus: string;
   /** Children on the roster for that class, as the pay calculator counted them. */
   studentCount: number;
+  /**
+   * WHO those children are.
+   *
+   * A number a teacher cannot check is a number she has to take on trust. On
+   * 21 September a roster of four showed as "no students" on 33 of 42 sections
+   * and nobody could see it, because the screen only ever showed the count.
+   *
+   * Empty when the names could not be fetched. The count still stands - it is
+   * computed from the same rows - so a failure here loses the detail, never
+   * the pay.
+   */
+  students: { id: string; name: string }[];
   /** What this class pays. Zero when not held, or when no rate could be found. */
   gross: number;
   /** True when the class is held but no agreed rate exists - named, never zeroed silently. */
@@ -246,6 +258,7 @@ export async function getTeacherWeek(
         held,
         sessionStatus: status,
         studentCount: priced?.studentCount ?? 0,
+        students: (priced?.studentIds ?? []).map((id) => ({ id, name: "" })),
         gross: priced?.gross ?? 0,
         /* Held, but the pay calculator could not price it. Shown as a problem
            rather than quietly counted as zero. */
@@ -267,6 +280,43 @@ export async function getTeacherWeek(
   });
 
   const all = days.flatMap((d) => d.classes);
+
+  /*
+   * THE NAMES, IN ONE CALL, AND NEVER AT THE COST OF THE PAY.
+   *
+   * student_names_for_my_classes() returns a name and an id for children the
+   * caller teaches, and nothing else - not the student row, which carries date
+   * of birth, address and everything FERPA-classified, and which a teacher
+   * still cannot read for a child at another school.
+   *
+   * One call for the whole week rather than one per class: a teacher has
+   * fifteen classes and perhaps a dozen distinct children across them.
+   *
+   * IF IT FAILS, THE NAMES ARE MISSING AND THE PAY IS NOT. The count comes
+   * from the pay calculator and is already decided; this only fills in who.
+   * A screen that cannot name the children is worse than one that can, and far
+   * better than one that cannot price them.
+   */
+  const idsInWeek = [...new Set(all.flatMap((c) => c.students.map((s) => s.id)))];
+  if (idsInWeek.length > 0) {
+    const { data: named } = await supabase.rpc("student_names_for_my_classes", {
+      p_student_ids: idsInWeek,
+    });
+    const nameById = new Map(
+      ((named ?? []) as { id: string; display_name: string }[]).map((r) => [
+        r.id,
+        r.display_name,
+      ])
+    );
+    for (const c of all) {
+      for (const child of c.students) {
+        child.name = nameById.get(child.id) ?? "";
+      }
+      /* Alphabetical, so a teacher reads the same order every week and notices
+         a missing name rather than re-reading the whole list. */
+      c.students.sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }
 
   const { data: submission } = await supabase
     .from("teacher_week_submissions")
