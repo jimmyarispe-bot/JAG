@@ -98,7 +98,7 @@ export interface WeekClass {
    * computed from the same rows - so a failure here loses the detail, never
    * the pay.
    */
-  students: { id: string; name: string }[];
+  students: { id: string; name: string; present: boolean }[];
   /** What this class pays. Zero when not held, or when no rate could be found. */
   gross: number;
   /** True when the class is held but no agreed rate exists - named, never zeroed silently. */
@@ -258,7 +258,8 @@ export async function getTeacherWeek(
         held,
         sessionStatus: status,
         studentCount: priced?.studentCount ?? 0,
-        students: (priced?.studentIds ?? []).map((id) => ({ id, name: "" })),
+        /* present until somebody says otherwise - see the attendance read below */
+        students: (priced?.studentIds ?? []).map((id) => ({ id, name: "", present: true })),
         gross: priced?.gross ?? 0,
         /* Held, but the pay calculator could not price it. Shown as a problem
            rather than quietly counted as zero. */
@@ -315,6 +316,40 @@ export async function getTeacherWeek(
       /* Alphabetical, so a teacher reads the same order every week and notices
          a missing name rather than re-reading the whole list. */
       c.students.sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }
+
+  /*
+   * WHO WAS MARKED ABSENT.
+   *
+   * ABSENCE IS THE EXCEPTION. No row means the child was there: a teacher who
+   * never opened a class has said nothing, and saying nothing has to mean the
+   * ordinary thing happened. The opposite default would turn forgetting into a
+   * mark against a child.
+   *
+   * One read for the whole week rather than one per class. If it fails, every
+   * child reads as present - which is the same as an untouched week, and is the
+   * safe direction to fail in.
+   */
+  const sessionIdsInWeek = all.map((c) => c.sessionId);
+  if (sessionIdsInWeek.length > 0) {
+    const { data: marks } = await supabase
+      .from("session_attendance_records")
+      .select("instructional_session_id, student_id, attendance_status")
+      .in("instructional_session_id", sessionIdsInWeek);
+
+    const absentKeys = new Set(
+      ((marks ?? []) as Record<string, unknown>[])
+        .filter((m) => String(m.attendance_status ?? "").startsWith("absent"))
+        .map((m) => `${String(m.instructional_session_id)}:${String(m.student_id)}`)
+    );
+
+    if (absentKeys.size > 0) {
+      for (const c of all) {
+        for (const child of c.students) {
+          if (absentKeys.has(`${c.sessionId}:${child.id}`)) child.present = false;
+        }
+      }
     }
   }
 

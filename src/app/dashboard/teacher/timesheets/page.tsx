@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireTeacherExperienceContext } from "@/lib/teacher/experience/access";
+import { AttendanceToggle } from "@/components/teacher/AttendanceToggle";
 import { ClassHeldToggle } from "@/components/teacher/ClassHeldToggle";
 import { SubmitWeekButton } from "@/components/teacher/SubmitWeekButton";
 import {
@@ -256,21 +257,50 @@ export default async function TeacherTimesheetsPage({
                                   <summary className="cursor-pointer list-none whitespace-nowrap underline decoration-dotted underline-offset-4 hover:text-slate-900">
                                     {c.studentCount} on roster
                                   </summary>
-                                  <ul className="mt-2 space-y-1 text-xs text-slate-500">
+                                  <ul className="mt-2 space-y-1.5 text-xs">
                                     {c.students.map((child) => (
-                                      <li key={child.id}>
-                                        {child.name || (
-                                          /* The name lookup failed, the pay did
-                                             not. Say so rather than show a
-                                             blank line that reads as a missing
-                                             child. */
-                                          <span className="italic text-slate-400">
-                                            name unavailable
-                                          </span>
-                                        )}
+                                      <li
+                                        key={child.id}
+                                        className="flex items-center justify-between gap-3"
+                                      >
+                                        <span
+                                          className={
+                                            child.present
+                                              ? "text-slate-600"
+                                              : "text-slate-400 line-through"
+                                          }
+                                        >
+                                          {child.name || (
+                                            /* The name lookup failed, the pay
+                                               did not. Say so rather than show
+                                               a blank line that reads as a
+                                               missing child. */
+                                            <span className="italic text-slate-400">
+                                              name unavailable
+                                            </span>
+                                          )}
+                                        </span>
+                                        <AttendanceToggle
+                                          sessionId={c.sessionId}
+                                          studentId={child.id}
+                                          studentName={child.name}
+                                          present={child.present}
+                                          disabled={submitted}
+                                        />
                                       </li>
                                     ))}
                                   </ul>
+                                  {/*
+                                    * Said once, under the list, rather than on
+                                    * every row. Absence is the exception and a
+                                    * teacher should not have to confirm the
+                                    * ordinary case fifteen times a week.
+                                    */}
+                                  <p className="mt-2 text-[11px] text-slate-400">
+                                    Everyone counts as here unless you say
+                                    otherwise. Marking a child absent does not
+                                    change what this class pays.
+                                  </p>
                                 </details>
                               ) : (
                                 <span className="whitespace-nowrap">
