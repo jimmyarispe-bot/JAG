@@ -103,6 +103,16 @@ export interface WeekClass {
   gross: number;
   /** True when the class is held but no agreed rate exists - named, never zeroed silently. */
   unrated: boolean;
+  /**
+   * Cover.
+   *
+   * coveredAway: this was her class and somebody else taught it. It stays on
+   * her week so it does not vanish, and it pays her nothing.
+   * coveringFor: she took somebody else's class. It pays her, at the same rate
+   * as her own work since migration 401.
+   */
+  coveredAway: boolean;
+  coveringFor: boolean;
 }
 
 export interface WeekDay {
@@ -207,9 +217,16 @@ export async function getTeacherWeek(
     .from("instructional_sessions")
     .select(
       "id, scheduled_start, session_status, course_section_id, " +
+        "instructor_employee_id, original_instructor_employee_id, " +
         "course_sections(section_code, start_time_et, courses(name))"
     )
-    .eq("instructor_employee_id", employeeId)
+    /* Hers, AND the ones somebody covered FOR her. A class that simply
+       vanishes from a teacher's week when a colleague takes it is how she
+       stops trusting the screen - she should see it, marked as covered, with
+       no money against it. */
+    .or(
+      `instructor_employee_id.eq.${employeeId},original_instructor_employee_id.eq.${employeeId}`
+    )
     .gte("scheduled_start", `${weekStart}T00:00:00`)
     .lte("scheduled_start", `${weekEnd}T23:59:59`)
     .order("scheduled_start", { ascending: true });
@@ -257,6 +274,10 @@ export async function getTeacherWeek(
         classDate,
         held,
         sessionStatus: status,
+        coveredAway: String(raw.instructor_employee_id ?? "") !== employeeId,
+        coveringFor:
+          String(raw.instructor_employee_id ?? "") === employeeId &&
+          Boolean(raw.original_instructor_employee_id),
         studentCount: priced?.studentCount ?? 0,
         /* present until somebody says otherwise - see the attendance read below */
         students: (priced?.studentIds ?? []).map((id) => ({ id, name: "", present: true })),
@@ -367,8 +388,11 @@ export async function getTeacherWeek(
     weekStart,
     weekEnd,
     days,
-    classesHeld: all.filter((c) => c.held).length,
-    classesNotHeld: all.filter((c) => !c.held).length,
+    /* A class somebody else covered is neither taught nor not-taught by her.
+       It is on her week so it does not vanish, and it is counted in neither
+       column - counting it either way would be a claim she did not make. */
+    classesHeld: all.filter((c) => c.held && !c.coveredAway).length,
+    classesNotHeld: all.filter((c) => !c.held && !c.coveredAway).length,
     /* THE FROZEN FIGURE WINS ONCE SUBMITTED. A submitted week is a receipt, not
        a formula: recomputing it would let a later roster or rate change rewrite
        what the teacher verified and agreed to. */

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireTeacherExperienceContext } from "@/lib/teacher/experience/access";
+import { cn } from "@/components/workspace-design-system/utils";
 import { AttendanceToggle } from "@/components/teacher/AttendanceToggle";
+import { CoverAClassButton } from "@/components/teacher/CoverAClassButton";
 import { ClassHeldToggle } from "@/components/teacher/ClassHeldToggle";
 import { SubmitWeekButton } from "@/components/teacher/SubmitWeekButton";
 import {
@@ -204,7 +206,10 @@ export default async function TeacherTimesheetsPage({
                           return (
                           <tr
                             key={c.sessionId}
-                            className={!c.held ? "bg-slate-50/60" : empty ? "bg-slate-50/40" : ""}
+                            className={cn(
+                              "align-top",
+                              !c.held ? "bg-slate-50/60" : empty ? "bg-slate-50/40" : ""
+                            )}
                           >
                             <td className="whitespace-nowrap px-4 py-3 text-slate-500">
                               {formatClassTime(c.startsAtIso, viewerZone) || c.startsEt || "—"}
@@ -246,7 +251,11 @@ export default async function TeacherTimesheetsPage({
                                 * component, and expanding a list should not
                                 * need JavaScript to arrive first.
                                 */}
-                              {!c.held ? (
+                              {c.coveredAway ? (
+                                <span className="whitespace-nowrap text-slate-400">
+                                  covered
+                                </span>
+                              ) : !c.held ? (
                                 <span className="whitespace-nowrap">—</span>
                               ) : empty ? (
                                 <span className="whitespace-nowrap text-slate-400">
@@ -257,7 +266,12 @@ export default async function TeacherTimesheetsPage({
                                   <summary className="cursor-pointer list-none whitespace-nowrap underline decoration-dotted underline-offset-4 hover:text-slate-900">
                                     {c.studentCount} on roster
                                   </summary>
-                                  <ul className="mt-2 space-y-1.5 text-xs">
+                                  {/* Bounded, so the button stays beside the
+                                      name. Left to fill the cell, an expanded
+                                      roster throws every control to the far
+                                      right and a teacher has to track across
+                                      empty space to find the one she wants. */}
+                                  <ul className="mt-2 max-w-[19rem] space-y-1.5 text-xs">
                                     {c.students.map((child) => (
                                       <li
                                         key={child.id}
@@ -296,7 +310,7 @@ export default async function TeacherTimesheetsPage({
                                     * teacher should not have to confirm the
                                     * ordinary case fifteen times a week.
                                     */}
-                                  <p className="mt-2 text-[11px] text-slate-400">
+                                  <p className="mt-2 max-w-[19rem] text-[11px] leading-snug text-slate-400">
                                     Everyone counts as here unless you say
                                     otherwise. Marking a child absent does not
                                     change what this class pays.
@@ -309,7 +323,12 @@ export default async function TeacherTimesheetsPage({
                               )}
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-900">
-                              {c.unrated ? (
+                              {c.coveredAway ? (
+                                /* Somebody else taught it. It stays on her week
+                                   so it does not vanish, and it pays her
+                                   nothing. */
+                                <span className="text-slate-400">covered by a colleague</span>
+                              ) : c.unrated ? (
                                 /* Held but unpriced. Named as a problem rather
                                    than counted as zero - a teacher should not
                                    discover this after submitting. */
@@ -323,7 +342,9 @@ export default async function TeacherTimesheetsPage({
                               )}
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right">
-                              {empty && c.held ? (
+                              {c.coveredAway ? (
+                                <span className="text-xs text-slate-400">not yours</span>
+                              ) : empty && c.held ? (
                                 <span className="text-xs text-slate-400">nothing to submit</span>
                               ) : (
                                 <ClassHeldToggle
@@ -340,6 +361,15 @@ export default async function TeacherTimesheetsPage({
                       </tbody>
                     </table>
                   )}
+                  {/* Rare, so it sits quietly under the day rather than taking
+                      a column of its own on every row. */}
+                  <div className="border-t border-slate-100 px-4 py-2.5">
+                    <CoverAClassButton
+                      date={day.date}
+                      timeZone={viewerZone}
+                      disabled={submitted}
+                    />
+                  </div>
                 </section>
               ))}
             </div>

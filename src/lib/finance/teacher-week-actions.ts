@@ -15,6 +15,71 @@ import { getTeacherWeek, mondayOf, WEEKLY_SUBMISSION_GO_LIVE } from "@/lib/finan
  * attached to it and can be seen afterwards.
  */
 /**
+ * Classes she could say she covered, on one day.
+ *
+ * Bounded by the function behind it: her own school, that date, not already
+ * hers. A teacher does not need to browse the network's timetable to record
+ * that she stood in for a colleague.
+ */
+export async function classesICouldCoverAction(onDate: string) {
+  const ctx = await requireTeacherExperienceContext();
+  const { data, error } = await ctx.supabase.rpc("classes_i_could_cover", {
+    p_on_date: onDate,
+  });
+  if (error) return { error: error.message };
+  return {
+    classes: ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      sessionId: String(r.session_id),
+      startsAtIso: String(r.starts_at ?? ""),
+      courseName: String(r.course_name ?? "Class"),
+      sectionCode: String(r.section_code ?? ""),
+      teacherName: String(r.teacher_name ?? "Another teacher"),
+      alreadyCovered: Boolean(r.already_covered),
+    })),
+  };
+}
+
+/**
+ * "I covered this class."
+ *
+ * The session moves to her and the money follows by itself - computeClassPay
+ * prices a session at the guest rate when its instructor differs from the
+ * section's, and since migration 401 the guest rate is the normal rate.
+ *
+ * Every refusal comes back as a sentence rather than a silent no-op. The
+ * function returns 'ok' or the reason, because a claim that quietly fails is
+ * a teacher who thinks she recorded her work and did not.
+ */
+export async function claimClassAsGuestAction(sessionId: string) {
+  const ctx = await requireTeacherExperienceContext();
+  const { data, error } = await ctx.supabase.rpc("claim_class_as_guest", {
+    p_session_id: sessionId,
+  });
+  if (error) return { error: error.message };
+  if (data !== "ok") return { error: String(data ?? "That class could not be claimed.") };
+
+  revalidatePath("/dashboard/teacher/timesheets");
+  return { success: true };
+}
+
+/**
+ * Give it back.
+ *
+ * A mis-tap at eleven o'clock on a Friday must not be permanent.
+ */
+export async function releaseClaimedClassAction(sessionId: string) {
+  const ctx = await requireTeacherExperienceContext();
+  const { data, error } = await ctx.supabase.rpc("release_claimed_class", {
+    p_session_id: sessionId,
+  });
+  if (error) return { error: error.message };
+  if (data !== "ok") return { error: String(data ?? "That class could not be given back.") };
+
+  revalidatePath("/dashboard/teacher/timesheets");
+  return { success: true };
+}
+
+/**
  * Who was in the room.
  *
  * ATTENDANCE HAS NEVER BEEN RECORDED IN JAG. session_attendance_records has
