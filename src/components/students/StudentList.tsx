@@ -6,6 +6,7 @@ import { gradeLabel } from "@/lib/constants/grades";
 import { programLabel } from "@/lib/constants/programs";
 import { FundingSourceBadges } from "@/components/ui/FundingSourceBadges";
 import { StudentLifecycleActions } from "@/components/students/StudentLifecycleActions";
+import { ExportStudentsButton } from "@/components/students/ExportStudentsButton";
 import type { StudentRecord } from "@/lib/students/queries";
 import type { StudentListStatusFilter } from "@/lib/students/queries";
 
@@ -123,6 +124,19 @@ export function StudentList({
           })}
           <span className="ml-1 text-sm text-slate-500">
             {students.length} {students.length === 1 ? "student" : "students"}
+          </span>
+          {/*
+            Export sits beside the filter on purpose: what downloads is what the
+            filter has narrowed to, so the control that decides the scope and the
+            control that acts on it are next to each other.
+          */}
+          <span className="ml-auto">
+            <ExportStudentsButton
+              statusFilter={statusFilter}
+              schoolId={schoolId}
+              campusName={schools?.find((s) => s.id === schoolId)?.name ?? null}
+              studentCount={students.length}
+            />
           </span>
         </div>
       ) : null}
