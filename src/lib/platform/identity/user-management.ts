@@ -36,6 +36,38 @@ export type ManagedUserInput = {
   organizationId: string;
   schoolIds: string[];
   role: UserManagementRoleValue;
+  /**
+   * An alternative authority for provisioning THIS account, for the one case
+   * where `users.manage` is the wrong question to ask.
+   *
+   * THE PROBLEM IT SOLVES. A school leader answers the invite_to_apply gate.
+   * The family is emailed a link to the application portal, which opens with
+   * `if (!sessionUser) redirect("/login")` - so the parent needs an account,
+   * and the person who just decided they should have one cannot create it:
+   * SCHOOL_LEADER holds ADMISSIONS_ACCESS, not USER_MANAGEMENT_ACCESS. Lisa Roy
+   * received her invitation on 22 Sep 2026 and landed on a password box.
+   *
+   * WHY NOT JUST GRANT users.manage. Because that is the permission to create
+   * ANY account with ANY role, and the answer to "may Nina create an account
+   * for this family?" must not be the same answer as "may Nina create an
+   * administrator?". Widening a broad gate to solve a narrow need is precisely
+   * the fault found in ACADEMYOS_ACCESS on 21 Sep, where a base gate carried
+   * the executive suite.
+   *
+   * WHAT THIS AUTHORITY PERMITS, and nothing else:
+   *   - the caller must hold `admissions.accept` - they may decide admissions
+   *   - the role is forced to PARENT, whatever the caller passed
+   *   - the email must already be on `admissions_lead_guardians` for THAT lead
+   *
+   * So it cannot provision a staff account, cannot choose a role, and cannot
+   * reach an address the family did not themselves give us. The authority is
+   * the decision that was just made, not a standing power.
+   */
+  authority?: {
+    readonly kind: "admissions_gate";
+    /** The lead whose guardians may be provisioned. Never from a browser. */
+    readonly leadId: string;
+  };
   department?: string | null;
   managerUserId?: string | null;
   status: UserManagementStatus;
@@ -211,8 +243,22 @@ export async function createManagedUser(
   };
 
   const supabase = await createAuthClient();
-  const gate = await requirePermission(supabase, "users.manage");
-  if (!gate.ok) return fail(gate.error);
+
+  /*
+   * One of two authorities, never both, never neither. See ManagedUserInput.
+   */
+  if (input.authority?.kind === "admissions_gate") {
+    const gate = await requirePermission(supabase, "admissions.accept");
+    if (!gate.ok) return fail(gate.error);
+    if (input.role !== "PARENT") {
+      return fail(
+        "An admissions gate may only provision a PARENT account. Refusing."
+      );
+    }
+  } else {
+    const gate = await requirePermission(supabase, "users.manage");
+    if (!gate.ok) return fail(gate.error);
+  }
 
   const email = input.email.trim().toLowerCase();
   if (!email.includes("@")) return fail("Valid email is required");
@@ -231,6 +277,28 @@ export async function createManagedUser(
     return fail(
       "Server is missing SUPABASE_SERVICE_ROLE_KEY for user provisioning"
     );
+  }
+
+  /*
+   * The admissions-gate authority is scoped to one household. Prove it against
+   * the database rather than trusting the caller: the email must already be a
+   * guardian on that lead. An address the family never gave us cannot be
+   * provisioned by this path, whatever the caller sends.
+   */
+  if (input.authority?.kind === "admissions_gate") {
+    const { data: guardianRows, error: guardianError } = await admin
+      .from("admissions_lead_guardians")
+      .select("id")
+      .eq("lead_id", input.authority.leadId)
+      .ilike("email", email)
+      .limit(1);
+
+    if (guardianError) return fail(guardianError.message);
+    if (!guardianRows || guardianRows.length === 0) {
+      return fail(
+        "That address is not a guardian on this admissions case, so it cannot be provisioned from a decision."
+      );
+    }
   }
 
   const name = fullName(input);

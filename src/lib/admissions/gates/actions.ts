@@ -15,6 +15,7 @@ import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import { notifyAdmissionsEvent } from "@/lib/admissions/communications/triggers";
 import { submitAdmissionsDecision } from "@/lib/admissions/decisions";
 import { getInquiryHighlights } from "@/lib/admissions/interest-form/carry-forward";
+import { openPortalDoorForLead } from "@/lib/admissions/gates/portal-access";
 import {
   branchFor,
   gateFor,
@@ -268,6 +269,30 @@ export async function answerDecisionGate(formData: FormData) {
         stage: branch.stage,
         error: stageResult.error,
       });
+    }
+  }
+
+  /*
+   * Before the family is told, make sure they can act on being told.
+   *
+   * invite_to_apply points at /apply/portal, which redirects to /login for
+   * anybody without an account. On 22 Sep Lisa Roy received a correct,
+   * well-addressed invitation and landed on a password box. The account is
+   * created FIRST so that a parent who clicks immediately finds a door.
+   *
+   * Only for branches that send the family somewhere they must sign in. A
+   * decline needs no account, and creating one for a family we have just
+   * turned down would be its own small cruelty.
+   */
+  if (branch.answer === "yes" && branch.familyEvent) {
+    const door = await openPortalDoorForLead(supabase, leadId);
+    if (door.error) {
+      // Deliberately NOT sending the invitation. See portal-access.ts.
+      return {
+        error:
+          `Your answer was recorded, but the family was not emailed: their portal account could not be created (${door.error}). ` +
+          `Nothing has been sent, so nobody has a broken link.`,
+      };
     }
   }
 
