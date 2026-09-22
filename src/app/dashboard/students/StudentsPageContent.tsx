@@ -52,7 +52,7 @@ function parseStatusFilter(raw?: string): StudentListStatusFilter {
 }
 
 interface StudentsPageContentProps {
-  searchParams: Promise<{ view?: string; work?: string; status?: string }>;
+  searchParams: Promise<{ view?: string; work?: string; status?: string; school?: string }>;
 }
 
 const loadStudentsWorkBundle = cache(async (work: string | undefined) => {
@@ -100,12 +100,14 @@ const loadStudentsWorkBundle = cache(async (work: string | undefined) => {
 async function StudentsLegacyView({
   view,
   statusFilter,
+  schoolId,
 }: {
   view: string;
   statusFilter: StudentListStatusFilter;
+  schoolId?: string;
 }) {
   const [students, families, stats, schools, schoolYears, identity] = await Promise.all([
-    getStudents(statusFilter),
+    getStudents(statusFilter, schoolId),
     getFamilies(),
     getStudentStats(),
     getSchools(),
@@ -167,6 +169,8 @@ async function StudentsLegacyView({
           <StudentList
             students={students}
             statusFilter={statusFilter}
+            schools={schools}
+            schoolId={schoolId}
             canManageLifecycle={canManageLifecycle}
           />
         )}
@@ -238,7 +242,13 @@ export async function StudentsPageContent({ searchParams }: StudentsPageContentP
   const sp = await searchParams;
   const legacyViews = new Set(STUDENT_TABS.map((t) => t.value));
   if (sp.view && legacyViews.has(sp.view as (typeof STUDENT_TABS)[number]["value"])) {
-    return <StudentsLegacyView view={sp.view} statusFilter={parseStatusFilter(sp.status)} />;
+    return (
+      <StudentsLegacyView
+        view={sp.view}
+        statusFilter={parseStatusFilter(sp.status)}
+        schoolId={sp.school || undefined}
+      />
+    );
   }
 
   const workPerspective = resolveJagWorkPerspective("students", sp.work);

@@ -133,7 +133,11 @@ export interface TeacherWeek {
   classesNotHeld: number;
   /** Live total while open. The FROZEN figure once submitted. */
   gross: number;
-  status: "open" | "submitted";
+  status: "open" | "submitted" | "approved" | "not_approved";
+  /** What she wrote in the box above Submit. Empty when she had nothing to say. */
+  teacherNote: string | null;
+  /** Danni's reason when a week was not approved. Required to decline, optional to approve. */
+  reviewNote: string | null;
   submittedAt: string | null;
   /** Set when the week cannot be shown. The screen prints this instead of a zero. */
   unavailable: string | null;
@@ -180,6 +184,8 @@ function emptyWeek(
     classesNotHeld: 0,
     gross: 0,
     status: "open",
+    teacherNote: null,
+    reviewNote: null,
     submittedAt: null,
     unavailable,
     beforeGoLive,
@@ -376,12 +382,17 @@ export async function getTeacherWeek(
 
   const { data: submission } = await supabase
     .from("teacher_week_submissions")
-    .select("status, submitted_at, gross_cents")
+    .select("status, submitted_at, gross_cents, teacher_note, review_note")
     .eq("employee_id", employeeId)
     .eq("week_start", weekStart)
     .maybeSingle();
 
-  const submitted = submission?.status === "submitted";
+  /* SUBMITTED, APPROVED AND NOT APPROVED ARE ALL FROZEN. Review records a
+     judgement about a figure; it does not reopen the figure. Only 'open' is
+     editable, and a week Danni declined is still a week the teacher already
+     signed - she amends it, she does not edit it. */
+  const reviewed = ["submitted", "approved", "not_approved"];
+  const submitted = reviewed.includes(String(submission?.status ?? ""));
 
   return {
     employeeId,
@@ -399,7 +410,11 @@ export async function getTeacherWeek(
     gross: submitted
       ? ((submission?.gross_cents as number | null) ?? 0) / 100
       : Math.round(all.reduce((sum, c) => sum + c.gross, 0) * 100) / 100,
-    status: submitted ? "submitted" : "open",
+    status: (submitted
+      ? (submission?.status as "submitted" | "approved" | "not_approved")
+      : "open"),
+    teacherNote: (submission?.teacher_note as string | null) ?? null,
+    reviewNote: (submission?.review_note as string | null) ?? null,
     submittedAt: (submission?.submitted_at as string | null) ?? null,
     unavailable: null,
     beforeGoLive: false,

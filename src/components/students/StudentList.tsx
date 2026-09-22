@@ -12,6 +12,10 @@ import type { StudentListStatusFilter } from "@/lib/students/queries";
 interface StudentListProps {
   students: StudentRecord[];
   statusFilter?: StudentListStatusFilter;
+  /** Every campus the reader may see. Empty or one means no filter is drawn. */
+  schools?: { id: string; name: string }[];
+  /** The campus currently selected, if any. */
+  schoolId?: string;
   canManageLifecycle?: boolean;
 }
 
@@ -24,17 +28,39 @@ const FILTERS: Array<{ value: StudentListStatusFilter; label: string }> = [
 export function StudentList({
   students,
   statusFilter = "active",
+  schools = [],
+  schoolId,
   canManageLifecycle = false,
 }: StudentListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  function setFilter(next: StudentListStatusFilter) {
+  function go(mutate: (params: URLSearchParams) => void) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("view", "students");
-    params.set("status", next);
     params.delete("work");
+    mutate(params);
     router.push(`/dashboard/students?${params.toString()}`);
+  }
+
+  function setFilter(next: StudentListStatusFilter) {
+    go((params) => params.set("status", next));
+  }
+
+  /*
+   * THE CAMPUS FILTER.
+   *
+   * An EXECUTIVE_DIRECTOR reads every campus, so this list arrived as FL, GA,
+   * HS and Virtual together with no way to tell them apart - and the campus was
+   * not even a column, though schools(name) has always been fetched on every
+   * row and thrown away.
+   *
+   * Drawn only when there is more than one campus to choose between. A
+   * SCHOOL_LEADER who can read one campus does not need a filter that can only
+   * select the campus she is already looking at.
+   */
+  function setSchool(next: string | null) {
+    go((params) => (next ? params.set("school", next) : params.delete("school")));
   }
 
   return (
@@ -62,6 +88,45 @@ export function StudentList({
         })}
       </div>
 
+      {schools.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Campus
+          </span>
+          <button
+            type="button"
+            onClick={() => setSchool(null)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              !schoolId
+                ? "bg-brand-600 text-white"
+                : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            All campuses
+          </button>
+          {schools.map((school) => {
+            const active = schoolId === school.id;
+            return (
+              <button
+                key={school.id}
+                type="button"
+                onClick={() => setSchool(school.id)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+                  active
+                    ? "bg-brand-600 text-white"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {school.name}
+              </button>
+            );
+          })}
+          <span className="ml-1 text-sm text-slate-500">
+            {students.length} {students.length === 1 ? "student" : "students"}
+          </span>
+        </div>
+      ) : null}
+
       {students.length === 0 ? (
         <p className="py-8 text-center text-sm text-slate-500">
           {statusFilter === "archived"
@@ -77,6 +142,9 @@ export function StudentList({
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Name
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
+                  Campus
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Grade
@@ -117,6 +185,12 @@ export function StudentList({
                           Archived
                         </span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {/* schools(name) has always been fetched on every row and
+                          never shown. It is the answer to "which campus is this
+                          child at", which is why the list was hard to use. */}
+                      {s.schools?.name ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {gradeLabel(s.grade_level)}

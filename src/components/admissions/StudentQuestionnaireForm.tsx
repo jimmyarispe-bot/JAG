@@ -6,6 +6,7 @@ import {
   STUDENT_QUESTIONS,
   type StudentQuestionKey,
 } from "@/lib/admissions/student-questionnaire/questions";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
 
 /**
  * The form the student fills in.
@@ -20,19 +21,37 @@ import {
  */
 export function StudentQuestionnaireForm({ token }: { token: string }) {
   const [values, setValues] = useState<Partial<Record<StudentQuestionKey, string>>>({});
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
   const answered = STUDENT_QUESTIONS.filter((q) => (values[q.key] ?? "").trim()).length;
 
-  async function submit() {
-    setBusy(true);
+  /**
+   * The house action control rather than a hand-rolled button.
+   *
+   * It spins, disables itself, drives the progress bar at the top of the page,
+   * and — the part that matters here — ignores a second click outright rather
+   * than trusting the disabled attribute to have rendered in time. Somebody who
+   * has just written five paragraphs and is not sure the button worked will
+   * press it again; this form answers that before they ask.
+   */
+  const action = useActionFeedback({
+    verb: "submit",
+    labels: { idle: "Send my answers", loading: "Sending…", success: "✓ Sent" },
+    successToast: false,
+    errorToast: "We could not send that.",
+    progressLabel: "Sending your answers…",
+    onError: (err) => setError(err.message),
+  });
+
+  function submit() {
     setError(null);
-    const result = await submitStudentQuestionnaire({ token, answers: values });
-    setBusy(false);
-    if (result.ok) setDone(true);
-    else setError(result.error);
+    void action.run(async () => {
+      const result = await submitStudentQuestionnaire({ token, answers: values });
+      if (!result.ok) throw new Error(result.error);
+      setDone(true);
+      return result;
+    });
   }
 
   if (done) {
@@ -83,13 +102,17 @@ export function StudentQuestionnaireForm({ token }: { token: string }) {
       )}
 
       <div className="flex flex-wrap items-center gap-4">
-        <button
+        <ActionButton
           type="submit"
-          disabled={busy || answered === 0}
-          className="rounded-xl bg-[#1e3a8a] px-8 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-        >
-          {busy ? "Sending…" : "Send my answers"}
-        </button>
+          size="lg"
+          variant="primary"
+          status={action.status}
+          verb="submit"
+          disabled={answered === 0}
+          labels={{ idle: "Send my answers", loading: "Sending…", success: "✓ Sent" }}
+          errorMessage={action.errorMessage}
+          className="btn-academy rounded-xl px-10 py-3.5 text-base font-semibold"
+        />
         <span className="text-sm text-slate-500">
           {answered} of {STUDENT_QUESTIONS.length} answered
         </span>

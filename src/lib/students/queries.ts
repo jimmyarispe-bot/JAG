@@ -136,12 +136,25 @@ export type StudentListStatusFilter = "active" | "archived" | "all";
  * Load students for list views.
  * Default filter is Active (excludes status = archived).
  */
-export async function getStudents(statusFilter: StudentListStatusFilter = "active") {
+/**
+ * @param schoolId narrow to one campus. Undefined means every campus the
+ *   caller may read - which for an EXECUTIVE_DIRECTOR is the whole network,
+ *   and is why a filter was needed: FL, GA, HS and Virtual arrived as one
+ *   undifferentiated list.
+ */
+export async function getStudents(
+  statusFilter: StudentListStatusFilter = "active",
+  schoolId?: string
+) {
   const supabase = await createAuthClient();
   let query = supabase
     .from("students")
     .select("*, schools(name), campuses(name), families(family_name)")
     .order("last_name");
+
+  if (schoolId) {
+    query = query.eq("school_id", schoolId);
+  }
 
   if (statusFilter === "active") {
     query = query.neq("status", "archived");

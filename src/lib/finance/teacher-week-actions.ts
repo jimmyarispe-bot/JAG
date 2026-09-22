@@ -225,7 +225,7 @@ export async function setClassHeldAction(sessionId: string, held: boolean, note?
  * November after one of them withdrew. The class happened with four children at
  * the rate that applied that day. A submitted week is a receipt, not a formula.
  */
-export async function submitWeekAction(weekStart: string) {
+export async function submitWeekAction(weekStart: string, teacherNote?: string) {
   const ctx = await requireTeacherExperienceContext();
 
   if (weekStart < WEEKLY_SUBMISSION_GO_LIVE) {
@@ -274,6 +274,15 @@ export async function submitWeekAction(weekStart: string) {
       status: "submitted",
       submitted_at: new Date().toISOString(),
       submitted_by: user?.id ?? null,
+      /*
+       * "Is there anything cooky Jimmy needs to know about that happened this
+       * week?" - Jimmy, 22 September.
+       *
+       * Optional on purpose. A required box teaches people to type "n/a" and
+       * then nobody reads it. Blank means she had nothing to say, which is
+       * most weeks and is a fine answer.
+       */
+      teacher_note: teacherNote?.trim() ? teacherNote.trim() : null,
       gross_cents: Math.round(week.gross * 100),
       session_count: held.length,
       unheld_count: week.classesNotHeld,

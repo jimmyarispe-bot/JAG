@@ -70,7 +70,10 @@ export default async function TeacherTimesheetsPage({
       .slice(0, 10)
   );
 
-  const submitted = week.status === "submitted";
+  /* Submitted, approved and not approved are all frozen. Only an open week is
+     editable - a week Danni declined is still a week the teacher already
+     signed, and it is amended rather than edited. */
+  const submitted = week.status !== "open";
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -125,12 +128,48 @@ export default async function TeacherTimesheetsPage({
             </div>
 
             {submitted ? (
-              <div className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
-                <p className="font-semibold">Submitted</p>
-                <p className="text-xs">
-                  This figure is fixed. If something is wrong, file an amendment saying what
-                  changed — the week itself does not reopen.
-                </p>
+              <div className="space-y-2">
+                {/*
+                  * THREE STATES, NOT TWO. A submitted week is waiting; an
+                  * approved week has been checked; a week that was not approved
+                  * still goes to Jimmy - Danni's verdict is an annotation, not
+                  * a blockage - but the teacher should see it said so, and why,
+                  * rather than hearing about it later.
+                  */}
+                <div
+                  className={cn(
+                    "rounded-xl px-4 py-2 text-sm",
+                    week.status === "approved"
+                      ? "bg-emerald-50 text-emerald-800"
+                      : week.status === "not_approved"
+                        ? "bg-amber-50 text-amber-900"
+                        : "bg-slate-100 text-slate-700"
+                  )}
+                >
+                  <p className="font-semibold">
+                    {week.status === "approved"
+                      ? "Approved"
+                      : week.status === "not_approved"
+                        ? "Not approved — still sent to Jimmy"
+                        : "Submitted — waiting to be checked"}
+                  </p>
+                  <p className="text-xs">
+                    This figure is fixed. If something is wrong, file an amendment saying what
+                    changed — the week itself does not reopen.
+                  </p>
+                  {week.reviewNote ? (
+                    <p className="mt-1.5 text-xs">
+                      <span className="font-medium">Comment:</span> {week.reviewNote}
+                    </p>
+                  ) : null}
+                </div>
+
+                {week.teacherNote ? (
+                  <div className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600">
+                    <p className="text-xs font-medium text-slate-500">What you told Jimmy</p>
+                    <p className="mt-0.5">{week.teacherNote}</p>
+                  </div>
+                ) : null}
               </div>
             ) : week.classesHeld > 0 ? (
               <SubmitWeekButton
