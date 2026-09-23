@@ -263,14 +263,6 @@ export async function inviteProspectGuardians(input: {
   signatory: string;
   /** The campus name, printed under the signatory. */
   schoolName?: string;
-  /**
-   * Set when this is being done BY a decision rather than by a user manager.
-   *
-   * A school leader answering invite_to_apply holds `admissions.accept` and not
-   * `users.manage`, so without this the account cannot be created and the
-   * family is emailed a link to a password box. See ManagedUserInput.authority.
-   */
-  authority?: { readonly kind: "admissions_gate"; readonly leadId: string };
 }): Promise<{ invited: ProspectInviteOutcome[]; skipped: number }> {
   const admin = createServiceRoleClient();
   const ids = input.guardianIds.slice(0, PROSPECT_INVITE_BATCH_LIMIT);
@@ -333,7 +325,6 @@ export async function inviteProspectGuardians(input: {
       schoolIds: [input.schoolId],
       role: "PARENT",
       status: "pending_invite",
-      ...(input.authority ? { authority: input.authority } : {}),
       /**
        * Where the link actually ends.
        *

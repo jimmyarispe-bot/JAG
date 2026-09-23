@@ -15,7 +15,6 @@ import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import { notifyAdmissionsEvent } from "@/lib/admissions/communications/triggers";
 import { submitAdmissionsDecision } from "@/lib/admissions/decisions";
 import { getInquiryHighlights } from "@/lib/admissions/interest-form/carry-forward";
-import { openPortalDoorForLead } from "@/lib/admissions/gates/portal-access";
 import {
   branchFor,
   gateFor,
@@ -273,28 +272,29 @@ export async function answerDecisionGate(formData: FormData) {
   }
 
   /*
-   * Before the family is told, make sure they can act on being told.
+   * A PARENT ACCOUNT IS NOT CREATED HERE, DELIBERATELY.
    *
-   * invite_to_apply points at /apply/portal, which redirects to /login for
-   * anybody without an account. On 22 Sep Lisa Roy received a correct,
-   * well-addressed invitation and landed on a password box. The account is
-   * created FIRST so that a parent who clicks immediately finds a door.
+   * On 22 Sep this action was changed to provision the family's portal account
+   * when invite_to_apply was answered yes, because the invitation links to
+   * /apply/portal and that page redirects anyone without a session to /login.
+   * Lisa Roy received a correct invitation and landed on a password box.
    *
-   * Only for branches that send the family somewhere they must sign in. A
-   * decline needs no account, and creating one for a family we have just
-   * turned down would be its own small cruelty.
+   * That fix was wrong about the product, not about the symptom. Jimmy,
+   * 23 Sep: "we can't/shouldn't ask a parent to create an account without
+   * being an accepted student to our school." An account belongs to a family
+   * OF the school. A family being invited to apply is not that yet, and may
+   * never be - some of these will be declined.
+   *
+   * So applying must not require an account at all. The application link needs
+   * to carry its own authority - a token unique to the lead - and open the
+   * form prefilled with what the family already told us. Until that exists,
+   * answering this gate sends an invitation whose link does not yet work, and
+   * school leaders have been asked to hold.
+   *
+   * Reverted here rather than left switched off, because dead code that
+   * provisions accounts is a thing somebody re-wires later without reading
+   * why it was turned off.
    */
-  if (branch.answer === "yes" && branch.familyEvent) {
-    const door = await openPortalDoorForLead(supabase, leadId);
-    if (door.error) {
-      // Deliberately NOT sending the invitation. See portal-access.ts.
-      return {
-        error:
-          `Your answer was recorded, but the family was not emailed: their portal account could not be created (${door.error}). ` +
-          `Nothing has been sent, so nobody has a broken link.`,
-      };
-    }
-  }
 
   if (branch.familyEvent) {
     try {
