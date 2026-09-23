@@ -54,6 +54,8 @@ export interface MergeContext {
    * small mistake.
    */
   shadowDaysUrl?: string | null;
+  /** Minted per lead. Lets the family apply without an account. */
+  applicationToken?: string | null;
   /**
    * What the school leader wrote, for THIS family, about what their child's day
    * will look like. Captured when gate 2 is answered yes — the moment the
@@ -107,7 +109,18 @@ function portalLink(ctx: MergeContext): string {
   return `${base}/apply/portal`;
 }
 
+/**
+ * Where "You can begin here" actually goes.
+ *
+ * The token route needs no account. portalLink() is kept as the fallback for a
+ * lead with no token - it redirects to /login, which is wrong for a family, so
+ * a missing token is a fault worth seeing rather than hiding. Tokens are minted
+ * when the gate is answered, so the only way to reach the fallback is a lead
+ * invited by some path that forgot to mint one.
+ */
 function applicationLink(ctx: MergeContext): string {
+  const token = ctx.applicationToken?.trim();
+  if (token) return `${resolvePublicAppOrigin()}/apply/start/${token}`;
   return portalLink(ctx);
 }
 

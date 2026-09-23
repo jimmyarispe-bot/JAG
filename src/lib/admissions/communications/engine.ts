@@ -29,6 +29,7 @@ type LeadMergeRow = {
   guardian_email: string | null;
   guardian_phone: string | null;
   program: string | null;
+  application_access_token: string | null;
   schools: SchoolContact | SchoolContact[] | null;
 };
 
@@ -96,6 +97,8 @@ function buildMergeContextFromParts(
     admissionsContactEmail: clean(schoolOf(lead)?.admissions_contact_email),
     schedulingUrl: clean(schoolOf(lead)?.admissions_booking_url),
     shadowDaysUrl: clean(schoolOf(lead)?.shadow_days_url),
+    /* The application link carries its own authority. See merge-fields. */
+    applicationToken: clean(lead.application_access_token),
     fromEmail: clean(schoolOf(lead)?.admissions_from_email),
     program: lead.program,
     campusName: tour.campusName,
