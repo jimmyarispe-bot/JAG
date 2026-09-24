@@ -177,6 +177,16 @@ export function isInterestFormMetadataKey(key: string): key is InterestFormMetad
 export const EXPRESS_INTEREST_SUBMISSION_SOURCE = "express_interest" as const;
 
 /**
+ * The same form, submitted by a family a school leader invited.
+ *
+ * A sibling of the constant above and for the same reason: `source` is
+ * metadata the SERVER decides, never a value the browser sends. A submission
+ * that could label itself would make this column useless for telling apart a
+ * stranger from the website and a family already in the pipeline.
+ */
+export const INVITED_APPLICATION_SUBMISSION_SOURCE = "invited_application" as const;
+
+/**
  * Validate submission values against a published definition and current options.
  */
 export function validateInterestSubmission(input: {

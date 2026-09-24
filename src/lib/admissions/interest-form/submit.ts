@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import {
   EXPRESS_INTEREST_SUBMISSION_SOURCE,
+  INVITED_APPLICATION_SUBMISSION_SOURCE,
   formDataToInterestValues,
   validateInterestSubmission,
 } from "@/lib/admissions/interest-form/definition";
@@ -439,5 +440,99 @@ export async function submitPublishedInterestForm(
   }
 
   revalidatePath("/apply");
+  return { leadId, submissionId: persisted.submissionId };
+}
+
+
+/**
+ * Submit the same form for a family who ALREADY has a lead.
+ *
+ * WHY A SECOND PATH. submitPublishedInterestForm() calls
+ * submit_public_admissions_inquiry, whose job is to CREATE a lead. That is
+ * right for a stranger arriving on the website and wrong for a family a school
+ * leader has invited: running it for Lisa Roy would produce a second Jayden
+ * Roy and leave the decision, the gate and the history on the first one.
+ *
+ * WHAT IS SHARED, deliberately: the validation. validateInterestSubmission is
+ * what enforces the campus conditionals - it decides which sections are
+ * visible for this school_id and rejects answers to the rest. Duplicating that
+ * would give the two paths two different ideas of what a valid application is,
+ * and the invited path would be the one nobody notices drifting.
+ *
+ * WHAT IS NOT SHARED: creating the lead, and opening the automation gate. The
+ * gate stays shut here. A family being invited to apply was already known to
+ * us; whoever invited them decides when automated chasing starts, exactly as
+ * it works for every other non-website route into admissions_leads.
+ *
+ * The lead id is the caller's to supply and is never taken from the browser -
+ * it comes from the invitation link's token, resolved server-side.
+ */
+export async function submitInterestFormForExistingLead(
+  leadId: string,
+  formData: FormData
+): Promise<{ leadId: string; submissionId: string } | { error: string }> {
+  const spamError = await verifyAntiSpam(formData);
+  if (spamError) return { error: spamError };
+
+  const org = await resolveInterestFormOrganization();
+  if (!org) {
+    return { error: "Unable to resolve organization for this application." };
+  }
+
+  const published = await loadPublishedInterestForm({
+    organizationId: org.organizationId,
+    organizationName: org.organizationName,
+  });
+  if (!published) {
+    return { error: "The application form is not available." };
+  }
+
+  const values = formDataToInterestValues(formData);
+  const schoolIds = new Set(published.schools.map((s) => s.id));
+  const programCodes = allowedInterestProgramTypes();
+
+  const validation = validateInterestSubmission({
+    definition: published.definition,
+    values,
+    schoolIds,
+    programCodesForSchool: programCodes,
+    claimedFormVersionId: asString(formData.get("form_version_id")) || null,
+    publishedFormVersionId: published.formVersionId,
+  });
+
+  if (!validation.ok) {
+    return { error: validation.issues.map((i) => i.message).join(" ") };
+  }
+
+  const visible = validation.visibleValues;
+
+  /*
+   * The lead must exist and must belong to this organization. Checked rather
+   * than trusted: a lead id that resolves to another tenant would write one
+   * family's application onto another's record, and the caller cannot see the
+   * difference from the outside.
+   */
+  const admin = createServiceRoleClient();
+  const { data: lead, error: leadError } = await admin
+    .from("admissions_leads")
+    .select("id, school_id")
+    .eq("id", leadId)
+    .maybeSingle();
+
+  if (leadError) return { error: leadError.message };
+  if (!lead) return { error: "That application link is no longer valid." };
+
+  const persisted = await persistInterestSubmission({
+    organizationId: org.organizationId,
+    leadId,
+    formId: published.formId,
+    formVersionId: published.formVersionId,
+    source: INVITED_APPLICATION_SUBMISSION_SOURCE,
+    referralSource: encodeLeadReferralExtras(visible),
+    values: visible,
+  });
+
+  if ("error" in persisted) return { error: persisted.error };
+
   return { leadId, submissionId: persisted.submissionId };
 }

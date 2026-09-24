@@ -37,6 +37,18 @@ import {
 
 type InterestFormRendererProps = {
   published: PublishedInterestForm;
+  /**
+   * What we already know about this family, by question key.
+   *
+   * Absent on the public form at /apply, which is a stranger arriving with
+   * nothing - so that route behaves exactly as it did before this prop
+   * existed. Supplied when a school leader has invited a family, so the parent
+   * is not asked their own child's name again.
+   *
+   * Merged OVER the definition's defaults and under nothing: a value here wins
+   * against a default, and the family typing wins against both.
+   */
+  initialValues?: Record<string, unknown>;
 };
 
 function defaultValues(published: PublishedInterestForm): InterestFormValues {
@@ -626,10 +638,26 @@ function QuestionField({
   );
 }
 
-export function InterestFormRenderer({ published }: InterestFormRendererProps) {
+export function InterestFormRenderer({
+  published,
+  initialValues,
+}: InterestFormRendererProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [values, setValues] = useState<InterestFormValues>(() => defaultValues(published));
+  /*
+   * Defaults first, then what we already know. Only keys the form actually has
+   * are taken: a prefill carrying a question that has since been removed from
+   * the definition would otherwise be submitted as an answer to nothing.
+   */
+  const [values, setValues] = useState<InterestFormValues>(() => {
+    const base = defaultValues(published);
+    if (!initialValues) return base;
+    const known = new Set(published.definition.questions.map((q) => q.key));
+    for (const [key, value] of Object.entries(initialValues)) {
+      if (known.has(key)) base[key] = value as InterestFormValues[string];
+    }
+    return base;
+  });
 
   /*
    * "Submit Inquiry", not "Submit Application".
