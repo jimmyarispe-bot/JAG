@@ -1,59 +1,49 @@
-The application comes before the shadow days, and the decision after them
+Acceptance hands the family to the business office, and says so
 
-The pipeline board carried a stage order nobody at The Academy Way works to:
-shadow days before the application, then two columns - Documents Pending and
-Committee Review - that arrived with a generic admissions template. Jimmy,
-24 September: "the application started comes before the shadow days scheduled.
-after the shadow days completed, then the decision needs to be made." And on
-the other two: "documents are included in the application so why would there
-be a documents pending column. we don't have a committee so where did that
-come from."
+Three things were wrong with what happens after a school leader clicks Accept.
 
-The board is now the real sequence, and it matches the order the emails have
-always fired in: invited to apply after the tour or interest meeting, invited
-to shadow days once the application is submitted, accepted or denied once the
-shadow days are done.
+THE FAMILY'S LETTER GAVE THEM HOMEWORK. It listed four "enrollment steps",
+three of which render fixed sentences saying details will follow later, and
+the fourth of which linked a family with no account to a password box. It was
+signed "Admissions" rather than by the person who met their child. Jimmy's
+wording replaces it, and it says the one thing a family needs: there is
+nothing for you to do until our business office contacts you, and here are
+the three things they will finalise.
 
-  ... Tour Conducted
-    -> Application Started
-    -> Application Submitted
-    -> Shadow Days Scheduled
-    -> Shadow Days Completed
-    -> Decision
+One change to his text, and he was told: he wrote "welcome him and your
+family". Gender is not recorded on a lead - zero of 107 students carry it -
+so a fixed "him" reaches a girl's family. The child's first name says the same
+thing and cannot be wrong.
 
-DECISION IS NOT A STAGE. A family in that column is still at
-shadow_day_completed; what changed is that a question is open on them. The
-column is drawn from the open accept-or-deny gates, so it fills and empties by
-itself and nobody has to move a card into it. Inventing a stage that only
-enters when told to is how a pipeline starts lying about where a child is.
+NOBODY WAS TOLD A STUDENT HAD BEEN ACCEPTED. The staff template existed and
+was is_active, which is exactly why nobody noticed: it sat on the
+internal_note channel, which records a message and never sends one. A row
+appeared, no mail left the building, no error was raised. Moved to
+staff_email, which delivers.
 
-Those families are removed from Shadow Days Completed while they stand in
-Decision - two cards for one child means clearing the board twice, each pass
-believing the other had not happened. The column also obeys the filters: a
-board narrowed to one campus does not leave another campus's decisions
-standing in the last column.
+And it reached the wrong people even then. school_admissions_contacts answers
+"who at this CAMPUS should be told", which is right for an inquiry and wrong
+for an acceptance - that is the moment admissions hands a family to the
+business office, and the business office is network-level. Jimmy was a contact
+on The Academy FL and on no other campus, so three of four schools could
+accept a student in silence.
 
-The wording on the card comes from GATES, the same object the Decisions page
-and the server action read, so the question a school leader sees and the
-consequence of their answer cannot drift apart.
+network-office.ts adds him to the recipients for that ONE event, listed
+explicitly. Adding him to every campus's contact row would also have worked,
+and would have sent him every inquiry, upload and funding alert at four
+schools.
 
-A failed gate read leaves the column undrawn rather than drawn empty. "Nobody
-is waiting" and "I could not find out" are different answers and must not look
-the same.
+THE ENROLLMENT PACKET WAS NEVER BUILT. submitAdmissionsDecision only generates
+the packet, and only stamps the application's status and decision date, when
+it is handed an application id. The gate never passed one. So accepting a
+student produced no packet at all, while the email told the family to go and
+complete one. The gate now reads the lead's most recent application and hands
+it across; a lead with no application still accepts, it simply gets no packet,
+which is the honest outcome when there is nothing to build one from.
 
-Documents Pending and Committee Review are deactivated, not deleted. Their
-stage keys stay valid so a lead carrying records_requested or
-admissions_review still resolves to something; deleting the definitions would
-make such a lead match no column and vanish without an error - the exact bug
-documented on shadow_day_completed in the same file. Verified empty first:
-zero leads in either
-(supabase/diagnostics/who_is_in_the_two_columns_2026_09_24.sql).
+Migration 415 carries both templates and verifies its own work - it raises
+rather than returning quietly if either row did not move, because a template
+that silently did not change is the failure this commit exists to end.
 
-Also here, read-only: the diagnostics that minted Jayden Roy's application
-link and read the acceptance letter as it stands today.
-
-Not in this commit: the acceptance letter still says "Our admissions team will
-contact you with next steps" and nobody is emailed when a student is accepted
-- the staff template exists but sits on the internal_note channel, which
-records a message and never sends one. Both are template rows, so both are a
-migration, and neither is written blind.
+The decline letter is still absent and still deliberate. Writing one is
+Jimmy's to approve, not a migration's to invent.

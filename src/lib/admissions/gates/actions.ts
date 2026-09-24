@@ -243,8 +243,31 @@ export async function answerDecisionGate(formData: FormData) {
   // The accept/deny gate hands off to the path that already generates the
   // enrollment packet, writes the decision row and updates the application.
   if (branch.delegatesToDecision) {
+    /*
+     * THE FAMILY'S APPLICATION HAS TO COME WITH THE ANSWER.
+     *
+     * submitAdmissionsDecision only generates the enrollment packet, and only
+     * updates the application's status and decision date, when it is handed an
+     * application id. This path never passed one, so accepting a student from
+     * the gate produced no packet at all - while the acceptance email told the
+     * family to go and complete one.
+     *
+     * Read rather than assumed: a lead with no application row still accepts,
+     * it simply gets no packet, which is the honest outcome when there is
+     * nothing to build a packet from. Most recent first, because a family who
+     * started twice means the later attempt.
+     */
+    const { data: application } = await supabase
+      .from("admissions_applications")
+      .select("id")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const decisionForm = new FormData();
     decisionForm.set("lead_id", leadId);
+    if (application?.id) decisionForm.set("application_id", application.id as string);
     decisionForm.set("decision_type", branch.delegatesToDecision);
     decisionForm.set("decision_notes", notes ?? "");
     decisionForm.set("send_email", "true");

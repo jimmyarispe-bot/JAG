@@ -1,6 +1,7 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { fetchLeadFundingCodesByLeadIds } from "@/lib/funding/sync";
 import { resolveSchoolAdmissionsContacts } from "@/lib/admissions/communications/staff-recipients";
+import { withNetworkOffice } from "@/lib/admissions/communications/network-office";
 import { renderTemplate, type MergeContext } from "@/lib/admissions/communications/merge-fields";
 import { adjustManyScheduledForBusinessHours } from "@/lib/platform/automation/business-hours";
 import { sendTransactionalEmail } from "@/lib/platform/email";
@@ -479,7 +480,14 @@ export async function triggerCommunications(
     admissionsContactName: contacts.contactName,
     admissionsContactEmail: contacts.contactEmail,
     schedulingUrl: contacts.bookingUrl,
-    staffNotificationEmails: contacts.notificationEmails,
+    /*
+     * The campus contacts, plus the network office on the events that are the
+     * network's business - acceptance. See network-office.ts.
+     */
+    staffNotificationEmails: withNetworkOffice(
+      options.triggerEvent,
+      contacts.notificationEmails
+    ),
   };
 
   const allTemplates = await getTemplatesForTrigger(supabase, schoolId, options.triggerEvent);
