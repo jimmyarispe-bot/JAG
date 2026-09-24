@@ -165,6 +165,26 @@ export const INTEREST_FORM_METADATA_KEYS = [
   "form_version_id",
   "cf-turnstile-response",
   "source",
+  /*
+   * invitation_token — the family's application link, not an answer.
+   *
+   * ADDED 24 September 2026, AFTER IT REACHED A PARENT. Lisa Roy completed
+   * Jayden's whole application through her invitation link and was told
+   * "Unknown question: invitation_token. Please try again." There was nothing
+   * she could do about it and nothing she had done wrong: the renderer posts
+   * the token alongside the answers so the server can tell whose application
+   * this is, formDataToInterestValues sweeps every field in the body, and this
+   * list is what separates a form field from a question. The token was not on
+   * it, so the validator called the family's own credential a question they
+   * had invented and refused the submission.
+   *
+   * It is metadata in the truest sense - it identifies the submitter and is
+   * never stored as an answer. Unlike `source` above it IS read from the
+   * browser, deliberately: the link is the credential, and carrying it in the
+   * body is the whole mechanism. It is verified in
+   * lib/admissions/apply-link/token.ts before anything is written.
+   */
+  "invitation_token",
 ] as const;
 
 export type InterestFormMetadataKey = (typeof INTEREST_FORM_METADATA_KEYS)[number];
