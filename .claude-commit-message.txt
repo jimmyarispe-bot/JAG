@@ -1,35 +1,37 @@
-A parent could not submit the application she had just filled in
+Three deployments failed all day and nothing said so
 
-Lisa Roy opened her invitation link this morning, completed Jayden's whole
-application, signed it, pressed submit and was told:
+Every ship today - the board reorder, the acceptance letters, and the fix a
+parent was waiting on - pushed to GitHub, reported "Shipped. Vercel is
+building", and then failed to build. Production has been serving d7c0690 from
+last night since 10:50 this morning. Lisa Roy retried her application after
+the fix was "shipped" and got the identical error, because the fix was never
+deployed.
 
-    Unable to submit
-    Unknown question: invitation_token. Please try again.
+WHAT BROKE IT. The board reorder took `committee_review` off the board, and
+`validate-admissions-registry.mts` asserts that committee_review can reach
+accepted, waitlisted and declined. That check fails, `npm run build` exits 1,
+and the deployment dies at 10 seconds.
 
-She had done nothing wrong and there was nothing she could do. She wrote in to
-say so: "I reviewed the application and completed all of the required fields,
-and I did not see any indication that information was missing."
+The invariant is right and stays. A pipeline whose last working stage cannot
+reach an outcome traps families. It was simply pointed at the wrong stage: the
+decision is made at `shadow_day_completed` now - that is where the
+accept-or-deny gate opens and where the board's Decision column sits - so that
+is the stage it asserts about.
 
-WHAT ACTUALLY HAPPENED. The invited route posts the family's token in the same
-body as their answers - that is how the server knows whose application this
-is - and `formDataToInterestValues` sweeps every field in that body into
-`values`. INTEREST_FORM_METADATA_KEYS is the only thing separating a form
-field from a question, and `invitation_token` was not on it. So the validator
-looked at the family's own credential, found no question by that name, and
-reported it as a question Lisa had invented.
+WHY IT WAS INVISIBLE FOR THREE SHIPS, which is the part worth keeping.
 
-It is metadata in the truest sense: it identifies the submitter and is never
-stored as an answer. Unlike `source` beside it, it IS read from the browser,
-deliberately - the link is the credential, and carrying it in the body is the
-whole mechanism. It is verified in apply-link/token.ts before anything is
-written, and this change does not touch that.
+  npx tsc --noEmit        passes
+  npx vitest run          passes, 596 tests
+  npm run build           FAILS
 
-WHY NOTHING CAUGHT IT. The invited route is the only route that carries a
-token. Every test, and every submission through the public form, exercises a
-body that has no token in it, so no existing test could have failed. The new
-test stands in for the parent who did: it asserts the token is accepted, that
-it never lands in the stored answers, and - the part that matters as much -
-that a field which really is unknown is still refused. The guard is a list,
-not a pass-through, and it should stay one.
+Only `npm run build` runs validate:admissions, and only Vercel runs
+`npm run build`. The ship script checks types and tests, then pushes, then
+prints "Shipped. Vercel is building" - which is a statement about what was
+started, not about what happened. I read it as success three times and never
+opened the deployment. That is the house pattern with the roles reversed: not
+a silent failure this time but a confident success message standing in front
+of one, and the cost was a family being told to try again on code that had
+never shipped.
 
-Shipped ahead of anything else queued. A family is waiting on this link.
+Verified before this commit, in this order: validate:admissions passed, then
+the full `npm run build` completed with a clean route table.

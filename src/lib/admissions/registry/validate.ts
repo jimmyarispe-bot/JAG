@@ -104,12 +104,35 @@ export function validateAdmissionsRegistry(): AdmissionsRegistryValidationResult
     }
   }
 
-  const committeeTargets: AdmissionsPipelineStageKey[] = ["accepted", "waitlisted", "declined"];
-  for (const target of committeeTargets) {
-    if (!isPipelineTransitionAllowed("committee_review", target)) {
+  /**
+   * THE PIPELINE MUST HAVE A WAY OUT, AND IT MUST BE THE REAL ONE.
+   *
+   * This asked whether `committee_review` could reach an outcome. It was the
+   * right invariant pointed at the wrong stage, and on 24 September 2026 it
+   * failed the build for three deployments running - the board reorder, the
+   * acceptance letters, and a fix a parent was waiting on - because
+   * committee_review had been taken off the board that morning. Jimmy: "we
+   * don't have a committee so where did that come from."
+   *
+   * The invariant itself is worth keeping: a pipeline whose last working stage
+   * cannot reach accepted, waitlisted or declined is a pipeline that traps
+   * families. It now names the stage where the decision is actually made -
+   * `shadow_day_completed`, where the accept-or-deny gate opens and where the
+   * board's Decision column sits.
+   *
+   * WHY THE BREAK WAS INVISIBLE UNTIL A FAMILY HIT IT. `npx tsc --noEmit` and
+   * the test suite both pass with this broken; only `npm run build` runs
+   * `validate:admissions`, and only Vercel runs `npm run build`. The ship
+   * script reported "Shipped. Vercel is building" and the build then failed
+   * silently, three times - the house pattern exactly: a success message in
+   * front of a failure nobody was shown.
+   */
+  const decisionTargets: AdmissionsPipelineStageKey[] = ["accepted", "waitlisted", "declined"];
+  for (const target of decisionTargets) {
+    if (!isPipelineTransitionAllowed("shadow_day_completed", target)) {
       issues.push({
         code: "invalid_pipeline_transition",
-        message: `Committee review cannot transition to "${target}"`,
+        message: `Shadow days completed cannot transition to "${target}"`,
       });
     }
   }
