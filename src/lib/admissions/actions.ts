@@ -17,9 +17,11 @@ import {
   stageRequiresAppointment,
   type AppointmentStage,
 } from "@/lib/admissions/appointment-stages";
+import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
 import {
   onEnrollmentCompleted,
   onInquirySubmitted,
+  notifyAdmissionsEvent,
   onInterviewScheduled,
   onTourScheduled,
 } from "@/lib/admissions/communications/triggers";
@@ -482,13 +484,41 @@ export async function scheduleInterview(formData: FormData) {
   );
   if (stageResult.error) return { error: stageResult.error };
 
-  await onInterviewScheduled(
-    supabase,
-    leadId,
-    applicationId,
-    scheduledAt,
-    user?.id ?? null
-  );
+  /**
+   * A SHADOW DAY IS NOT AN INTEREST MEETING, AND THE FAMILY MUST NOT BE TOLD IT IS.
+   *
+   * A shadow day is stored as an interview of type `initial_assessment` - one
+   * representation rather than two tables, which is fine. But this function
+   * used that type to pick the STAGE and then sent the interview letter no
+   * matter what had been booked.
+   *
+   * On 17 September that emailed Amy D'Amico to say her son Maddox had an
+   * interview at 1:00 PM on the 24th and to prepare recent report cards and
+   * IEP or evaluation summaries. Maddox had a shadow day. Nobody had arranged
+   * an interview, and The Academy Way does not conduct them at all - Heather
+   * Badger-Brown, reading it: "The Jag is setting up interviews. We haven't
+   * interviewed prospective families."
+   *
+   * The type already decides the stage. It decides the message now too, which
+   * is the thing it should always have decided first.
+   */
+  if (interviewType === "initial_assessment") {
+    await notifyAdmissionsEvent(supabase, {
+      leadId,
+      applicationId,
+      events: ["shadow_day_scheduled", "staff_shadow_day_scheduled"],
+      sentBy: user?.id ?? null,
+      mergeOverrides: { interviewDatetime: appointmentTextForFamily(scheduledAt) },
+    });
+  } else {
+    await onInterviewScheduled(
+      supabase,
+      leadId,
+      applicationId,
+      scheduledAt,
+      user?.id ?? null
+    );
+  }
 
   revalidatePath(`/dashboard/admissions/leads/${leadId}`);
   return { success: true };

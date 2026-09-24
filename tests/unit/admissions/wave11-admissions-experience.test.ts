@@ -80,8 +80,16 @@ describe("Wave 1.1 Admissions Experience", () => {
     );
     expect(PARENT_ONBOARDING_CHECKLIST.some((c) => c.id === "portal")).toBe(true);
     expect(toDashboardStatus({ applicationStatus: "submitted" })).toBe("Submitted");
+    /*
+     * "Interest Meeting Scheduled", not "Interview Scheduled" - 24 September
+     * 2026. Jimmy: "there shouldn't be anything that says interview. we don't
+     * do interviews." This string is parent-facing: it is the chip a family
+     * sees on their own application. The stage KEY is still
+     * `interview_scheduled`, deliberately - renaming it would be a migration
+     * across the whole pipeline for a word nobody outside the code reads.
+     */
     expect(toDashboardStatus({ pipelineStage: "interview_scheduled" })).toBe(
-      "Interview Scheduled"
+      "Interest Meeting Scheduled"
     );
   });
 

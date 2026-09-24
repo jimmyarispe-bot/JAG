@@ -42,6 +42,19 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   "application_not_invited",
   "shadow_days_invited",
   "shadow_days_not_invited",
+  /*
+   * The shadow day is BOOKED - a different message from the invitation to book
+   * one, and from an interview.
+   *
+   * Added 24 September 2026 because there was no such event and booking a
+   * shadow day therefore sent the family the INTERVIEW letter. Amy D'Amico was
+   * told her son Maddox had an interview today at 1:00 PM and to prepare
+   * report cards and IEP summaries. He had a shadow day booked. Heather
+   * Badger-Brown, who had scheduled neither, wrote: "The Jag is setting up
+   * interviews. We haven't interviewed prospective families."
+   */
+  "shadow_day_scheduled",
+  "staff_shadow_day_scheduled",
   "student_accepted",
   "student_waitlisted",
   "student_declined",
@@ -174,6 +187,8 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   application_not_invited: "Inquiry Closed With Thanks",
   shadow_days_invited: "Invited to Shadow Days",
   shadow_days_not_invited: "Application Declined",
+  shadow_day_scheduled: "Shadow Day Booked",
+  staff_shadow_day_scheduled: "Staff: Shadow Day Booked",
   tour_scheduled: "Tour Scheduled",
   tour_reminder_24h: "Tour Reminder (24h)",
   tour_reminder_2h: "Tour Reminder (2h)",
@@ -187,9 +202,9 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   funding_verification_rejected: "Funding Verification Rejected",
   financial_aid_documents_requested: "Financial Aid Documents Requested",
   application_submitted: "Application Submitted",
-  interview_scheduled: "Interview Scheduled",
-  interview_reminder_24h: "Interview Reminder (24h)",
-  interview_reminder_2h: "Interview Reminder (2h)",
+  interview_scheduled: "Interest Meeting Scheduled",
+  interview_reminder_24h: "Interest Meeting Reminder (24h)",
+  interview_reminder_2h: "Interest Meeting Reminder (2h)",
   additional_info_requested: "Additional Information Requested",
   student_accepted: "Student Accepted",
   student_waitlisted: "Student Waitlisted",
@@ -200,7 +215,7 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   staff_documents_uploaded: "Staff: Documents Uploaded",
   staff_funding_verified: "Staff: Funding Verified",
   staff_financial_aid_submitted: "Staff: Financial Aid Submitted",
-  staff_interview_scheduled: "Staff: Interview Scheduled",
+  staff_interview_scheduled: "Staff: Interest Meeting Scheduled",
   staff_application_submitted: "Staff: Application Submitted",
   staff_application_accepted: "Staff: Application Accepted",
   staff_portal_message: "Staff: Portal Message",

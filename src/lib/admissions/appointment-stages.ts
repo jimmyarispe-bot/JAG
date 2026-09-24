@@ -59,8 +59,8 @@ export const APPOINTMENT_STAGES: Readonly<Record<AppointmentStage, AppointmentSt
   },
   interview_scheduled: {
     table: "admissions_interviews",
-    noun: "interview",
-    title: "Book the interview",
+    noun: "interest meeting",
+    title: "Book the interest meeting",
     typeColumn: "interview_type",
     typeOptions: [
       { value: "virtual", label: "Virtual" },

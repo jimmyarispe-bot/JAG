@@ -9,7 +9,7 @@ const TONE: Record<ApplicationDashboardStatus, string> = {
   Submitted: "bg-sky-100 text-sky-800",
   "Under Review": "bg-amber-100 text-amber-900",
   "Assessment Scheduled": "bg-violet-100 text-violet-900",
-  "Interview Scheduled": "bg-indigo-100 text-indigo-900",
+  "Interest Meeting Scheduled": "bg-indigo-100 text-indigo-900",
   Accepted: "bg-emerald-100 text-emerald-900",
   Waitlisted: "bg-orange-100 text-orange-900",
   Declined: "bg-rose-100 text-rose-900",

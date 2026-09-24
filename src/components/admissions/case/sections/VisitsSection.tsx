@@ -11,7 +11,7 @@ export function VisitsSection(props: ProfileSectionViewProps) {
     tours: Record<string, unknown>[];
     interviews: Record<string, unknown>[];
   } | null;
-  if (!data) return missing("Tours & Interviews");
+  if (!data) return missing("Tours & Interest Meetings");
 
   const leadId = props.envelope.entityId;
 
@@ -31,9 +31,9 @@ export function VisitsSection(props: ProfileSectionViewProps) {
             </ul>
           )}
         </ProfileCard>
-        <ProfileCard title="Interviews">
+        <ProfileCard title="Interest meetings">
           {data.interviews.length === 0 ? (
-            <ProfileEmpty>No interviews scheduled</ProfileEmpty>
+            <ProfileEmpty>No interest meetings scheduled</ProfileEmpty>
           ) : (
             <ul className="space-y-2 text-sm">
               {data.interviews.map((i) => (

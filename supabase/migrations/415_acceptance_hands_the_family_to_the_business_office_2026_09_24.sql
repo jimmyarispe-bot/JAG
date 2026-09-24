@@ -43,11 +43,17 @@
   is the network-wide default every campus falls back to. Inserting would leave
   two candidates for one trigger and the engine would send both.
 
-  THE FAMILY'S LETTER IS JIMMY'S OWN WORDING, 24 September, with one change he
-  was told about: he wrote "welcome him and your family". Gender is not recorded
-  on a lead - zero of 107 students carry it - so a fixed "him" would reach a
-  girl's family. {{student_first_name}} says the same warmth and cannot be wrong
-  about a child.
+  THE FAMILY'S LETTER IS JIMMY'S OWN WORDING, revised by him on 24 September
+  and copied here word for word. Only the placeholders are mine: [only parent
+  first name] is {{guardian_first_name}}, [only students first name] and
+  [student's first name] are {{student_first_name}}, [school name] is
+  {{school_name}}.
+
+  THE CHILD'S NAME, NEVER A PRONOUN. His first draft read "welcome him and your
+  family". Gender is not recorded on a lead - zero of 107 students carry it - so
+  a fixed "him" would reach a girl's family. Raised with him, and his answer was
+  "always use child's name". That rule holds for every letter, not only this
+  one.
 
   NOTHING HERE TOUCHES THE DECLINE LETTER. There still isn't one, and writing
   one is Jimmy's to approve, not this migration's to invent.
@@ -56,11 +62,11 @@
 update public.admissions_communication_templates
 set
   subject = '{{student_name}} has been accepted to {{school_name}}',
-  body = $letter$Dear {{parent_name}},
+  body = $letter$Dear {{guardian_first_name}},
 
-It is my privilege to tell you that {{student_name}} has been accepted to {{school_name}}.
+It is my privilege to tell you that {{student_first_name}} has been accepted to {{school_name}}.
 
-We spent the shadow days with your child and are very excited to welcome {{student_first_name}} and your family to the {{school_name}} family.
+We really enjoyed observing {{student_first_name}}'s interaction with our other students and teachers during this time. We are very excited to welcome {{student_first_name}} and your family to {{school_name}} family.
 
 Here is what happens next, and there is nothing for you to do until our business office contacts you directly to finalize three things:
 
@@ -73,7 +79,6 @@ That will come as a separate email from the business office.
 If you have any questions before then, simply reply to this message and it will come directly to me.
 
 Warmly,
-
 {{admissions_contact_name}}
 {{school_name}}$letter$,
   is_active = true

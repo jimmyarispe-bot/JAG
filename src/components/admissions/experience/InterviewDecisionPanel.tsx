@@ -23,7 +23,7 @@ export function InterviewDecisionPanel({
   const [error, setError] = useState<string | null>(null);
   const action = useActionFeedback({
     verb: "custom",
-    successToast: "Interview scheduled",
+    successToast: "Interest meeting scheduled",
     errorToast: "Unable to schedule.",
     onError: (err) => setError(err.message),
   });
@@ -44,10 +44,10 @@ export function InterviewDecisionPanel({
         });
       }}
     >
-      <h2 className="text-lg font-semibold text-slate-900">Interview</h2>
+      <h2 className="text-lg font-semibold text-slate-900">Interest meeting</h2>
       <p className="text-sm text-slate-600">
         Scheduling, notes, recommendations, and decision support — CRM stages advance via
-        existing interview workflow.
+        the existing scheduling workflow.
       </p>
       {error && (
         <p className="text-sm text-red-600" role="alert">
@@ -64,7 +64,7 @@ export function InterviewDecisionPanel({
           <select id="interview_type" name="interview_type" className={portalInputClass} defaultValue="virtual">
             <option value="virtual">Virtual</option>
             <option value="in_person">In person</option>
-            <option value="initial_assessment">Assessment interview</option>
+            <option value="initial_assessment">Shadow day</option>
           </select>
         </div>
         <div className="sm:col-span-2">
@@ -85,7 +85,7 @@ export function InterviewDecisionPanel({
         type="submit"
         status={action.status}
         verb="custom"
-        labels={{ idle: "Schedule interview", loading: "Scheduling…", success: "✓ Scheduled" }}
+        labels={{ idle: "Schedule interest meeting", loading: "Scheduling…", success: "✓ Scheduled" }}
         errorMessage={action.errorMessage}
       />
     </form>

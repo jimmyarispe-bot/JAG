@@ -7,7 +7,7 @@ export const LEAD_STAGES = [
   { value: "application_submitted", label: "Application Submitted", color: "bg-violet-100 text-violet-700" },
   { value: "records_requested", label: "Records Requested", color: "bg-purple-100 text-purple-700" },
   { value: "admissions_review", label: "Admissions Review", color: "bg-amber-100 text-amber-700" },
-  { value: "interview_scheduled", label: "Interview Scheduled", color: "bg-sky-100 text-sky-700" },
+  { value: "interview_scheduled", label: "Interest Meeting Scheduled", color: "bg-sky-100 text-sky-700" },
   { value: "assessment_scheduled", label: "Assessment Scheduled", color: "bg-cyan-100 text-cyan-700" },
   /**
    * The Academy Way stages. The database has accepted these since migration 225;

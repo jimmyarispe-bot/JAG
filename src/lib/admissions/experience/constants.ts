@@ -23,7 +23,7 @@ export const APPLICATION_DASHBOARD_STATUSES = Object.freeze([
   "Submitted",
   "Under Review",
   "Assessment Scheduled",
-  "Interview Scheduled",
+  "Interest Meeting Scheduled",
   "Accepted",
   "Waitlisted",
   "Declined",
@@ -61,7 +61,7 @@ export function toDashboardStatus(input: {
   }
   if (app === "enrolled" || stage.includes("enrolled")) return "Enrolled";
   if (stage.includes("assessment")) return "Assessment Scheduled";
-  if (stage.includes("interview")) return "Interview Scheduled";
+  if (stage.includes("interview")) return "Interest Meeting Scheduled";
   if (stage.includes("application_submitted") || stage.includes("submitted")) {
     return "Submitted";
   }

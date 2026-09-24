@@ -1,37 +1,54 @@
-Three deployments failed all day and nothing said so
+We do not do interviews, and the family is told what they actually submitted
 
-Every ship today - the board reorder, the acceptance letters, and the fix a
-parent was waiting on - pushed to GitHub, reported "Shipped. Vercel is
-building", and then failed to build. Production has been serving d7c0690 from
-last night since 10:50 this morning. Lisa Roy retried her application after
-the fix was "shipped" and got the identical error, because the fix was never
-deployed.
+THE WORD. On 17 September a shadow day was booked for Maddox Mixon at The
+Academy HS and his mother was emailed an interview confirmation telling her to
+prepare report cards and IEP summaries. Heather Badger-Brown, who had
+scheduled no interview and conducts none: "The Jag is setting up interviews.
+We haven't interviewed prospective families. It didn't invite me either!"
+Jimmy: "there shouldn't be anything that says interview. we don't do
+interviews."
 
-WHAT BROKE IT. The board reorder took `committee_review` off the board, and
-`validate-admissions-registry.mts` asserts that committee_review can reach
-accepted, waitlisted and declined. That check fails, `npm run build` exits 1,
-and the deployment dies at 10 seconds.
+"Interest meeting" now, everywhere a person reads it: the booking dialog, the
+stage on every card's dropdown, the case profile, the staff panel, and the
+chip a FAMILY sees on their own application. The internal names are untouched
+- admissions_interviews, interview_type, the interview_scheduled stage key -
+because renaming those is a migration across the whole pipeline for a word
+nobody outside the code reads.
 
-The invariant is right and stays. A pipeline whose last working stage cannot
-reach an outcome traps families. It was simply pointed at the wrong stage: the
-decision is made at `shadow_day_completed` now - that is where the
-accept-or-deny gate opens and where the board's Decision column sits - so that
-is the stage it asserts about.
+THE BEHAVIOUR. scheduleInterview read `interview_type` to choose the stage and
+then sent the interview letter whatever had been booked. A shadow day is
+stored as an interview of type initial_assessment, so the type was already on
+the record and already being read. It decides the message now too.
 
-WHY IT WAS INVISIBLE FOR THREE SHIPS, which is the part worth keeping.
+THE DATE reads "Thursday, 24 September 2026 at 1:00 PM", in Eastern, instead
+of "9/24/2026, 1:00:00 PM" - seconds on a school appointment, rendered in
+whatever timezone the server happened to be in rather than the one the school
+is in.
 
-  npx tsc --noEmit        passes
-  npx vitest run          passes, 596 tests
-  npm run build           FAILS
+THE THANK-YOU PAGE KNEW AND DIDN'T SAY. The invited-application route has
+passed `applied=1` to /apply/thank-you since it shipped, and the page never
+read it - so a family who had just completed a full application was told
+"Inquiry Received" and invited to book a tour they had already had. Both
+notices are now Jimmy's own words. The inquiry one is unchanged, deliberately:
+"this needs to be the inquiry received confirmation notice." The application
+one names the child, using their preferred name where the family gave one.
 
-Only `npm run build` runs validate:admissions, and only Vercel runs
-`npm run build`. The ship script checks types and tests, then pushes, then
-prints "Shipped. Vercel is building" - which is a statement about what was
-started, not about what happened. I read it as success three times and never
-opened the deployment. That is the house pattern with the roles reversed: not
-a silent failure this time but a confident success message standing in front
-of one, and the cost was a family being told to try again on code that had
-never shipped.
+One correction to his application text, which he was told about: he wrote
+"your will receive". It reads "you will receive".
 
-Verified before this commit, in this order: validate:admissions passed, then
-the full `npm run build` completed with a clean route table.
+MIGRATIONS 415 AND 416 ARE ALREADY RUN. They carry the acceptance letter, the
+shadow-days invitation and the staff notices, all in his wording. Two of those
+templates - shadow_day_scheduled and staff_shadow_day_scheduled - have been
+sitting unused since they were created, because the code that fires them is in
+this commit.
+
+staff_interview_scheduled had been dispatched on every booking since the
+feature shipped with no template behind it, so the engine found nothing and
+sent nothing, silently. That is why Heather heard nothing, and it is fixed in
+the database rather than here.
+
+Still open, named so it is not rediscovered a third time: five staff templates
+sit on the internal_note channel, which records a message and never sends one,
+including staff_new_inquiry - so nobody is emailed when a family inquires.
+
+Verified in order: typecheck, the full build, then the admissions suite.

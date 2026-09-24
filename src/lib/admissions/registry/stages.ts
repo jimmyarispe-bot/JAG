@@ -35,7 +35,7 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
   },
   {
     key: "interest_call_scheduled",
-    label: "Interest Call Scheduled",
+    label: "Interest Meeting Scheduled",
     color: "bg-sky-100 text-sky-700",
     order: 20,
     isTerminal: false,
