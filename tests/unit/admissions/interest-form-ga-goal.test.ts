@@ -274,8 +274,23 @@ describe("the button says what the family is actually doing", () => {
     "utf8"
   ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
-  it("never calls this an application", () => {
-    expect(renderer).not.toContain('"Submit Application"');
+  /**
+   * THE PUBLIC FORM IS STILL AN INQUIRY. Jimmy, 14 September, after walking it
+   * as a parent: "this is an interest inquiry. not application."
+   *
+   * Narrowed 24 September, with his say-so, when the same component began
+   * serving a second route: a family a school leader has INVITED opens their
+   * campus application through /apply/start/<token>, and calling that an
+   * inquiry would be the same lie in the other direction.
+   *
+   * So the word is permitted in exactly one shape - behind invitationToken,
+   * which is absent on /apply. A bare "Submit Application" anywhere would mean
+   * the public form had started calling itself one, which is the thing the
+   * original rule was protecting.
+   */
+  it("never calls the PUBLIC form an application", () => {
+    const bare = renderer.match(/idle:\s*"Submit Application"/g) ?? [];
+    expect(bare.length).toBe(0);
   });
 
   /**
@@ -283,8 +298,11 @@ describe("the button says what the family is actually doing", () => {
    * the button itself. A pair like that drifts, and a button that changes its
    * wording halfway through submitting reads as a bug to whoever it happens to.
    */
-  it("says Submit Inquiry in both places, not one", () => {
-    const hits = renderer.match(/idle: "Submit Inquiry"/g) ?? [];
+  it("uses the same label expression in both places, not one", () => {
+    const hits =
+      renderer.match(
+        /idle:\s*invitationToken \? "Submit Application" : "Submit Inquiry"/g
+      ) ?? [];
     expect(hits.length).toBe(2);
   });
 });

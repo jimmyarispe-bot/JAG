@@ -296,6 +296,31 @@ export async function answerDecisionGate(formData: FormData) {
    * why it was turned off.
    */
 
+  /*
+   * Mint the family's application link before they are told about it.
+   *
+   * mint_application_access_token is idempotent: re-inviting a family returns
+   * the token already in their inbox rather than quietly breaking the link
+   * they have.
+   *
+   * A failure here is reported and the email is NOT sent, because an
+   * invitation whose link falls back to /apply/portal sends the family to a
+   * password box - the exact failure this replaces.
+   */
+  if (branch.answer === "yes" && branch.familyEvent === "application_invited") {
+    const { error: mintError } = await supabase.rpc(
+      "mint_application_access_token",
+      { p_lead_id: leadId }
+    );
+    if (mintError) {
+      return {
+        error:
+          `Your answer was recorded, but the family was not emailed: their application link could not be created (${mintError.message}). ` +
+          `Nothing has been sent, so nobody has a broken link.`,
+      };
+    }
+  }
+
   if (branch.familyEvent) {
     try {
       await notifyAdmissionsEvent(supabase, {

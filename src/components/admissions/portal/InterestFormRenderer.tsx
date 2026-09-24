@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { submitInterestFormAction } from "@/lib/admissions/interest-form/actions";
+import { submitInvitedApplicationAction } from "@/lib/admissions/apply-link/actions";
 import {
   isQuestionVisible,
   isSectionVisible,
@@ -49,6 +50,14 @@ type InterestFormRendererProps = {
    * against a default, and the family typing wins against both.
    */
   initialValues?: Record<string, unknown>;
+  /**
+   * Set when this form was opened from an invitation link.
+   *
+   * Absent, and submitting creates a new lead - the public form at /apply,
+   * unchanged. Present, and the answers land on the lead the token names, so
+   * an invited family does not become a second copy of themselves.
+   */
+  invitationToken?: string;
 };
 
 function defaultValues(published: PublishedInterestForm): InterestFormValues {
@@ -641,6 +650,7 @@ function QuestionField({
 export function InterestFormRenderer({
   published,
   initialValues,
+  invitationToken,
 }: InterestFormRendererProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -678,7 +688,11 @@ export function InterestFormRenderer({
    */
   const action = useActionFeedback({
     verb: "submit",
-    labels: { idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" },
+    labels: {
+      idle: invitationToken ? "Submit Application" : "Submit Inquiry",
+      loading: "Submitting…",
+      success: "✓ Submitted",
+    },
     successToast: "✓ Submitted",
     errorToast: "Unable to submit.",
     progressLabel: "Submitting inquiry…",
@@ -702,6 +716,14 @@ export function InterestFormRenderer({
     formData.set("source", "express_interest");
 
     void action.run(async () => {
+      if (invitationToken) {
+        formData.set("invitation_token", invitationToken);
+        const invited = await submitInvitedApplicationAction(formData);
+        if ("error" in invited) throw new Error(invited.error);
+        router.push(`/apply/thank-you?lead=${invited.leadId}&applied=1`);
+        return invited;
+      }
+
       const result = await submitInterestFormAction(formData);
       if ("error" in result && result.error) throw new Error(result.error);
       router.push(`/apply/thank-you?lead=${"leadId" in result ? result.leadId : ""}`);
@@ -792,7 +814,11 @@ export function InterestFormRenderer({
           variant="primary"
           status={action.status}
           verb="submit"
-          labels={{ idle: "Submit Inquiry", loading: "Submitting…", success: "✓ Submitted" }}
+          labels={{
+            idle: invitationToken ? "Submit Application" : "Submit Inquiry",
+            loading: "Submitting…",
+            success: "✓ Submitted",
+          }}
           errorMessage={action.errorMessage}
           className="btn-academy rounded-xl px-12 py-4 text-lg font-semibold"
         />
