@@ -27,6 +27,7 @@ import {
 } from "@/lib/admissions/executive-metrics";
 import { getAdmissionsReporting, getAdmissionsWorkData, getLeads } from "@/lib/admissions/queries";
 import { getPublicInquiryLinks } from "@/lib/admissions/public-form-links";
+import { listPendingGates } from "@/lib/admissions/gates/actions";
 import { executeWorkspace } from "@/lib/platform/execution-engine";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { ADMISSIONS_WORK_PERSPECTIVES, resolveJagWorkPerspective, resolveJagWorkQueue } from "@/lib/platform/jag-work";
@@ -145,13 +146,28 @@ async function AdmissionsLegacyView({
   // `ctx` joins the wave rather than being awaited first: getIdentityContext is
   // request-cached, so this costs nothing, and the sub-navigation needs the
   // permission list to know whether to render the funding destinations.
-  const [leads, report, execMetrics, drillDown, ctx] = await Promise.all([
+  const [leads, report, execMetrics, drillDown, ctx, gateResult] = await Promise.all([
     getLeads(),
     getAdmissionsReporting(),
     view === "executive" ? getExecutiveAdmissionsMetrics() : Promise.resolve(null),
     view === "executive" ? getLeadsDrillDown(drill) : Promise.resolve([]),
     getIdentityContext(),
+    // Only the board draws the Decision column, so only the board pays for it.
+    view === "pipeline" ? listPendingGates() : Promise.resolve(null),
   ]);
+
+  /**
+   * Accept-or-deny only. The other two gates are answered where the family
+   * already stands on the board, not in a column after the shadow days.
+   *
+   * A read that FAILED and a read that found NOTHING must not look the same
+   * here: an error leaves this null, which draws no Decision column at all,
+   * rather than an empty one claiming nobody is waiting.
+   */
+  const decisionGates =
+    gateResult && !("error" in gateResult)
+      ? gateResult.gates.filter((gate) => gate.gateKey === "accept_or_deny")
+      : undefined;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -175,7 +191,7 @@ async function AdmissionsLegacyView({
           showFunding={FUNDING_ANY_OF.some((key) => ctx?.permissions.includes(key))}
         />
       ) : view === "pipeline" ? (
-        <AdmissionsPipelineBoard leads={leads} />
+        <AdmissionsPipelineBoard leads={leads} decisionGates={decisionGates} />
       ) : (
         <KanbanBoard leads={leads} />
       )}

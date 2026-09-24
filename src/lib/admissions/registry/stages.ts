@@ -85,7 +85,7 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
     key: "shadow_day_scheduled",
     label: "Shadow Days Scheduled",
     color: "bg-lime-100 text-lime-700",
-    order: 70,
+    order: 90,
     isTerminal: false,
     isActivePipeline: true,
     legacyLeadStages: ["shadow_day_scheduled", "assessment_scheduled"],
@@ -123,7 +123,7 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
     key: "shadow_day_completed",
     label: "Shadow Days Completed",
     color: "bg-lime-200 text-lime-900",
-    order: 75,
+    order: 100,
     isTerminal: false,
     isActivePipeline: true,
     legacyLeadStages: ["shadow_day_completed"],
@@ -133,7 +133,7 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
     key: "application_started",
     label: "Application Started",
     color: "bg-indigo-100 text-indigo-700",
-    order: 80,
+    order: 70,
     isTerminal: false,
     isActivePipeline: true,
     legacyLeadStages: ["application_started"],
@@ -143,18 +143,42 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
     key: "application_submitted",
     label: "Application Submitted",
     color: "bg-violet-100 text-violet-700",
-    order: 90,
+    order: 80,
     isTerminal: false,
     isActivePipeline: true,
     legacyLeadStages: ["application_submitted"],
   },
   {
+    /**
+     * OFF THE BOARD, 24 September 2026, and its neighbour below with it.
+     *
+     * Jimmy: "i have no idea what those are or where those came from. documents
+     * are included in the application so why would there be a documents pending
+     * column. we don't have a committee so where did that come from."
+     *
+     * Both arrived with a generic admissions template and neither describes how
+     * The Academy Way actually admits a child. Documents come in with the
+     * application; there is no committee - the school leader answers the
+     * accept-or-deny gate.
+     *
+     * DEACTIVATED RATHER THAN DELETED. The stage keys are still valid values in
+     * the type union, in ALLOWED_TRANSITIONS and in resolvePipelineStageForTrigger,
+     * and a lead somewhere could still carry `records_requested` or
+     * `admissions_review`. Deleting the definition would make such a lead resolve
+     * to no column and vanish silently - precisely the bug documented on
+     * shadow_day_completed above. isActivePipeline:false takes the column off the
+     * board and leaves the stage interpretable.
+     *
+     * Verified empty before this change: zero leads at `records_requested`, zero
+     * at `admissions_review`
+     * (supabase/diagnostics/who_is_in_the_two_columns_2026_09_24.sql).
+     */
     key: "documents_pending",
     label: "Documents Pending",
     color: "bg-purple-100 text-purple-700",
     order: 100,
     isTerminal: false,
-    isActivePipeline: true,
+    isActivePipeline: false,
     legacyLeadStages: ["records_requested"],
     automatedTask: { taskName: "Follow up on records request", dueDays: 5 },
   },
@@ -164,7 +188,7 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
     color: "bg-fuchsia-100 text-fuchsia-700",
     order: 110,
     isTerminal: false,
-    isActivePipeline: true,
+    isActivePipeline: false,
     legacyLeadStages: ["admissions_review"],
   },
   {

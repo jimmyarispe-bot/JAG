@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useActionFeedback } from "@/components/experience-system/feedback";
 import {
   getActiveOrderedPipelineStages,
@@ -32,13 +32,21 @@ import {
   pipelineAgingDotClass,
 } from "@/lib/admissions/workflow";
 import type { AdmissionLead } from "@/lib/admissions/queries";
+import type { PendingGate } from "@/lib/admissions/gates/definitions";
+import { BoardDecisionColumn } from "./BoardDecisionColumn";
 
 interface AdmissionsPipelineBoardProps {
   leads: AdmissionLead[];
+  /**
+   * Open accept-or-deny gates. Optional so every other caller of this board is
+   * unchanged; absent means no Decision column is drawn at all rather than an
+   * empty one implying nothing is waiting when nothing was ever looked up.
+   */
+  decisionGates?: readonly PendingGate[];
 }
 
 /** OS pipeline board — groups leads by canonical pipeline stage. */
-export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps) {
+export function AdmissionsPipelineBoard({ leads, decisionGates }: AdmissionsPipelineBoardProps) {
   const action = useActionFeedback({
     verb: "save",
     labels: { idle: "Update stage", loading: "Updating…", success: "✓ Updated" },
@@ -77,15 +85,40 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
    * anything has reached Accepted — and a stage with nobody in it is part of
    * that answer. Removing an empty column there would hide the finding.
    */
+  /**
+   * Families whose accept-or-deny question is open.
+   *
+   * They are removed from Shadow Days Completed and drawn in the Decision
+   * column instead. Two cards for one child would mean a school leader clearing
+   * the board twice and each pass believing the other had not happened.
+   */
+  const awaitingDecision = useMemo(
+    () => new Set((decisionGates ?? []).map((gate) => gate.leadId)),
+    [decisionGates]
+  );
+
   const stagesWithLeads = useMemo(() => {
     const byStage = stages.map((stage) => ({
       stage,
       stageLeads: visibleLeads.filter(
-        (lead) => resolvePipelineStageFromLeadStage(lead.lead_stage) === stage.key
+        (lead) =>
+          resolvePipelineStageFromLeadStage(lead.lead_stage) === stage.key &&
+          !awaitingDecision.has(lead.id)
       ),
     }));
     return filters.q.trim() ? byStage.filter((s) => s.stageLeads.length > 0) : byStage;
-  }, [stages, visibleLeads, filters.q]);
+  }, [stages, visibleLeads, filters.q, awaitingDecision]);
+
+  /**
+   * Only the families the filters would have shown anyway. Narrowing the board
+   * to one campus and leaving another campus's decisions standing in the last
+   * column would make the filter a lie.
+   */
+  const visibleDecisionGates = useMemo(() => {
+    if (!decisionGates) return null;
+    const shown = new Set(visibleLeads.map((lead) => lead.id));
+    return decisionGates.filter((gate) => shown.has(gate.leadId));
+  }, [decisionGates, visibleLeads]);
 
   /**
    * Same rule as KanbanBoard, and it has to be on both: these are two boards
@@ -151,13 +184,11 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
       shownCount={visibleLeads.length}
       onChange={setFilters}
     />
-    <BoardScroller columnCount={stagesWithLeads.length}>
+    <BoardScroller columnCount={stagesWithLeads.length + (visibleDecisionGates ? 1 : 0)}>
       {stagesWithLeads.map(({ stage, stageLeads }) => {
         return (
-          <div
-            key={stage.key}
-            className="flex w-72 shrink-0 flex-col rounded-2xl border border-slate-200/80 bg-slate-50"
-          >
+          <Fragment key={stage.key}>
+          <div className="flex w-72 shrink-0 flex-col rounded-2xl border border-slate-200/80 bg-slate-50">
             <div className="border-b border-slate-200/80 px-4 py-3">
               <div className="flex items-center justify-between">
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${stage.color}`}>
@@ -247,6 +278,17 @@ export function AdmissionsPipelineBoard({ leads }: AdmissionsPipelineBoardProps)
               )}
             </div>
           </div>
+          {/*
+            * The Decision column lands here and nowhere else: immediately after
+            * Shadow Days Completed, which is the stage the accept-or-deny gate
+            * opens at. Tying it to the stage key rather than to a position
+            * means reordering the board again cannot leave it stranded in the
+            * middle of the tour stages.
+            */}
+          {stage.key === "shadow_day_completed" && visibleDecisionGates ? (
+            <BoardDecisionColumn gates={visibleDecisionGates} />
+          ) : null}
+          </Fragment>
         );
       })}
     </BoardScroller>

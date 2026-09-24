@@ -13,6 +13,22 @@ export {
 } from "@/lib/admissions/workflow";
 
 /** Allowed forward transitions between OS pipeline stages. */
+/**
+ * Allowed forward transitions between OS pipeline stages.
+ *
+ * REORDERED 24 September 2026. The application now comes BEFORE the shadow
+ * days, which is how The Academy Way actually admits a child and how the
+ * emails have always fired: invited to apply after the tour or interest
+ * meeting, invited to shadow days once the application is submitted, accepted
+ * or denied once the shadow days are done. Jimmy, 24 Sep: "the application
+ * started comes before the shadow days scheduled. after the shadow days
+ * completed, then the decision needs to be made."
+ *
+ * `documents_pending` and `committee_review` are gone from every list here.
+ * They are off the board (see stages.ts) and nothing should route a family
+ * into a column nobody can see. The keys remain valid so an existing lead
+ * carrying one still resolves; they are simply no longer a destination.
+ */
 const ALLOWED_TRANSITIONS: Partial<
   Record<AdmissionsPipelineStageKey, AdmissionsPipelineStageKey[]>
 > = {
@@ -25,37 +41,23 @@ const ALLOWED_TRANSITIONS: Partial<
     "not_returning",
   ],
   interest_call_scheduled: ["interest_meeting_held", "declined", "not_returning"],
+  // Gate 1 (invite_to_apply) opens here and at tour_conducted.
   interest_meeting_held: [
     "tour_requested",
-    "shadow_day_scheduled",
     "application_started",
     "declined",
     "not_returning",
   ],
   tour_requested: ["tour_scheduled", "declined", "not_returning"],
   tour_scheduled: ["tour_conducted", "declined", "not_returning"],
-  tour_conducted: ["shadow_day_scheduled", "application_started", "declined", "not_returning"],
-  shadow_day_scheduled: [
-    "shadow_day_completed",
-    "application_started",
-    "committee_review",
-    "declined",
-    "not_returning",
-  ],
-  // Gate 3 (accept_or_deny) opens here, so acceptance and decline are both
-  // reachable without passing through committee review.
-  shadow_day_completed: [
-    "application_started",
-    "committee_review",
-    "accepted",
-    "waitlisted",
-    "declined",
-    "not_returning",
-  ],
+  tour_conducted: ["application_started", "declined", "not_returning"],
   application_started: ["application_submitted", "declined", "not_returning"],
-  application_submitted: ["documents_pending", "committee_review", "declined"],
-  documents_pending: ["committee_review", "declined"],
-  committee_review: ["accepted", "waitlisted", "declined"],
+  // Gate 2 (invite_to_shadow_days) opens here.
+  application_submitted: ["shadow_day_scheduled", "declined", "not_returning"],
+  shadow_day_scheduled: ["shadow_day_completed", "declined", "not_returning"],
+  // Gate 3 (accept_or_deny) opens here. This is the Decision column on the
+  // board, and answering it is what moves the family on.
+  shadow_day_completed: ["accepted", "waitlisted", "declined", "not_returning"],
   accepted: ["enrollment_complete", "declined", "not_returning"],
   waitlisted: ["accepted", "declined", "enrollment_complete"],
 };
