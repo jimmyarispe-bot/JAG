@@ -19,7 +19,24 @@ export default function ForgotPasswordForm() {
 
     const origin = window.location.origin;
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${origin}${AUTH_CALLBACK_PATH}`,
+      /*
+       * ?type=recovery IS NOT DECORATION. 25 September 2026.
+       *
+       * resolveAuthCallbackRedirect sends a recovery arrival to the set-a-new-
+       * password screen, and it decides that from the `type` query parameter -
+       * isRecoveryAuthType is `type === "recovery"`, nothing more.
+       *
+       * Under PKCE, Supabase hands the browser back `?code=...` and DROPS
+       * `type` entirely. So a recovery link looked exactly like an ordinary
+       * sign-in: Peter Alouise clicked his, was signed straight into the
+       * dashboard, and was never offered the password box he had asked for.
+       * "It will not let me choose one, but instead just sends me to this page."
+       *
+       * Supabase carries the query string of redirect_to through to the final
+       * URL, so saying it here survives the round trip and the callback can
+       * tell the two apart again.
+       */
+      redirectTo: `${origin}${AUTH_CALLBACK_PATH}?type=recovery`,
     });
 
     setLoading(false);

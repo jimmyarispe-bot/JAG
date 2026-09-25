@@ -273,6 +273,54 @@ export async function setGreatnessReportsAction(weekStart: string, count: number
     return { error: "Your employee record has no campus on it, so this cannot be saved." };
   }
 
+  /*
+   * THE CLAIM HANGS OFF AN OPEN WEEK, AND I MISSED THAT.
+   *
+   * Migration 392 lets a teacher write her own claims - "bounded: their own
+   * claims, attached to their own week, while it is still open" - and enforces
+   * it by requiring week_submission_id to name a teacher_week_submissions row
+   * of hers with status 'open'. My first version set no week_submission_id at
+   * all, so every save a teacher made would have been refused by the policy.
+   *
+   * The row is created here, empty and open, the first time she touches the
+   * week. It is not a submission: status 'open' is exactly what getTeacherWeek
+   * already treats as "not submitted yet", the figure stays live, and Submit
+   * updates this same row rather than inserting a second one.
+   */
+  const { data: existingWeek, error: weekReadError } = await ctx.supabase
+    .from("teacher_week_submissions")
+    .select("id, status")
+    .eq("employee_id", ctx.employeeId)
+    .eq("week_start", weekStart)
+    .maybeSingle();
+
+  if (weekReadError) return { error: weekReadError.message };
+  if (existingWeek && existingWeek.status !== "open") {
+    return { error: "That week has already been submitted, so it cannot be changed." };
+  }
+
+  let weekSubmissionId = existingWeek?.id as string | undefined;
+
+  if (!weekSubmissionId) {
+    const { data: createdWeek, error: weekWriteError } = await ctx.supabase
+      .from("teacher_week_submissions")
+      .insert({
+        employee_id: ctx.employeeId,
+        week_start: week.weekStart,
+        week_end: week.weekEnd,
+        status: "open",
+      })
+      .select("id")
+      .single();
+
+    if (weekWriteError) return { error: weekWriteError.message };
+    weekSubmissionId = createdWeek?.id as string | undefined;
+  }
+
+  if (!weekSubmissionId) {
+    return { error: "Could not open your week to attach this to. Nothing has been saved." };
+  }
+
   if (count === 0) {
     const { error } = await ctx.supabase
       .from("contractor_work_claims")
@@ -296,6 +344,7 @@ export async function setGreatnessReportsAction(weekStart: string, count: number
       work_code: GREATNESS_WORK_CODE,
       work_date: weekStart,
       quantity: count,
+      week_submission_id: weekSubmissionId,
       created_by: user?.id ?? null,
       updated_at: new Date().toISOString(),
     },
