@@ -176,6 +176,15 @@ export const PERMISSION_KEYS = [
   "SYSTEM_ADMIN_ACCESS",
   "AUDIT_ACCESS",
   "REPORTING_ACCESS",
+  /**
+   * Form Builder - 25 September 2026.
+   *
+   * Lives in PERMISSION_KEYS as well as PERMISSION_CATALOG because authorize()
+   * falls back to the role matrix for catalog gates, and that fallback is typed
+   * against PermissionKey. A catalog key that is missing here compiles in the
+   * catalog and then fails the build at the one call site that matters.
+   */
+  "FORM_BUILDER_ACCESS",
   /** @deprecated Prefer SYSTEM_ADMIN_ACCESS */
   "SYSTEM_CONFIGURATION_ACCESS",
   /** @deprecated Prefer AUDIT_ACCESS */

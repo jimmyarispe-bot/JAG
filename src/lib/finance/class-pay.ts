@@ -28,6 +28,19 @@ type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
  */
 
 /** The two schools this applies to, by name, resolved to ids at query time. */
+/**
+ * RETIRED 25 September 2026. Kept only so nothing imports a missing symbol.
+ *
+ * This list decided which classes were paid per class, by NAME. Renaming
+ * either school would have zeroed every teacher's pay in silence, and on 25
+ * September it did something nearer: the lookup it fed is campus-gated, a
+ * teacher could not read it, and the screen answered $0.00 with no error.
+ *
+ * Jimmy: "if pay is dependent on class and per kid and its the same in virtual
+ * and hs ... then why are we even messing with schools?" Correct. The RATE
+ * decides. A course with a class_pay_rates row is paid per class; a course
+ * without one is not, which is FL and GA forever, with no list to maintain.
+ */
 export const VIRTUAL_SCHOOL_NAMES = ["The Academy Virtual", "The Academy HS"];
 
 /** Roster statuses that count as "this child was in the class". */
@@ -263,27 +276,43 @@ export interface ClassPayPeriod {
 export async function computeClassPay(
   supabase: AuthClient,
   periodStart: string,
-  periodEnd: string
+  periodEnd: string,
+  /**
+   * One teacher, or everybody when omitted.
+   *
+   * A teacher's own timesheet used to compute all thirteen people's pay and
+   * keep one thirteenth of it, inside her own read permissions. The finance
+   * screen still passes nothing and gets the whole period.
+   */
+  employeeId?: string | null
 ): Promise<ClassPayPeriod> {
+  /*
+   * A LABEL, NOT A GATE. 25 September 2026.
+   *
+   * This read used to decide which classes existed for pay, filtered by school
+   * name. schools is campus-scoped by RLS (039 -> can_access_school), so a
+   * teacher who was not assigned to the campus her own courses live at read
+   * zero rows, with no error, and her week priced at $0.00 while telling her
+   * nothing was scheduled. Renee Tracewell, this afternoon.
+   *
+   * Campus contributes nothing to what a class is worth. The rate comes from
+   * the course, the count from the roster, the exceptions from employee_id on
+   * the rate. So the name is now only printed, never consulted: an error or an
+   * empty result costs a label and not a single penny of anybody's pay.
+   */
   const { data: schools, error: schoolError } = await supabase
     .from("schools")
-    .select("id, name")
-    .in("name", VIRTUAL_SCHOOL_NAMES);
+    .select("id, name");
 
   if (schoolError) {
-    return { rows: [], skippedForNoRate: [], unavailable: schoolError.message };
+    console.error("[class-pay] school names unavailable, labels only", schoolError.message);
   }
 
-  const schoolById = new Map((schools ?? []).map((s) => [s.id as string, s.name as string]));
-  if (schoolById.size === 0) {
-    return {
-      rows: [],
-      skippedForNoRate: [],
-      unavailable: `No school is named ${VIRTUAL_SCHOOL_NAMES.join(" or ")}.`,
-    };
-  }
+  const schoolById = new Map(
+    ((schools ?? []) as { id: string; name: string }[]).map((s) => [s.id, s.name])
+  );
 
-  const { data: sessions, error: sessionError } = await supabase
+  const sessionQuery = supabase
     .from("instructional_sessions")
     .select(
       /* A teacher's name lives on employee_profiles, not on employees - that
@@ -317,6 +346,15 @@ export async function computeClassPay(
     .not("session_status", "in", `(${UNHELD_SESSION_STATUSES.join(",")})`)
     .order("scheduled_start", { ascending: true });
 
+  /* One teacher when the caller named one, everybody when not. A plain
+     branch rather than a conditional inside .filter(), where "everybody"
+     had to be encoded as a no-op and a reader had to work that out. The
+     class she covered for a colleague is hers: instructor_employee_id is
+     who actually taught it, the same column the guest rate turns on. */
+  const { data: sessions, error: sessionError } = await (employeeId
+    ? sessionQuery.eq("instructor_employee_id", employeeId)
+    : sessionQuery);
+
   if (sessionError) {
     return { rows: [], skippedForNoRate: [], unavailable: sessionError.message };
   }
@@ -348,10 +386,25 @@ export async function computeClassPay(
     const employeeId = raw.instructor_employee_id as string | undefined;
     const sectionId = raw.course_section_id as string | undefined;
 
-    if (!schoolId || !schoolById.has(schoolId)) continue;
     if (!employeeId || !sectionId) continue;
 
-    relevant.push({ session: raw, schoolId, sectionId, employeeId });
+    /*
+     * THE RATE DECIDES WHETHER A CLASS IS PAID PER CLASS.
+     *
+     * Replaces a filter on two hard-coded school names. A course carrying any
+     * class_pay_rates row is paid per class; a course carrying none is not,
+     * and is skipped in silence rather than reported as an unpaid class. That
+     * is FL and GA, whose staff are W2, and it stays true without a list
+     * anybody has to remember to update.
+     *
+     * Note the difference from the skip further down: NO RATES AT ALL means
+     * this is not that kind of class. Rates that exist but none applying to
+     * this teacher on this date is a real gap, and that one gets named.
+     */
+    const rateRowCount = ((course?.class_pay_rates ?? []) as unknown[]).length;
+    if (rateRowCount === 0) continue;
+
+    relevant.push({ session: raw, schoolId: schoolId ?? "", sectionId, employeeId });
   }
 
   if (relevant.length === 0) {

@@ -365,6 +365,25 @@ export const PERMISSION_GROUP_DEFINITIONS: PermissionGroupMap = {
     description: PERMISSION_CATALOG_DEFINITIONS.AUDIT_ACCESS.description,
     permissions: ["AUDIT_ACCESS", "audit.view_all", "security.view", "finance.audit"],
   },
+  /**
+   * Who may change a form, and therefore a contract.
+   *
+   * Added 25 September 2026. The builder edits the campus applications today
+   * and the Enrollment and Tuition Contract once it moves into JAG, so this is
+   * deliberately the narrowest group in the file: Founder and Executive
+   * Director, nobody else. CEO is excluded by name at Jimmy's instruction -
+   * "not for stacy" - which is why this could not reuse any existing gate, all
+   * of which CEO already holds.
+   *
+   * A school leader must never be able to alter a contract a family signs.
+   */
+  FORM_BUILDER_ACCESS: {
+    id: "FORM_BUILDER_ACCESS",
+    gate: "FORM_BUILDER_ACCESS",
+    label: PERMISSION_CATALOG_DEFINITIONS.FORM_BUILDER_ACCESS.label,
+    description: PERMISSION_CATALOG_DEFINITIONS.FORM_BUILDER_ACCESS.description,
+    permissions: ["FORM_BUILDER_ACCESS"],
+  },
   REPORTING_ACCESS: {
     id: "REPORTING_ACCESS",
     gate: "REPORTING_ACCESS",
@@ -472,6 +491,9 @@ export const ROLE_PERMISSION_GROUPS = {
     "PAYROLL_ACCESS",
     "ADMISSIONS_ACCESS",
     "REPORTING_ACCESS",
+    // Danni edits forms and contracts. CEO deliberately does not - see
+    // FORM_BUILDER_ACCESS above.
+    "FORM_BUILDER_ACCESS",
   ],
   /** AcademyOS, Admissions, SIS, Reporting */
   SCHOOL_LEADER: [

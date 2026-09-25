@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { requireTeacherExperienceContext } from "@/lib/teacher/experience/access";
 import { easternDate } from "@/lib/scheduling/attendance-bridge";
 import { getTeacherWeek, mondayOf, WEEKLY_SUBMISSION_GO_LIVE } from "@/lib/finance/teacher-week";
+import {
+  GREATNESS_WORK_CODE,
+  checkGreatnessClaim,
+} from "@/lib/finance/greatness-reports";
 
 /**
  * Marking a class held or not held.
@@ -225,6 +229,85 @@ export async function setClassHeldAction(sessionId: string, held: boolean, note?
  * November after one of them withdrew. The class happened with four children at
  * the rate that applied that day. A submitted week is a receipt, not a formula.
  */
+/**
+ * How many GREATNESS Reports she completed this week.
+ *
+ * ONE ROW PER TEACHER PER WEEK, keyed on the Monday. Saving again replaces the
+ * number rather than adding to it - a dropdown that accumulated on every save
+ * would pay four times for one careful teacher who changed her mind.
+ *
+ * CHECKED HERE AS WELL AS AT SUBMIT. This is the write, and a disabled option
+ * in a dropdown is a courtesy to the person using it, not a rule. Anything that
+ * can post to a server action can post any number.
+ *
+ * Zero DELETES the row rather than storing a zero claim, so a month's arithmetic
+ * is the sum of what was actually claimed and never has to filter out noughts.
+ */
+export async function setGreatnessReportsAction(weekStart: string, count: number) {
+  const ctx = await requireTeacherExperienceContext();
+
+  const week = await getTeacherWeek(ctx.supabase, ctx.employeeId, weekStart);
+  if (week.unavailable) return { error: week.unavailable };
+  if (week.status !== "open") {
+    return { error: "That week has already been submitted, so it cannot be changed." };
+  }
+
+  const verdict = checkGreatnessClaim({
+    weekStart,
+    claimed: count,
+    distinctChildrenThisWeek: week.greatness.distinctChildren,
+    claimedElsewhereThisMonth: week.greatness.claimedElsewhereThisMonth,
+  });
+  if (!verdict.ok) return { error: verdict.reason };
+
+  if (count > 0 && week.greatness.ratePerReport === null) {
+    return {
+      error:
+        "There is no GREATNESS Report rate in force, so this cannot be priced. " +
+        "Nothing has been saved - tell Jimmy.",
+    };
+  }
+
+  const schoolId = (ctx.employee as { school_id?: string } | null)?.school_id;
+  if (count > 0 && !schoolId) {
+    return { error: "Your employee record has no campus on it, so this cannot be saved." };
+  }
+
+  if (count === 0) {
+    const { error } = await ctx.supabase
+      .from("contractor_work_claims")
+      .delete()
+      .eq("employee_id", ctx.employeeId)
+      .eq("work_code", GREATNESS_WORK_CODE)
+      .eq("work_date", weekStart);
+    if (error) return { error: error.message };
+    revalidatePath("/dashboard/teacher/timesheets");
+    return { success: true, claimed: 0 };
+  }
+
+  const {
+    data: { user },
+  } = await ctx.supabase.auth.getUser();
+
+  const { error } = await ctx.supabase.from("contractor_work_claims").upsert(
+    {
+      school_id: schoolId,
+      employee_id: ctx.employeeId,
+      work_code: GREATNESS_WORK_CODE,
+      work_date: weekStart,
+      quantity: count,
+      created_by: user?.id ?? null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "employee_id,work_code,work_date" }
+  );
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/teacher/timesheets");
+  return { success: true, claimed: count };
+}
+
 export async function submitWeekAction(weekStart: string, teacherNote?: string) {
   const ctx = await requireTeacherExperienceContext();
 
@@ -250,6 +333,20 @@ export async function submitWeekAction(weekStart: string, teacherNote?: string) 
         "There are no held classes in that week, so there is nothing to submit. " +
         "If you taught and the classes are not here, say so before submitting.",
     };
+  }
+
+  /* The GREATNESS line is re-checked against the week as it stands NOW, not as
+     it stood when she chose the number. A class marked not-held after she
+     picked 8 lowers the children she taught, and the frozen figure must not
+     carry a claim the week no longer supports. */
+  if (week.greatness.claimed > 0) {
+    const verdict = checkGreatnessClaim({
+      weekStart,
+      claimed: week.greatness.claimed,
+      distinctChildrenThisWeek: week.greatness.distinctChildren,
+      claimedElsewhereThisMonth: week.greatness.claimedElsewhereThisMonth,
+    });
+    if (!verdict.ok) return { error: verdict.reason };
   }
 
   const unrated = held.filter((c) => c.unrated);

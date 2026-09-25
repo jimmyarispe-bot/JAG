@@ -296,18 +296,49 @@ async function deliverCommunication(
   const channel = params.template.channel as CommunicationChannel;
   const isStaff = channel === "internal_note" || params.template.trigger_event.startsWith("staff_");
 
-  const sentTo =
+  /**
+   * A LIST OF ADDRESSES IS A LIST, NOT A STRING WITH COMMAS IN IT.
+   *
+   * This joined the staff addresses with ", " and handed the result to the
+   * provider as a single recipient. It worked for as long as every campus had
+   * exactly one contact, and broke the moment one had two: on 25 September
+   * Resend refused the staff acceptance notice with
+   *
+   *     422 validation_error - Invalid `to` field
+   *     "to": [ "nina.gaddy@theacademyga.org, jimmy.arispe@gmail.com" ]
+   *
+   * Two addresses in one string. The provider accepts string | string[] and
+   * always has; the flattening happened here.
+   *
+   * WHAT IT COST. The staff notice added the day before - the one that tells
+   * Jimmy a student has been accepted - failed on every send, while the
+   * family's letter went out fine. Visible in Resend's log, invisible in JAG,
+   * because engine.ts still discards deliveryError.
+   *
+   * `recipients` is what gets sent. `sentTo` is the human-readable record
+   * written to admissions_communications, which is why the join survives - as
+   * a record of who was written to, not as an address.
+   */
+  const recipients: string[] =
     channel === "sms"
-      ? params.mergeCtx.guardianPhone ?? ""
+      ? [params.mergeCtx.guardianPhone ?? ""]
       : channel === "internal_note"
-        ? "staff"
+        ? ["staff"]
         : channel === "staff_email"
           ? // Every admissions contact for the campus, not just the one whose
             // calendar parents book. Falls back to the single contact so a
             // school with no rows in school_admissions_contacts still gets mail.
-            (params.mergeCtx.staffNotificationEmails ?? []).join(", ") ||
-            (params.mergeCtx.admissionsContactEmail ?? "")
-          : params.mergeCtx.guardianEmail ?? "";
+            (() => {
+              const list = (params.mergeCtx.staffNotificationEmails ?? [])
+                .map((email) => email.trim())
+                .filter(Boolean);
+              if (list.length) return list;
+              const fallback = (params.mergeCtx.admissionsContactEmail ?? "").trim();
+              return fallback ? [fallback] : [];
+            })()
+          : [params.mergeCtx.guardianEmail ?? ""];
+
+  const sentTo = recipients.filter(Boolean).join(", ");
 
   const isEmail = channel === "email" || channel === "staff_email";
 
@@ -351,7 +382,8 @@ async function deliverCommunication(
     const from = params.mergeCtx.fromEmail?.trim() || undefined;
 
     const emailResult = await sendTransactionalEmail({
-      to: sentTo,
+      // The list, not the joined string. See the note above `recipients`.
+      to: recipients.filter(Boolean),
       subject,
       body,
       ...(from ? { from } : {}),

@@ -30,8 +30,33 @@ export function createResendEmailProvider(apiKey: string): EmailProvider {
         .map((e) => e.trim())
         .filter(Boolean);
 
-      if (!recipients.length || recipients.some((e) => !e.includes("@"))) {
-        return { success: false, provider: "resend", error: "Invalid recipient email" };
+      if (!recipients.length) {
+        return { success: false, provider: "resend", error: "No recipient" };
+      }
+
+      /**
+       * A COMMA MEANS SOMEBODY JOINED A LIST THAT SHOULD HAVE STAYED A LIST.
+       *
+       * The old guard only asked whether each recipient contained an "@", so
+       * "nina@a.org, jimmy@b.com" sailed through it - one string, one @ sign,
+       * no complaint - and Resend returned a 422 nobody was watching for.
+       *
+       * Checked here rather than only at the call site because this is the last
+       * place every caller passes through, and a rejection with a reason beats
+       * a 422 in somebody else's log. Whitespace is caught for the same reason:
+       * a real address has none.
+       */
+      const malformed = recipients.filter(
+        (e) => !e.includes("@") || e.includes(",") || /\s/.test(e)
+      );
+      if (malformed.length) {
+        return {
+          success: false,
+          provider: "resend",
+          error:
+            `Invalid recipient: ${malformed.join(" | ")}. ` +
+            `Addresses must be passed as separate entries, not joined into one string.`,
+        };
       }
 
       const fromEmail = resolveEmailFrom(params.from);

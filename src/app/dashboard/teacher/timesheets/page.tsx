@@ -5,6 +5,7 @@ import { AttendanceToggle } from "@/components/teacher/AttendanceToggle";
 import { CoverAClassButton } from "@/components/teacher/CoverAClassButton";
 import { ClassHeldToggle } from "@/components/teacher/ClassHeldToggle";
 import { SubmitWeekButton } from "@/components/teacher/SubmitWeekButton";
+import { GreatnessReportsPicker } from "@/components/teacher/GreatnessReportsPicker";
 import {
   currentWeekStart,
   formatClassTime,
@@ -121,6 +122,21 @@ export default async function TeacherTimesheetsPage({
                 <p className="text-slate-500">Not taught</p>
                 <p className="text-2xl font-semibold text-slate-500">{week.classesNotHeld}</p>
               </div>
+              {/* Its own number, next to the classes rather than folded into
+                  them - Jimmy: "indicated as a separate number on their pay
+                  screen then added to their weekly total". Hidden in May and
+                  December, when parent conferences happen instead. */}
+              {week.greatness.applies && (week.greatness.claimed > 0 || !submitted) ? (
+                <div>
+                  <p className="text-slate-500">GREATNESS Reports</p>
+                  <p className="text-2xl font-semibold text-slate-900">
+                    {week.greatness.claimed}
+                    <span className="ml-1.5 text-sm font-normal text-slate-500">
+                      {money(week.greatness.gross)}
+                    </span>
+                  </p>
+                </div>
+              ) : null}
               <div>
                 <p className="text-slate-500">{submitted ? "Submitted total" : "This week so far"}</p>
                 <p className="text-2xl font-semibold text-slate-900">{money(week.gross)}</p>
@@ -179,6 +195,18 @@ export default async function TeacherTimesheetsPage({
               />
             ) : null}
           </div>
+
+          {!submitted && week.greatness.applies ? (
+            <GreatnessReportsPicker
+              weekStart={week.weekStart}
+              claimed={week.greatness.claimed}
+              max={week.greatness.max}
+              distinctChildren={week.greatness.distinctChildren}
+              claimedElsewhereThisMonth={week.greatness.claimedElsewhereThisMonth}
+              ratePerReport={week.greatness.ratePerReport}
+              gross={week.greatness.gross}
+            />
+          ) : null}
 
           {!submitted ? (
             <p className="px-1 text-sm text-slate-500">

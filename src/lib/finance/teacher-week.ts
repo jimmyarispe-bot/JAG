@@ -1,5 +1,13 @@
 import { easternDate } from "@/lib/scheduling/attendance-bridge";
 import { computeClassPay, UNHELD_SESSION_STATUSES } from "@/lib/finance/class-pay";
+import {
+  GREATNESS_WORK_CODE,
+  GREATNESS_DROPDOWN_MAX,
+  greatnessAppliesTo,
+  greatnessGross,
+  greatnessMaxFor,
+} from "@/lib/finance/greatness-reports";
+import { workRateOn, type WorkRate } from "@/lib/finance/work-pay";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -124,6 +132,30 @@ export interface WeekDay {
   gross: number;
 }
 
+/**
+ * The GREATNESS Reports line on a week.
+ *
+ * A count, not a list of children - Jimmy asked for one dropdown. The ceiling
+ * does the work the list would have done: see greatness-reports.ts for why the
+ * weekly cap alone cannot hold a monthly rule.
+ */
+export interface WeekGreatness {
+  /** False in May and December, when parent conferences happen instead. */
+  applies: boolean;
+  /** What she has chosen for this week. Zero until she picks something. */
+  claimed: number;
+  /** The most she may choose. Already accounts for the rest of the month. */
+  max: number;
+  /** Distinct children she taught this week, held classes only. */
+  distinctChildren: number;
+  /** Claimed on OTHER weeks in this calendar month. Her own week is excluded. */
+  claimedElsewhereThisMonth: number;
+  /** Null when no rate is in force - then nothing is claimable and we say so. */
+  ratePerReport: number | null;
+  /** claimed x rate. Shown on its own line, then added into the week total. */
+  gross: number;
+}
+
 export interface TeacherWeek {
   employeeId: string;
   weekStart: string;
@@ -143,6 +175,21 @@ export interface TeacherWeek {
   unavailable: string | null;
   /** True when this week begins before go-live and therefore does not exist. */
   beforeGoLive: boolean;
+  /** GREATNESS Reports: its own line on the sheet, counted into `gross`. */
+  greatness: WeekGreatness;
+}
+
+/** Nothing claimable, nothing claimed. The shape a week has before it is read. */
+function noGreatness(weekStart: string): WeekGreatness {
+  return {
+    applies: greatnessAppliesTo(weekStart),
+    claimed: 0,
+    max: 0,
+    distinctChildren: 0,
+    claimedElsewhereThisMonth: 0,
+    ratePerReport: null,
+    gross: 0,
+  };
 }
 
 const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -189,6 +236,7 @@ function emptyWeek(
     submittedAt: null,
     unavailable,
     beforeGoLive,
+    greatness: noGreatness(weekStart),
   };
 }
 
@@ -244,7 +292,9 @@ export async function getTeacherWeek(
   /* The pay calculator is the single source of what a class is worth - rate
      resolution, the roster on that day, the campus Friday cutoff. Calling it
      rather than recomputing keeps one answer in the system. */
-  const pay = await computeClassPay(supabase, weekStart, weekEnd);
+  /* Her sessions only. This used to price all thirteen teachers inside one
+     teacher's read permissions and keep a thirteenth of the answer. */
+  const pay = await computeClassPay(supabase, weekStart, weekEnd, employeeId);
   if (pay.unavailable) {
     return emptyWeek(employeeId, weekStart, `Could not price your classes: ${pay.unavailable}`);
   }
@@ -380,6 +430,107 @@ export async function getTeacherWeek(
     }
   }
 
+  /*
+   * ── GREATNESS REPORTS ──────────────────────────────────────────────────────
+   *
+   * Read after the roster, because the ceiling is built from it: the distinct
+   * children she taught in classes that were actually HELD. A class she did not
+   * hold produced no child to write about, and a class somebody else covered
+   * was not hers.
+   *
+   * Every read below is best effort. A GREATNESS line that cannot be built must
+   * never take the class pay down with it - the same rule the names and the
+   * absences already follow on this screen.
+   */
+  const heldOwnClasses = all.filter((c) => c.held && !c.coveredAway);
+  const distinctChildren = new Set(
+    heldOwnClasses.flatMap((c) => c.students.map((s) => s.id)).filter(Boolean)
+  ).size;
+
+  const monthStart = `${weekStart.slice(0, 7)}-01`;
+  const monthEnd = (() => {
+    const y = Number(weekStart.slice(0, 4));
+    const m = Number(weekStart.slice(5, 7));
+    const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+    return `${next}-01`;
+  })();
+
+  let greatness = noGreatness(weekStart);
+
+  if (greatness.applies) {
+    const [{ data: claims, error: claimError }, { data: rateRows, error: rateError }] =
+      await Promise.all([
+        supabase
+          .from("contractor_work_claims")
+          .select("work_date, quantity")
+          .eq("employee_id", employeeId)
+          .eq("work_code", GREATNESS_WORK_CODE)
+          .gte("work_date", monthStart)
+          .lt("work_date", monthEnd),
+        supabase
+          .from("work_pay_rates")
+          .select("code, label, unit, amount, employee_id, cadence_note, effective_from")
+          .eq("code", GREATNESS_WORK_CODE),
+      ]);
+
+    /* Checked, not assumed. A refusal and an empty month look identical from
+       here, and treating a refusal as "claimed nothing" would hand her back an
+       allowance she has already spent. */
+    if (claimError) {
+      console.error("[teacher-week] greatness claims unreadable", claimError.message);
+    }
+    if (rateError) {
+      console.error("[teacher-week] greatness rate unreadable", rateError.message);
+    }
+
+    const rows = ((claims ?? []) as { work_date: string; quantity: number }[]).map((r) => ({
+      weekStart: String(r.work_date).slice(0, 10),
+      quantity: Number(r.quantity) || 0,
+    }));
+
+    const claimed = rows
+      .filter((r) => r.weekStart === weekStart)
+      .reduce((n, r) => n + r.quantity, 0);
+    const claimedElsewhereThisMonth = rows
+      .filter((r) => r.weekStart !== weekStart)
+      .reduce((n, r) => n + r.quantity, 0);
+
+    const rate = workRateOn(
+      ((rateRows ?? []) as Record<string, unknown>[]).map((r) => ({
+        code: String(r.code),
+        label: String(r.label),
+        unit: String(r.unit) as WorkRate["unit"],
+        amount: Number(r.amount),
+        employeeId: (r.employee_id as string | null) ?? null,
+        cadenceNote: (r.cadence_note as string | null) ?? null,
+        effectiveFrom: String(r.effective_from),
+      })),
+      GREATNESS_WORK_CODE,
+      employeeId,
+      weekStart
+    );
+
+    greatness = {
+      applies: true,
+      claimed,
+      /* Never below what she has already saved. A ceiling that drops under a
+         figure already on the sheet reads as an accusation and gives her no
+         way to act on it; the submit check is the thing that refuses. */
+      max: Math.max(
+        claimed,
+        greatnessMaxFor({
+          weekStart,
+          distinctChildrenThisWeek: distinctChildren,
+          claimedElsewhereThisMonth,
+        })
+      ),
+      distinctChildren,
+      claimedElsewhereThisMonth,
+      ratePerReport: rate ? rate.amount : null,
+      gross: rate ? greatnessGross(claimed, rate.amount) : 0,
+    };
+  }
+
   const { data: submission } = await supabase
     .from("teacher_week_submissions")
     .select("status, submitted_at, gross_cents, teacher_note, review_note")
@@ -407,9 +558,15 @@ export async function getTeacherWeek(
     /* THE FROZEN FIGURE WINS ONCE SUBMITTED. A submitted week is a receipt, not
        a formula: recomputing it would let a later roster or rate change rewrite
        what the teacher verified and agreed to. */
+    /* Classes plus GREATNESS Reports. The reports show as their own line on
+       the screen and are counted once, here, into the figure she verifies and
+       submits - Jimmy: "indicated as a separate number on their pay screen
+       then added to their weekly total". */
     gross: submitted
       ? ((submission?.gross_cents as number | null) ?? 0) / 100
-      : Math.round(all.reduce((sum, c) => sum + c.gross, 0) * 100) / 100,
+      : Math.round(
+          (all.reduce((sum, c) => sum + c.gross, 0) + greatness.gross) * 100
+        ) / 100,
     status: (submitted
       ? (submission?.status as "submitted" | "approved" | "not_approved")
       : "open"),
@@ -418,5 +575,6 @@ export async function getTeacherWeek(
     submittedAt: (submission?.submitted_at as string | null) ?? null,
     unavailable: null,
     beforeGoLive: false,
+    greatness,
   };
 }

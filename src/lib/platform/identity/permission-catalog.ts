@@ -25,6 +25,20 @@ export const PERMISSION_CATALOG = [
   "SYSTEM_ADMIN_ACCESS",
   "AUDIT_ACCESS",
   "REPORTING_ACCESS",
+  /*
+   * FORM_BUILDER_ACCESS — 25 September 2026.
+   *
+   * Its own catalog permission, and not a reuse of an existing one, because no
+   * existing gate names the right people. The form builder can change the
+   * campus applications and, once they move into JAG, the Enrollment and
+   * Tuition Contract itself. Jimmy: him and Danni; explicitly not Stacy, whose
+   * CEO role carries nearly everything else.
+   *
+   * A CATALOG permission rather than a granular key on purpose: authorize()
+   * falls back to the role matrix for catalog keys, so the gate is correct from
+   * the moment this deploys and does not wait on permission rows being seeded.
+   */
+  "FORM_BUILDER_ACCESS",
 ] as const;
 
 export type CatalogPermission = (typeof PERMISSION_CATALOG)[number];
@@ -125,6 +139,12 @@ export const PERMISSION_CATALOG_DEFINITIONS: {
     id: "AUDIT_ACCESS",
     label: "Audit Access",
     description: "Security and audit log visibility access.",
+  },
+  FORM_BUILDER_ACCESS: {
+    id: "FORM_BUILDER_ACCESS",
+    label: "Form Builder",
+    description:
+      "Edit and publish admissions forms and enrollment contracts. Founder and Executive Director only.",
   },
   REPORTING_ACCESS: {
     id: "REPORTING_ACCESS",
