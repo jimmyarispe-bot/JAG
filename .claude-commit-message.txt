@@ -1,26 +1,36 @@
-The form builder starts by looking, and a class row says which day it was
+You can change what the form says, without a migration and without touching what it means
 
-TWO THINGS, BOTH SMALL, BOTH READ-ONLY.
+Ship two of the form builder. /dashboard/admin/forms now opens a working
+draft, lets Jimmy or Danni edit every piece of text on the interest form, and
+publishes it. The form is on version 22 because twenty-two migrations were the
+only way to change a sentence; that ends here.
 
-/dashboard/admin/forms is ship one of four: every section and question in the
-live interest form, what type each is, whether it is required, what the
-choices are, and - in English rather than as a condition tree - which campus
-sees which section. Nothing on it writes. The form is on version 22 because
-twenty-two migrations were the only way to change a sentence, and before any
-edit button exists somebody has to be able to SEE the form in one place.
+WHAT MAY CHANGE: the form title, section titles and descriptions, question
+labels, help text, placeholders, and the LABELS on choices.
 
-It says two things a definition can hide: a section that lists a question the
-form does not have, and a question that belongs to no section and is therefore
-never asked of anybody. Both are invisible from every other screen.
+WHAT MAY NOT, AND WHY IT IS ENFORCED TWICE: a question's key is what every
+recorded answer hangs off, and an option's value is what the answer IS.
+Rename either and a year of submissions quietly stops meaning anything -
+invisibly, because nothing errors. applyTextEdits can only touch text by
+construction, and onlyTextChanged proves it again before the row is written;
+a disagreement between them refuses the save and names the structural thing
+that moved. 22 tests, pure, no database.
 
-describeCondition is pure and tested (12 cases). Its rule is that an
-unreadable condition prints its raw value rather than nothing, because a
-visibility rule that renders as silence reads as "always shown" - the most
-dangerous wrong answer that function could give.
+Nothing reaches a family until Publish. Saving writes to the draft; the public
+form keeps serving the published version. Publish saves first, so what goes
+out is what is on the screen rather than the last thing saved.
 
-Also: the finance timesheet now prints the date under the weekday and time.
-"Mon 8:00 AM" is legible while you are looking at one week and useless six
-weeks later at a bank statement. The date was already on every row.
+Migration 432 makes the publish one transaction. The unique index allows one
+published version per form, so publishing is a swap - archive the old, promote
+the draft, move the pointer - and doing that in three statements from the
+application leaves a window with NO published version, where the public
+inquiry form returns nothing to every family. The function is security definer
+and executable only by service_role, so authorization stays in one place: the
+FORM_BUILDER_ACCESS gate on the screen.
+
+Discarding deletes the draft rather than archiving it. An archived version is
+one families answered; a discarded draft was never in front of anybody, and
+filing them together would make the history mean two things.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

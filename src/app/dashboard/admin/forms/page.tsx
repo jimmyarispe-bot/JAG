@@ -5,6 +5,8 @@ import { hasPermission } from "@/lib/platform/identity/authorization-service";
 import type { PermissionKey } from "@/lib/platform/identity/types";
 import { inspectInterestForms } from "@/lib/admissions/interest-form/inspect";
 import { describeCondition } from "@/lib/admissions/interest-form/describe";
+import { FormWordingEditor } from "@/components/admissions/FormWordingEditor";
+import { OpenFormDraftButton } from "@/components/admissions/OpenFormDraftButton";
 
 export const metadata = {
   title: "Forms",
@@ -143,13 +145,38 @@ export default async function FormsPage() {
               </div>
             </div>
 
+            {/*
+              * EDITING HAPPENS ON A DRAFT, AND THE SCREEN SHOWS WHICH.
+              *
+              * With a draft open, the editor replaces the read-only view -
+              * two versions of the same form side by side is how somebody
+              * edits one and reads the other. Without one, the live form is
+              * shown as it is, with one button to start changing its words.
+              */}
+            {draft?.definition ? (
+              <FormWordingEditor
+                formId={form.formId}
+                draftVersionNumber={draft.versionNumber}
+                definition={draft.definition}
+                campusNames={form.schoolNames}
+              />
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4">
+                <p className="text-sm text-slate-600">
+                  Changing a word opens a working draft. Families keep seeing the live version
+                  until you publish it.
+                </p>
+                <OpenFormDraftButton formId={form.formId} />
+              </div>
+            )}
+
             {live?.problem ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 {live.problem}
               </div>
             ) : null}
 
-            {definition
+            {definition && !draft
               ? [...definition.sections]
                   .sort((a, b) => a.order - b.order)
                   .map((section) => {
@@ -247,7 +274,7 @@ export default async function FormsPage() {
 
             {/* A question nobody can answer because no section carries it.
                 Printed, because it is invisible everywhere else. */}
-            {orphanQuestions.length > 0 ? (
+            {orphanQuestions.length > 0 && !draft ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
                 <p className="font-medium">
                   {orphanQuestions.length} question
