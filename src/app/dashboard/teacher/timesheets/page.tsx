@@ -6,6 +6,7 @@ import { CoverAClassButton } from "@/components/teacher/CoverAClassButton";
 import { ClassHeldToggle } from "@/components/teacher/ClassHeldToggle";
 import { SubmitWeekButton } from "@/components/teacher/SubmitWeekButton";
 import { GreatnessReportsPicker } from "@/components/teacher/GreatnessReportsPicker";
+import { WeeklyWorkPicker } from "@/components/teacher/WeeklyWorkPicker";
 import {
   currentWeekStart,
   formatClassTime,
@@ -137,6 +138,20 @@ export default async function TeacherTimesheetsPage({
                   </p>
                 </div>
               ) : null}
+              {/* One per kind she holds a rate for. Nothing at all for most. */}
+              {week.workLines
+                .filter((line) => line.quantity > 0 || !submitted)
+                .map((line) => (
+                  <div key={line.kind.code}>
+                    <p className="text-slate-500">{line.kind.tileLabel}</p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {line.quantity}
+                      <span className="ml-1.5 text-sm font-normal text-slate-500">
+                        {money(line.gross)}
+                      </span>
+                    </p>
+                  </div>
+                ))}
               <div>
                 <p className="text-slate-500">{submitted ? "Submitted total" : "This week so far"}</p>
                 <p className="text-2xl font-semibold text-slate-900">{money(week.gross)}</p>
@@ -195,6 +210,19 @@ export default async function TeacherTimesheetsPage({
               />
             ) : null}
           </div>
+
+          {!submitted
+            ? week.workLines.map((line) => (
+                <WeeklyWorkPicker
+                  key={line.kind.code}
+                  weekStart={week.weekStart}
+                  kind={line.kind}
+                  quantity={line.quantity}
+                  rate={line.rate}
+                  gross={line.gross}
+                />
+              ))
+            : null}
 
           {!submitted && week.greatness.applies ? (
             <GreatnessReportsPicker

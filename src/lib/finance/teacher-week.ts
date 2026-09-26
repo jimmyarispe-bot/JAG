@@ -8,6 +8,11 @@ import {
   greatnessMaxFor,
 } from "@/lib/finance/greatness-reports";
 import { workRateOn, type WorkRate } from "@/lib/finance/work-pay";
+import {
+  WEEKLY_WORK_KINDS,
+  weeklyWorkGross,
+  type WeeklyWorkKind,
+} from "@/lib/finance/weekly-work";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -156,6 +161,20 @@ export interface WeekGreatness {
   gross: number;
 }
 
+/**
+ * A line of non-class work a teacher types on her own week.
+ *
+ * One of these per kind she has a rate for, and none at all for most people.
+ * Not a role check and not a name: whether a rate is in force for this person
+ * this week. Katie has admin hours; Jessica Price has tutoring sessions.
+ */
+export interface WeekWorkLine {
+  kind: WeeklyWorkKind;
+  quantity: number;
+  rate: number;
+  gross: number;
+}
+
 export interface TeacherWeek {
   employeeId: string;
   weekStart: string;
@@ -177,6 +196,27 @@ export interface TeacherWeek {
   beforeGoLive: boolean;
   /** GREATNESS Reports: its own line on the sheet, counted into `gross`. */
   greatness: WeekGreatness;
+  /**
+   * Non-class work she may claim: admin hours, tutoring sessions. Empty for
+   * almost everyone, because almost nobody holds one of those rates.
+   */
+  workLines: WeekWorkLine[];
+  /**
+   * The campus a claim made on this week is FILED against.
+   *
+   * Not a gate on anything. contractor_work_claims.school_id is NOT NULL
+   * (migration 377) because a cost has to land somewhere in the books, and on
+   * 25 September Craig Mann - who teaches in both schools and therefore has no
+   * single campus on his employee row - was told "your employee record has no
+   * campus on it, so this cannot be saved". He had taught twenty-six children
+   * that week; the platform knew exactly where.
+   *
+   * Taken from the classes she actually taught, which is migration 379's rule -
+   * "pay follows the course's school, not the teacher's" - applied to the
+   * claim that sits beside them. Null only when she taught nothing that could
+   * be priced, and the action then falls back to her employee row.
+   */
+  claimSchoolId: string | null;
 }
 
 /** Nothing claimable, nothing claimed. The shape a week has before it is read. */
@@ -237,6 +277,8 @@ function emptyWeek(
     unavailable,
     beforeGoLive,
     greatness: noGreatness(weekStart),
+    workLines: [],
+    claimSchoolId: null,
   };
 }
 
@@ -302,6 +344,13 @@ export async function getTeacherWeek(
   const paidBySession = new Map(
     pay.rows.filter((r) => r.employeeId === employeeId).map((r) => [r.sessionId, r])
   );
+
+  /* Where her work happened, for anything that has to be filed against a
+     campus. Her own priced classes only, and the first one is enough: a
+     teacher working across two schools in one week files the claim at one of
+     them, and either is truer than refusing to save it at all. */
+  const claimSchoolId =
+    pay.rows.find((r) => r.employeeId === employeeId && r.schoolId)?.schoolId ?? null;
 
   const one = (value: unknown): Record<string, unknown> | null => {
     const first = Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
@@ -531,6 +580,74 @@ export async function getTeacherWeek(
     };
   }
 
+  /*
+   * ── WORK THAT IS NOT A CLASS ───────────────────────────────────────────────
+   *
+   * Admin hours, tutoring sessions. One read for the rates, one for the claims,
+   * then a line for every kind this person actually has a rate for - which for
+   * eleven of thirteen teachers is none, and the section never renders.
+   *
+   * Best effort, like everything else on this screen: a failure here costs the
+   * extra lines and never the class pay.
+   */
+  const workLines: WeekWorkLine[] = [];
+
+  {
+    const codes = WEEKLY_WORK_KINDS.map((k) => k.code);
+
+    const [{ data: workClaims, error: workClaimError }, { data: workRateRows, error: workRateError }] =
+      await Promise.all([
+        supabase
+          .from("contractor_work_claims")
+          .select("work_code, quantity")
+          .eq("employee_id", employeeId)
+          .eq("work_date", weekStart)
+          .in("work_code", codes),
+        supabase
+          .from("work_pay_rates")
+          .select("code, label, unit, amount, employee_id, cadence_note, effective_from")
+          .in("code", codes),
+      ]);
+
+    if (workClaimError) {
+      console.error("[teacher-week] work claims unreadable", workClaimError.message);
+    }
+    if (workRateError) {
+      console.error("[teacher-week] work rates unreadable", workRateError.message);
+    }
+
+    const rates = ((workRateRows ?? []) as Record<string, unknown>[]).map((r) => ({
+      code: String(r.code),
+      label: String(r.label),
+      unit: String(r.unit) as WorkRate["unit"],
+      amount: Number(r.amount),
+      employeeId: (r.employee_id as string | null) ?? null,
+      cadenceNote: (r.cadence_note as string | null) ?? null,
+      effectiveFrom: String(r.effective_from),
+    }));
+
+    for (const kind of WEEKLY_WORK_KINDS) {
+      const rate = workRateOn(rates, kind.code, employeeId, weekStart);
+      /* No rate is the whole gate. She does not hold this kind of work, so the
+         question is never put to her. */
+      if (!rate) continue;
+
+      const quantity = ((workClaims ?? []) as { work_code: string; quantity: number }[])
+        .filter((r) => r.work_code === kind.code)
+        .reduce((n, r) => n + (Number(r.quantity) || 0), 0);
+
+      workLines.push({
+        kind,
+        quantity,
+        rate: rate.amount,
+        gross: weeklyWorkGross(quantity, rate.amount),
+      });
+    }
+  }
+
+  const workGross =
+    Math.round(workLines.reduce((sum, l) => sum + l.gross, 0) * 100) / 100;
+
   const { data: submission } = await supabase
     .from("teacher_week_submissions")
     .select("status, submitted_at, gross_cents, teacher_note, review_note")
@@ -565,7 +682,10 @@ export async function getTeacherWeek(
     gross: submitted
       ? ((submission?.gross_cents as number | null) ?? 0) / 100
       : Math.round(
-          (all.reduce((sum, c) => sum + c.gross, 0) + greatness.gross) * 100
+          (all.reduce((sum, c) => sum + c.gross, 0) +
+            greatness.gross +
+            workGross) *
+            100
         ) / 100,
     status: (submitted
       ? (submission?.status as "submitted" | "approved" | "not_approved")
@@ -576,5 +696,7 @@ export async function getTeacherWeek(
     unavailable: null,
     beforeGoLive: false,
     greatness,
+    workLines,
+    claimSchoolId,
   };
 }

@@ -8,6 +8,10 @@ import {
   GREATNESS_WORK_CODE,
   checkGreatnessClaim,
 } from "@/lib/finance/greatness-reports";
+import {
+  checkWeeklyWorkClaim,
+  weeklyWorkKind,
+} from "@/lib/finance/weekly-work";
 
 /**
  * Marking a class held or not held.
@@ -268,9 +272,28 @@ export async function setGreatnessReportsAction(weekStart: string, count: number
     };
   }
 
-  const schoolId = (ctx.employee as { school_id?: string } | null)?.school_id;
+  /*
+   * WHERE THE CLAIM IS FILED, WHICH IS NOT THE SAME QUESTION AS WHO IS PAID.
+   *
+   * contractor_work_claims.school_id is NOT NULL, so a claim has to land
+   * somewhere in the books. This used to read the campus off the employee row
+   * and refuse when it was empty - and on 25 September it refused Craig Mann,
+   * who teaches in both schools and therefore belongs to neither on paper, an
+   * hour before the deadline, after he had taught twenty-six children.
+   *
+   * The classes she taught say where the work happened. The employee row is
+   * the fallback, not the source. Campus is still nowhere near the money.
+   */
+  const schoolId =
+    week.claimSchoolId ??
+    (ctx.employee as { school_id?: string | null } | null)?.school_id ??
+    null;
   if (count > 0 && !schoolId) {
-    return { error: "Your employee record has no campus on it, so this cannot be saved." };
+    return {
+      error:
+        "This could not be filed against a campus, because none of your classes " +
+        "this week could be priced. Nothing has been saved - tell Jimmy.",
+    };
   }
 
   /*
@@ -357,6 +380,124 @@ export async function setGreatnessReportsAction(weekStart: string, count: number
   return { success: true, claimed: count };
 }
 
+/**
+ * How much non-class work she did this week - admin hours, tutoring sessions.
+ *
+ * One action for every kind, because they are one mechanism. One claim row per
+ * person per code per week, attached to her own open week, replaced rather than
+ * added to, deleted when set back to zero.
+ *
+ * THE RATE IS THE PERMISSION. A person with no rate for this code never sees
+ * the field, and a request that arrives anyway is refused here rather than
+ * trusted - a dropdown is a courtesy to the person using it, not a rule.
+ */
+export async function setWeeklyWorkAction(
+  weekStart: string,
+  workCode: string,
+  quantity: number
+) {
+  const ctx = await requireTeacherExperienceContext();
+
+  const kind = weeklyWorkKind(workCode);
+  if (!kind) return { error: "That is not something that can be claimed on a week." };
+
+  const week = await getTeacherWeek(ctx.supabase, ctx.employeeId, weekStart);
+  if (week.unavailable) return { error: week.unavailable };
+  if (week.status !== "open") {
+    return { error: "That week has already been submitted, so it cannot be changed." };
+  }
+
+  const line = week.workLines.find((l) => l.kind.code === workCode) ?? null;
+
+  const verdict = checkWeeklyWorkClaim({ kind, quantity, hasRate: line !== null });
+  if (!verdict.ok) return { error: verdict.reason };
+
+  /* Filed where the work happened; the employee row is only the fallback. Same
+     reasoning as the GREATNESS save; see the comment there. */
+  const schoolId =
+    week.claimSchoolId ??
+    (ctx.employee as { school_id?: string | null } | null)?.school_id ??
+    null;
+  if (quantity > 0 && !schoolId) {
+    return {
+      error:
+        "This could not be filed against a campus, because none of your classes " +
+        "this week could be priced. Nothing has been saved - tell Jimmy.",
+    };
+  }
+
+  if (quantity === 0) {
+    const { error } = await ctx.supabase
+      .from("contractor_work_claims")
+      .delete()
+      .eq("employee_id", ctx.employeeId)
+      .eq("work_code", workCode)
+      .eq("work_date", weekStart);
+    if (error) return { error: error.message };
+    revalidatePath("/dashboard/teacher/timesheets");
+    return { success: true, quantity: 0 };
+  }
+
+  /* The open week the claim hangs off - migration 392 requires it. Same
+     reasoning as the GREATNESS save; see the comment there. */
+  const { data: existingWeek, error: weekReadError } = await ctx.supabase
+    .from("teacher_week_submissions")
+    .select("id, status")
+    .eq("employee_id", ctx.employeeId)
+    .eq("week_start", weekStart)
+    .maybeSingle();
+
+  if (weekReadError) return { error: weekReadError.message };
+  if (existingWeek && existingWeek.status !== "open") {
+    return { error: "That week has already been submitted, so it cannot be changed." };
+  }
+
+  let weekSubmissionId = existingWeek?.id as string | undefined;
+
+  if (!weekSubmissionId) {
+    const { data: createdWeek, error: weekWriteError } = await ctx.supabase
+      .from("teacher_week_submissions")
+      .insert({
+        employee_id: ctx.employeeId,
+        week_start: week.weekStart,
+        week_end: week.weekEnd,
+        status: "open",
+      })
+      .select("id")
+      .single();
+
+    if (weekWriteError) return { error: weekWriteError.message };
+    weekSubmissionId = createdWeek?.id as string | undefined;
+  }
+
+  if (!weekSubmissionId) {
+    return { error: "Could not open your week to attach this to. Nothing has been saved." };
+  }
+
+  const {
+    data: { user },
+  } = await ctx.supabase.auth.getUser();
+
+  const { error } = await ctx.supabase.from("contractor_work_claims").upsert(
+    {
+      school_id: schoolId,
+      employee_id: ctx.employeeId,
+      work_code: workCode,
+      work_date: weekStart,
+      quantity,
+      week_submission_id: weekSubmissionId,
+      created_by: user?.id ?? null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "employee_id,work_code,work_date" }
+  );
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/teacher/timesheets");
+  return { success: true, quantity };
+}
+
 export async function submitWeekAction(weekStart: string, teacherNote?: string) {
   const ctx = await requireTeacherExperienceContext();
 
@@ -376,11 +517,26 @@ export async function submitWeekAction(weekStart: string, teacherNote?: string) 
   /* An empty week is almost certainly a mistake rather than a week with no
      work in it, and submitting one freezes a zero that then needs an amendment
      to undo. Refuse, and say why. */
-  if (held.length === 0) {
+  /*
+   * A WEEK CAN BE WORTH SOMETHING WITHOUT A CLASS IN IT. 25 September 2026.
+   *
+   * This refused any week with no held classes, which was right when a class
+   * was the only thing a week could contain. It is not any more: Katie Vetere
+   * teaches AND does admin at $25 an hour, and a week of hers might be admin
+   * only. Refusing it would have told her there was nothing to submit while
+   * she was looking at hours on the screen.
+   *
+   * So the test is now whether the week claims anything at all.
+   */
+  const hasExtras =
+    week.greatness.claimed > 0 || week.workLines.some((l) => l.quantity > 0);
+
+  if (held.length === 0 && !hasExtras) {
     return {
       error:
-        "There are no held classes in that week, so there is nothing to submit. " +
-        "If you taught and the classes are not here, say so before submitting.",
+        "There are no held classes in that week and nothing else claimed, so " +
+        "there is nothing to submit. If you taught and the classes are not here, " +
+        "say so before submitting.",
     };
   }
 
@@ -394,6 +550,16 @@ export async function submitWeekAction(weekStart: string, teacherNote?: string) 
       claimed: week.greatness.claimed,
       distinctChildrenThisWeek: week.greatness.distinctChildren,
       claimedElsewhereThisMonth: week.greatness.claimedElsewhereThisMonth,
+    });
+    if (!verdict.ok) return { error: verdict.reason };
+  }
+
+  for (const line of week.workLines) {
+    if (line.quantity <= 0) continue;
+    const verdict = checkWeeklyWorkClaim({
+      kind: line.kind,
+      quantity: line.quantity,
+      hasRate: true,
     });
     if (!verdict.ok) return { error: verdict.reason };
   }
