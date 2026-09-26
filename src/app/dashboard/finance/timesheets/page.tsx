@@ -22,6 +22,22 @@ const addDays = (iso: string, days: number) =>
     .toISOString()
     .slice(0, 10);
 
+/**
+ * The date under the day.
+ *
+ * Jimmy, 26 September 2026: "moving forward i need the dates below the day of
+ * week/time". "Mon 8:00 AM" is enough to read a week; it is not enough to
+ * reconcile one against a bank statement six weeks later, or to answer a
+ * teacher asking which Monday a class was missed from.
+ */
+const classDay = (iso: string) =>
+  new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
 const pretty = (iso: string) =>
   new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", {
     timeZone: "UTC",
@@ -201,7 +217,10 @@ export default async function FinanceTimesheetsPage({
                     {w.classes.map((c) => (
                       <tr key={c.sessionId} className="align-top">
                         <td className="whitespace-nowrap px-5 py-3 text-slate-500">
-                          {c.day} {c.startsEt}
+                          <div>
+                            {c.day} {c.startsEt}
+                          </div>
+                          <div className="text-xs text-slate-400">{classDay(c.classDate)}</div>
                         </td>
                         <td className="px-5 py-3">
                           <div className="font-medium text-slate-900">

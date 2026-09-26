@@ -1,54 +1,15 @@
-We do not do interviews, and the family is told what they actually submitted
+A class on the pay screen says which day it was, not just which weekday
 
-THE WORD. On 17 September a shadow day was booked for Maddox Mixon at The
-Academy HS and his mother was emailed an interview confirmation telling her to
-prepare report cards and IEP summaries. Heather Badger-Brown, who had
-scheduled no interview and conducts none: "The Jag is setting up interviews.
-We haven't interviewed prospective families. It didn't invite me either!"
-Jimmy: "there shouldn't be anything that says interview. we don't do
-interviews."
+Jimmy, 26 September 2026, while paying thirteen teachers: "moving forward i
+need the dates below the day of week/time". The finance timesheet listed
+"Mon 8:00 AM" and nothing else, which is legible while you are looking at one
+week and useless the moment you are not - reconciling a payment six weeks
+later, or answering a teacher who says a class was missed from her sheet,
+both need to know WHICH Monday.
 
-"Interest meeting" now, everywhere a person reads it: the booking dialog, the
-stage on every card's dropdown, the case profile, the staff panel, and the
-chip a FAMILY sees on their own application. The internal names are untouched
-- admissions_interviews, interview_type, the interview_scheduled stage key -
-because renaming those is a migration across the whole pipeline for a word
-nobody outside the code reads.
+The date was already on every row (ReviewClass.classDate); only the cell was
+not printing it. The teacher's own sheet has shown the date beside each day
+since it was built, so this brings the money screen in line with it.
 
-THE BEHAVIOUR. scheduleInterview read `interview_type` to choose the stage and
-then sent the interview letter whatever had been booked. A shadow day is
-stored as an interview of type initial_assessment, so the type was already on
-the record and already being read. It decides the message now too.
-
-THE DATE reads "Thursday, 24 September 2026 at 1:00 PM", in Eastern, instead
-of "9/24/2026, 1:00:00 PM" - seconds on a school appointment, rendered in
-whatever timezone the server happened to be in rather than the one the school
-is in.
-
-THE THANK-YOU PAGE KNEW AND DIDN'T SAY. The invited-application route has
-passed `applied=1` to /apply/thank-you since it shipped, and the page never
-read it - so a family who had just completed a full application was told
-"Inquiry Received" and invited to book a tour they had already had. Both
-notices are now Jimmy's own words. The inquiry one is unchanged, deliberately:
-"this needs to be the inquiry received confirmation notice." The application
-one names the child, using their preferred name where the family gave one.
-
-One correction to his application text, which he was told about: he wrote
-"your will receive". It reads "you will receive".
-
-MIGRATIONS 415 AND 416 ARE ALREADY RUN. They carry the acceptance letter, the
-shadow-days invitation and the staff notices, all in his wording. Two of those
-templates - shadow_day_scheduled and staff_shadow_day_scheduled - have been
-sitting unused since they were created, because the code that fires them is in
-this commit.
-
-staff_interview_scheduled had been dispatched on every booking since the
-feature shipped with no template behind it, so the engine found nothing and
-sent nothing, silently. That is why Heather heard nothing, and it is fixed in
-the database rather than here.
-
-Still open, named so it is not rediscovered a third time: five staff templates
-sit on the internal_note channel, which records a message and never sends one,
-including staff_new_inquiry - so nobody is emailed when a family inquires.
-
-Verified in order: typecheck, the full build, then the admissions suite.
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
