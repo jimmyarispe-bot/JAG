@@ -1,15 +1,26 @@
-A class on the pay screen says which day it was, not just which weekday
+The form builder starts by looking, and a class row says which day it was
 
-Jimmy, 26 September 2026, while paying thirteen teachers: "moving forward i
-need the dates below the day of week/time". The finance timesheet listed
-"Mon 8:00 AM" and nothing else, which is legible while you are looking at one
-week and useless the moment you are not - reconciling a payment six weeks
-later, or answering a teacher who says a class was missed from her sheet,
-both need to know WHICH Monday.
+TWO THINGS, BOTH SMALL, BOTH READ-ONLY.
 
-The date was already on every row (ReviewClass.classDate); only the cell was
-not printing it. The teacher's own sheet has shown the date beside each day
-since it was built, so this brings the money screen in line with it.
+/dashboard/admin/forms is ship one of four: every section and question in the
+live interest form, what type each is, whether it is required, what the
+choices are, and - in English rather than as a condition tree - which campus
+sees which section. Nothing on it writes. The form is on version 22 because
+twenty-two migrations were the only way to change a sentence, and before any
+edit button exists somebody has to be able to SEE the form in one place.
+
+It says two things a definition can hide: a section that lists a question the
+form does not have, and a question that belongs to no section and is therefore
+never asked of anybody. Both are invisible from every other screen.
+
+describeCondition is pure and tested (12 cases). Its rule is that an
+unreadable condition prints its raw value rather than nothing, because a
+visibility rule that renders as silence reads as "always shown" - the most
+dangerous wrong answer that function could give.
+
+Also: the finance timesheet now prints the date under the weekday and time.
+"Mon 8:00 AM" is legible while you are looking at one week and useless six
+weeks later at a bank statement. The date was already on every row.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
