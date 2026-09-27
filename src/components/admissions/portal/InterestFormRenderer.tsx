@@ -7,6 +7,7 @@ import { submitInvitedApplicationAction } from "@/lib/admissions/apply-link/acti
 import {
   isQuestionVisible,
   isSectionVisible,
+  pruneAnswersForHiddenOptions,
   pruneAnswersForHiddenSections,
   resolveStaticOptions,
 } from "@/lib/admissions/interest-form/definition";
@@ -202,11 +203,14 @@ function FileQuestion({
 function QuestionField({
   question,
   value,
+  values,
   onChange,
   schools,
 }: {
   question: InterestQuestionDefinition;
   value: unknown;
+  /* Every answer, not just this one - an option's rule reads the others. */
+  values: InterestFormValues;
   onChange: (key: string, next: unknown) => void;
   schools: readonly { id: string; name: string }[];
 }) {
@@ -352,7 +356,7 @@ function QuestionField({
    * required answer, so the honest thing is to let it.
    */
   if (question.type === "multiselect") {
-    const options = resolveStaticOptions(question);
+    const options = resolveStaticOptions(question, values);
     const selected = new Set(
       Array.isArray(value) ? (value as unknown[]).map((entry) => String(entry)) : []
     );
@@ -422,7 +426,7 @@ function QuestionField({
   }
 
   if (question.type === "select") {
-    const options = resolveStaticOptions(question);
+    const options = resolveStaticOptions(question, values);
     return (
       <div>
         {label}
@@ -732,9 +736,18 @@ export function InterestFormRenderer({
   function setField(key: string, next: unknown) {
     setValues((prev) => {
       const merged = { ...prev, [key]: next };
-      return key === "school_id"
-        ? pruneAnswersForHiddenSections(published.definition, merged)
-        : merged;
+      /*
+       * PRUNE ON EVERY CHANGE, not only on campus. Sections used to be the
+       * only thing that could hide, and only the campus question could hide
+       * one. Now a choice can be withdrawn by any answer that its rule reads
+       * - a residency question, a programme - and an answer naming a choice
+       * no longer offered is refused at submit against a box the family can
+       * no longer see.
+       */
+      return pruneAnswersForHiddenOptions(
+        published.definition,
+        pruneAnswersForHiddenSections(published.definition, merged)
+      );
     });
   }
 
@@ -819,6 +832,7 @@ export function InterestFormRenderer({
                   key={question.key}
                   question={question}
                   value={values[question.key]}
+                  values={values}
                   onChange={setField}
                   schools={published.schools}
                 />

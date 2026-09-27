@@ -108,10 +108,30 @@ export function pruneAnswersForHiddenSections(
   return current;
 }
 
+/**
+ * The choices a family may be offered for this question, right now.
+ *
+ * `values` is optional and omitting it returns every choice - which is what a
+ * caller that is describing the form rather than filling it in wants (the
+ * admin forms screen, a report on what the form asks). A caller that is
+ * RENDERING or VALIDATING must pass the answers, because an option's rule can
+ * only be judged against them.
+ *
+ * ONE FUNCTION, SO THE SCREEN AND THE VALIDATOR CANNOT DISAGREE. The renderer
+ * omits what this omits, and the validator refuses what this omits, because
+ * both ask the same function. An option hidden on screen but accepted on
+ * submit would be a rule that anybody who can post a form can ignore.
+ */
 export function resolveStaticOptions(
-  question: InterestQuestionDefinition
+  question: InterestQuestionDefinition,
+  values?: InterestFormValues
 ): readonly InterestQuestionOption[] {
-  if (question.options?.length) return question.options;
+  const offered = (options: readonly InterestQuestionOption[]) =>
+    values === undefined
+      ? options
+      : options.filter((o) => evaluateFormConditions(o.visibleWhen ?? undefined, values));
+
+  if (question.options?.length) return offered(question.options);
   switch (question.optionSource) {
     case "grades":
       return GRADES.map((g) => ({ value: g.value, label: g.label }));
@@ -122,6 +142,55 @@ export function resolveStaticOptions(
     default:
       return [];
   }
+}
+
+/**
+ * Drop answers that name a choice no longer offered.
+ *
+ * THE COMPANION TO OPTION-LEVEL VISIBILITY, and the form is broken without
+ * it. A Georgia family ticks GA GOAL, then changes their programme to Virtual
+ * - GA GOAL stops being offered, but their answer still says it. The
+ * validator would then refuse the submission with "Invalid option selected"
+ * against a box the family can no longer even see, which is unanswerable.
+ *
+ * The same reasoning as pruneAnswersForHiddenSections, one level down: an
+ * answer to something that is no longer being asked is not an answer, and
+ * keeping it is how a family gets blocked by their own earlier, since
+ * reversed, decision.
+ *
+ * A single-value question whose chosen option is withdrawn is emptied rather
+ * than left pointing at nothing.
+ */
+export function pruneAnswersForHiddenOptions(
+  definition: InterestFormDefinition,
+  values: InterestFormValues
+): InterestFormValues {
+  let next: InterestFormValues | null = null;
+
+  for (const question of definition.questions) {
+    const raw = values[question.key];
+    if (raw === undefined || raw === null || raw === "") continue;
+    if (question.type !== "select" && question.type !== "multiselect") continue;
+
+    const offered = new Set(resolveStaticOptions(question, values).map((o) => o.value));
+    if (offered.size === 0) continue;
+
+    if (Array.isArray(raw)) {
+      const kept = raw.map(String).filter((v) => offered.has(v));
+      if (kept.length !== raw.length) {
+        next = next ?? { ...values };
+        next[question.key] = kept;
+      }
+      continue;
+    }
+
+    if (!offered.has(String(raw))) {
+      next = next ?? { ...values };
+      next[question.key] = "";
+    }
+  }
+
+  return next ?? values;
 }
 
 export function validateInterestFormDefinition(
@@ -341,7 +410,7 @@ export function validateInterestSubmission(input: {
       }
       case "select": {
         const v = String(raw).trim();
-        const options = resolveStaticOptions(question);
+        const options = resolveStaticOptions(question, input.values);
         if (options.length && !options.some((o) => o.value === v)) {
           issues.push({ path: question.key, message: "Invalid option selected." });
         } else {
@@ -356,7 +425,7 @@ export function validateInterestSubmission(input: {
               .split(",")
               .map((s) => s.trim())
               .filter(Boolean);
-        const options = resolveStaticOptions(question);
+        const options = resolveStaticOptions(question, input.values);
         if (options.length && arr.some((v) => !options.some((o) => o.value === v))) {
           issues.push({ path: question.key, message: "Invalid option selected." });
         } else {

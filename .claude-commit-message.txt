@@ -1,30 +1,36 @@
-Whether a family must answer is a decision, so it belongs on the screen
+A choice can be absent, rather than offered and then refused
 
-Jimmy, 27 September, looking at the live inquiry form: make ethnicity and race
-required. That is a structural change, and the wording editor refuses those by
-design - so the honest options were to hand-edit the definition in SQL or to
-let the screen make the change. SQL was not really available either: a
-version's content_hash is a sha256 of the definition as Javascript serialises
-it, and a migration would have had to fake it.
+Jimmy, 27 September: a Georgia resident taking Virtual or HS classes may use
+their GA Special Needs scholarship, but cannot apply for GA GOAL or
+Academy-Based - "those options should not be available to them".
 
-REQUIRED-NESS IS THE ONE STRUCTURAL CHANGE THAT IS SAFE, and it is worth
-saying why rather than treating it as a small one. A renamed key detaches
-every stored answer from its question. A changed type reinterprets them. A
-changed option value rewrites what an answer WAS. Requiring an answer does
-none of that: it governs the next family to open the form and nothing that has
-already been recorded.
+The form engine could not express that. Visibility was per section and per
+question, and this is the same question asked of the same family with a
+shorter list. The two workarounds available were a second, near-identical
+scholarships question, or offering all four and refusing on submit. The first
+splits the answer across two keys that every downstream rule then has to know
+about; the second shows a parent something they cannot have and teaches them
+the form's choices are not to be trusted.
 
-So the editor gets one checkbox per question - "families must answer" - and
-the guard learns to permit exactly that, only when the caller asks for it.
-onlyTextChanged now takes { allowRequiredChanges }, the save path passes it,
-and a required change arriving through any other caller is still refused. The
-allowance is explicit at the call site rather than buried in the guard, so a
-future caller with no checkbox behind it inherits the strict rule. Five more
-tests, including one proving the allowance does not quietly widen to types.
+So an option may now carry its own visibleWhen, and resolveStaticOptions
+takes the answers and applies it. ONE function, which is the point: the
+renderer omits what it omits and the validator refuses what it omits, because
+both ask the same question of the same code. An option hidden on screen but
+accepted on submit is a rule anyone who can post a form can ignore.
 
-The change itself is not in this commit. Ethnicity and race become required
-through the screen, as a published version, the way every wording change now
-happens.
+Passing no answers returns every choice, which is what a caller describing
+the form wants rather than one filling it in - the admin forms screen, a
+report on what the form asks.
+
+pruneAnswersForHiddenOptions is the companion, and the form is broken without
+it: a family who ticks GA GOAL and then changes programme still has ga_goal
+in their answers, and would be refused at submit against a box they can no
+longer see. The renderer now prunes on every change rather than only when the
+campus question moves, because a choice can now be withdrawn by any answer
+its rule reads.
+
+Twelve tests. No form changes in this commit - this is the mechanism the
+residency work needs, shipped on its own so it can be wrong in isolation.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

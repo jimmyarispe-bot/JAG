@@ -41,6 +41,24 @@ export type InterestOptionSource = "grades" | "funding_sources" | "programs" | "
 export type InterestQuestionOption = {
   readonly value: string;
   readonly label: string;
+  /**
+   * When this CHOICE may be offered, as distinct from when the question is.
+   *
+   * Jimmy, 27 September 2026: a Georgia resident taking Virtual or HS classes
+   * may use their GA Special Needs scholarship, but cannot apply for GA GOAL
+   * or Academy-Based - "those options should not be available to them".
+   *
+   * Section and question visibility could not express that: the question is
+   * the same question and the family must still see it. The only two ways to
+   * do it without option-level rules were to ask a second, near-identical
+   * question with a shorter list, or to offer all four and refuse on submit.
+   * Both leave a parent looking at something they cannot have, and the second
+   * teaches them that the form's choices are not to be trusted.
+   *
+   * Absent means always offered, which is what every option in every form is
+   * today.
+   */
+  readonly visibleWhen?: FormConditionGroup | null;
 };
 
 export type InterestQuestionDefinition = {
