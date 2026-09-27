@@ -81,6 +81,88 @@ function encodeLeadReferralExtras(values: InterestFormValues): string | null {
   return parts.length ? parts.join(" | ") : null;
 }
 
+function asNumberOrNull(value: unknown): number | null {
+  const raw = asString(value).replace(/[$,]/g, "");
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * What a family said about their state money becomes something the LEAD knows.
+ *
+ * Migration 439 added eleven questions about state scholarships. Every answer
+ * lands in `admissions_interest_answers` and nowhere else, because the lead is
+ * written by `submit_public_admissions_inquiry`, whose parameter list is fixed
+ * and does not include any of them. `student_residency_state` is not even in
+ * `encodeLeadReferralExtras`, so it was not reaching the lead as readable text
+ * either. The form asked and the system forgot.
+ *
+ * Migration 442 gives the lead four columns; this is the door that fills them.
+ * It runs here, beside the automation gate, rather than inside the RPC,
+ * because the RPC is SECURITY DEFINER and shared, and widening its signature
+ * to carry admissions wording is how a shared function becomes un-shareable.
+ *
+ * THREE VALUES THAT MUST NOT BECOME A PROGRAMME CODE. "none" is Florida's
+ * private-pay answer, "not_listed" is the out-of-state escape hatch, and an
+ * empty string is a question the family never saw. The column has a foreign
+ * key to `funding_program_catalog`, so writing any of them would fail the
+ * whole update - taking the residency answer down with it, for a family whose
+ * only sin was paying their own tuition.
+ *
+ * GEORGIA IS DELIBERATELY ABSENT. `ga_scholarships` is a multiselect whose
+ * values are not catalogue codes, one of them (`academy_based`) is our own
+ * scholarship rather than state money, and a family can tick two. Collapsing
+ * that into a single programme is a decision about money, and it is Jimmy's.
+ *
+ * A failure here is logged, never thrown. The family's inquiry is saved and
+ * their answers are durable in `admissions_interest_answers` whatever happens
+ * on this line; losing the lead over a convenience copy would be the worse
+ * trade by a wide margin.
+ */
+async function recordStateFundingOnLead(input: {
+  admin: ReturnType<typeof createServiceRoleClient>;
+  leadId: string;
+  values: InterestFormValues;
+}): Promise<void> {
+  const { admin, leadId, values } = input;
+
+  const residency = asString(values.student_residency_state);
+
+  const claimed =
+    asString(values.state_funding_program) || asString(values.fl_scholarship_program);
+  const program =
+    claimed && claimed !== "none" && claimed !== "not_listed" ? claimed : "";
+
+  const amount =
+    asNumberOrNull(values.state_funding_award_amount) ??
+    asNumberOrNull(values.fl_scholarship_amount);
+
+  const awardId =
+    asString(values.state_funding_identifier) || asString(values.fl_step_up_award_id);
+
+  const patch: Record<string, unknown> = {};
+  if (residency) patch.residency_state = residency;
+  if (program) patch.state_funding_program_code = program;
+  if (amount !== null) patch.state_funding_award_amount = amount;
+  if (awardId) patch.state_funding_award_id = awardId;
+
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await admin
+    .from("admissions_leads" as never)
+    .update(patch as never)
+    .eq("id", leadId);
+
+  if (error) {
+    console.error("[interest-form] state funding answers did not reach the lead", {
+      leadId,
+      keys: Object.keys(patch),
+      error,
+    });
+  }
+}
+
 async function verifyAntiSpam(formData: FormData): Promise<string | null> {
   const honeypot = asString(formData.get("company_website"));
   if (honeypot) return "Unable to submit inquiry.";
@@ -391,6 +473,8 @@ export async function submitPublishedInterestForm(
     });
   }
 
+  await recordStateFundingOnLead({ admin, leadId, values: visible });
+
   await recordInitialStage(admin, leadId, null);
 
   /*
@@ -533,6 +617,15 @@ export async function submitInterestFormForExistingLead(
   });
 
   if ("error" in persisted) return { error: persisted.error };
+
+  /*
+   * The same door as the inquiry path, and the one that matters more. An
+   * invited application is where a family actually supplies their award
+   * letter, the amount and the award number - the inquiry is a first touch.
+   * Without this call the lead would carry whatever the family guessed at
+   * inquiry and nothing they later confirmed.
+   */
+  await recordStateFundingOnLead({ admin, leadId, values: visible });
 
   return { leadId, submissionId: persisted.submissionId };
 }
