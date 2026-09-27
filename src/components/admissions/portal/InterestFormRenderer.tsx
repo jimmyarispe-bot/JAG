@@ -211,11 +211,39 @@ function QuestionField({
   schools: readonly { id: string; name: string }[];
 }) {
   const id = question.key;
+
+  /*
+   * THE HELP TEXT BELONGS TO THE LABEL, NOT TO ONE BRANCH.
+   *
+   * This block used to render only the label, and every branch that uses it -
+   * text, date, email, phone, number, the school picker, the program picker -
+   * therefore dropped `helpText` on the floor. Three other branches (file
+   * upload, multiselect, currency) each wrote their own help paragraph, so
+   * SOME help text appeared on the form and some did not, and which was which
+   * depended on a question's type rather than on anything anybody chose.
+   *
+   * Found on 26 September, when Jimmy renamed "Date of Birth" to "Birthdate"
+   * through the new form builder and noticed the sentence beneath it was gone.
+   * It had never been there. The published definition still carried it - the
+   * version diff showed the label as the only change - so this was a renderer
+   * that had been quietly declining to show text somebody wrote for parents.
+   *
+   * Keeping it here means a help text added through the builder appears under
+   * whatever kind of question it belongs to, without anybody having to know
+   * which branch renders which.
+   */
+  const help = question.helpText ? (
+    <p className="mt-1 text-sm text-slate-500">{question.helpText}</p>
+  ) : null;
+
   const label = (
-    <label className={portalLabelClass} htmlFor={id}>
-      {question.label}
-      {question.required ? " *" : ""}
-    </label>
+    <>
+      <label className={portalLabelClass} htmlFor={id}>
+        {question.label}
+        {question.required ? " *" : ""}
+      </label>
+      {help}
+    </>
   );
 
   if (question.type === "school_selector") {
@@ -419,19 +447,24 @@ function QuestionField({
 
   if (question.type === "boolean" || question.type === "consent") {
     return (
-      <div className="flex items-center gap-2 sm:col-span-2">
-        <input
-          id={id}
-          name={id}
-          type="checkbox"
-          checked={Boolean(value)}
-          onChange={(e) => onChange(question.key, e.target.checked)}
-          required={question.required}
-        />
-        <label className={portalLabelClass} htmlFor={id}>
-          {question.label}
-          {question.required ? " *" : ""}
-        </label>
+      <div className="sm:col-span-2">
+        <div className="flex items-center gap-2">
+          <input
+            id={id}
+            name={id}
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(e) => onChange(question.key, e.target.checked)}
+            required={question.required}
+          />
+          <label className={portalLabelClass} htmlFor={id}>
+            {question.label}
+            {question.required ? " *" : ""}
+          </label>
+        </div>
+        {/* A consent question's help text is the part that explains what is
+            being consented to. It was invisible here too. */}
+        {help}
       </div>
     );
   }
@@ -593,9 +626,6 @@ function QuestionField({
             required={question.required}
           />
         </div>
-        {question.helpText ? (
-          <p className="mt-1 text-sm text-slate-500">{question.helpText}</p>
-        ) : null}
       </div>
     );
   }

@@ -1,36 +1,31 @@
-You can change what the form says, without a migration and without touching what it means
+Help text written for parents was never shown to them
 
-Ship two of the form builder. /dashboard/admin/forms now opens a working
-draft, lets Jimmy or Danni edit every piece of text on the interest form, and
-publishes it. The form is on version 22 because twenty-two migrations were the
-only way to change a sentence; that ends here.
+Jimmy renamed "Date of Birth" to "Birthdate" through the new form builder and
+noticed the sentence beneath it had gone. It had not gone. Comparing v22 and
+v23 of the published definition returned exactly one difference - the label -
+so the help text was still there, and had simply never been rendered.
 
-WHAT MAY CHANGE: the form title, section titles and descriptions, question
-labels, help text, placeholders, and the LABELS on choices.
+QuestionField builds one shared label block and it printed the label alone.
+Every question type that uses it - text, date, email, phone, number, the
+school picker, the program picker - dropped helpText silently. Three branches
+(file upload, multiselect, currency) each wrote their own help paragraph,
+which is why some help text appeared on the form and some did not: it
+depended on the question's type, not on anything anybody decided. The boolean
+and consent branch, where the help text is the part explaining what is being
+consented to, showed nothing either.
 
-WHAT MAY NOT, AND WHY IT IS ENFORCED TWICE: a question's key is what every
-recorded answer hangs off, and an option's value is what the answer IS.
-Rename either and a year of submissions quietly stops meaning anything -
-invisibly, because nothing errors. applyTextEdits can only touch text by
-construction, and onlyTextChanged proves it again before the row is written;
-a disagreement between them refuses the save and names the structural thing
-that moved. 22 tests, pure, no database.
+The help now belongs to the label, so it appears under whatever kind of
+question carries it. The currency branch's duplicate paragraph is removed.
 
-Nothing reaches a family until Publish. Saving writes to the draft; the public
-form keeps serving the published version. Publish saves first, so what goes
-out is what is on the screen rather than the last thing saved.
+WHAT THIS COST: every sentence written to guide a parent through a text or
+date question has been invisible for as long as the form has existed. Nobody
+would report it - a parent cannot miss a sentence they have never seen, and
+the person who wrote it has no reason to check.
 
-Migration 432 makes the publish one transaction. The unique index allows one
-published version per form, so publishing is a swap - archive the old, promote
-the draft, move the pointer - and doing that in three statements from the
-application leaves a window with NO published version, where the public
-inquiry form returns nothing to every family. The function is security definer
-and executable only by service_role, so authorization stays in one place: the
-FORM_BUILDER_ACCESS gate on the screen.
-
-Discarding deletes the draft rather than archiving it. An archived version is
-one families answered; a discarded draft was never in front of anybody, and
-filing them together would make the history mean two things.
+The diagnostic that settled it is committed:
+supabase/diagnostics/what_the_publish_changed_2026_09_26.sql - it diffs the
+two newest versions field by field, and is the right first move whenever a
+form change appears to have done something it was not asked to do.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
