@@ -1,31 +1,30 @@
-Help text written for parents was never shown to them
+Whether a family must answer is a decision, so it belongs on the screen
 
-Jimmy renamed "Date of Birth" to "Birthdate" through the new form builder and
-noticed the sentence beneath it had gone. It had not gone. Comparing v22 and
-v23 of the published definition returned exactly one difference - the label -
-so the help text was still there, and had simply never been rendered.
+Jimmy, 27 September, looking at the live inquiry form: make ethnicity and race
+required. That is a structural change, and the wording editor refuses those by
+design - so the honest options were to hand-edit the definition in SQL or to
+let the screen make the change. SQL was not really available either: a
+version's content_hash is a sha256 of the definition as Javascript serialises
+it, and a migration would have had to fake it.
 
-QuestionField builds one shared label block and it printed the label alone.
-Every question type that uses it - text, date, email, phone, number, the
-school picker, the program picker - dropped helpText silently. Three branches
-(file upload, multiselect, currency) each wrote their own help paragraph,
-which is why some help text appeared on the form and some did not: it
-depended on the question's type, not on anything anybody decided. The boolean
-and consent branch, where the help text is the part explaining what is being
-consented to, showed nothing either.
+REQUIRED-NESS IS THE ONE STRUCTURAL CHANGE THAT IS SAFE, and it is worth
+saying why rather than treating it as a small one. A renamed key detaches
+every stored answer from its question. A changed type reinterprets them. A
+changed option value rewrites what an answer WAS. Requiring an answer does
+none of that: it governs the next family to open the form and nothing that has
+already been recorded.
 
-The help now belongs to the label, so it appears under whatever kind of
-question carries it. The currency branch's duplicate paragraph is removed.
+So the editor gets one checkbox per question - "families must answer" - and
+the guard learns to permit exactly that, only when the caller asks for it.
+onlyTextChanged now takes { allowRequiredChanges }, the save path passes it,
+and a required change arriving through any other caller is still refused. The
+allowance is explicit at the call site rather than buried in the guard, so a
+future caller with no checkbox behind it inherits the strict rule. Five more
+tests, including one proving the allowance does not quietly widen to types.
 
-WHAT THIS COST: every sentence written to guide a parent through a text or
-date question has been invisible for as long as the form has existed. Nobody
-would report it - a parent cannot miss a sentence they have never seen, and
-the person who wrote it has no reason to check.
-
-The diagnostic that settled it is committed:
-supabase/diagnostics/what_the_publish_changed_2026_09_26.sql - it diffs the
-two newest versions field by field, and is the right first move whenever a
-form change appears to have done something it was not asked to do.
+The change itself is not in this commit. Ethnicity and race become required
+through the screen, as a published version, the way every wording change now
+happens.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

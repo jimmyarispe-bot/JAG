@@ -198,7 +198,10 @@ export async function saveFormDraftTextAction(
 
   const next: InterestFormDefinition = applyTextEdits(current, edits);
 
-  const structural = onlyTextChanged(current, next);
+  /* Wording, plus whether a family must answer - and nothing else. The
+     allowance is explicit here rather than assumed inside the guard, so a
+     future caller that has no checkbox behind it still gets the strict rule. */
+  const structural = onlyTextChanged(current, next, { allowRequiredChanges: true });
   if (structural.length > 0) {
     return {
       error:

@@ -50,6 +50,21 @@ export type TextEdits = {
         helpText?: string;
         placeholder?: string;
         optionLabels?: Readonly<Record<string, string>>;
+        /**
+         * Whether a family must answer.
+         *
+         * THE ONE STRUCTURAL CHANGE ALLOWED HERE, and it is allowed because it
+         * is the only one that cannot make a past answer mean something else.
+         * A key rename detaches every stored answer from its question; a type
+         * change reinterprets them; a changed option value rewrites what an
+         * answer WAS. Requiring an answer does none of that - it governs the
+         * next family to open the form and nothing that has already happened.
+         *
+         * Jimmy, 27 September: make ethnicity and race required. Both carry a
+         * "Prefer not to answer" choice, so a family is never forced to
+         * disclose - only to say something.
+         */
+        required?: boolean;
       }
     >
   >;
@@ -117,6 +132,7 @@ export function applyTextEdits(
 
     return {
       ...question,
+      ...(typeof edit.required === "boolean" ? { required: edit.required } : {}),
       label: requiredText(edit.label, question.label),
       ...(helpText === undefined
         ? {}
@@ -145,7 +161,8 @@ export function applyTextEdits(
  */
 export function onlyTextChanged(
   before: InterestFormDefinition,
-  after: InterestFormDefinition
+  after: InterestFormDefinition,
+  options: { allowRequiredChanges?: boolean } = {}
 ): string[] {
   const problems: string[] = [];
 
@@ -181,7 +198,10 @@ export function onlyTextChanged(
     const next = after.questions.find((q) => q.key === question.key);
     if (!next) continue;
     if (question.type !== next.type) problems.push(`${question.key} changed type`);
-    if (question.required !== next.required) {
+    /* Permitted only when the caller says so, and the caller is the save
+       path for a screen that shows the person a checkbox. A required change
+       arriving without that flag is still a bug worth refusing. */
+    if (question.required !== next.required && !options.allowRequiredChanges) {
       problems.push(`${question.key} changed whether it is required`);
     }
     if (question.order !== next.order) problems.push(`${question.key} moved`);

@@ -42,7 +42,16 @@ export function FormWordingEditor({
       )
   );
   const [questions, setQuestions] = useState<
-    Record<string, { label: string; helpText: string; placeholder: string; optionLabels: Record<string, string> }>
+    Record<
+      string,
+      {
+        label: string;
+        helpText: string;
+        placeholder: string;
+        required: boolean;
+        optionLabels: Record<string, string>;
+      }
+    >
   >(() =>
     Object.fromEntries(
       definition.questions.map((q) => [
@@ -51,6 +60,7 @@ export function FormWordingEditor({
           label: q.label,
           helpText: q.helpText ?? "",
           placeholder: q.placeholder ?? "",
+          required: q.required,
           optionLabels: Object.fromEntries((q.options ?? []).map((o) => [o.value, o.label])),
         },
       ])
@@ -224,12 +234,24 @@ export function FormWordingEditor({
                       <span className="font-mono">{q.key}</span>
                       <span>·</span>
                       <span>{q.type}</span>
-                      {q.required ? (
-                        <>
-                          <span>·</span>
-                          <span>required</span>
-                        </>
-                      ) : null}
+                      <span>·</span>
+                      {/* The only structural control on this screen. It reads
+                          as a question about families rather than as a schema
+                          setting, because that is the decision being made. */}
+                      <label className="flex items-center gap-1 text-slate-600">
+                        <input
+                          type="checkbox"
+                          checked={state?.required ?? false}
+                          onChange={(e) =>
+                            setQuestions((prev) => ({
+                              ...prev,
+                              [key]: { ...prev[key], required: e.target.checked },
+                            }))
+                          }
+                          aria-label={`Families must answer ${key}`}
+                        />
+                        families must answer
+                      </label>
                       {q.optionSource ? (
                         <>
                           <span>·</span>
@@ -305,7 +327,8 @@ export function FormWordingEditor({
           ship four is where they change. Printing them keeps the person from
           editing a section's words without knowing who reads them. */}
       <p className="px-1 text-xs text-slate-500">
-        Campus visibility, question order and answer values are not editable on this screen.{" "}
+        Campus visibility, question order, question types and answer values are not editable on
+        this screen — only the words and whether an answer is required.{" "}
         {Object.keys(campusNames).length} campuses are known to this form.
       </p>
     </div>

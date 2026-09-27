@@ -154,6 +154,42 @@ describe("the guard that catches what the editor must never do", () => {
     expect(onlyTextChanged(base, tampered)).toContain("race changed whether it is required");
   });
 
+  /*
+   * Required-ness is the one structural change the editor may make, and only
+   * when the caller says so out loud. It is safe because it cannot change what
+   * an existing answer means - it governs the next family, not the last one.
+   */
+  it("permits a required change when the caller allows it", () => {
+    const next = applyTextEdits(base, { questions: { race: { required: true } } });
+    expect(next.questions[1].required).toBe(true);
+    expect(onlyTextChanged(base, next, { allowRequiredChanges: true })).toEqual([]);
+  });
+
+  it("still refuses a required change when the caller does not", () => {
+    const next = applyTextEdits(base, { questions: { race: { required: true } } });
+    expect(onlyTextChanged(base, next)).toContain("race changed whether it is required");
+  });
+
+  it("makes a question optional again", () => {
+    const next = applyTextEdits(base, { questions: { first_name: { required: false } } });
+    expect(next.questions[0].required).toBe(false);
+    expect(onlyTextChanged(base, next, { allowRequiredChanges: true })).toEqual([]);
+  });
+
+  it("allowing required changes does not quietly allow anything else", () => {
+    const tampered: InterestFormDefinition = {
+      ...base,
+      questions: [{ ...base.questions[0], type: "email", required: false }, base.questions[1]],
+    };
+    const problems = onlyTextChanged(base, tampered, { allowRequiredChanges: true });
+    expect(problems).toContain("first_name changed type");
+  });
+
+  it("leaves required alone when the edit does not mention it", () => {
+    const next = applyTextEdits(base, { questions: { race: { label: "Race" } } });
+    expect(next.questions[1].required).toBe(false);
+  });
+
   it("names a changed type", () => {
     const tampered: InterestFormDefinition = {
       ...base,
