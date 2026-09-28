@@ -47,8 +47,10 @@ interface Props {
 
 export function TuitionPlanBuilder({ ctx, canSave }: Props) {
   const [selected, setSelected] = useState<Record<string, number>>({});
+  // Ticked by default only when there is a real figure. An applied-for award
+  // reads as 0 in awardedAmount, and 0 would bill the family everything.
   const [awardIds, setAwardIds] = useState<string[]>(
-    ctx.awards.filter((a) => a.status === "awarded").map((a) => a.id)
+    ctx.awards.filter((a) => a.status === "awarded" && a.amountIsDecided).map((a) => a.id)
   );
   const [sibling, setSibling] = useState(false);
   // Full year means this campus's whole year, not twelve months. FL and GA
@@ -258,7 +260,7 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
                 <input
                   type="checkbox"
                   checked={awardIds.includes(a.id)}
-                  disabled={a.status !== "awarded"}
+                  disabled={a.status !== "awarded" || !a.amountIsDecided}
                   onChange={() =>
                     setAwardIds((prev) =>
                       prev.includes(a.id) ? prev.filter((x) => x !== a.id) : [...prev, a.id]
@@ -268,12 +270,25 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
                 />
                 <span>
                   <span className="text-slate-900">{a.programName}</span>{" "}
-                  <span className="tabular-nums text-slate-700">
-                    {formatUsd(a.awardedAmount)}
-                  </span>
+                  {a.amountIsDecided ? (
+                    <span className="tabular-nums text-slate-700">
+                      {formatUsd(a.awardedAmount)}
+                    </span>
+                  ) : (
+                    // NOT $0.00. An undecided award has no figure, and printing
+                    // zero here is how a family ends up billed the full tuition
+                    // by a screen that looked right.
+                    <span className="text-amber-700">amount not yet decided</span>
+                  )}
                   <span className="block text-xs text-slate-500">
                     {a.awardYear}
-                    {a.status !== "awarded" ? ` · ${a.status} — cannot be applied` : ""}
+                    {a.status === "applied"
+                      ? " · applied for — this plan waits until the amount is decided"
+                      : !a.amountIsDecided
+                        ? " · no amount recorded — cannot be applied"
+                        : a.status !== "awarded"
+                          ? ` · ${a.status} — cannot be applied`
+                          : ""}
                   </span>
                 </span>
               </label>

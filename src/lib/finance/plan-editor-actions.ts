@@ -9,6 +9,7 @@ import {
   type PlanLineInput,
 } from "@/lib/finance/plan-builder";
 import { loadPlanEditorContext } from "@/lib/finance/plan-editor";
+import { lifecycleForNewPlan } from "@/lib/finance/plan-editor-shared";
 
 /**
  * Save a tuition plan.
@@ -96,9 +97,32 @@ export async function saveTuitionPlan(selection: SavePlanSelection) {
     return { error: "Choose at least one thing this family is paying for." };
   }
 
+  // AN AWARD WITH NO DECIDED AMOUNT IS REFUSED, NOT QUIETLY DROPPED.
+  //
+  // The filter below would leave it out in silence and build a plan billing
+  // the family the whole tuition - a correct-looking document carrying the
+  // wrong number. Name what is missing instead.
+  const selectedButUndecided = ctx.awards.filter(
+    (a) => selection.awardIds.includes(a.id) && !a.amountIsDecided
+  );
+  if (selectedButUndecided.length > 0) {
+    const names = selectedButUndecided.map((a) => a.programName).join(", ");
+    return {
+      error:
+        `${names} has no decided amount yet, so it cannot be applied to this plan. ` +
+        `Record the amount on the award first, or untick it and save the plan as ` +
+        `waiting on that figure.`,
+    };
+  }
+
   const awards = ctx.awards
     .filter((a) => selection.awardIds.includes(a.id) && a.status === "awarded")
     .map((a) => ({ programName: a.programName, awardedAmount: a.awardedAmount }));
+
+  // Where this plan starts in the money chain. A child whose family has
+  // applied for an award nobody has decided is not a forgotten draft - it is
+  // blocked on a named figure, and plans_waiting_on_a_figure surfaces it.
+  const { lifecycle, awaitingReason } = lifecycleForNewPlan(ctx.awards);
 
   let built;
   if (selection.billingMode === "scheduled") {
@@ -146,35 +170,45 @@ export async function saveTuitionPlan(selection: SavePlanSelection) {
 
   const channel = selection.paymentChannel?.trim() || null;
 
+  const planRow =
+    selection.billingMode === "scheduled" && built
+      ? {
+          student_id: selection.studentId,
+          school_year_id: ctx.schoolYearId,
+          billing_mode: "scheduled",
+          payment_channel: channel,
+          annual_tuition: built.annualTuition,
+          prorated_tuition: built.proratedTuition,
+          proration_label: built.prorationLabel,
+          billing_basis: built.billingBasis,
+          remaining_due: built.remainingDue,
+          status: "active",
+          lifecycle,
+          awaiting_reason: awaitingReason,
+          source_document: "Built in JAG",
+          notes: selection.notes,
+        }
+      : {
+          student_id: selection.studentId,
+          school_year_id: ctx.schoolYearId,
+          billing_mode: "monthly_open",
+          payment_channel: channel,
+          monthly_amount: selection.monthlyAmount,
+          status: "active",
+          lifecycle,
+          awaiting_reason: awaitingReason,
+          source_document: "Built in JAG — month to month",
+          notes: selection.notes,
+        };
+
+  // `as never`: lifecycle and awaiting_reason arrived in migration 445 and the
+  // generated types in src/types/database.ts predate it. Same cast, and the
+  // same reason, as the state funding patch in interest-form/submit.ts. The
+  // column names are still checked - by the database, which rejects one it
+  // does not have.
   const { data: inserted, error: insertError } = await supabase
     .from("student_tuition_plans")
-    .insert(
-      selection.billingMode === "scheduled" && built
-        ? {
-            student_id: selection.studentId,
-            school_year_id: ctx.schoolYearId,
-            billing_mode: "scheduled",
-            payment_channel: channel,
-            annual_tuition: built.annualTuition,
-            prorated_tuition: built.proratedTuition,
-            proration_label: built.prorationLabel,
-            billing_basis: built.billingBasis,
-            remaining_due: built.remainingDue,
-            status: "active",
-            source_document: "Built in JAG",
-            notes: selection.notes,
-          }
-        : {
-            student_id: selection.studentId,
-            school_year_id: ctx.schoolYearId,
-            billing_mode: "monthly_open",
-            payment_channel: channel,
-            monthly_amount: selection.monthlyAmount,
-            status: "active",
-            source_document: "Built in JAG — month to month",
-            notes: selection.notes,
-          }
-    )
+    .insert(planRow as never)
     .select("id")
     .single();
 

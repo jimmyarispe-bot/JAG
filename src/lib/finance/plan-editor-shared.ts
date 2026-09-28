@@ -27,9 +27,47 @@ export interface CatalogChoice {
 export interface AwardChoice {
   readonly id: string;
   readonly programName: string;
+  /**
+   * The granted figure. MEANINGLESS unless amountIsDecided is true - an
+   * undecided award reads as 0 here, and 0 is a real answer that would bill
+   * the family the whole tuition. Always check amountIsDecided first.
+   */
   readonly awardedAmount: number;
+  /**
+   * False while the award is applied for and nobody has decided the amount.
+   * Migration 446 made awarded_amount nullable for exactly this case.
+   */
+  readonly amountIsDecided: boolean;
   readonly awardYear: string;
   readonly status: string;
+}
+
+/**
+ * What lifecycle a plan should start in, given the awards this child holds.
+ *
+ * A plan whose family has applied for a scholarship nobody has decided yet is
+ * not a draft somebody forgot about - it is blocked on a specific figure, and
+ * the reason says which. That is what the decision queue reads, and what stops
+ * a contract going out against a number that does not exist.
+ *
+ * Pure and exported so the server action and the tests agree on one rule.
+ */
+export function lifecycleForNewPlan(awards: readonly AwardChoice[]): {
+  readonly lifecycle: "draft" | "awaiting_scholarship_amounts";
+  readonly awaitingReason: string | null;
+} {
+  const undecided = awards.filter((a) => a.status === "applied" || !a.amountIsDecided);
+  if (undecided.length === 0) {
+    return { lifecycle: "draft", awaitingReason: null };
+  }
+  const names = Array.from(new Set(undecided.map((a) => a.programName))).sort();
+  return {
+    lifecycle: "awaiting_scholarship_amounts",
+    awaitingReason:
+      names.length === 1
+        ? `Waiting on the award amount for ${names[0]}.`
+        : `Waiting on award amounts for ${names.join(", ")}.`,
+  };
 }
 
 export interface BundleChoice {

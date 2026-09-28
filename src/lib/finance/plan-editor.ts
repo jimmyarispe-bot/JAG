@@ -195,13 +195,22 @@ export async function loadPlanEditorContext(
     amount: num(d.amount) ?? 0,
   }));
 
-  const awards: AwardChoice[] = (awardsResult.data ?? []).map((a) => ({
-    id: a.id as string,
-    programName: a.program_name as string,
-    awardedAmount: num(a.awarded_amount) ?? 0,
-    awardYear: a.award_year as string,
-    status: (a.status as string) ?? "awarded",
-  }));
+  // awarded_amount became nullable in migration 446: a family can have applied
+  // for GA GOAL before anyone has decided the figure. The generated types still
+  // say `number`, so the null is checked at runtime rather than trusted from
+  // the type. amountIsDecided is what every reader must look at - awardedAmount
+  // falls back to 0, and 0 would bill the family the entire tuition.
+  const awards: AwardChoice[] = (awardsResult.data ?? []).map((a) => {
+    const raw = a.awarded_amount as number | string | null | undefined;
+    return {
+      id: a.id as string,
+      programName: a.program_name as string,
+      awardedAmount: num(raw) ?? 0,
+      amountIsDecided: raw !== null && raw !== undefined && raw !== "",
+      awardYear: a.award_year as string,
+      status: (a.status as string) ?? "awarded",
+    };
+  });
 
   const existingRow = (planResult.data ?? []).find(
     (p) => p.school_year_id === year.id
