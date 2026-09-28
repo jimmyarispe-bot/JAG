@@ -42,15 +42,20 @@ type Attempt =
 async function callOnce(
   environment: SquareEnvironmentName,
   path: string,
-  accessToken: string
+  accessToken: string,
+  init?: { readonly method?: "GET" | "POST"; readonly body?: unknown }
 ): Promise<Attempt> {
   try {
+    const method = init?.method ?? "GET";
     const response = await fetch(`${SQUARE_HOSTS[environment]}${path}`, {
+      method,
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Square-Version": SQUARE_API_VERSION,
         Accept: "application/json",
+        ...(init?.body === undefined ? {} : { "Content-Type": "application/json" }),
       },
+      body: init?.body === undefined ? undefined : JSON.stringify(init.body),
     });
     const text = await response.text();
     let json: unknown;
@@ -91,8 +96,9 @@ async function callOnce(
  * removes an entire category of misconfiguration -- one that cost an evening
  * because a variable that was demonstrably set kept arriving empty.
  */
-async function squareGet(
-  path: string
+async function squareCall(
+  path: string,
+  init?: { readonly method?: "GET" | "POST"; readonly body?: unknown }
 ): Promise<
   | { ok: true; environment: SquareEnvironmentName; data: unknown }
   | { ok: false; error: string; tried: SquareEnvironmentName[] }
@@ -112,7 +118,7 @@ async function squareGet(
 
   const failures: string[] = [];
   for (const environment of order) {
-    const attempt = await callOnce(environment, path, cfg.accessToken);
+    const attempt = await callOnce(environment, path, cfg.accessToken, init);
     if (attempt.ok) return { ok: true, environment, data: attempt.data };
     failures.push(`${environment}: ${attempt.error}`);
     // Only a 401 means "wrong environment for this token". Anything else is a
@@ -125,6 +131,30 @@ async function squareGet(
     error: failures.join(" | "),
     tried: order,
   };
+}
+
+
+/**
+ * GET, unchanged - the name every existing caller uses.
+ */
+async function squareGet(path: string) {
+  return squareCall(path);
+}
+
+/**
+ * POST, added 28 September 2026 so the JAG can create a Square payment link.
+ *
+ * Until now this client could only read. Nothing in the system has ever taken
+ * a payment: InMemorySquarePort returns {status:"completed"} without
+ * contacting anybody, and its own comment notes that having no callers is the
+ * only reason it has never falsely settled an invoice.
+ *
+ * The environment discovery above is shared deliberately. A POST that guessed
+ * the wrong host would create a payment link in the sandbox and hand it to a
+ * family, who would pay nothing and believe they had paid.
+ */
+export async function squarePost(path: string, body: unknown) {
+  return squareCall(path, { method: "POST", body });
 }
 
 export async function listSquareLocations(): Promise<
