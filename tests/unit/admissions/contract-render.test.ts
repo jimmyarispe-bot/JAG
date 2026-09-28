@@ -28,6 +28,7 @@ const ANDREW: ContractFields = {
   guardian_2_name: null,
   school_name: "The Academy GA",
   school_legal_name: "The Academy GA, LLC. dba The Academy",
+  school_signatory: "Jimmy Arispe, CEO/Founder of The Academy GA, LLC.",
   annual_tuition: 19_950,
   prorated_tuition: 13_300,
   proration_label: "8 of 12 months",

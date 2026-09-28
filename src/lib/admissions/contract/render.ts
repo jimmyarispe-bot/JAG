@@ -56,8 +56,18 @@ export interface ContractFields {
 
   /** "The Academy GA" - how a family refers to it. */
   readonly school_name: string;
-  /** "The Academy GA, LLC. dba The Academy" - how the contract names it. */
+  /**
+   * The entity the family is contracting WITH, exactly as the contract names
+   * it. Not always one entity: a Virtual family contracts with three LLCs
+   * jointly. Never derived from the campus name.
+   */
   readonly school_legal_name: string;
+  /**
+   * Who signs for the school, and on behalf of which entities. Differs from
+   * school_legal_name at HS and Virtual, where the signatory acts for the
+   * network as well as the campus.
+   */
+  readonly school_signatory: string;
 
   /** The full-year published figure, before anything is taken off. */
   readonly annual_tuition: number;
@@ -104,6 +114,7 @@ const SAMPLE_FIELDS: ContractFields = {
   guardian_2_name: null,
   school_name: "",
   school_legal_name: "",
+  school_signatory: "",
   annual_tuition: 0,
   prorated_tuition: null,
   proration_label: null,
@@ -232,6 +243,8 @@ function valueFor(name: string, f: ContractFields): string {
       return escapeHtml(f.school_name);
     case "school_legal_name":
       return escapeHtml(f.school_legal_name);
+    case "school_signatory":
+      return escapeHtml(f.school_signatory);
     case "annual_tuition":
       return escapeHtml(formatUsd(f.annual_tuition));
     case "prorated_tuition":

@@ -27,6 +27,7 @@ const ANDREW: ContractFields = {
   guardian_2_name: null,
   school_name: "The Academy GA",
   school_legal_name: "The Academy GA, LLC. dba The Academy",
+  school_signatory: "Jimmy Arispe, CEO/Founder of The Academy GA, LLC.",
   annual_tuition: 19_950,
   prorated_tuition: 13_300,
   proration_label: "8 of 12 months",
@@ -171,6 +172,25 @@ describe("the child is named, never referred to", () => {
       expect(render(b.templateKey)).not.toMatch(/above-named Student/i);
       expect(render(b.templateKey)).not.toMatch(/his\/her|son\/daughter/i);
     }
+  });
+});
+
+describe("who signs for the school", () => {
+  it("takes the signatory from the school record, not from the contract text", () => {
+    // 447 baked in "CEO/Founder, {{school_legal_name}}", which is not what GA's
+    // contract says and collapses at HS and Virtual, where the signatory acts
+    // for the network and for three LLCs respectively. 448 gave schools their
+    // own column; 449 pointed the text at it.
+    const out = render("contract_acknowledgement");
+    expect(out).toContain("Jimmy Arispe, CEO/Founder of The Academy GA, LLC.");
+    expect(out).not.toMatch(/CEO\/Founder, /);
+  });
+
+  it("still names the contracting entity separately in the opening paragraph", () => {
+    // Who a family contracts WITH and who signs FOR the school are two facts.
+    expect(render("contract_tuition_and_payment")).toContain(
+      "The Academy GA, LLC. dba The Academy"
+    );
   });
 });
 

@@ -1,40 +1,33 @@
-/**
- * The Academy GA Enrollment and Tuition Contract, as revised 6 September 2026.
- *
- * Source: Downloads/jag-import/ga-contract-revised-2026-09-06.md - the annotated
- * revision, with every change marked. The annotations are guidance for whoever
- * rebuilds the form and are NOT part of the contract; only the contract text is
- * below.
- *
- * GROUPED INTO FIVE BLOCKS, Jimmy's decision of 28 September. The paper
- * contract has a set of initials at roughly twenty points. Five blocks, each
- * initialled once, is the agreed trade: fewer clicks, and each block is still
- * a coherent subject a family can say yes to.
- *
- * THE SCHEDULE RENDERS HERE, it is not uploaded. Jimmy's decision of the same
- * day. The paper contract had the family upload a PDF the school had emailed
- * them; that wording is replaced with the figures themselves. Both places that
- * referred to the uploaded document now refer to the schedule below.
- *
- * WHAT IS DELIBERATELY NOT HERE:
- *   - Tuition insurance. It is an ELECTION, not an acknowledgement, and
- *     enrollment_packet_templates has no way to capture a choice. An offer a
- *     family cannot accept or decline has no business on a contract they sign.
- *   - The GA GOAL redirect limits still say "New Opportunity for 2022". They
- *     are Georgia statutory figures, four years stale, and not ours to guess.
- *     The section is here; the figures are marked for confirmation.
- */
+-- 449: THE GA CONTRACT READS ITS SIGNATORY FROM THE SCHOOL RECORD.
+--
+-- 447 loaded the GA contract with the school's signature block written into
+-- the text: "Jimmy Arispe / CEO/Founder, {{school_legal_name}}". Two things
+-- were wrong with that.
+--
+-- It was subtly not what the contract says. GA's own 6 September text reads
+-- "CEO/Founder OF The Academy GA, LLC." - the entity, not the trading name
+-- that school_legal_name carries.
+--
+-- And it does not survive contact with the other three campuses. At HS the
+-- signatory acts for "The Academy Way Network of Schools, LLC. and The Academy
+-- HS, LLC."; at Virtual for three LLCs. Who signs, and who the family
+-- contracts with, are two different facts - which is why 448 gave schools two
+-- columns rather than one.
+--
+-- The bodies below are regenerated from
+-- src/lib/admissions/contract/ga-2026-09-06.ts, which now uses
+-- {{school_signatory}}. Nothing else in the text changed; 22 tests in
+-- tests/unit/admissions/ga-contract-blocks.test.ts assert that.
+--
+-- Depends on 448. A campus with no signatory_line cannot render a contract at
+-- all, which is the intended refusal.
 
-export interface ContractBlock {
-  readonly templateKey: string;
-  readonly title: string;
-  readonly sortOrder: number;
-  readonly requiresSignature: boolean;
-  readonly bodyHtml: string;
-}
+begin;
 
-const TUITION_AND_PAYMENT = `
-<section>
+with blocks (template_key, title, sort_order, requires_signature, body_html) as (
+  values
+    ('contract_tuition_and_payment', 'Enrollment and Tuition Contract — your figures and how you pay', 1, true,
+     '<section>
   <h2>Enrollment and Tuition Contract</h2>
   <p>In consideration of, and subject to, the acceptance of this Enrollment and Tuition
   Contract by {{school_legal_name}} (hereinafter, the &ldquo;School&rdquo;), each of the
@@ -136,11 +129,9 @@ const TUITION_AND_PAYMENT = `
 </section>
 
 <p class="contract-initials">By typing my initials below, I acknowledge my understanding of
-and agreement with everything in this section, including the figures set out above.</p>
-`.trim();
-
-const SCHOLARSHIPS = `
-<section>
+and agreement with everything in this section, including the figures set out above.</p>'),
+    ('contract_scholarships', 'Scholarships', 2, true,
+     '<section>
   <h3>Scholarships</h3>
   <p>I understand the TOTAL published annual tuition amount is {{annual_tuition}}, as set out
   in my Schedule of Tuition Payments.</p>
@@ -192,11 +183,9 @@ const SCHOLARSHIPS = `
 
 <p class="contract-initials">By typing my initials below, I acknowledge my understanding of
 and agreement with this section, including my responsibility for the full published tuition
-if {{student_name}} is withdrawn before this contract expires.</p>
-`.trim();
-
-const PROGRAM_AND_OPERATIONS = `
-<section>
+if {{student_name}} is withdrawn before this contract expires.</p>'),
+    ('contract_program_and_operations', 'Program and operations', 3, true,
+     '<section>
   <h3>Educational program</h3>
   <p>The School reserves the right, and the Responsible Parties agree that the School shall
   have the right, in the School&rsquo;s sole discretion, to determine the School&rsquo;s course
@@ -269,11 +258,9 @@ const PROGRAM_AND_OPERATIONS = `
 </section>
 
 <p class="contract-initials">By typing my initials below, I acknowledge my understanding of
-and agreement with this section.</p>
-`.trim();
-
-const CONDUCT_AND_CONSENTS = `
-<section>
+and agreement with this section.</p>'),
+    ('contract_conduct_and_consents', 'Conduct, consents and waivers', 4, true,
+     '<section>
   <h3>Student conduct</h3>
   <p>The School reserves the right, and the Responsible Parties agree that the School shall
   have the right in the School&rsquo;s sole discretion, to suspend, dismiss or expel
@@ -356,11 +343,9 @@ const CONDUCT_AND_CONSENTS = `
 </section>
 
 <p class="contract-initials">By typing my initials below, I acknowledge my understanding of and
-agreement with this section.</p>
-`.trim();
-
-const ACKNOWLEDGEMENT = `
-<section>
+agreement with this section.</p>'),
+    ('contract_acknowledgement', 'Acknowledgement and signature', 5, true,
+     '<section>
   <h3>Acknowledgement</h3>
   <p>This Enrollment and Tuition Contract shall be governed by and interpreted in accordance with
   the laws of the State of Georgia. This Enrollment and Tuition Contract contains the entire
@@ -405,43 +390,52 @@ const ACKNOWLEDGEMENT = `
 
   <p class="contract-binding">AFTER SUBMISSION OF THIS DOCUMENT, THIS ENROLLMENT AND TUITION
   CONTRACT BECOMES A FULLY BINDING AND ENFORCEABLE CONTRACT.</p>
-</section>
-`.trim();
+</section>')
+)
+insert into public.enrollment_packet_templates
+  (school_id, template_key, title, body_html, requires_signature, state_code, sort_order, is_active)
+select sc.id, b.template_key, b.title, b.body_html, b.requires_signature, 'GA', b.sort_order, true
+  from blocks b
+  cross join public.schools sc
+ where lower(trim(sc.name)) = 'the academy ga'
+on conflict (school_id, template_key) do update
+   set title              = excluded.title,
+       body_html          = excluded.body_html,
+       requires_signature = excluded.requires_signature,
+       sort_order         = excluded.sort_order,
+       is_active          = true,
+       updated_at         = now();
 
-export const GA_CONTRACT_BLOCKS: readonly ContractBlock[] = [
-  {
-    templateKey: "contract_tuition_and_payment",
-    title: "Enrollment and Tuition Contract — your figures and how you pay",
-    sortOrder: 1,
-    requiresSignature: true,
-    bodyHtml: TUITION_AND_PAYMENT,
-  },
-  {
-    templateKey: "contract_scholarships",
-    title: "Scholarships",
-    sortOrder: 2,
-    requiresSignature: true,
-    bodyHtml: SCHOLARSHIPS,
-  },
-  {
-    templateKey: "contract_program_and_operations",
-    title: "Program and operations",
-    sortOrder: 3,
-    requiresSignature: true,
-    bodyHtml: PROGRAM_AND_OPERATIONS,
-  },
-  {
-    templateKey: "contract_conduct_and_consents",
-    title: "Conduct, consents and waivers",
-    sortOrder: 4,
-    requiresSignature: true,
-    bodyHtml: CONDUCT_AND_CONSENTS,
-  },
-  {
-    templateKey: "contract_acknowledgement",
-    title: "Acknowledgement and signature",
-    sortOrder: 5,
-    requiresSignature: true,
-    bodyHtml: ACKNOWLEDGEMENT,
-  },
-];
+do $$
+declare
+  v_sig int;
+  v_stale int;
+begin
+  select count(*) into v_sig
+    from public.enrollment_packet_templates t
+    join public.schools sc on sc.id = t.school_id
+   where lower(trim(sc.name)) = 'the academy ga'
+     and t.template_key = 'contract_acknowledgement'
+     and t.is_active
+     and t.body_html like '%{{school_signatory}}%';
+
+  if v_sig <> 1 then
+    raise exception 'the GA acknowledgement block does not read its signatory from the school record';
+  end if;
+
+  -- The old hard-coded line must be gone, not merely joined by the new one.
+  select count(*) into v_stale
+    from public.enrollment_packet_templates t
+    join public.schools sc on sc.id = t.school_id
+   where lower(trim(sc.name)) = 'the academy ga'
+     and t.is_active
+     and t.body_html like '%CEO/Founder, %';
+
+  if v_stale > 0 then
+    raise exception 'the hard-coded signature line is still in % GA block(s)', v_stale;
+  end if;
+
+  raise notice 'The GA contract now names its signatory from the school record, and the hard-coded line is gone';
+end $$;
+
+commit;
