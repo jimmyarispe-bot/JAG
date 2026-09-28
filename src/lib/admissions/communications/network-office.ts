@@ -29,9 +29,24 @@ import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/
  * unset variable does not mean silence. A notification that quietly goes
  * nowhere is the failure this codebase keeps producing; an address that is
  * merely out of date is visible the first time somebody reads their mail.
+ *
+ * THE DEFAULT WAS A PERSONAL GMAIL UNTIL 28 SEPTEMBER 2026, and that reasoning
+ * above is exactly how it got there: I wanted a real fallback rather than
+ * silence, and used the address I had. ADMISSIONS_NETWORK_OFFICE_EMAIL was
+ * never set, so the fallback is what ran. Two acceptances went out on it -
+ * Jayden Roy at GA on the 25th and Rashard Salinding at Virtual on the 28th -
+ * each carrying a child's name, their campus, their parent's name and email,
+ * and a live link to the record, into a mailbox Google controls and the
+ * network does not.
+ *
+ * "A real default rather than silence" was the right instinct. A default that
+ * leaves the network was not. The test beside this file now refuses any
+ * address outside the network's own domains, so the next person reaching for
+ * a convenient fallback is stopped by the suite rather than by somebody
+ * noticing which of their inboxes a child's details arrived in.
  */
 export const NETWORK_OFFICE_EMAIL =
-  process.env.ADMISSIONS_NETWORK_OFFICE_EMAIL?.trim() || "jimmy.arispe@gmail.com";
+  process.env.ADMISSIONS_NETWORK_OFFICE_EMAIL?.trim() || "jimmy.arispe@theacademyway.org";
 
 /** Events the network office is told about in addition to the campus. */
 const NETWORK_OFFICE_EVENTS: ReadonlySet<string> = new Set<CommunicationTriggerEvent>([

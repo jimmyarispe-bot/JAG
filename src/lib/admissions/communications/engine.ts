@@ -305,7 +305,7 @@ async function deliverCommunication(
    * Resend refused the staff acceptance notice with
    *
    *     422 validation_error - Invalid `to` field
-   *     "to": [ "nina.gaddy@theacademyga.org, jimmy.arispe@gmail.com" ]
+   *     "to": [ "nina.gaddy@theacademyga.org, jimmy.arispe@theacademyway.org" ]
    *
    * Two addresses in one string. The provider accepts string | string[] and
    * always has; the flattening happened here.
