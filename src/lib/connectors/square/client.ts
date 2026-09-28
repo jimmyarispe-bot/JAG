@@ -136,8 +136,12 @@ async function squareCall(
 
 /**
  * GET, unchanged - the name every existing caller uses.
+ *
+ * Exported on 28 September so the application-fee confirmation can read an
+ * order back from Square. That read is the only thing that decides a fee is
+ * paid: the browser's return trip is not evidence of anything.
  */
-async function squareGet(path: string) {
+export async function squareGet(path: string) {
   return squareCall(path);
 }
 

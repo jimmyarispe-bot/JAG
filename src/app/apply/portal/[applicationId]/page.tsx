@@ -6,6 +6,7 @@ import { AdmissionsProgressMeter } from "@/components/admissions/portal/Admissio
 import { FinancialAidSection } from "@/components/admissions/portal/FinancialAidSection";
 import { StateFundingVerificationPanel } from "@/components/admissions/portal/StateFundingVerification";
 import { SubmitApplicationButton } from "@/components/admissions/portal/SubmitApplicationButton";
+import { ApplicationFeePanel } from "@/components/admissions/portal/ApplicationFeePanel";
 import {
   ApplicationStatusChip,
   ApplicationStatusLegend,
@@ -48,6 +49,16 @@ import {
   loadApplicationEvidence,
 } from "@/lib/admissions/portal/queries";
 
+/** Past these, the fee is no longer something the family acts on here. */
+const FEE_COLLECTED_STATUSES = [
+  "submitted",
+  "under_review",
+  "accepted",
+  "waitlisted",
+  "denied",
+  "enrolled",
+];
+
 interface PortalApplicationPageProps {
   params: Promise<{ applicationId: string }>;
 }
@@ -85,6 +96,11 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
     scholarshipDocuments,
     fundingCodes,
   });
+
+  const feeColumns = application as unknown as {
+    application_fee_status?: string | null;
+    application_fee_cents?: number | null;
+  };
 
   const showStateFunding = requiresStateFundingVerification(fundingCodes);
   const showFinancialAid = requiresFinancialAid(fundingCodes);
@@ -184,6 +200,27 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
             )}
           </>
         )}
+
+        {/**
+          * THE FEE COMES BEFORE THE SUBMIT BUTTON, not after it.
+          *
+          * Jimmy, 28 September: the $100 goes in at the end of the application
+          * and before it can be submitted. The refusal itself is on the server
+          * - submitApplication reads the fee and will not proceed - and this
+          * is the family's side of the same rule: what is owed, and the way to
+          * settle it, in front of them before they press anything.
+          *
+          * Read through a narrow cast: migration 291 was hand-run on
+          * 6 September, so these two columns are absent from the generated
+          * database types until they are regenerated. Naming exactly the two
+          * keeps every other field on the row type-checked.
+          */}
+        <ApplicationFeePanel
+          applicationId={applicationId}
+          status={String(feeColumns.application_fee_status ?? "unpaid")}
+          amountCents={Number(feeColumns.application_fee_cents ?? 0)}
+          alreadySubmitted={FEE_COLLECTED_STATUSES.includes(application.application_status)}
+        />
 
         <SubmitApplicationButton
           applicationId={applicationId}

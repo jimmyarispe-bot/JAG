@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 import { assertPermission } from "@/lib/platform/identity/action-guards";
 import { writePlatformAudit } from "@/lib/platform/automation/audit";
 import { canWaive } from "@/lib/admissions/fee/gate";
+import {
+  confirmApplicationFeePayment,
+  createApplicationFeeCheckout,
+} from "@/lib/admissions/fee/checkout";
+import { resolveFeeReturnUrl } from "@/lib/admissions/fee/return-url";
 
 /**
  * Waiving the $100, and recording who decided and why.
@@ -108,4 +113,37 @@ export async function waiveApplicationFee(input: {
 
   revalidatePath(`/dashboard/admissions/cases/${input.applicationId}`);
   return { success: true, waived: true };
+}
+
+/**
+ * The family's two buttons.
+ *
+ * Start takes them to Square. Check asks Square. Neither believes anything the
+ * browser says: the payment is confirmed by reading the order back, and the
+ * "Check" button exists precisely because the return trip can fail - a closed
+ * tab, a dropped connection, a parent who paid on their phone and finished on
+ * a laptop. Every one of those ends with a real payment and a page that has
+ * not heard about it, and this is how they get out of it without paying twice.
+ *
+ * No permission guard, deliberately. This is the applicant's own fee, and
+ * whether they may see this application at all is decided by the row-level
+ * policies inside readFeeContext. The privileged write happens only after
+ * Square has confirmed the money.
+ */
+export async function startApplicationFeePayment(
+  applicationId: string
+): Promise<{ url: string } | { error: string }> {
+  const returnUrl = await resolveFeeReturnUrl(applicationId);
+  const result = await createApplicationFeeCheckout({ applicationId, returnUrl });
+  if (!result.ok) return { error: result.reason };
+  return { url: result.url };
+}
+
+export async function checkApplicationFeePayment(
+  applicationId: string
+): Promise<{ paid: true } | { error: string }> {
+  const result = await confirmApplicationFeePayment(applicationId);
+  if (!result.ok) return { error: result.reason };
+  revalidatePath(`/apply/portal/${applicationId}`);
+  return { paid: true };
 }
