@@ -15,6 +15,12 @@
 -- admissions_contact_email when that table has nothing for the campus. BOTH
 -- are listed here, because changing one and leaving the other fixes nothing.
 --
+-- THE NETWORK'S DOMAINS ARE LISTED BY HAND BELOW, and the first version of
+-- this omitted theacademyfl.org - so Danni Treu's perfectly good address was
+-- reported as being outside the network. A diagnostic that flags a correct row
+-- is worse than one that misses a wrong one: it teaches whoever reads it to
+-- discount the column. Add a domain here when the network gains one.
+--
 -- READ ONLY.
 
 select *
@@ -29,7 +35,7 @@ select *
              when c.email is null then 'not set'
              when c.email ~* '@(gmail|yahoo|hotmail|outlook|aol|icloud|me|comcast|live|msn)\.'
                then 'PERSONAL MAILBOX'
-             when c.email !~* '@(theacademyway\.org|theacademyga\.org|thejag\.org)$'
+             when c.email !~* '@(theacademyway\.org|theacademyga\.org|theacademyfl\.org|thejag\.org)$'
                then 'outside the network''s domains'
              else 'ok'
            end                                 as verdict
@@ -48,7 +54,7 @@ select *
              when sc.admissions_contact_email is null then 'not set'
              when sc.admissions_contact_email ~* '@(gmail|yahoo|hotmail|outlook|aol|icloud|me|comcast|live|msn)\.'
                then 'PERSONAL MAILBOX'
-             when sc.admissions_contact_email !~* '@(theacademyway\.org|theacademyga\.org|thejag\.org)$'
+             when sc.admissions_contact_email !~* '@(theacademyway\.org|theacademyga\.org|theacademyfl\.org|thejag\.org)$'
                then 'outside the network''s domains'
              else 'ok'
            end

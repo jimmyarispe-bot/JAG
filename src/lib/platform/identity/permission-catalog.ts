@@ -39,6 +39,22 @@ export const PERMISSION_CATALOG = [
    * the moment this deploys and does not wait on permission rows being seeded.
    */
   "FORM_BUILDER_ACCESS",
+  /*
+   * APPLICATION_FEE_WAIVER - 28 September 2026.
+   *
+   * Waiving the $100 application fee. Jimmy, asked directly: him only, with a
+   * reason recorded. Migration 291's constraint already refuses a waiver with
+   * no reason and no name attached; this decides WHOSE name may go on one.
+   *
+   * A catalog permission, so FOUNDER holds it automatically and the explicit
+   * CEO and EXECUTIVE_DIRECTOR lists do not. Adding Danni later is one line
+   * there rather than a change to the gate - which is the point of not
+   * hard-coding a person into a permission check.
+   *
+   * Deliberately NOT folded into FINANCE_ACCESS: a fee that everyone touching
+   * money can waive is a fee that quietly stops being collected.
+   */
+  "APPLICATION_FEE_WAIVER",
 ] as const;
 
 export type CatalogPermission = (typeof PERMISSION_CATALOG)[number];
@@ -145,6 +161,12 @@ export const PERMISSION_CATALOG_DEFINITIONS: {
     label: "Form Builder",
     description:
       "Edit and publish admissions forms and enrollment contracts. Founder and Executive Director only.",
+  },
+  APPLICATION_FEE_WAIVER: {
+    id: "APPLICATION_FEE_WAIVER",
+    label: "Waive Application Fee",
+    description:
+      "Waive the $100 admissions application fee, with a recorded reason. Founder only.",
   },
   REPORTING_ACCESS: {
     id: "REPORTING_ACCESS",

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { applicationFeeGate } from "@/lib/admissions/fee/gate";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import {
@@ -565,6 +566,48 @@ export async function submitApplication(applicationId: string) {
       error:
         "We could not read part of this application just now, so it has not been submitted. Nothing you have uploaded is lost — please try again in a moment.",
     };
+  }
+
+  /**
+   * THE FEE IS A CONDITION OF SUBMITTING, NOT A REMINDER AFTERWARDS.
+   *
+   * Jimmy, 28 September: the $100 goes in at the end of the application and
+   * before it can be submitted. Migration 291 built the record on 6 September
+   * and said what it left undone - "It does not collect the fee. The four web
+   * forms still take the $100 through Square directly." Until now nothing in
+   * the JAG has ever checked it.
+   *
+   * Read here rather than trusted from portalData: this is the value the
+   * submission turns on, and it is worth one query to read it at the moment it
+   * decides something. `unknown` does not pass - see fee/gate.ts.
+   */
+  const { data: feeRow, error: feeReadError } = await supabase
+    .from("admissions_applications")
+    .select("application_fee_status, application_fee_cents")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (feeReadError || !feeRow) {
+    // The same rule as the evidence check above: refuse on what we could not
+    // read, rather than submit and hope.
+    return {
+      error:
+        "We could not check the application fee just now, so this application has not " +
+        "been submitted. Nothing you have entered is lost - please try again in a moment.",
+    };
+  }
+
+  const feeGate = applicationFeeGate({
+    status: String(
+      (feeRow as { application_fee_status?: unknown }).application_fee_status ?? ""
+    ),
+    amountCents: Number(
+      (feeRow as { application_fee_cents?: unknown }).application_fee_cents ?? 0
+    ),
+  });
+
+  if (!feeGate.ok) {
+    return { error: feeGate.reason };
   }
 
   const now = new Date().toISOString();

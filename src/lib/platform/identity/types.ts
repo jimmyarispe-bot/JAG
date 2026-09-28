@@ -185,6 +185,7 @@ export const PERMISSION_KEYS = [
    * catalog and then fails the build at the one call site that matters.
    */
   "FORM_BUILDER_ACCESS",
+  "APPLICATION_FEE_WAIVER",
   /** @deprecated Prefer SYSTEM_ADMIN_ACCESS */
   "SYSTEM_CONFIGURATION_ACCESS",
   /** @deprecated Prefer AUDIT_ACCESS */
