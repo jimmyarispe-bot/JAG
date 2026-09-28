@@ -51,6 +51,25 @@ export async function saveTuitionPlan(selection: SavePlanSelection) {
   const ctx = await loadPlanEditorContext(selection.studentId);
   if ("error" in ctx) return { error: ctx.error };
 
+  // MORE MONTHS ATTENDING THAN THE YEAR HAS IS REFUSED, NOT IGNORED.
+  //
+  // A browser still holding the old twelve-month list would send 11 or 12 for a
+  // ten-month campus. buildPlan treats monthsAttending >= monthsInYear as "no
+  // proration" and bills the full year, which happens to be the right number
+  // and for the wrong reason - and 11 of 10 months would have been printed on
+  // the family's schedule if the label were ever reached. Say what is wrong.
+  if (
+    selection.prorationMonths !== null &&
+    selection.prorationMonths > ctx.monthsInYear
+  ) {
+    return {
+      error:
+        `This plan says ${selection.prorationMonths} months attending, but ${ctx.schoolYearName} ` +
+        `at ${ctx.schoolName} runs ${ctx.schoolYearStartDate} to ${ctx.schoolYearEndDate}, ` +
+        `which is ${ctx.monthsInYear} months. Reload the page and choose again.`,
+    };
+  }
+
   const chosen = new Map(
     selection.selectedItems.map((s) => [s.catalogItemId, s.sessionsPerMonth])
   );
@@ -94,9 +113,14 @@ export async function saveTuitionPlan(selection: SavePlanSelection) {
         })),
         siblingDiscountPercent: selection.siblingDiscountPercent || undefined,
         scholarships: awards,
+        // monthsInYear comes from the campus's own school year, never the
+        // literal 12. See school-year-months.ts.
         proration:
-          selection.prorationMonths && selection.prorationMonths < 12
-            ? { monthsAttending: selection.prorationMonths, monthsInYear: 12 }
+          selection.prorationMonths && selection.prorationMonths < ctx.monthsInYear
+            ? {
+                monthsAttending: selection.prorationMonths,
+                monthsInYear: ctx.monthsInYear,
+              }
             : undefined,
         instalments: standardSlots(selection.firstPayableMonth),
       });

@@ -60,6 +60,22 @@ export interface PlanEditorContext {
   readonly gradeLevel: string | null;
   readonly schoolYearId: string;
   readonly schoolYearName: string;
+  /**
+   * The campus's own school year, as dates rather than as an assumption, and
+   * the month count derived from them.
+   *
+   * The Academy FL and The Academy GA run 1 June to 31 May - twelve months.
+   * The Academy Virtual and The Academy HS run 1 August to 31 May - ten. Every
+   * caller used to type the literal 12, which bills a Virtual family eight
+   * twelfths of the year instead of eight tenths: $10,000 instead of $12,000
+   * on a $15,000 fee, with no error anywhere.
+   *
+   * Derived once in the loader from the dates corrected in migration 444, so
+   * no screen has to know which campus it is looking at.
+   */
+  readonly schoolYearStartDate: string;
+  readonly schoolYearEndDate: string;
+  readonly monthsInYear: number;
   readonly catalog: CatalogChoice[];
   readonly bundles: BundleChoice[];
   readonly awards: AwardChoice[];

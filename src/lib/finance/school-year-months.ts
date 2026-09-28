@@ -3,10 +3,14 @@
  *
  * WHY THIS EXISTS. `buildPlan` prorates as `annual x monthsAttending /
  * monthsInYear` and is exactly right about it. But it does not work out
- * `monthsInYear` — it is handed one. Both callers hand it the literal 12:
+ * `monthsInYear` — it is handed one. Until 28 September 2026 both callers
+ * handed it the literal 12:
  *
  *   plan-editor-actions.ts   { monthsAttending: ..., monthsInYear: 12 }
  *   TuitionPlanBuilder.tsx   { monthsAttending: ..., monthsInYear: 12 }
+ *
+ * Both now take the count from `loadPlanEditorContext`, which derives it here
+ * from the campus's own school year dates. Neither types a month count again.
  *
  * Twelve is right for The Academy FL and The Academy GA, whose year runs
  * 1 June to 31 May. It is wrong for The Academy Virtual and The Academy HS,

@@ -15,6 +15,7 @@
 
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import type { BillingFrequency } from "@/lib/finance/plan-builder";
+import { monthsInSchoolYear } from "@/lib/finance/school-year-months";
 import type {
   AwardChoice,
   BundleChoice,
@@ -62,7 +63,7 @@ export async function loadPlanEditorContext(
       supabase.from("schools").select("id, name"),
       supabase
         .from("school_years")
-        .select("id, name")
+        .select("id, name, start_date, end_date")
         .eq("school_id", student.school_id)
         .eq("is_current", true)
         .limit(1),
@@ -123,6 +124,31 @@ export async function loadPlanEditorContext(
     return {
       error:
         "This school has no current school year, so a plan cannot be attached to one. Set the current year first.",
+    };
+  }
+
+  // HOW MANY MONTHS THIS CAMPUS'S YEAR HAS, derived from its own dates.
+  //
+  // Nothing here defaults to twelve. Twelve is right at FL and GA and wrong at
+  // Virtual and HS, and a screen that guesses wrong produces a plan that is a
+  // month's fee short while looking entirely correct. A school year with no
+  // dates, or dates that do not parse, refuses this screen and says which year
+  // to go and fix.
+  const schoolYearStartDate = (year.start_date as string | null) ?? "";
+  const schoolYearEndDate = (year.end_date as string | null) ?? "";
+  let monthsInYear: number;
+  try {
+    monthsInYear = monthsInSchoolYear({
+      startDate: schoolYearStartDate,
+      endDate: schoolYearEndDate,
+    });
+  } catch (e) {
+    return {
+      error:
+        `The school year "${(year.name as string) ?? "(unnamed)"}" does not have usable ` +
+        `start and end dates, so there is no way to know how many months to prorate over. ` +
+        `${e instanceof Error ? e.message : String(e)} ` +
+        `Set that year's dates before building a plan for this student.`,
     };
   }
 
@@ -226,6 +252,9 @@ export async function loadPlanEditorContext(
     gradeLevel: (student.grade_level as string | null) ?? null,
     schoolYearId: year.id as string,
     schoolYearName: (year.name as string) ?? "",
+    schoolYearStartDate,
+    schoolYearEndDate,
+    monthsInYear,
     catalog,
     bundles,
     awards,

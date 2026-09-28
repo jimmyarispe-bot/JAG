@@ -51,7 +51,9 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
     ctx.awards.filter((a) => a.status === "awarded").map((a) => a.id)
   );
   const [sibling, setSibling] = useState(false);
-  const [prorationMonths, setProrationMonths] = useState<number>(12);
+  // Full year means this campus's whole year, not twelve months. FL and GA
+  // have twelve; Virtual and HS have ten. ctx carries the real number.
+  const [prorationMonths, setProrationMonths] = useState<number>(ctx.monthsInYear);
   const [firstMonth, setFirstMonth] = useState<string>("2026-08-25");
   const [mode, setMode] = useState<"scheduled" | "monthly_open">("scheduled");
   const [monthly, setMonthly] = useState("");
@@ -104,8 +106,8 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
             .filter((a) => awardIds.includes(a.id))
             .map((a) => ({ programName: a.programName, awardedAmount: a.awardedAmount })),
           proration:
-            prorationMonths < 12
-              ? { monthsAttending: prorationMonths, monthsInYear: 12 }
+            prorationMonths < ctx.monthsInYear
+              ? { monthsAttending: prorationMonths, monthsInYear: ctx.monthsInYear }
               : undefined,
           instalments: standardSlots(firstMonth),
         }),
@@ -113,7 +115,7 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
     } catch (e) {
       return { problem: e instanceof Error ? e.message : "Could not build that plan." };
     }
-  }, [mode, lines, ctx.bundles, ctx.awards, awardIds, sibling, prorationMonths, firstMonth]);
+  }, [mode, lines, ctx.bundles, ctx.awards, ctx.monthsInYear, awardIds, sibling, prorationMonths, firstMonth]);
 
   function toggle(catalogItemId: string, offeredOneToOne: boolean) {
     setSelected((prev) => {
@@ -136,7 +138,7 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
         })),
         awardIds,
         siblingDiscountPercent: sibling ? 5 : 0,
-        prorationMonths: prorationMonths < 12 ? prorationMonths : null,
+        prorationMonths: prorationMonths < ctx.monthsInYear ? prorationMonths : null,
         firstPayableMonth: firstMonth,
         monthlyAmount: mode === "monthly_open" ? Number(monthly) || null : null,
         paymentChannel: channel || null,
@@ -317,11 +319,15 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
               onChange={(e) => setProrationMonths(Number(e.target.value))}
               className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1"
             >
-              {[12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((m) => (
-                <option key={m} value={m}>
-                  {m === 12 ? "Full year — no proration" : `${m} of 12 months`}
-                </option>
-              ))}
+              {Array.from({ length: ctx.monthsInYear }, (_, i) => ctx.monthsInYear - i).map(
+                (m) => (
+                  <option key={m} value={m}>
+                    {m === ctx.monthsInYear
+                      ? `Full year — no proration (${ctx.monthsInYear} months)`
+                      : `${m} of ${ctx.monthsInYear} months`}
+                  </option>
+                )
+              )}
             </select>
           </div>
 
