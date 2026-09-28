@@ -7,6 +7,7 @@ import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import type { LeadStageValue } from "@/lib/constants/admissions";
 import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import { generateEnrollmentPacket } from "@/lib/admissions/enrollment-packets";
+import { ensureApplicationForAcceptedLead } from "@/lib/admissions/application-for-accepted-lead";
 import { onDecisionSubmitted } from "@/lib/admissions/communications/triggers";
 import { loadOrganizationBranding, buildAdmissionsDecisionEmail } from "@/lib/branding";
 
@@ -57,7 +58,7 @@ export async function submitAdmissionsDecision(formData: FormData) {
   } = await supabase.auth.getUser();
 
   const leadId = formData.get("lead_id") as string;
-  const applicationId = (formData.get("application_id") as string) || null;
+  let applicationId = (formData.get("application_id") as string) || null;
   const decisionType = formData.get("decision_type") as DecisionType;
   const customNotes = (formData.get("decision_notes") as string) || "";
   const sendEmail = formData.get("send_email") === "true";
@@ -71,6 +72,24 @@ export async function submitAdmissionsDecision(formData: FormData) {
   if (!lead) return { error: "Lead not found" };
 
   const studentName = `${lead.first_name} ${lead.last_name}`;
+
+  /**
+   * AN ACCEPTANCE HAS TO PRODUCE THE THING THE FAMILY SIGNS.
+   *
+   * applicationId arrives from a hidden form field and is null for every lead
+   * with no row in admissions_applications - which is all but one of them.
+   * Everything below that is guarded by it then skipped in silence: the
+   * application status, and the enrollment packet itself. Resolved here, before
+   * the decision is written, so the decision row carries it too.
+   */
+  const ensured = await ensureApplicationForAcceptedLead(supabase, {
+    leadId,
+    decisionType,
+    applicationId,
+  });
+  applicationId = ensured.applicationId;
+  let warning: string | null = ensured.warning;
+
   const branding = await loadOrganizationBranding(supabase);
   const email = buildDecisionEmail(decisionType, studentName, branding, customNotes);
 
@@ -144,7 +163,23 @@ export async function submitAdmissionsDecision(formData: FormData) {
   });
 
   if (decisionType === "accept" && applicationId) {
-    await generateEnrollmentPacket(applicationId, leadId);
+    // The result was discarded before. A packet that failed to generate looked
+    // exactly like one that had.
+    const packet = await generateEnrollmentPacket(applicationId, leadId);
+    if ("error" in packet) {
+      warning =
+        `${studentName} is accepted, but the enrollment packet could not be generated ` +
+        `(${packet.error}). Nothing has been sent for signature.`;
+      console.error("[accept] enrollment packet not generated", {
+        leadId,
+        applicationId,
+        error: packet.error,
+      });
+    }
+  } else if (decisionType === "accept" && !warning) {
+    warning =
+      `${studentName} is accepted, but no application could be resolved, so no ` +
+      `enrollment packet was generated.`;
   }
 
   const { data: leadSchool } = await supabase
@@ -179,5 +214,5 @@ export async function submitAdmissionsDecision(formData: FormData) {
   revalidatePath("/dashboard/ceo");
   revalidatePath("/dashboard/students");
 
-  return { success: true, decisionId: decision.id };
+  return { success: true, decisionId: decision.id, warning };
 }

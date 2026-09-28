@@ -23,6 +23,7 @@ export function DecisionWizard({ leadId, applicationId, studentName }: DecisionW
   const [notes, setNotes] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
   const [result, setResult] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const action = useActionFeedback({
     verb: "approve",
@@ -44,8 +45,17 @@ export function DecisionWizard({ leadId, applicationId, studentName }: DecisionW
       formData.set("send_email", String(sendEmail));
 
       const res = await submitAdmissionsDecision(formData);
-      if (res.error) throw new Error(res.error);
-      setResult("Decision recorded. Tasks created and communication logged.");
+      if ("error" in res && res.error) throw new Error(res.error);
+      // A warning is not a failure - the decision IS recorded - but it is the
+      // difference between an accepted family with a contract waiting and one
+      // with nothing at all. It is shown, not swallowed.
+      const raised = "warning" in res ? res.warning ?? null : null;
+      setWarning(raised);
+      setResult(
+        raised
+          ? "Decision recorded."
+          : "Decision recorded. Tasks created and communication logged."
+      );
       setStep(3);
       return res;
     });
@@ -53,8 +63,16 @@ export function DecisionWizard({ leadId, applicationId, studentName }: DecisionW
 
   if (result) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-sm text-emerald-800">
-        {result}
+      <div className="space-y-3">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-sm text-emerald-800">
+          {result}
+        </div>
+        {warning ? (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-6 text-sm text-amber-900">
+            <p className="font-semibold">This needs your attention</p>
+            <p className="mt-1">{warning}</p>
+          </div>
+        ) : null}
       </div>
     );
   }
