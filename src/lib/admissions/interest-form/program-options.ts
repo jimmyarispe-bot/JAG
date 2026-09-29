@@ -78,17 +78,24 @@ export const SEED_PROGRAM_OPTIONS: readonly InterestFormProgramOption[] = [
  * fails loudly rather than quietly skipping a campus it cannot find.
  *
  * A campus absent from this map offers the network default - the first three.
+ *
+ * HOW THE LIVE FORM IMPLEMENTS THIS, as of migration 451: not one question
+ * with per-option rules, but three program questions already gated by campus
+ * - `program` (shown when the school is neither HS nor Virtual), `program_hs`
+ * and `program_virtual`. Each now declares its campus's list outright, which
+ * is simpler than option-level rules and was the structure already there.
+ * This map is what 451 was built from and what a later campus change should
+ * be checked against.
  */
 export const CAMPUS_PROGRAM_OPTIONS: Readonly<Record<string, readonly string[]>> = {
   "the academy fl": ["In-Person", "Only Virtual", "Hybrid (in-person + virtual)"],
   "the academy ga": ["In-Person", "Only Virtual", "Hybrid (in-person + virtual)"],
-  "the academy virtual": [
-    "In-Person",
-    "Only Virtual",
-    "Hybrid (in-person + virtual)",
-    "Full-School Program",
-    "Tutoring",
-  ],
+  // Two, not five. Written as five on 28 September from the network default,
+  // before the live form was read - and the live form turned out to give
+  // Virtual its own question offering a single choice. Jimmy, 29 September,
+  // chose these two and dropped "Only Virtual": at a virtual school it said
+  // nothing. In-Person and Hybrid were never Virtual's to offer.
+  "the academy virtual": ["Full-School Program", "Tutoring"],
   "the academy hs": [
     "Full High School Experience",
     "Tutoring - HS Life Lab",

@@ -146,6 +146,13 @@ describe("the catalog the migration builds from", () => {
     expect(CAMPUS_PROGRAM_OPTIONS["the academy hs"]).toHaveLength(6);
   });
 
+  it("gives Virtual exactly the two Jimmy named, and nothing a virtual school cannot run", () => {
+    expect(CAMPUS_PROGRAM_OPTIONS["the academy virtual"]).toEqual([
+      "Full-School Program",
+      "Tutoring",
+    ]);
+  });
+
   it("gives Georgia and Florida the same three, with neither Virtual-only choice", () => {
     for (const campus of ["the academy ga", "the academy fl"]) {
       const offered = CAMPUS_PROGRAM_OPTIONS[campus];
