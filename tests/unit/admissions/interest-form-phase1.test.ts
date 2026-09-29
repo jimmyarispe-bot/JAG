@@ -16,9 +16,9 @@ import {
 } from "@/lib/admissions/interest-form/definition";
 import { isInterestFormDevOrgFallbackEnabled } from "@/lib/admissions/interest-form/org-resolve";
 import {
-  INTEREST_FORM_PROGRAM_OPTIONS,
   INTEREST_FORM_PROGRAM_QUESTION_HELP,
   INTEREST_FORM_PROGRAM_QUESTION_LABEL,
+  SEED_PROGRAM_OPTIONS,
 } from "@/lib/admissions/interest-form/program-options";
 import { INITIAL_INTEREST_FORM_DEFINITION } from "@/lib/admissions/interest-form/seed-definition";
 import {
@@ -793,6 +793,11 @@ describe("16–20 lead/submission/answers/history/cross-org", () => {
       "Tutoring",
     ]);
     expect(program?.options).toHaveLength(5);
+    // Pinned to the constant the seed is built from: if one grows, so must
+    // the other, rather than this test quietly asserting a stale five.
+    expect(program?.options?.map((o) => o.value)).toEqual(
+      SEED_PROGRAM_OPTIONS.map((o) => o.value)
+    );
     expect(program?.options?.some((o) => /The Academy (FL|GA|HS|Virtual)/.test(o.label))).toBe(
       false
     );
@@ -825,7 +830,19 @@ describe("16–20 lead/submission/answers/history/cross-org", () => {
 
 describe("program type multi-select — public Interest Form", () => {
   const schoolIds = new Set([SCHOOL_A]);
-  const allTypes = INTEREST_FORM_PROGRAM_OPTIONS.map((o) => o.value);
+  /**
+   * The types THIS FORM offers, not every type the network has a name for.
+   *
+   * This read INTEREST_FORM_PROGRAM_OPTIONS until 28 September, when that
+   * constant became the union of every campus's list - including the high
+   * school's six, which the seeded form does not offer and the server now
+   * correctly refuses. Asserting against the catalog would have this test
+   * demand that a form accept options it never displayed.
+   */
+  const programQuestion = INITIAL_INTEREST_FORM_DEFINITION.questions.find(
+    (q) => q.key === "program"
+  );
+  const allTypes = (programQuestion?.options ?? []).map((o) => o.value);
   const baseValues = {
     first_name: "A",
     last_name: "B",
@@ -868,13 +885,25 @@ describe("program type multi-select — public Interest Form", () => {
     }
   });
 
-  it("accepts all five program types", () => {
+  it("accepts every program type this form offers", () => {
+    expect(allTypes).toHaveLength(5);
     const result = validate({ program: allTypes });
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.visibleValues.program).toEqual(allTypes);
       expect(result.visibleValues.program).toHaveLength(5);
     }
+  });
+
+  /**
+   * The other half of the same rule, added 28 September. The catalog now holds
+   * the high school's six as well, and a form that does not offer them must
+   * refuse them - otherwise the page shows five choices while a posted form
+   * records a sixth.
+   */
+  it("refuses a real program type that this form does not offer", () => {
+    const result = validate({ program: ["Full High School Experience"] });
+    expect(result.ok).toBe(false);
   });
 
   it("rejects invalid program types, campus strings, and CRM codes", () => {

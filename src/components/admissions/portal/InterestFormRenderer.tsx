@@ -282,8 +282,16 @@ function QuestionField({
      * campus that runs two of them says so in its own question, and the
      * validator holds the server to the same narrower list.
      */
+    /**
+     * resolveStaticOptions applies each option's own `visibleWhen`, so the
+     * list narrows as soon as a school is chosen. The server narrows the same
+     * way (see definition.ts) - a page showing three choices while the server
+     * accepted eleven is how a Georgia family records interest in a program
+     * Georgia does not run.
+     */
+    const declaredOptions = resolveStaticOptions(question, values);
     const programOptions = question.options?.length
-      ? question.options
+      ? declaredOptions
       : INTEREST_FORM_PROGRAM_OPTIONS;
     return (
       <div className="sm:col-span-2">

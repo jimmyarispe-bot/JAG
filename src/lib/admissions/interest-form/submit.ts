@@ -358,6 +358,8 @@ async function sendStudentQuestionnaireIfAsked(input: {
     studentEmail,
     studentFirstName: asString(input.values.preferred_name) || asString(input.values.first_name),
     schoolName,
+    // Copied on what was asked, with no link - see renderParentQuestionnaireCopyEmail.
+    guardianEmail: asString(input.values.guardian_email) || null,
   });
 
   if (!result.ok) {

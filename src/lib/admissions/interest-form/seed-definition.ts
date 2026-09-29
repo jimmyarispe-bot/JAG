@@ -3,7 +3,7 @@
  */
 
 import {
-  INTEREST_FORM_PROGRAM_OPTIONS,
+  SEED_PROGRAM_OPTIONS,
   INTEREST_FORM_PROGRAM_QUESTION_HELP,
   INTEREST_FORM_PROGRAM_QUESTION_LABEL,
 } from "@/lib/admissions/interest-form/program-options";
@@ -122,7 +122,9 @@ export const INITIAL_INTEREST_FORM_DEFINITION: InterestFormDefinition = {
       order: 7,
       systemBinding: "lead.program",
       helpText: INTEREST_FORM_PROGRAM_QUESTION_HELP,
-      options: INTEREST_FORM_PROGRAM_OPTIONS.map((option) => ({
+      // SEED_PROGRAM_OPTIONS, not the full union: a new form has no campus
+      // rules because school ids do not exist yet. See program-options.ts.
+      options: SEED_PROGRAM_OPTIONS.map((option) => ({
         value: option.value,
         label: option.label,
       })),

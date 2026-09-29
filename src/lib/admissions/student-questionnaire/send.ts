@@ -111,6 +111,76 @@ export function renderStudentQuestionnaireEmail(input: {
   return { subject, html, text };
 }
 
+
+/**
+ * The parent's copy.
+ *
+ * Jimmy, 28 September 2026: the student email says "You will be copied into
+ * the email we send your student", and the parent is copied.
+ *
+ * NOT A CC, AND THAT IS THE WHOLE DESIGN. The student's email carries a
+ * one-time token link, and it ends by saying the link is theirs and not to
+ * forward it. A true CC would hand that same link to the parent, who could
+ * then answer the five questions as their child - which is the one thing this
+ * questionnaire exists to prevent. So the parent gets their own message with
+ * the same five questions, in the same words, and no link at all. They can see
+ * exactly what was asked. They cannot answer it.
+ *
+ * A separate message rather than a cc field also means the link cannot reach
+ * them by accident later: there is no address on the student's email but the
+ * student's.
+ */
+export function renderParentQuestionnaireCopyEmail(input: {
+  schoolName: string;
+  studentFirstName: string;
+  studentEmail: string;
+}): { subject: string; html: string; text: string } {
+  const { schoolName, studentFirstName, studentEmail } = input;
+  // Always the child's name, never a pronoun.
+  const child = studentFirstName.trim() || "your student";
+  const subject = `${schoolName}: the five questions we sent ${child}`;
+
+  const questions = STUDENT_QUESTIONS.map((q) => q.label);
+  const list = questions
+    .map((q) => `<li style="margin:0 0 8px;">${escapeHtml(q)}</li>`)
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f8fafc;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;padding:32px;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;">
+  <tr><td>
+    <p style="margin:0 0 4px;font-size:13px;color:#64748b;">${escapeHtml(schoolName)}</p>
+    <h1 style="margin:0 0 20px;font-size:20px;line-height:1.3;color:#0f172a;">Your copy of ${escapeHtml(child)}'s questions</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#334155;">We have emailed ${escapeHtml(child)} at ${escapeHtml(studentEmail)} with five questions to answer. This is your copy, so you can see what was asked.</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#334155;">${escapeHtml(STUDENT_QUESTIONNAIRE_INTRO)}</p>
+    <ul style="margin:0 0 24px;padding-left:20px;font-size:15px;line-height:1.55;color:#0f172a;">${list}</ul>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#334155;">The link to answer is in ${escapeHtml(child)}'s email and not in this one. We are asking for ${escapeHtml(child)}'s own words, so please let ${escapeHtml(child)} answer them.</p>
+    <p style="margin:0;font-size:13px;line-height:1.5;color:#94a3b8;">If ${escapeHtml(child)} did not receive the email, check the spam folder and then contact the school office.</p>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+
+  const text = [
+    `We have emailed ${child} at ${studentEmail} with five questions to answer.`,
+    "This is your copy, so you can see what was asked.",
+    "",
+    STUDENT_QUESTIONNAIRE_INTRO,
+    "",
+    ...questions.map((q, i) => `${i + 1}. ${q}`),
+    "",
+    `The link to answer is in ${child}'s email and not in this one. We are asking`,
+    `for ${child}'s own words, so please let ${child} answer them.`,
+    "",
+    `If ${child} did not receive the email, check the spam folder and then contact`,
+    "the school office.",
+  ].join("\n");
+
+  return { subject, html, text };
+}
+
 /**
  * Create the link and send it.
  *
@@ -130,6 +200,9 @@ export async function sendStudentQuestionnaire(
     studentEmail: string;
     studentFirstName: string;
     schoolName: string;
+    /** The parent's address, copied on what was asked. Optional: an inquiry
+     *  without one still sends the student their questions. */
+    guardianEmail?: string | null;
   }
 ): Promise<{ ok: true; questionnaireId: string } | { ok: false; error: string }> {
   const email = input.studentEmail.trim();
@@ -178,6 +251,35 @@ export async function sendStudentQuestionnaire(
     // The row stays. A link that was minted but not delivered is exactly what
     // "resend" is for, and deleting it would hide that this ever happened.
     return { ok: false, error: delivery.error ?? "Email provider rejected the message." };
+  }
+
+  /**
+   * The parent's copy is sent after the student's, and its failure is not the
+   * student's problem.
+   *
+   * The student has their questions; that is the thing that had to happen. A
+   * bounced parent copy must not report the whole send as failed, because the
+   * caller's only recovery is to resend - which would cancel the student's
+   * live token and mint a new one, breaking a link that was delivered and may
+   * already be open.
+   *
+   * Skipped when the two addresses match, which happens when a family puts the
+   * parent's address in the student field. One email, not two identical ones.
+   */
+  const guardian = input.guardianEmail?.trim() ?? "";
+  if (guardian && guardian.toLowerCase() !== email.toLowerCase()) {
+    const parentCopy = renderParentQuestionnaireCopyEmail({
+      schoolName: input.schoolName,
+      studentFirstName: input.studentFirstName,
+      studentEmail: email,
+    });
+    await sendTransactionalEmail({
+      to: guardian,
+      subject: parentCopy.subject,
+      body: parentCopy.html,
+      text: parentCopy.text,
+      kind: "transactional",
+    });
   }
 
   return { ok: true, questionnaireId: (data as { id: string }).id };

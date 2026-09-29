@@ -170,7 +170,25 @@ export function pruneAnswersForHiddenOptions(
   for (const question of definition.questions) {
     const raw = values[question.key];
     if (raw === undefined || raw === null || raw === "") continue;
-    if (question.type !== "select" && question.type !== "multiselect") continue;
+    /**
+     * program_selector belongs here too, and its absence was the third place
+     * option-level visibility was ignored (the renderer and the submit
+     * validator were the other two). Without it, a family who ticked Tutoring
+     * and then changed campus to Georgia kept a hidden answer naming a
+     * programme Georgia does not run, and met "Select a valid program type."
+     * against a checkbox that was no longer on the page.
+     */
+    if (
+      question.type !== "select" &&
+      question.type !== "multiselect" &&
+      question.type !== "program_selector"
+    ) {
+      continue;
+    }
+
+    // Same guard as the validator: a program_selector with optionSource
+    // "programs" would resolve to the CRM catalog and prune every real answer.
+    if (question.type === "program_selector" && !question.options?.length) continue;
 
     const offered = new Set(resolveStaticOptions(question, values).map((o) => o.value));
     if (offered.size === 0) continue;
@@ -391,7 +409,30 @@ export function validateInterestSubmission(input: {
          * show two choices while the server quietly took all five, and a posted
          * form could record interest in a program the campus does not run.
          */
-        const declared = question.options ?? [];
+        /**
+         * resolveStaticOptions, not question.options.
+         *
+         * Option-level `visibleWhen` was added on 27 September so a choice
+         * could be withdrawn from a campus that cannot have it. Every field
+         * type honoured it except this one, which read the raw list - so the
+         * server accepted an option the page never showed. On 28 September
+         * that became load-bearing: Georgia and Florida no longer offer
+         * Full-School or Tutoring, and the high school offers six of its own.
+         * Reading the raw list here would let a posted form record interest in
+         * a program the campus does not run.
+         */
+        /**
+         * Guarded on question.options, not simply handed to
+         * resolveStaticOptions. That function falls back to the CRM
+         * `PROGRAMS` catalog when a question declares optionSource
+         * "programs" - academy_fl_campus and friends, which are not interest
+         * types at all. A program_selector configured that way would have
+         * every valid answer refused. Where the question declares no options
+         * of its own, the network-wide check stands, exactly as before.
+         */
+        const declared = question.options?.length
+          ? resolveStaticOptions(question, input.values)
+          : [];
         const permitted = declared.length
           ? new Set(declared.map((option) => option.value))
           : null;
