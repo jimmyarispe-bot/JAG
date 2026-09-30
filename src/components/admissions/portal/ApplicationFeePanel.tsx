@@ -5,7 +5,9 @@ import { useState } from "react";
 
 import {
   checkApplicationFeePayment,
+  checkApplicationFeePaymentByToken,
   startApplicationFeePayment,
+  startApplicationFeePaymentByToken,
 } from "@/lib/admissions/fee/actions";
 
 /**
@@ -32,6 +34,15 @@ interface ApplicationFeePanelProps {
   amountCents: number;
   /** True once the application is past the point where the fee is collected. */
   alreadySubmitted: boolean;
+  /**
+   * Present when the family reached this page from their invitation link and
+   * has no account - which, from 30 September, is every family.
+   *
+   * When it is here the two buttons send the TOKEN and nothing else: no
+   * application id crosses from the browser, so the server has nothing to
+   * check and no way to be pointed at another family's fee.
+   */
+  token?: string;
 }
 
 function usd(cents: number): string {
@@ -43,6 +54,7 @@ export function ApplicationFeePanel({
   status,
   amountCents,
   alreadySubmitted,
+  token,
 }: ApplicationFeePanelProps) {
   const router = useRouter();
   const [busy, setBusy] = useState<"pay" | "check" | null>(null);
@@ -73,7 +85,9 @@ export function ApplicationFeePanel({
     setNote(null);
     setBusy("pay");
     try {
-      const result = await startApplicationFeePayment(applicationId);
+      const result = token
+        ? await startApplicationFeePaymentByToken(token)
+        : await startApplicationFeePayment(applicationId);
       if ("error" in result) {
         setError(result.error);
         return;
@@ -93,7 +107,9 @@ export function ApplicationFeePanel({
     setNote(null);
     setBusy("check");
     try {
-      const result = await checkApplicationFeePayment(applicationId);
+      const result = token
+        ? await checkApplicationFeePaymentByToken(token)
+        : await checkApplicationFeePayment(applicationId);
       if ("error" in result) {
         setError(result.error);
         return;

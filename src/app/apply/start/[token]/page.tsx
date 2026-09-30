@@ -4,6 +4,8 @@ import { leadIdForApplicationToken } from "@/lib/admissions/apply-link/token";
 import { prefillValuesForLead } from "@/lib/admissions/interest-form/prefill";
 import { loadPublishedInterestForm } from "@/lib/admissions/interest-form/load";
 import { resolveInterestFormOrganization } from "@/lib/admissions/interest-form/org-resolve";
+import { ApplicationFeePanel } from "@/components/admissions/portal/ApplicationFeePanel";
+import { readFeeContextForToken } from "@/lib/admissions/fee/checkout";
 
 /**
  * The application, opened from the link in a school leader's invitation.
@@ -82,6 +84,22 @@ export default async function ApplyStartPage({ params }: ApplyStartPageProps) {
 
   const initialValues = await prefillValuesForLead(leadId);
 
+  /*
+   * The $100, on the page it belongs to.
+   *
+   * Jimmy, 28 September: the fee goes "at the end of the application and
+   * before it can be submitted". Until 30 September the only Pay button lived
+   * on /apply/portal/<id>, which bounces anyone without an account to /login -
+   * so the rule that no family ever creates a JAG account and the rule that
+   * they must pay before submitting could not both be true.
+   *
+   * Read through the TOKEN, never through an id in the URL. A failure is not
+   * $0: readFeeContextForToken refuses rather than returning nothing, and the
+   * panel is simply not rendered, so a family is never shown "nothing owed"
+   * because a read went wrong.
+   */
+  const fee = await readFeeContextForToken(token);
+
   return (
     <ApplyShell organizationName={org?.organizationName} showNav={false}>
       <div className="space-y-6">
@@ -95,6 +113,16 @@ export default async function ApplyStartPage({ params }: ApplyStartPageProps) {
             same link at any point.
           </p>
         </div>
+
+        {fee.ok ? (
+          <ApplicationFeePanel
+            applicationId={fee.fee.applicationId}
+            status={fee.fee.status || "unpaid"}
+            amountCents={fee.fee.amountCents}
+            alreadySubmitted={false}
+            token={token}
+          />
+        ) : null}
 
         <InterestFormRenderer
           published={published}

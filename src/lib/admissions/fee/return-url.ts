@@ -16,11 +16,19 @@ import { headers } from "next/headers";
 import { resolvePublicAppOrigin } from "@/lib/platform/branding/public-origin";
 import { normalizeHost, extractDomainsFromSettings } from "@/lib/platform/organizations/domains";
 import { resolveOrganizationByRequestHost } from "@/lib/admissions/interest-form/org-resolve";
-import { feeReturnPath, resolveFeeReturnOrigin } from "@/lib/admissions/fee/return-origin";
+import {
+  feeReturnPath,
+  feeReturnPathForToken,
+  resolveFeeReturnOrigin,
+} from "@/lib/admissions/fee/return-origin";
 
 const PLATFORM_ROOT = "thejag.org";
 
-export async function resolveFeeReturnUrl(applicationId: string): Promise<string> {
+/**
+ * The origin only. Split out on 30 September so the signed-in trip and the
+ * token trip cannot answer "is this host ours" differently.
+ */
+async function feeReturnOrigin(): Promise<string> {
   const fallback = resolvePublicAppOrigin();
 
   let host: string | null = null;
@@ -31,7 +39,7 @@ export async function resolveFeeReturnUrl(applicationId: string): Promise<string
     protocol = h.get("x-forwarded-proto");
   } catch {
     // No request context (a script, a test). The configured origin is correct.
-    return `${fallback.replace(/\/+$/, "")}${feeReturnPath(applicationId)}`;
+    return fallback.replace(/\/+$/, "");
   }
 
   const normalized = normalizeHost(host);
@@ -61,5 +69,14 @@ export async function resolveFeeReturnUrl(applicationId: string): Promise<string
     fallbackOrigin: fallback,
   });
 
-  return `${origin}${feeReturnPath(applicationId)}`;
+  return origin;
+}
+
+export async function resolveFeeReturnUrl(applicationId: string): Promise<string> {
+  return `${await feeReturnOrigin()}${feeReturnPath(applicationId)}`;
+}
+
+/** The same address for a family paying from their invitation link. */
+export async function resolveFeeReturnUrlForToken(token: string): Promise<string> {
+  return `${await feeReturnOrigin()}${feeReturnPathForToken(token)}`;
 }

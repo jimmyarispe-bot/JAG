@@ -9,7 +9,10 @@ import {
   confirmApplicationFeePayment,
   createApplicationFeeCheckout,
 } from "@/lib/admissions/fee/checkout";
-import { resolveFeeReturnUrl } from "@/lib/admissions/fee/return-url";
+import {
+  resolveFeeReturnUrl,
+  resolveFeeReturnUrlForToken,
+} from "@/lib/admissions/fee/return-url";
 
 /**
  * Waiving the $100, and recording who decided and why.
@@ -142,8 +145,40 @@ export async function startApplicationFeePayment(
 export async function checkApplicationFeePayment(
   applicationId: string
 ): Promise<{ paid: true } | { error: string }> {
-  const result = await confirmApplicationFeePayment(applicationId);
+  const result = await confirmApplicationFeePayment({ applicationId });
   if (!result.ok) return { error: result.reason };
   revalidatePath(`/apply/portal/${applicationId}`);
+  return { paid: true };
+}
+
+/**
+ * The same two buttons, for a family who has no account.
+ *
+ * Jimmy, 29 September: "no one ever submits an application without us
+ * providing the url. we don't publish this publicly anywhere." And no family
+ * ever creates a JAG account. Until 30 September the $100 could be paid only
+ * from /apply/portal/<id>, which begins by bouncing anyone without a session
+ * to /login - so the one thing a family had to do was the one thing the rule
+ * said they could not.
+ *
+ * THE TOKEN IS THE ONLY INPUT. No application id crosses from the browser,
+ * so there is nothing to check and nothing to get wrong: readFeeContextForToken
+ * resolves the token to a lead and finds the application from there.
+ */
+export async function startApplicationFeePaymentByToken(
+  token: string
+): Promise<{ url: string } | { error: string }> {
+  const returnUrl = await resolveFeeReturnUrlForToken(token);
+  const result = await createApplicationFeeCheckout({ token, returnUrl });
+  if (!result.ok) return { error: result.reason };
+  return { url: result.url };
+}
+
+export async function checkApplicationFeePaymentByToken(
+  token: string
+): Promise<{ paid: true } | { error: string }> {
+  const result = await confirmApplicationFeePayment({ token });
+  if (!result.ok) return { error: result.reason };
+  revalidatePath(`/apply/start/${token}`);
   return { paid: true };
 }

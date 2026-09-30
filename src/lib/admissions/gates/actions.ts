@@ -15,6 +15,7 @@ import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 import { notifyAdmissionsEvent } from "@/lib/admissions/communications/triggers";
 import { submitAdmissionsDecision } from "@/lib/admissions/decisions";
 import { getInquiryHighlights } from "@/lib/admissions/interest-form/carry-forward";
+import { ensureApplicationForInvitedLead } from "@/lib/admissions/application-for-invited-lead";
 import {
   branchFor,
   gateFor,
@@ -340,6 +341,29 @@ export async function answerDecisionGate(formData: FormData) {
         error:
           `Your answer was recorded, but the family was not emailed: their application link could not be created (${mintError.message}). ` +
           `Nothing has been sent, so nobody has a broken link.`,
+      };
+    }
+
+    /*
+     * And the application the link opens onto, before they are told about it.
+     *
+     * Jimmy, 28 September: the $100 goes "at the end of the application and
+     * before it can be submitted". The fee lives on admissions_applications,
+     * and until 30 September that row was not created until the family was
+     * ACCEPTED - so the fee had nowhere to live during the very step it was
+     * meant to gate.
+     *
+     * Guarded exactly like the mint above, and for the same reason. A family
+     * holding a link to a page that cannot take their money is worse than a
+     * family not yet invited. Acceptance later finds this row rather than
+     * making a second one.
+     */
+    const application = await ensureApplicationForInvitedLead(supabase, { leadId });
+    if (!application.ok) {
+      return {
+        error:
+          `Your answer was recorded, but the family was not emailed: ${application.reason} ` +
+          `Nothing has been sent, so nobody has a link they cannot pay on.`,
       };
     }
   }

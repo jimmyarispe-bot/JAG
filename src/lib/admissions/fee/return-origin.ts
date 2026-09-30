@@ -88,3 +88,15 @@ export function resolveFeeReturnOrigin(input: ReturnOriginInput): string {
 export function feeReturnPath(applicationId: string): string {
   return `/apply/portal/${encodeURIComponent(applicationId)}/fee/return`;
 }
+
+/**
+ * The same trip, for a family who has no account.
+ *
+ * Keyed by the invitation token rather than the application id, because the
+ * token is the only thing that identifies them - and because the page they
+ * must land back on is the application they were filling in, not a portal
+ * that would bounce them to a password box.
+ */
+export function feeReturnPathForToken(token: string): string {
+  return `/apply/start/${encodeURIComponent(token)}/fee/return`;
+}

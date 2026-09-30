@@ -34,6 +34,7 @@
 
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { leadIdForApplicationToken } from "@/lib/admissions/apply-link/token";
 import { squareGet, squarePost } from "@/lib/connectors/square/client";
 import {
   APPLICATION_FEE_CURRENCY,
@@ -64,9 +65,38 @@ type ContextRead =
  * error - the house failure - so a missing row is reported as "we could not
  * read it", never treated as a $0 fee.
  */
-export async function readFeeContext(applicationId: string): Promise<ContextRead> {
-  const supabase = await createAuthClient();
+/**
+ * Only what the read below actually calls. Structural, and narrow on purpose:
+ * `any` here would silence a real error the day this query changes shape.
+ * Same approach as apply-link/token.ts.
+ */
+type FeeReader = {
+  from: (table: string) => {
+    select: (cols: string) => {
+      eq: (
+        column: string,
+        value: string
+      ) => {
+        maybeSingle: () => PromiseLike<{
+          data: unknown;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
+};
 
+/**
+ * The read, given a client that has already decided who is asking.
+ *
+ * Two callers, two authorities, ONE shaping - so a family paying from their
+ * invitation link and a family paying signed in cannot be told different
+ * things about the same fee.
+ */
+async function readFeeContextWith(
+  supabase: FeeReader,
+  applicationId: string
+): Promise<ContextRead> {
   const { data, error } = await supabase
     .from("admissions_applications")
     .select(
@@ -136,6 +166,71 @@ export async function readFeeContext(applicationId: string): Promise<ContextRead
   };
 }
 
+/** The signed-in family's own fee, judged by row-level security. */
+export async function readFeeContext(applicationId: string): Promise<ContextRead> {
+  return readFeeContextWith(
+    (await createAuthClient()) as unknown as FeeReader,
+    applicationId
+  );
+}
+
+/**
+ * The same fee, for a family who has no account.
+ *
+ * THE TOKEN IS THE WHOLE AUTHORITY, and the browser supplies NOTHING ELSE.
+ * There is no application id to check, because none is accepted: the token
+ * resolves to one lead through leadIdForApplicationToken - 64 hex characters,
+ * one row or null, the only thing in this codebase that turns a browser
+ * string into a lead - and the application is then found FROM that lead.
+ *
+ * So the question "does this application belong to this family" is never
+ * asked, because there is no way to name an application that is not theirs.
+ *
+ * Elevated permissions are used only after the token has been resolved, and
+ * only to read the one row it leads to.
+ */
+export async function readFeeContextForToken(token: string): Promise<ContextRead> {
+  const leadId = await leadIdForApplicationToken(token);
+  if (!leadId) {
+    return { ok: false, reason: "This link is no longer active." };
+  }
+
+  const admin = createServiceRoleClient();
+
+  const { data, error } = await admin
+    .from("admissions_applications")
+    .select("id")
+    .eq("lead_id", leadId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return {
+      ok: false,
+      reason: `We could not read this application just now: ${error.message}`,
+    };
+  }
+
+  /*
+   * No application is not $0. Before 30 September the row was not created
+   * until a family was accepted, so an older invitation can still reach a
+   * lead that has none - and saying nothing is owed would be a lie with a
+   * price on it.
+   */
+  const applicationId = (data as { id?: string } | null)?.id;
+  if (!applicationId) {
+    return {
+      ok: false,
+      reason:
+        "We could not find your application. Please reply to your invitation " +
+        "and we will sort it out.",
+    };
+  }
+
+  return readFeeContextWith(admin as unknown as FeeReader, applicationId);
+}
+
 export type CheckoutResult =
   | { readonly ok: true; readonly url: string }
   | { readonly ok: false; readonly reason: string };
@@ -146,11 +241,30 @@ export type CheckoutResult =
  * Refuses rather than defaults, every time: no campus location, no payment; no
  * amount, no payment; already settled, nothing to pay.
  */
-export async function createApplicationFeeCheckout(input: {
-  readonly applicationId: string;
-  readonly returnUrl: string;
-}): Promise<CheckoutResult> {
-  const context = await readFeeContext(input.applicationId);
+/**
+ * Two authorities, never both. A caller names an application (and is judged
+ * by row-level security) or names a token (and is judged by the token). The
+ * union makes passing both a compile error rather than a question about
+ * which one wins.
+ */
+export type FeeCaller =
+  | { readonly applicationId: string; readonly token?: undefined }
+  | { readonly token: string; readonly applicationId?: undefined };
+
+export async function createApplicationFeeCheckout(
+  input: FeeCaller & { readonly returnUrl: string }
+): Promise<CheckoutResult> {
+  /*
+   * `!== undefined`, not truthiness. The union's two members are told
+   * apart by whether `token` is undefined; a truthy test does not
+   * exclude the token member, because a string can be empty - so
+   * `input.applicationId` stayed `string | undefined` and the ship gate
+   * refused it. Verified with tsc before this line was written.
+   */
+  const context =
+    input.token !== undefined
+      ? await readFeeContextForToken(input.token)
+      : await readFeeContext(input.applicationId);
   if (!context.ok) return { ok: false, reason: context.reason };
   const fee = context.fee;
 
@@ -234,9 +348,12 @@ export type ConfirmResult =
  * and the only evidence is what Square says about that order.
  */
 export async function confirmApplicationFeePayment(
-  applicationId: string
+  caller: FeeCaller
 ): Promise<ConfirmResult> {
-  const context = await readFeeContext(applicationId);
+  const context =
+    caller.token !== undefined
+      ? await readFeeContextForToken(caller.token)
+      : await readFeeContext(caller.applicationId);
   if (!context.ok) return { ok: false, reason: context.reason };
   const fee = context.fee;
 
@@ -281,7 +398,9 @@ export async function confirmApplicationFeePayment(
       application_fee_waived_by_user_id: null,
       application_fee_waiver_reason: null,
     } as never)
-    .eq("id", applicationId);
+    // fee.applicationId, never the caller's: in the token flow nothing the
+    // browser sent names a row, and the id here is the one the token led to.
+    .eq("id", fee.applicationId);
 
   if (error) {
     return {

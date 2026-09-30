@@ -30,7 +30,7 @@ export async function GET(
   // is the truth - and it offers a Check button that runs this same
   // confirmation again. Square can take a moment to complete an order.
   try {
-    await confirmApplicationFeePayment(applicationId);
+    await confirmApplicationFeePayment({ applicationId });
   } catch {
     // Deliberately swallowed. See above: the destination page is the one that
     // tells the family anything, and it does not depend on this call.
