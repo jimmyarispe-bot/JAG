@@ -82,10 +82,137 @@ type InterestFormRendererProps = {
   invitationToken?: string;
 };
 
+/**
+ * A default the BROWSER supplies, declared in the form rather than in here.
+ *
+ * Jimmy, 30 September: "we have students all over the world." There are some
+ * 400 IANA time zones and a dropdown of 400 is not a question, it is a
+ * punishment. The browser already knows the exact answer, so the form asks it
+ * and the parent only has to correct it if we are wrong.
+ *
+ * DECLARED, NOT HARDCODED. A question opts in by setting
+ * defaultValue: "__DETECT_TIMEZONE__". Nothing here knows about
+ * student_timezone by name, so the form builder can move or rename that
+ * question without this file caring.
+ *
+ * REFUSED RATHER THAN GUESSED. If Intl is unavailable, or if what it reports
+ * cannot be matched to one of the options this question offers, NO default is
+ * set and the dropdown opens unanswered. A wrong time zone silently pre-filled
+ * is worse than an empty one: the family would have to notice a mistake nobody
+ * told them about, and every class time we ever show them would be quietly off.
+ */
+const DETECT_TIMEZONE = "__DETECT_TIMEZONE__";
+
+function detectedTimeZone(): string | null {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return typeof zone === "string" && zone.trim() ? zone.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Minutes this zone is ahead of UTC at this instant, or null if the browser
+ * does not recognise the zone.
+ *
+ * Read by formatting the same instant in the zone and subtracting - there is
+ * no API that simply tells you. `hour12: false` reports midnight as "24" in
+ * some engines, hence the fold.
+ */
+function offsetMinutes(zone: string, at: Date): number | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: zone,
+      hour12: false,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).formatToParts(at);
+    const p: Record<string, string> = {};
+    for (const part of parts) p[part.type] = part.value;
+    const hour = Number(p.hour) === 24 ? 0 : Number(p.hour);
+    const asIfUtc = Date.UTC(
+      Number(p.year),
+      Number(p.month) - 1,
+      Number(p.day),
+      hour,
+      Number(p.minute),
+      Number(p.second)
+    );
+    if (Number.isNaN(asIfUtc)) return null;
+    // The instant carries milliseconds the formatted parts do not; rounding to
+    // whole minutes drops them rather than dragging the offset off by one.
+    return Math.round((asIfUtc - at.getTime()) / 60000);
+  } catch {
+    return null;
+  }
+}
+
+/** Half a year on, so a comparison sees each zone's summer and its winter. */
+const HALF_A_YEAR_MS = 182 * 24 * 60 * 60 * 1000;
+
+/**
+ * The offered option that keeps the same time as the browser's own zone.
+ *
+ * The question offers about thirty zones, one per region - not the four
+ * hundred IANA publishes. So an exact hit is the lucky case: a family in
+ * Atlanta reports America/New_York and matches, a family in Detroit reports
+ * America/Detroit and does not, although Detroit IS Eastern. Matching on the
+ * name alone would leave most of the world scrolling a list of 33.
+ *
+ * So: exact first, then the first offered zone that agrees with the browser's
+ * BOTH today and half a year from now. Both, because one reading cannot tell
+ * Brisbane from Sydney - they agree through the Australian winter and part by
+ * an hour in the summer. Two readings part them, and Brisbane correctly falls
+ * through to no default rather than being told it is Sydney.
+ *
+ * WHEN TWO OFFERED ZONES BOTH FIT, the earlier one in the question's own
+ * option order wins - which is why that order is deliberate and US-first. A
+ * family in Winnipeg is offered "US - Central". The stored value,
+ * America/Chicago, keeps their clock exactly right; the label is a region
+ * hint, not a claim about where they live, and where they live is the
+ * question directly above this one.
+ */
+function matchingOfferedZone(
+  zone: string,
+  options: readonly { readonly value: string }[]
+): string | null {
+  if (options.some((o) => o.value === zone)) return zone;
+
+  const now = new Date();
+  const later = new Date(now.getTime() + HALF_A_YEAR_MS);
+  const mineNow = offsetMinutes(zone, now);
+  const mineLater = offsetMinutes(zone, later);
+  if (mineNow === null || mineLater === null) return null;
+
+  for (const option of options) {
+    if (
+      offsetMinutes(option.value, now) === mineNow &&
+      offsetMinutes(option.value, later) === mineLater
+    ) {
+      return option.value;
+    }
+  }
+  return null;
+}
+
 function defaultValues(published: PublishedInterestForm): InterestFormValues {
   const values: InterestFormValues = {};
   for (const q of published.definition.questions) {
-    if (q.defaultValue !== undefined) values[q.key] = q.defaultValue;
+    if (q.defaultValue === undefined) continue;
+
+    if (q.defaultValue === DETECT_TIMEZONE) {
+      const zone = detectedTimeZone();
+      const match = zone ? matchingOfferedZone(zone, q.options ?? []) : null;
+      if (match) values[q.key] = match;
+      continue;
+    }
+
+    values[q.key] = q.defaultValue;
   }
   return values;
 }
