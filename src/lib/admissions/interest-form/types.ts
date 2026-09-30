@@ -58,7 +58,18 @@ export type InterestFieldType =
  * exactly how they behave today, so this type can ship before v32 publishes
  * and nothing changes for a family mid-form. See definitionDeclaresPhases().
  */
-export type InterestFormPhase = "inquiry" | "application";
+/**
+ * "inquiry_only" is the third case, added 30 September after Jimmy walked the
+ * application: `program` (In-Person / Only Virtual / Hybrid) appeared there
+ * alongside `program_virtual`, both labelled "Program(s) of Interest", one of
+ * them offering a single option. "we need to delete the first program of
+ * interest option... it's redundant based on the next question."
+ *
+ * It cannot simply be an application question - it is one of the 20 the
+ * inquiry must ask at every campus. So it is asked at the front door and NOT
+ * repeated behind the token.
+ */
+export type InterestFormPhase = "inquiry" | "application" | "inquiry_only";
 
 export type InterestOptionSource = "grades" | "funding_sources" | "programs" | "schools";
 

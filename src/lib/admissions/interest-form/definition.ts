@@ -97,10 +97,16 @@ export function isQuestionInPhase(input: {
   section: InterestSectionDefinition | undefined;
   phase: InterestFormPhase;
 }): boolean {
-  if (input.phase === "application") return true;
   if (!definitionDeclaresPhases(input.definition)) return true;
   const declared = input.question.phase ?? input.section?.phase ?? "application";
-  return declared === "inquiry";
+
+  /*
+   * The application asks everything EXCEPT what is inquiry_only - a question
+   * the front door must ask and the application must not repeat.
+   */
+  if (input.phase === "application") return declared !== "inquiry_only";
+
+  return declared === "inquiry" || declared === "inquiry_only";
 }
 
 /**

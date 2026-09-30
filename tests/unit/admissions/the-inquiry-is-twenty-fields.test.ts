@@ -137,6 +137,32 @@ describe("interest form phases", () => {
     expect(at(2, 1)).toBe(true);
   });
 
+  it("asks an inquiry_only question at the door and never again", () => {
+    /*
+     * Jimmy, 30 September, on Julian Towa's real application: three
+     * programme questions, two with the identical label "Program(s) of
+     * Interest", one offering a single option. `program` has to be asked at
+     * the inquiry - it is one of the 20 - and must not be repeated behind
+     * the token.
+     */
+    const d = def(
+      [s("program_school", ["program", "program_virtual"], { phase: "inquiry" })],
+      [q("program", { phase: "inquiry_only" }), q("program_virtual", { phase: "application" })]
+    );
+    const at = (i: number, phase: "inquiry" | "application") =>
+      isQuestionInPhase({
+        definition: d,
+        question: d.questions[i],
+        section: d.sections[0],
+        phase,
+      });
+
+    expect(at(0, "inquiry")).toBe(true);
+    expect(at(0, "application")).toBe(false);
+    expect(at(1, "inquiry")).toBe(false);
+    expect(at(1, "application")).toBe(true);
+  });
+
   it("shows everything on the application", () => {
     const d = def(
       [s("ga_goal", ["ga_goal_signature"], { phase: "application" })],

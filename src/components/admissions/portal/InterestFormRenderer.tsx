@@ -50,6 +50,17 @@ type InterestFormRendererProps = {
    */
   phase: InterestFormPhase;
   /**
+   * Rendered between the last question and the Submit button.
+   *
+   * The $100 goes here and nowhere else. Jimmy, 28 September: "at the end
+   * of the application and before it can be submitted" - and on
+   * 30 September, having found it above the first field: "why does it ask
+   * for the application fee first?" Passed in rather than built here
+   * because the fee is read on the server, from the token, before this
+   * component exists.
+   */
+  beforeSubmit?: React.ReactNode;
+  /**
    * What we already know about this family, by question key.
    *
    * Absent on the public form at /apply, which is a stranger arriving with
@@ -702,6 +713,7 @@ function QuestionField({
 export function InterestFormRenderer({
   published,
   phase,
+  beforeSubmit,
   initialValues,
   invitationToken,
 }: InterestFormRendererProps) {
@@ -876,6 +888,8 @@ export function InterestFormRenderer({
           </section>
         );
       })}
+
+      {beforeSubmit}
 
       {/* Large, centred, and in the network's blue.
           Not full width: ActionChip wraps every button in an inline-flex,

@@ -114,21 +114,29 @@ export default async function ApplyStartPage({ params }: ApplyStartPageProps) {
           </p>
         </div>
 
-        {fee.ok ? (
-          <ApplicationFeePanel
-            applicationId={fee.fee.applicationId}
-            status={fee.fee.status || "unpaid"}
-            amountCents={fee.fee.amountCents}
-            alreadySubmitted={false}
-            token={token}
-          />
-        ) : null}
-
         <InterestFormRenderer
           published={published}
           phase="application"
           initialValues={initialValues}
           invitationToken={token}
+          /*
+           * At the END of the application, above Submit. It sat above the
+           * first field until 30 September, when Jimmy opened a real family's
+           * link and asked "why does it ask for the application fee first?" -
+           * which is not what he asked for on the 28th, and not what the
+           * panel's own comment says it is for.
+           */
+          beforeSubmit={
+            fee.ok ? (
+              <ApplicationFeePanel
+                applicationId={fee.fee.applicationId}
+                status={fee.fee.status || "unpaid"}
+                amountCents={fee.fee.amountCents}
+                alreadySubmitted={false}
+                token={token}
+              />
+            ) : null
+          }
         />
       </div>
     </ApplyShell>
