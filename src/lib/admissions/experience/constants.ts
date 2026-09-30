@@ -89,11 +89,19 @@ export const ADMISSIONS_KNOWLEDGE_DOCUMENT_TYPES = Object.freeze([
  * 2 August, a second application living behind an account, while the real one
  * is the published interest form opened from an invitation token.
  *
- * The seven columns it wrote - guardian_notes, student_summary,
- * previous_school, medical_notes, learning_needs_summary,
- * emergency_contact_name, emergency_contact_phone - are LEFT IN PLACE. No
- * screen renders them now. Dropping a column is not reversible and was not
- * asked for.
+ * The seven columns it wrote are LEFT IN PLACE. Dropping a column is not
+ * reversible and was not asked for.
+ *
+ * CORRECTED 30 September, after Jimmy sent a screenshot of the parent portal.
+ * This comment first said no screen rendered them. That was wrong for FOUR of
+ * the seven: ApplicationDetailsForm on /apply/portal/<id> renders
+ * previous_school, emergency_contact_name, emergency_contact_phone and
+ * learning_needs_summary, and always did - it has nothing to do with the
+ * wizard, they merely shared a page. Only guardian_notes, student_summary and
+ * medical_notes are unrendered.
+ *
+ * The mistake was reading the wizard's column list and concluding that the
+ * wizard was the only thing reading it.
  *
  * The application a family completes is /apply/start/<token>. There is one.
  */
