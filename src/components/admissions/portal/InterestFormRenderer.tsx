@@ -120,9 +120,31 @@ function detectedTimeZone(): string | null {
  * no API that simply tells you. `hour12: false` reports midnight as "24" in
  * some engines, hence the fold.
  */
-function offsetMinutes(zone: string, at: Date): number | null {
+const A_QUARTER_MS = 91 * 24 * 60 * 60 * 1000;
+
+/** How many samples a zone is read at, a quarter apart. See SAMPLES below. */
+const SAMPLES = 4;
+
+/**
+ * FOUR readings, not one and not two, and each extra one was bought by a
+ * case that broke the version before it:
+ *
+ *   one reading  cannot tell Brisbane from Sydney. They agree right through
+ *                the Australian winter and part by an hour in the summer.
+ *
+ *   two readings six months apart cannot tell Santiago from Sao Paulo.
+ *                Chile's daylight saving happens to line up with both sample
+ *                dates, so the pair agree twice and disagree in between.
+ *
+ * A quarter apart, four samples cross every daylight-saving boundary either
+ * zone has. Brisbane and Santiago both correctly fall through to no default.
+ */
+function offsetsAcrossTheYear(zone: string, from: Date): number[] | null {
   try {
-    const parts = new Intl.DateTimeFormat("en-US", {
+    // One formatter, reused for all four instants. Constructing an
+    // Intl.DateTimeFormat is the expensive part; doing it per instant meant
+    // building 160-odd of them for a single dropdown.
+    const format = new Intl.DateTimeFormat("en-US", {
       timeZone: zone,
       hour12: false,
       year: "numeric",
@@ -131,44 +153,45 @@ function offsetMinutes(zone: string, at: Date): number | null {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
-    }).formatToParts(at);
-    const p: Record<string, string> = {};
-    for (const part of parts) p[part.type] = part.value;
-    const hour = Number(p.hour) === 24 ? 0 : Number(p.hour);
-    const asIfUtc = Date.UTC(
-      Number(p.year),
-      Number(p.month) - 1,
-      Number(p.day),
-      hour,
-      Number(p.minute),
-      Number(p.second)
-    );
-    if (Number.isNaN(asIfUtc)) return null;
-    // The instant carries milliseconds the formatted parts do not; rounding to
-    // whole minutes drops them rather than dragging the offset off by one.
-    return Math.round((asIfUtc - at.getTime()) / 60000);
+    });
+
+    const offsets: number[] = [];
+    for (let i = 0; i < SAMPLES; i += 1) {
+      const at = new Date(from.getTime() + i * A_QUARTER_MS);
+      const p: Record<string, string> = {};
+      for (const part of format.formatToParts(at)) p[part.type] = part.value;
+      // `hour12: false` reports midnight as "24" in some engines.
+      const hour = Number(p.hour) === 24 ? 0 : Number(p.hour);
+      const asIfUtc = Date.UTC(
+        Number(p.year),
+        Number(p.month) - 1,
+        Number(p.day),
+        hour,
+        Number(p.minute),
+        Number(p.second)
+      );
+      if (Number.isNaN(asIfUtc)) return null;
+      // The instant carries milliseconds the formatted parts do not; rounding
+      // to whole minutes drops them rather than dragging the offset off by one.
+      offsets.push(Math.round((asIfUtc - at.getTime()) / 60000));
+    }
+    return offsets;
   } catch {
     return null;
   }
 }
 
-/** Half a year on, so a comparison sees each zone's summer and its winter. */
-const HALF_A_YEAR_MS = 182 * 24 * 60 * 60 * 1000;
-
 /**
  * The offered option that keeps the same time as the browser's own zone.
  *
- * The question offers about thirty zones, one per region - not the four
- * hundred IANA publishes. So an exact hit is the lucky case: a family in
- * Atlanta reports America/New_York and matches, a family in Detroit reports
- * America/Detroit and does not, although Detroit IS Eastern. Matching on the
- * name alone would leave most of the world scrolling a list of 33.
+ * The question offers 41 zones, one per region - not the four hundred IANA
+ * publishes. So an exact hit is the lucky case: a family in Atlanta reports
+ * America/New_York and matches, a family in Detroit reports America/Detroit
+ * and does not, although Detroit IS Eastern. Matching on the name alone would
+ * leave most of the world scrolling a list of 41.
  *
  * So: exact first, then the first offered zone that agrees with the browser's
- * BOTH today and half a year from now. Both, because one reading cannot tell
- * Brisbane from Sydney - they agree through the Australian winter and part by
- * an hour in the summer. Two readings part them, and Brisbane correctly falls
- * through to no default rather than being told it is Sydney.
+ * at all four sample points.
  *
  * WHEN TWO OFFERED ZONES BOTH FIT, the earlier one in the question's own
  * option order wins - which is why that order is deliberate and US-first. A
@@ -183,17 +206,13 @@ function matchingOfferedZone(
 ): string | null {
   if (options.some((o) => o.value === zone)) return zone;
 
-  const now = new Date();
-  const later = new Date(now.getTime() + HALF_A_YEAR_MS);
-  const mineNow = offsetMinutes(zone, now);
-  const mineLater = offsetMinutes(zone, later);
-  if (mineNow === null || mineLater === null) return null;
+  const from = new Date();
+  const mine = offsetsAcrossTheYear(zone, from);
+  if (!mine) return null;
 
   for (const option of options) {
-    if (
-      offsetMinutes(option.value, now) === mineNow &&
-      offsetMinutes(option.value, later) === mineLater
-    ) {
+    const theirs = offsetsAcrossTheYear(option.value, from);
+    if (theirs && theirs.every((offset, i) => offset === mine[i])) {
       return option.value;
     }
   }
