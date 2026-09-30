@@ -6,20 +6,28 @@
 --
 -- This names them before anything moves. One statement, read only.
 --
--- WHY THIS RUNS BEFORE THE RULE IS BUILT. Moving a student's school_id is not
--- a records change in isolation - it changes the campus roster counts, the
--- capacity figures, which Square location that family's tuition is taken at
--- (migration 431), which campus's books carry their revenue, and what each
--- state is told. A rule applied to an unknown number of children is a rule
--- nobody can check afterwards.
+-- (Third version. The first named funder_accounts.name and
+-- funder_disbursements.settled_at, neither of which exists - they are
+-- account_label and settled_on. The second fell over on
+-- coalesce(billing_basis, '-'), because billing_basis is numeric and '-' is
+-- not: in a coalesce, the fallback has to be the same type as the column,
+-- and a dash is only a sensible placeholder for text. Cast first, then
+-- default.)
 --
--- THREE SIGNALS OF STATE FUNDING, because no single column carries it:
---   award   : a row in scholarship_awards - the school's own record of it
---   money   : a funder_disbursement matched to the student - the money arrived
---   plan    : a tuition plan whose channel is classwallet or state_direct
+-- WHY THIS RUNS BEFORE THE RULE IS BUILT. Moving a student's school_id is
+-- not only a records change. Student numbers are per-campus sequences with a
+-- unique index on (school_id, student_number), so a moved student either
+-- collides with a number already used at their new campus or keeps one that
+-- implies a campus history they do not have. The size of this list decides
+-- how disruptive renumbering is.
 --
--- A student may show more than once, once per signal. That is deliberate:
--- disagreement between the three is itself worth seeing before a move.
+-- THREE SIGNALS, because no single column carries "state funded":
+--   award : a row in scholarship_awards - the school's own record
+--   money : a settled funder disbursement matched to the student
+--   plan  : a tuition plan billed to classwallet or state_direct
+--
+-- A student may appear more than once. Disagreement between the three is
+-- itself worth seeing before anybody is moved.
 
 select 'award'::text as signal,
        sc.name as current_campus,
@@ -42,8 +50,8 @@ select 'money',
        sc.name,
        s.first_name || ' ' || s.last_name,
        s.student_number,
-       fa.name,
-       to_char(d.settled_at, 'YYYY-MM-DD'),
+       fa.account_label,
+       coalesce(to_char(d.settled_on, 'YYYY-MM-DD'), d.award_period),
        d.net_amount::text
   from public.students s
   join public.schools sc on sc.id = s.school_id
@@ -60,7 +68,7 @@ select 'plan',
        s.first_name || ' ' || s.last_name,
        s.student_number,
        p.payment_channel,
-       coalesce(p.billing_basis, '-'),
+       coalesce(p.billing_basis::text, '-'),
        coalesce(p.annual_tuition::text, p.monthly_amount::text, '-')
   from public.students s
   join public.schools sc on sc.id = s.school_id

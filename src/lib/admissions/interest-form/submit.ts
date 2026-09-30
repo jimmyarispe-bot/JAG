@@ -405,6 +405,9 @@ export async function submitPublishedInterestForm(
     programCodesForSchool: programCodes,
     claimedFormVersionId: asString(formData.get("form_version_id")) || null,
     publishedFormVersionId: published.formVersionId,
+    // The public form at /apply. The inquiry asks the 20 fields Jimmy
+    // approved on 29 September and nothing else, at every campus.
+    phase: "inquiry",
   });
 
   if (!validation.ok) {
@@ -584,6 +587,9 @@ export async function submitInterestFormForExistingLead(
     programCodesForSchool: programCodes,
     claimedFormVersionId: asString(formData.get("form_version_id")) || null,
     publishedFormVersionId: published.formVersionId,
+    // The application, opened from the invitation link. It asks everything;
+    // what the family already told us arrives prefilled, not asked twice.
+    phase: "application",
   });
 
   if (!validation.ok) {

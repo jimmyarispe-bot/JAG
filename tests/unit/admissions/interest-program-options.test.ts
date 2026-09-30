@@ -28,6 +28,7 @@ function definitionWith(options?: { value: string; label: string }[]): InterestF
 
 function submit(definition: InterestFormDefinition, program: unknown) {
   return validateInterestSubmission({
+    phase: "inquiry",
     definition,
     values: { school_id: SCHOOL, program },
     schoolIds: new Set([SCHOOL]),

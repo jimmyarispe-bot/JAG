@@ -16,6 +16,7 @@ const definition: InterestFormDefinition = {
 
 function submit(award: unknown) {
   return validateInterestSubmission({
+    phase: "inquiry",
     definition,
     values: { school_id: SCHOOL, award },
     schoolIds: new Set([SCHOOL]),

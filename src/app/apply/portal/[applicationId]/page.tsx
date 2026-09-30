@@ -146,12 +146,12 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
           </p>
           <ApplicationStatusLegend />
           <div className="mt-3 flex flex-wrap gap-3 text-sm">
-            <Link
-              href={`/apply/portal/${applicationId}/wizard`}
-              className="font-medium text-brand-700 underline"
-            >
-              Open multi-step application wizard
-            </Link>
+            {/*
+              The "Open multi-step application wizard" link was removed on
+              29 September 2026 with the wizard itself. A family completes
+              their application from the invitation link we send them -
+              /apply/start/<token> - and never needs an account to do it.
+            */}
             <Link href="/admissions/onboarding" className="text-slate-600 underline">
               Parent onboarding
             </Link>

@@ -1,36 +1,73 @@
-A choice can be absent, rather than offered and then refused
+The inquiry is an inquiry again (and the wizard's leftovers)
 
-Jimmy, 27 September: a Georgia resident taking Virtual or HS classes may use
-their GA Special Needs scholarship, but cannot apply for GA GOAL or
-Academy-Based - "those options should not be available to them".
+TWO THINGS, because the first was only half shipped. Commit 40ea9907 carried
+the wizard's three deleted FILES and nothing else: .\claude-ship.ps1 commits
+the git index and does not add for you, and `git rm` had staged those three
+itself. Every edit around them sat in the working tree. Production has had a
+"Open multi-step application wizard" link on the parent portal pointing at a
+route that no longer exists. That is fixed here.
 
-The form engine could not express that. Visibility was per section and per
-question, and this is the same question asked of the same family with a
-shorter list. The two workarounds available were a second, near-identical
-scholarships question, or offering all four and refusing on submit. The first
-splits the answer across two keys that every downstream rule then has to know
-about; the second shows a parent something they cannot have and teaches them
-the form's choices are not to be trusted.
+── 1. The wizard's leftovers ────────────────────────────────────────────────
 
-So an option may now carry its own visibleWhen, and resolveStaticOptions
-takes the answers and applies it. ONE function, which is the point: the
-renderer omits what it omits and the validator refuses what it omits, because
-both ask the same question of the same code. An option hidden on screen but
-accepted on submit is a rule anyone who can post a form can ignore.
+  constants.ts        APPLICATION_WIZARD_STEPS + ApplicationWizardStepId gone
+  index.ts            their exports gone
+  actions.ts          experienceSaveApplicationDraft, experienceSubmitApplication
+                      gone (its only callers; the orchestrator methods stay -
+                      they are service methods, not screens)
+  orchestrator.ts     the import and the wizardSteps property gone. Nothing
+                      read it. This one would have failed typecheck on its own.
+  portal page         the dead link gone
+  wave11 test         the assertion that the wizard's page FILE existed. That
+                      assertion is why the screen survived two months: a test
+                      that checks a file is present cannot tell you whether
+                      anyone ever opened it.
+  screen catalog      its row gone
 
-Passing no answers returns every choice, which is what a caller describing
-the form wants rather than one filling it in - the admin forms screen, a
-report on what the form asks.
+── 2. The inquiry is an inquiry again ───────────────────────────────────────
 
-pruneAnswersForHiddenOptions is the companion, and the form is broken without
-it: a family who ticks GA GOAL and then changes programme still has ga_goal
-in their answers, and would be refused at submit against a box they can no
-longer see. The renderer now prunes on every change rather than only when the
-campus question moves, because a choice can now be withdrawn by any answer
-its rule reads.
+Jimmy, 29 September, with Georgia selected on the public form: "why does it
+display the scholarship options and the rest of the application itself at
+this inquiry phase." Then: "there should not be any scholarship information
+included anywhere on any school's inquiry form." Then, twice: "these are the
+only fields that should ever show for the inquiry/interest form for all
+schools at all times."
 
-Twelve tests. No form changes in this commit - this is the mechanism the
-residency work needs, shipped on its own so it can be wrong in isolation.
+ONE DEFINITION, TWO DOORS. /apply renders the inquiry phase. The invitation
+link /apply/start/<token> renders everything. Jimmy: "no one ever submits an
+application without us providing the url." Two definitions would drift apart;
+one cannot.
+
+  InterestFormPhase on sections AND questions. Default-closed at the front
+  door: unmarked means application-only, so a section added in the form
+  builder next month lands on the application, never on the page a stranger
+  sees.
+
+  isQuestionInPhase is asked by the RENDERER and by the VALIDATOR, the same
+  way resolveStaticOptions is. Hidden on screen but required on submit is a
+  form nobody can send; hidden but ACCEPTED is a rule anyone who can post a
+  form can ignore.
+
+  validateInterestSubmission takes `phase` as a REQUIRED input - a caller
+  that forgets does not compile. submitPublishedInterestForm passes
+  "inquiry", submitInterestFormForExistingLead passes "application". The
+  server decides from which function ran, never from the request.
+
+THE ESCAPE HATCH, and why this ships safely before the migration. A
+definition where NOTHING declares a phase - every version through v31,
+including the live one - is treated as all-inquiry, exactly how it behaves
+today. Without it, this deploy would serve an EMPTY inquiry form to every
+family until 454 ran.
+
+MIGRATION 454 IS NOT RUN. It is in the repo, tested against a local Postgres
+16 seeded with a faithful replica of v31 (65 questions, 12 sections), and it
+waits for Jimmy's word. 21 inquiry + 44 application = 65; a re-run publishes
+nothing; v31 archives whole.
+
+Tests: the-inquiry-is-twenty-fields.test.ts pins the escape hatch, the
+default-closed rule, the override in both directions, and the regression that
+would take the whole form down - an inquiry refused for the 44 required
+questions it never showed. 21 existing validateInterestSubmission call sites
+across six test files now name their phase.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

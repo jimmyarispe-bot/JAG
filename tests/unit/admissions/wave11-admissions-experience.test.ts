@@ -7,7 +7,6 @@ import {
   ADMISSIONS_KNOWLEDGE_DOCUMENT_TYPES,
   ADMISSIONS_PUBLIC_NAV,
   APPLICATION_DASHBOARD_STATUSES,
-  APPLICATION_WIZARD_STEPS,
   PARENT_ONBOARDING_CHECKLIST,
   createAdmissionsExperienceOrchestrator,
   linkAdmissionsDocumentToKnowledge,
@@ -54,7 +53,6 @@ describe("Wave 1.1 Admissions Experience", () => {
       "src/app/admissions/discovery-call/page.tsx",
       "src/app/admissions/assessment/page.tsx",
       "src/app/admissions/onboarding/page.tsx",
-      "src/app/apply/portal/[applicationId]/wizard/page.tsx",
       "src/app/dashboard/admissions/experience/page.tsx",
       "docs/academyos/admissions/08_EXPERIENCE.md",
       "src/lib/admissions/experience/orchestrator.ts",
@@ -68,11 +66,15 @@ describe("Wave 1.1 Admissions Experience", () => {
       "utf8"
     );
     expect(catalog).toContain("/admissions/**");
-    expect(catalog).toContain("wizard");
+    /*
+     * The wizard assertion was removed on 29 September 2026 with the wizard.
+     * This test asserted the screen existed - which is why it kept a deleted
+     * feature alive: a test that checks a file is present cannot tell you
+     * whether anyone ever opened it.
+     */
   });
 
-  it("covers wizard steps, dashboard statuses, docs, and onboarding checklist", () => {
-    expect(APPLICATION_WIZARD_STEPS.length).toBeGreaterThanOrEqual(10);
+  it("covers dashboard statuses, docs, and onboarding checklist", () => {
     expect(APPLICATION_DASHBOARD_STATUSES).toContain("Enrolled");
     expect(APPLICATION_DASHBOARD_STATUSES).toContain("Waitlisted");
     expect(ADMISSIONS_KNOWLEDGE_DOCUMENT_TYPES.some((d) => d.type === "iep")).toBe(

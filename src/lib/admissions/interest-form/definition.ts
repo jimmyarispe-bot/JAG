@@ -12,6 +12,7 @@ import {
 } from "@/lib/admissions/interest-form/program-options";
 import type {
   InterestFormDefinition,
+  InterestFormPhase,
   InterestFormValues,
   InterestQuestionDefinition,
   InterestQuestionOption,
@@ -59,6 +60,47 @@ export function isQuestionVisible(
 ): boolean {
   if (!sectionVisible) return false;
   return evaluateFormConditions(question.visibleWhen ?? undefined, values);
+}
+
+/**
+ * Does this definition use phases at all?
+ *
+ * Every version up to and including v31 predates them, and for those the
+ * answer must be "no" rather than "everything is application-only" - which
+ * would render an EMPTY inquiry form to every family the moment this code
+ * deployed, before the v32 migration ran. The escape hatch is what lets the
+ * mechanism ship ahead of the data.
+ */
+export function definitionDeclaresPhases(
+  definition: InterestFormDefinition
+): boolean {
+  return (
+    definition.sections.some((s) => Boolean(s.phase)) ||
+    definition.questions.some((q) => Boolean(q.phase))
+  );
+}
+
+/**
+ * May this question be asked at this point in the family's journey?
+ *
+ * Asked by the RENDERER and by the VALIDATOR, for the same reason
+ * resolveStaticOptions is: a question hidden on screen but required on submit
+ * is a form nobody can send, and a question hidden on screen but ACCEPTED on
+ * submit is a rule anyone who can post a form can ignore.
+ *
+ * The application asks everything - it is the whole form, and the 20 inquiry
+ * answers arrive prefilled from the lead rather than being asked twice.
+ */
+export function isQuestionInPhase(input: {
+  definition: InterestFormDefinition;
+  question: InterestQuestionDefinition;
+  section: InterestSectionDefinition | undefined;
+  phase: InterestFormPhase;
+}): boolean {
+  if (input.phase === "application") return true;
+  if (!definitionDeclaresPhases(input.definition)) return true;
+  const declared = input.question.phase ?? input.section?.phase ?? "application";
+  return declared === "inquiry";
 }
 
 /**
@@ -303,6 +345,15 @@ export function validateInterestSubmission(input: {
   programCodesForSchool: ReadonlySet<string>;
   claimedFormVersionId: string | null | undefined;
   publishedFormVersionId: string;
+  /**
+   * Which door this submission came through. NOT optional, and never read
+   * from the request: submitPublishedInterestForm is /apply and passes
+   * "inquiry", submitInterestFormForExistingLead is the invitation link and
+   * passes "application". A caller that forgets does not compile, which is
+   * the point - a defaulted phase would silently accept scholarship answers
+   * posted at the front door.
+   */
+  phase: InterestFormPhase;
 }): { ok: true; visibleValues: InterestFormValues } | { ok: false; issues: InterestValidationIssue[] } {
   const issues: InterestValidationIssue[] = [];
 
@@ -340,7 +391,14 @@ export function validateInterestSubmission(input: {
     const sectionVisible = section
       ? (sectionVisibility.get(section.key) ?? true)
       : true;
-    const visible = isQuestionVisible(question, input.values, sectionVisible);
+    const visible =
+      isQuestionVisible(question, input.values, sectionVisible) &&
+      isQuestionInPhase({
+        definition: input.definition,
+        question,
+        section,
+        phase: input.phase,
+      });
     const raw = input.values[question.key];
 
     if (!visible) continue;

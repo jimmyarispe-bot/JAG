@@ -82,23 +82,21 @@ export const ADMISSIONS_KNOWLEDGE_DOCUMENT_TYPES = Object.freeze([
   { type: "other", label: "Other", required: false },
 ] as const);
 
-/** Multi-step online application wizard steps. */
-export const APPLICATION_WIZARD_STEPS = Object.freeze([
-  { id: "guardian", label: "Guardian information" },
-  { id: "student", label: "Student information" },
-  { id: "education", label: "Educational history" },
-  { id: "medical", label: "Medical information" },
-  { id: "learning", label: "Learning profile" },
-  { id: "emergency", label: "Emergency contacts" },
-  { id: "schools", label: "Previous schools" },
-  { id: "program", label: "Program selection" },
-  { id: "scholarship", label: "Scholarship selection" },
-  { id: "documents", label: "Document upload" },
-  { id: "review", label: "Review & submit" },
-] as const);
-
-export type ApplicationWizardStepId =
-  (typeof APPLICATION_WIZARD_STEPS)[number]["id"];
+/*
+ * The multi-step application wizard was removed on 29 September 2026.
+ *
+ * Jimmy: "delete it. we have never use it." It was Wave 1.1 scaffolding from
+ * 2 August, a second application living behind an account, while the real one
+ * is the published interest form opened from an invitation token.
+ *
+ * The seven columns it wrote - guardian_notes, student_summary,
+ * previous_school, medical_notes, learning_needs_summary,
+ * emergency_contact_name, emergency_contact_phone - are LEFT IN PLACE. No
+ * screen renders them now. Dropping a column is not reversible and was not
+ * asked for.
+ *
+ * The application a family completes is /apply/start/<token>. There is one.
+ */
 
 /** Public website routes for the Admissions Experience. */
 export const ADMISSIONS_PUBLIC_NAV = Object.freeze([

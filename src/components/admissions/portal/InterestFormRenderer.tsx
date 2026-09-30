@@ -5,6 +5,7 @@ import { useState } from "react";
 import { submitInterestFormAction } from "@/lib/admissions/interest-form/actions";
 import { submitInvitedApplicationAction } from "@/lib/admissions/apply-link/actions";
 import {
+  isQuestionInPhase,
   isQuestionVisible,
   isSectionVisible,
   pruneAnswersForHiddenOptions,
@@ -18,6 +19,7 @@ import {
   normalizeInterestProgramSelections,
 } from "@/lib/admissions/interest-form/program-options";
 import type {
+  InterestFormPhase,
   InterestFormValues,
   InterestQuestionDefinition,
   PublishedInterestForm,
@@ -39,6 +41,14 @@ import {
 
 type InterestFormRendererProps = {
   published: PublishedInterestForm;
+  /**
+   * Which door this is. Required, with no default: /apply passes
+   * "inquiry" and /apply/start/<token> passes "application", and a
+   * third caller that forgets will not compile rather than quietly
+   * putting the whole application on a public page - which is the bug
+   * Jimmy found on 29 September.
+   */
+  phase: InterestFormPhase;
   /**
    * What we already know about this family, by question key.
    *
@@ -691,6 +701,7 @@ function QuestionField({
 
 export function InterestFormRenderer({
   published,
+  phase,
   initialValues,
   invitationToken,
 }: InterestFormRendererProps) {
@@ -718,8 +729,11 @@ export function InterestFormRenderer({
    * "this is an interest inquiry. not application."
    *
    * The distinction is the family's, not ours. This form starts a conversation;
-   * the application is the wizard behind the portal, after they have an account
-   * and a campus. Calling this an application tells a parent they have applied
+   * the application is the same form opened from the invitation link we send,
+   * /apply/start/<token>, with no account needed. (Until 29 September 2026 this
+   * comment said the application was "the wizard behind the portal". That wizard
+   * was never used and has been deleted.) Calling this an application tells a
+   * parent they have applied
    * when they have not, and the email they get back is a thank-you for an
    * inquiry — so the two would have contradicted each other.
    *
@@ -810,7 +824,20 @@ export function InterestFormRenderer({
         const questions = section.questionKeys
           .map((key) => published.definition.questions.find((q) => q.key === key))
           .filter((q): q is InterestQuestionDefinition => Boolean(q))
-          .filter((q) => isQuestionVisible(q, values, true));
+          .filter((q) => isQuestionVisible(q, values, true))
+          /*
+           * The same predicate the validator uses. If these two ever
+           * disagree the family is shown a field that is refused, or
+           * refused a field they were never shown.
+           */
+          .filter((q) =>
+            isQuestionInPhase({
+              definition: published.definition,
+              question: q,
+              section,
+              phase,
+            })
+          );
 
         if (!questions.length) return null;
 

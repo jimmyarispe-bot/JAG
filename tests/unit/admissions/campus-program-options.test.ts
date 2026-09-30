@@ -54,6 +54,7 @@ const definition: InterestFormDefinition = {
 
 function submit(schoolId: string, programs: string[]) {
   return validateInterestSubmission({
+    phase: "inquiry",
     definition,
     values: { school_id: schoolId, programs },
     schoolIds: new Set([GA, HS, VIRTUAL]),

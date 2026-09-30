@@ -32,7 +32,8 @@ $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
 $BaselineFile = "tests/known-failures.json"
-$ResultsFile  = "vitest-results.json"
+$ResultsFile       = "vitest-results.json"
+$StudioResultsFile = "vitest-results-studio.json"
 
 # A collapsed run (bad import, worker crash) reports zero failures because it
 # reported almost nothing. Refuse to read that as a pass.
@@ -92,26 +93,56 @@ node scripts/check-client-boundaries.mjs
 if ($LASTEXITCODE -ne 0) { Die "a client component reaches server-only code, nothing committed" }
 
 Step "Tests"
-if (Test-Path $ResultsFile) { Remove-Item $ResultsFile -Force }
+if (Test-Path $ResultsFile)       { Remove-Item $ResultsFile -Force }
+if (Test-Path $StudioResultsFile) { Remove-Item $StudioResultsFile -Force }
 $env:NO_COLOR = "1"
-# Capped workers, deliberately. Unbounded, vitest runs ~13 threads on this
-# machine and the workers start missing their own RPC deadlines - vitest prints
-# "[vitest-worker]: Timeout calling onTaskUpdate ... This might cause false
-# positive tests" and then fails tests that pass in isolation. A gate that
-# invents failures is a gate you learn to ignore, so trade wall-clock for a
-# verdict you can trust. Raise with -Workers if the machine is idle.
-npx vitest run tests/unit --reporter=json --outputFile=$ResultsFile --maxWorkers=$Workers --minWorkers=1
-if (-not (Test-Path $ResultsFile)) { Die "vitest wrote no JSON report, cannot judge the run" }
 
-$report = Get-Content $ResultsFile -Raw | ConvertFrom-Json
-$total  = [int]$report.numTotalTests
+# TWO PASSES, DELIBERATELY.
+#
+# 15 September 2026. This gate reported three new failures in tests/unit/studio
+# and blocked a commit that had nothing to do with Studio. Run on their own,
+# those eleven tests pass. The reason is in the tests themselves: every one of
+# them is SYNCHRONOUS - it("...", () => { ... }) with no async anywhere - and
+# they walk the whole repository. One of them holds its worker for 77 seconds
+# without yielding once.
+#
+# A worker blocked in synchronous CPU work cannot answer vitest's onTaskUpdate
+# ping. Vitest concludes the worker is gone and reports its tests as failures.
+# That is the exact behaviour the note below already predicted; capping workers
+# reduced it but could not remove it, because the problem is not how MANY
+# workers there are, it is that one of them stops answering for over a minute.
+#
+# So Studio runs alone, serially, where nothing competes with it and there is no
+# ping to miss. The rest of the suite runs with workers as before. The two
+# reports are merged and judged together, so the baseline comparison is
+# unchanged - it just stops being told about failures that are not real.
+#
+# Capped workers on the main pass, deliberately. Unbounded, vitest runs ~13
+# threads on this machine and the workers start missing their own RPC deadlines.
+# A gate that invents failures is a gate you learn to ignore, so trade
+# wall-clock for a verdict you can trust. Raise with -Workers if the machine is
+# idle.
+npx vitest run tests/unit --exclude "tests/unit/studio/**" --reporter=json --outputFile=$ResultsFile --maxWorkers=$Workers --minWorkers=1
+if (-not (Test-Path $ResultsFile)) { Die "vitest wrote no JSON report for the main pass, cannot judge the run" }
+
+Write-Host "`nStudio pass (serial; slow by nature, several minutes)" -ForegroundColor DarkGray
+npx vitest run tests/unit/studio --reporter=json --outputFile=$StudioResultsFile --maxWorkers=1 --minWorkers=1
+if (-not (Test-Path $StudioResultsFile)) { Die "vitest wrote no JSON report for the studio pass, cannot judge the run" }
+
+$report       = Get-Content $ResultsFile -Raw       | ConvertFrom-Json
+$studioReport = Get-Content $StudioResultsFile -Raw | ConvertFrom-Json
+
+# Judged on the COMBINED total. Checking either pass alone against
+# $MinTestsExpected would either never trip or always trip.
+$total = [int]$report.numTotalTests + [int]$studioReport.numTotalTests
 if ($total -lt $MinTestsExpected) {
     Die "only $total tests ran (expected at least $MinTestsExpected). The run collapsed; this is not a pass"
 }
+Write-Host ("main {0} tests, studio {1} tests" -f $report.numTotalTests, $studioReport.numTotalTests) -ForegroundColor DarkGray
 
 $root = ((Get-Location).Path -replace '\\', '/').TrimEnd('/')
 $current = @()
-foreach ($file in $report.testResults) {
+foreach ($file in @($report.testResults) + @($studioReport.testResults)) {
     $rel = ($file.name -replace '\\', '/')
     if ($rel.StartsWith($root)) { $rel = $rel.Substring($root.Length) }
     $rel = $rel.TrimStart('/')

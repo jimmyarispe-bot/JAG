@@ -50,7 +50,7 @@ export default async function ApplyInquiryPage() {
             The Express Interest form is not available for this organization yet.
           </div>
         ) : (
-          <InterestFormRenderer published={published} />
+          <InterestFormRenderer published={published} phase="inquiry" />
         )}
       </div>
     </ApplyShell>

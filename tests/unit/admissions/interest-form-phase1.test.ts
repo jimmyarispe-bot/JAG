@@ -349,6 +349,7 @@ describe("8–15 conditional visibility + validation", () => {
     const q = definition.questions.find((x) => x.key === "learning_concerns")!;
     expect(isQuestionVisible(q, { school_id: SCHOOL_A }, true)).toBe(true);
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition,
       values: {
         first_name: "A",
@@ -370,6 +371,7 @@ describe("8–15 conditional visibility + validation", () => {
 
   it("ignores hidden required questions", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition,
       values: {
         first_name: "A",
@@ -387,6 +389,7 @@ describe("8–15 conditional visibility + validation", () => {
 
   it("enforces required visible questions", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: { last_name: "B", school_id: SCHOOL_A, guardian_email: "a@example.com" },
       schoolIds,
@@ -402,6 +405,7 @@ describe("8–15 conditional visibility + validation", () => {
 
   it("rejects invalid school", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: {
         first_name: "A",
@@ -422,6 +426,7 @@ describe("8–15 conditional visibility + validation", () => {
 
   it("rejects invalid program for school", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition,
       values: {
         first_name: "A",
@@ -444,6 +449,7 @@ describe("8–15 conditional visibility + validation", () => {
 
   it("rejects invalid question keys", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: {
         first_name: "A",
@@ -465,6 +471,7 @@ describe("8–15 conditional visibility + validation", () => {
 
   it("rejects stale form version", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: {
         first_name: "A",
@@ -495,6 +502,7 @@ describe("source metadata — submission column, not a question", () => {
 
   it("accepts source=express_interest as non-question metadata", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: {
         ...baseValues,
@@ -547,6 +555,7 @@ describe("source metadata — submission column, not a question", () => {
   it("rejects arbitrary unknown keys (source_hacked / not_a_question)", () => {
     for (const forged of ["source_hacked", "not_a_question"] as const) {
       const result = validateInterestSubmission({
+    phase: "inquiry",
         definition: INITIAL_INTEREST_FORM_DEFINITION,
         values: {
           ...baseValues,
@@ -569,6 +578,7 @@ describe("source metadata — submission column, not a question", () => {
 
   it("still accepts known question keys with source metadata present", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: {
         ...baseValues,
@@ -591,6 +601,7 @@ describe("source metadata — submission column, not a question", () => {
 
   it("still rejects stale form version when source metadata is present", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: {
         ...baseValues,
@@ -609,6 +620,7 @@ describe("source metadata — submission column, not a question", () => {
 
   it("still rejects invalid school/program when source metadata is present", () => {
     const invalidSchool = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: {
         ...baseValues,
@@ -626,6 +638,7 @@ describe("source metadata — submission column, not a question", () => {
     }
 
     const invalidProgram = validateInterestSubmission({
+    phase: "inquiry",
       definition: withConditionalQuestions(),
       values: {
         ...baseValues,
@@ -765,6 +778,7 @@ describe("16–20 lead/submission/answers/history/cross-org", () => {
 
   it("rejects cross-organization school on submission", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: {
         first_name: "A",
@@ -852,6 +866,7 @@ describe("program type multi-select — public Interest Form", () => {
 
   function validate(values: Record<string, unknown>, schools = schoolIds) {
     return validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: { ...baseValues, ...values },
       schoolIds: schools,
@@ -960,6 +975,7 @@ describe("program type multi-select — public Interest Form", () => {
 
   it("rejects a stale form version with program types present", () => {
     const result = validateInterestSubmission({
+    phase: "inquiry",
       definition: INITIAL_INTEREST_FORM_DEFINITION,
       values: {
         ...baseValues,

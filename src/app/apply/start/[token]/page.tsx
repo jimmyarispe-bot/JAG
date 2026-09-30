@@ -98,6 +98,7 @@ export default async function ApplyStartPage({ params }: ApplyStartPageProps) {
 
         <InterestFormRenderer
           published={published}
+          phase="application"
           initialValues={initialValues}
           invitationToken={token}
         />

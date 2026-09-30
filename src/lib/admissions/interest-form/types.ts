@@ -36,6 +36,30 @@ export type InterestFieldType =
    */
   | "file";
 
+/**
+ * Which of the two moments a section or a question belongs to.
+ *
+ * Jimmy, 29 September 2026, on finding the GA GOAL scholarship section on the
+ * public form: "this should only allow/show/gather the initial inquiry
+ * information." And then the rule: "there should not be any scholarship
+ * information included anywhere on any school's inquiry form."
+ *
+ * ONE definition, two doors. /apply renders the inquiry-phase questions only.
+ * /apply/start/<token> - the link a school leader sends - renders everything.
+ * Two separate definitions would drift; this cannot.
+ *
+ * DEFAULT-CLOSED AT THE FRONT DOOR. A section or question that declares no
+ * phase is application-only. A question added in the form builder next month
+ * and left unmarked lands on the application, never on the inquiry, so the
+ * failure mode points away from the family we have not met yet.
+ *
+ * The one exception is a definition where NOTHING declares a phase - every
+ * version up to and including v31. Those are treated as all-inquiry, which is
+ * exactly how they behave today, so this type can ship before v32 publishes
+ * and nothing changes for a family mid-form. See definitionDeclaresPhases().
+ */
+export type InterestFormPhase = "inquiry" | "application";
+
 export type InterestOptionSource = "grades" | "funding_sources" | "programs" | "schools";
 
 export type InterestQuestionOption = {
@@ -74,6 +98,19 @@ export type InterestQuestionDefinition = {
   readonly defaultValue?: unknown;
   readonly visibleWhen?: FormConditionGroup | null;
   readonly helpText?: string;
+  /**
+   * Overrides the section's phase, in BOTH directions.
+   *
+   * Five questions sit inside inquiry sections and belong to the
+   * application: program_hs, program_virtual, virtual_program_interest,
+   * peer_interaction, anything_else. One sits inside an application
+   * section and belongs to the inquiry: hs_student_email, which Jimmy
+   * kept on the front door on 30 September as a deliberate exception -
+   * HS families are asked for the student's address, nobody else is.
+   *
+   * Absent means inherit the section.
+   */
+  readonly phase?: InterestFormPhase | null;
 };
 
 export type InterestSectionDefinition = {
@@ -83,6 +120,8 @@ export type InterestSectionDefinition = {
   readonly order: number;
   readonly questionKeys: readonly string[];
   readonly visibleWhen?: FormConditionGroup | null;
+  /** Absent means application-only. See InterestFormPhase. */
+  readonly phase?: InterestFormPhase | null;
 };
 
 export type InterestFormDefinition = {

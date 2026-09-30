@@ -18,13 +18,13 @@ export async function experienceRequestAssessment(formData: FormData) {
   return getAdmissionsExperience().requestAssessment(formData);
 }
 
-export async function experienceSaveApplicationDraft(formData: FormData) {
-  return getAdmissionsExperience().saveApplicationDraft(formData);
-}
-
-export async function experienceSubmitApplication(applicationId: string) {
-  return getAdmissionsExperience().submitApplication(applicationId);
-}
+/*
+ * experienceSaveApplicationDraft and experienceSubmitApplication were removed
+ * on 29 September 2026 with the application wizard, their only caller.
+ *
+ * The orchestrator still exposes saveApplicationDraft and submitApplication.
+ * They are service methods, not screens, and removing them was not asked for.
+ */
 
 export async function experienceUploadDocument(formData: FormData) {
   const file = formData.get("file");

@@ -22,7 +22,6 @@ import { inviteParentPortalGuardians } from "@/lib/families/portal-invite";
 import {
   ADMISSIONS_EXPERIENCE_ENGINES,
   ADMISSIONS_EXPERIENCE_GUARDS,
-  APPLICATION_WIZARD_STEPS,
   toDashboardStatus,
 } from "./constants";
 import { publishAdmissionsExperienceEvent } from "./events";
@@ -46,7 +45,6 @@ export function createAdmissionsExperienceOrchestrator() {
   return {
     guards: ADMISSIONS_EXPERIENCE_GUARDS,
     engines: ADMISSIONS_EXPERIENCE_ENGINES,
-    wizardSteps: APPLICATION_WIZARD_STEPS,
     toDashboardStatus,
 
     async submitInterest(formData: FormData, organizationId?: string | null) {

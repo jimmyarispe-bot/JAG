@@ -1,0 +1,106 @@
+"use client";
+
+import { useState } from "react";
+import { ActionButton, useActionFeedback } from "@/components/experience-system/feedback";
+import { setAdminHoursAction } from "@/lib/finance/teacher-week-actions";
+import { adminHoursOptions } from "@/lib/finance/admin-hours";
+
+/**
+ * "How many admin hours did you work this week?"
+ *
+ * Only rendered for somebody who holds an admin_hourly rate, which today is
+ * Katie Vetere and nobody else - decided by the rates table, not by this file.
+ *
+ * Saved on its own, before submit, so she can change it and watch the money
+ * move. Whole hours, 0 to 10.
+ */
+export function AdminHoursPicker({
+  weekStart,
+  hours,
+  ratePerHour,
+  gross,
+}: {
+  weekStart: string;
+  hours: number;
+  ratePerHour: number;
+  gross: number;
+}) {
+  const [value, setValue] = useState(hours);
+
+  const money = (n: number) =>
+    n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+
+  const labels = { idle: "Save", loading: "Saving…", success: "✓ Saved" };
+  const action = useActionFeedback({
+    verb: "custom",
+    labels,
+    successToast: "Admin hours saved.",
+    errorToast: "Could not save your admin hours.",
+    progressLabel: "Saving…",
+  });
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+      <label className="block">
+        <span className="block text-sm font-medium text-slate-900">
+          How many admin hours did you work this week?
+        </span>
+
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <select
+            value={value}
+            onChange={(e) => setValue(Number(e.target.value))}
+            className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none"
+            aria-label="Admin hours worked this week"
+          >
+            {adminHoursOptions().map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+
+          <ActionButton
+            status={action.status}
+            variant="secondary"
+            size="sm"
+            errorMessage={action.errorMessage}
+            labels={labels}
+            onClick={() =>
+              void action.run(async () => {
+                const result = await setAdminHoursAction(weekStart, value);
+                if (result && "error" in result && result.error) {
+                  throw new Error(result.error);
+                }
+                return { success: true };
+              })
+            }
+          />
+
+          <span className="text-sm text-slate-600">
+            {value === hours ? (
+              <>
+                <span className="font-semibold text-slate-900">{money(gross)}</span> at{" "}
+                {money(ratePerHour)} an hour
+              </>
+            ) : (
+              <>
+                Save to add{" "}
+                <span className="font-semibold text-slate-900">
+                  {money(value * ratePerHour)}
+                </span>{" "}
+                to your week
+              </>
+            )}
+          </span>
+        </div>
+      </label>
+
+      <p className="mt-2 text-xs text-slate-500">
+        Admin work only — your classes are counted above and separately. Paid at{" "}
+        {money(ratePerHour)} an hour. If you worked more than ten hours in one week, tell
+        Jimmy rather than splitting it across weeks.
+      </p>
+    </div>
+  );
+}

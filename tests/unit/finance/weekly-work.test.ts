@@ -78,8 +78,15 @@ describe("what it pays", () => {
     expect(weeklyWorkGross(3, 0)).toBe(0);
   });
 
+  /* Binary floating point cannot hold 24.6, so 3 x 24.6 is 73.80000000000001
+     in Javascript. A pay figure carrying that tail into a sum is how a week's
+     total ends up a cent away from the lines that make it up. The rate itself
+     is numeric(10,2) in the database, so the error never comes from the rate -
+     it comes from multiplying it. */
   it("rounds to the cent", () => {
-    expect(weeklyWorkGross(3, 25.555)).toBe(76.67);
+    expect(weeklyWorkGross(3, 24.6)).toBe(73.8);
+    expect(weeklyWorkGross(7, 35)).toBe(245);
+    expect(weeklyWorkGross(3, 25.55)).toBe(76.65);
   });
 });
 

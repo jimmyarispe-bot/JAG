@@ -5,11 +5,9 @@ export {
   ADMISSIONS_KNOWLEDGE_DOCUMENT_TYPES,
   ADMISSIONS_PUBLIC_NAV,
   APPLICATION_DASHBOARD_STATUSES,
-  APPLICATION_WIZARD_STEPS,
   PARENT_ONBOARDING_CHECKLIST,
   toDashboardStatus,
   type ApplicationDashboardStatus,
-  type ApplicationWizardStepId,
 } from "./constants";
 
 export {

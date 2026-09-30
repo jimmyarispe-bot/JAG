@@ -52,6 +52,7 @@ const DEFINITION: InterestFormDefinition = {
 
 function validate(values: InterestFormValues) {
   return validateInterestSubmission({
+    phase: "inquiry",
     definition: DEFINITION,
     values,
     schoolIds: new Set<string>(),

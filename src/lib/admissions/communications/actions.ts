@@ -76,10 +76,58 @@ export async function resendCommunication(formData: FormData) {
   const body = customBody ?? original.body;
   let deliveryStatus = "sent";
   if (original.communication_type === "email" && original.sent_to) {
+    /*
+     * THE SENDER HAS TO BE THE SCHOOL, not the platform default.
+     *
+     * This call used to pass only { to, subject, body }, so a re-sent message
+     * left as EMAIL_FROM - noreply@theacademyway.org - while every other
+     * admissions email goes out as the campus. That is worse than untidy: the
+     * letter it re-sends ends with "reply to this email and it will reach
+     * <contact> directly", and a reply to noreply@ reaches nobody. The
+     * original send resolves this in engine.ts; the resend path never did.
+     *
+     * Read from the lead's school rather than from the original row, because
+     * the original row does not record who it was sent AS - only that it was
+     * sent. A campus that has since been given its own address should re-send
+     * from the address it has now.
+     */
+    const { data: senderRow } = await supabase
+      .from("admissions_leads")
+      .select("schools(name, admissions_from_email, admissions_contact_name, admissions_contact_email)")
+      .eq("id", leadId)
+      .maybeSingle();
+
+    const school = (senderRow as unknown as {
+      schools?: {
+        name?: string | null;
+        admissions_from_email?: string | null;
+        admissions_contact_name?: string | null;
+        admissions_contact_email?: string | null;
+      } | null;
+    } | null)?.schools;
+
+    const contactName = school?.admissions_contact_name?.trim();
+    const schoolName = school?.name?.trim();
+
+    /*
+     * Absent, not defaulted. An unset campus falls through to EMAIL_FROM in
+     * one place rather than two, and an address on a domain Resend has not
+     * verified is rejected outright - so null is the safe state.
+     */
+    const from = school?.admissions_from_email?.trim() || undefined;
+    const fromName =
+      contactName && schoolName
+        ? `${contactName} · ${schoolName}`
+        : contactName || schoolName || undefined;
+    const replyTo = school?.admissions_contact_email?.trim() || undefined;
+
     const emailResult = await sendTransactionalEmail({
       to: original.sent_to,
       subject,
       body,
+      ...(from ? { from } : {}),
+      ...(fromName ? { fromName } : {}),
+      ...(replyTo ? { replyTo } : {}),
     });
     deliveryStatus = emailResult.success ? "sent" : "failed";
   } else if (original.communication_type === "sms") {
