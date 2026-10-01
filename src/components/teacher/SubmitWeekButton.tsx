@@ -12,7 +12,7 @@ import { submitWeekAction } from "@/lib/finance/teacher-week-actions";
  *
  * THE BOX ABOVE IT IS THE LAST WORD SHE GETS.
  *
- * Jimmy, 22 September: "Is there anything cooky Jimmy needs to know about that
+ * Jimmy, 22 September: "Is there anything kooky Jimmy needs to know about that
  * happened this week?" It sits ABOVE the button rather than behind a link,
  * because a teacher who has just been told a class showed no students, or that
  * she covered for somebody, needs somewhere obvious to say so - and by the time
@@ -50,7 +50,7 @@ export function SubmitWeekButton({
     <div className="space-y-3">
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium text-slate-700">
-          Is there anything cooky Jimmy needs to know about that happened this week?
+          Is there anything kooky Jimmy needs to know about that happened this week?
         </span>
         <textarea
           name="teacher_note"

@@ -24,7 +24,9 @@ export function GreatnessReportsPicker({
   weekStart,
   claimed,
   max,
-  distinctChildren,
+  /* distinctChildren is still passed and still true - it is simply no longer
+     printed, since 1 October 2026. Left on the type so the page keeps sending
+     it and nothing has to be rewired if it is ever wanted again. */
   claimedElsewhereThisMonth,
   ratePerReport,
   gross,
@@ -120,12 +122,16 @@ export function GreatnessReportsPicker({
       </label>
 
       {/*
-        * WHERE THE CEILING CAME FROM.
+        * WHERE THE CEILING CAME FROM - ONLY WHEN IT IS NOT OBVIOUS.
         *
-        * Two different rules can produce it and they need different actions
-        * from her, so the sentence names which one bit. "You taught 8 children"
-        * is nothing to fix; "you have already claimed 6 this month" means wait
-        * for next month.
+        * Jimmy, 1 October 2026: cut "You taught 8 different children this week,
+        * so you can claim up to 8 this week." Counting her own children back at
+        * her explains nothing she does not already know, and the dropdown
+        * stopping where it stops says the same thing in less space.
+        *
+        * The month rule stays, because that ceiling IS baffling: a dropdown
+        * that stops at 2 in a week she taught eight children needs a reason
+        * beside it, and the reason is "wait for next month".
         */}
       {noRate ? (
         <p className="mt-2 text-sm text-amber-800">
@@ -133,16 +139,13 @@ export function GreatnessReportsPicker({
         </p>
       ) : (
         <p className="mt-2 text-xs text-slate-500">
-          One report per child per month, at {money(ratePerReport)} each. You taught{" "}
-          {distinctChildren} {distinctChildren === 1 ? "child" : "different children"} this week
+          One report per child per month, at {money(ratePerReport)} each.
           {claimedElsewhereThisMonth > 0 ? (
             <>
-              , and have already claimed {claimedElsewhereThisMonth} this month — so you can add
+              {" "}You have already claimed {claimedElsewhereThisMonth} this month, so you can add
               up to {ceiling} here.
             </>
-          ) : (
-            <>, so you can claim up to {ceiling} this week.</>
-          )}
+          ) : null}
         </p>
       )}
     </div>

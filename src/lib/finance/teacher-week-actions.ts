@@ -587,7 +587,7 @@ export async function submitWeekAction(weekStart: string, teacherNote?: string) 
       submitted_at: new Date().toISOString(),
       submitted_by: user?.id ?? null,
       /*
-       * "Is there anything cooky Jimmy needs to know about that happened this
+       * "Is there anything kooky Jimmy needs to know about that happened this
        * week?" - Jimmy, 22 September.
        *
        * Optional on purpose. A required box teaches people to type "n/a" and

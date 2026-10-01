@@ -194,7 +194,7 @@ export default async function FinanceTimesheetsPage({
               {w.teacherNote ? (
                 <div className="border-b border-slate-100 bg-white px-5 py-3">
                   <p className="text-xs font-medium text-slate-500">
-                    Anything cooky Jimmy needs to know
+                    Anything kooky Jimmy needs to know
                   </p>
                   <p className="mt-0.5 text-sm text-slate-700">{w.teacherNote}</p>
                 </div>
