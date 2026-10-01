@@ -15,7 +15,10 @@ export async function requireTeacherExperienceContext() {
 
   const { data: employee } = await supabase
     .from("employees")
-    .select("id, school_id, organization_id, display_name, first_name, last_name")
+    // employees has no organization_id and no name columns. Asking for them
+    // made this select fail, which left employee null and organizationId
+    // "default" for every teacher. Only real columns here.
+    .select("id, school_id, user_id")
     .eq("id", employeeId)
     .maybeSingle();
 
@@ -25,8 +28,8 @@ export async function requireTeacherExperienceContext() {
     employeeId,
     employee,
     organizationId:
-      (employee as { organization_id?: string } | null)?.organization_id ??
       (employee as { school_id?: string } | null)?.school_id ??
+      ctx.orgAssignments[0]?.school_id ??
       "default",
     actorUserId: ctx.effectiveUserId,
   };
