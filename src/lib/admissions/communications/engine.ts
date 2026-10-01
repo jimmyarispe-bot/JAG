@@ -3,6 +3,7 @@ import { fetchLeadFundingCodesByLeadIds } from "@/lib/funding/sync";
 import { resolveSchoolAdmissionsContacts } from "@/lib/admissions/communications/staff-recipients";
 import { withNetworkOffice } from "@/lib/admissions/communications/network-office";
 import { renderTemplate, type MergeContext } from "@/lib/admissions/communications/merge-fields";
+import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
 import { adjustManyScheduledForBusinessHours } from "@/lib/platform/automation/business-hours";
 import { sendTransactionalEmail } from "@/lib/platform/email";
 import {
@@ -145,7 +146,13 @@ async function loadMergeContext(
   let campusName: string | null = null;
   let campusAddress: string | null = null;
   if (tour) {
-    tourDatetime = new Date(tour.scheduled_at).toLocaleString();
+    /* EASTERN, AND NO SECONDS - the same correction made to the interest
+       meeting letter on 1 October. This was the last toLocaleString() left on
+       a path that puts a time in front of a family: it renders in the
+       SERVER's timezone, which on Vercel is UTC, so a tour booked for 9:00 AM
+       Eastern was printed to the family as 1:00:00 PM. Identical to what
+       Jennifer Borum was sent about Harris, in the one remaining place. */
+    tourDatetime = appointmentTextForFamily(tour.scheduled_at);
     const campus = tour.campuses as { name?: string; address?: string } | null;
     campusName = campus?.name ?? null;
     campusAddress = campus?.address ?? null;
@@ -213,7 +220,7 @@ async function loadMergeContextsForQueue(
     if (latestTourByLead.has(leadId)) continue;
     const campus = tour.campuses as { name?: string; address?: string } | null;
     latestTourByLead.set(leadId, {
-      tourDatetime: new Date(tour.scheduled_at).toLocaleString(),
+      tourDatetime: appointmentTextForFamily(tour.scheduled_at),
       campusName: campus?.name ?? null,
       campusAddress: campus?.address ?? null,
     });

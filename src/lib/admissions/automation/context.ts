@@ -1,6 +1,7 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { fetchLeadFundingCodesByLeadIds } from "@/lib/funding/sync";
 import type { MergeContext } from "@/lib/admissions/communications/merge-fields";
+import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -71,7 +72,11 @@ export async function buildWorkflowContext(
     .maybeSingle();
 
   if (interview?.scheduled_at) {
-    interviewDatetime = new Date(interview.scheduled_at).toLocaleString();
+    /* Eastern, no seconds. See appointment-text.ts. This is the WORKFLOW
+       engine's context - a separate copy of the same mistake, which would
+       have gone on printing the server's timezone to families on every lead
+       a workflow rule happens to cover. */
+    interviewDatetime = appointmentTextForFamily(interview.scheduled_at);
   }
 
   let missingItems: string[] = [];
@@ -102,7 +107,7 @@ export async function buildWorkflowContext(
     applicationId: resolvedApplicationId,
     leadId,
     tourDatetime: tour?.scheduled_at
-      ? new Date(tour.scheduled_at).toLocaleString()
+      ? appointmentTextForFamily(tour.scheduled_at)
       : null,
     interviewDatetime,
     missingItems,

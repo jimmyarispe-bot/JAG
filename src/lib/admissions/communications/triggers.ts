@@ -9,6 +9,7 @@ import {
 import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/types";
 import { dispatchAdmissionsAutomation } from "@/lib/admissions/automation/dispatch";
 import type { WorkflowTriggerEvent } from "@/lib/admissions/automation/types";
+import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -219,7 +220,7 @@ export async function onTourScheduled(
     leadId,
     sentBy,
     tourScheduledAt: scheduledAt,
-    mergeOverrides: { tourDatetime: new Date(scheduledAt).toLocaleString() },
+    mergeOverrides: { tourDatetime: appointmentTextForFamily(scheduledAt) },
   });
 }
 
@@ -304,7 +305,19 @@ export async function onInterviewScheduled(
     applicationId,
     sentBy,
     interviewScheduledAt: scheduledAt,
-    mergeOverrides: { interviewDatetime: new Date(scheduledAt).toLocaleString() },
+    /*
+     * EASTERN, AND NO SECONDS.
+     *
+     * This was new Date(scheduledAt).toLocaleString(), which is what printed
+     * "10/7/2026, 1:00:00 PM" in the notice Heather forwarded on 1 October -
+     * seconds on a school appointment, rendered in whatever timezone the
+     * server happens to be running in rather than the one the school is in.
+     *
+     * appointment-text.ts was written on 24 September to replace exactly this
+     * call, and replaced it on the shadow-day path only. This is the other
+     * half, which every interest meeting has been going out with since.
+     */
+    mergeOverrides: { interviewDatetime: appointmentTextForFamily(scheduledAt) },
   });
 }
 
