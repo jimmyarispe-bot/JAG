@@ -34,6 +34,7 @@ import {
   type ClassRow,
   type PrimarySchool,
   type TeacherWeekView,
+  type WeekStatus,
 } from "@/lib/finance/teacher-pay/week-view";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -415,7 +416,7 @@ export async function loadTeacherWeek(
   employeeId: string,
   weekStart: string
 ): Promise<LoadedWeek> {
-  const empty = (unavailable: string | null, status: "open" | "submitted" = "open") => ({
+  const empty = (unavailable: string | null, status: WeekStatus = "open") => ({
     weekId: null,
     weekStart,
     unavailable,
@@ -433,9 +434,18 @@ export async function loadTeacherWeek(
   if (!weekRow) return empty(null);
 
   const weekId = String(weekRow.id);
-  const status = (String(weekRow.status ?? "open") === "submitted" ? "submitted" : "open") as
-    | "open"
-    | "submitted";
+  /*
+   * READ, NOT COERCED. This used to fold anything that was not "submitted"
+   * into "open", which was harmless while those were the only two. Migration
+   * 474 added "approved", and an approved week folded to "open" would render
+   * on a teacher's screen with Remove buttons and a student grid on a week
+   * she cannot touch. The server actions refuse every one of those presses,
+   * so nothing could have been changed - but a screen that lies is how
+   * somebody spends ten minutes on work that was never going to save.
+   */
+  const raw = String(weekRow.status ?? "open");
+  const status: WeekStatus =
+    raw === "submitted" || raw === "approved" ? raw : "open";
   const kookyNote = (weekRow.kooky_note as string | null) ?? null;
 
   const [entriesRes, extrasRes, hourlyRes] = await Promise.all([

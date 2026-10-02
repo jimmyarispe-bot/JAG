@@ -128,7 +128,7 @@ export interface ClassLine {
 
 export interface TeacherWeekView {
   readonly weekStart: string;
-  readonly status: "open" | "submitted";
+  readonly status: WeekStatus;
   readonly lines: readonly ClassLine[];
   readonly extras: readonly { readonly label: string; readonly detail: string; readonly cents: number; readonly problem: string | null }[];
   readonly classCents: number;
@@ -147,7 +147,7 @@ export interface TeacherWeekView {
 
 export interface WeekInput {
   readonly weekStart: string;
-  readonly status: "open" | "submitted";
+  readonly status: WeekStatus;
   readonly classes: readonly ClassRow[];
   readonly extras: readonly ExtraClaim[];
   readonly hourly: readonly { readonly rate: PersonalRate; readonly hours: number }[];
@@ -259,6 +259,11 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
 
 export interface PayrollLine {
   readonly employeeId: string;
+  /**
+   * The teacher_weeks row, so the screen can approve or reopen it.
+   * Null when she has no week row at all - there is nothing to approve.
+   */
+  readonly weekId: string | null;
   readonly teacherName: string;
   readonly totalCents: number;
   readonly virtualCents: number;
@@ -268,7 +273,7 @@ export interface PayrollLine {
   readonly guestCount: number;
   readonly studentsScheduled: number;
   readonly studentsAbsent: number;
-  readonly status: "open" | "submitted";
+  readonly status: WeekStatus;
   readonly kookyNote: string | null;
   /** Item 22 — the classes themselves, so a week can be read, not just totalled. */
   readonly lines: readonly ClassLine[];
@@ -284,6 +289,10 @@ export interface PayrollWeek {
   readonly unattributedCents: number;
   /** Weeks still open when the roll-up was taken. Nothing should be paid on these. */
   readonly openCount: number;
+  /** Submitted by the teacher, not yet approved. The amount can still move. */
+  readonly submittedCount: number;
+  /** Approved, and the amount is frozen at what was approved. */
+  readonly approvedCount: number;
   /** Every teacher whose week contains something that could not be priced. */
   readonly withProblems: readonly string[];
 }
@@ -301,12 +310,32 @@ export interface PayrollWeek {
  * Open weeks are counted, not hidden. Paying a week nobody has submitted is
  * the mistake this number exists to prevent.
  */
+/**
+ * Open, submitted, approved.
+ *
+ * APPROVED ARRIVED WITH MIGRATION 474 and the type had to follow it. Until
+ * then loadTeacherWeek coerced anything that was not "submitted" to "open",
+ * so an approved week would have rendered on a teacher's screen as editable -
+ * Remove buttons, a student grid, the lot. The server actions would have
+ * refused every one of those presses, which is a screen lying to somebody
+ * rather than a hole, but a screen that lies is how a teacher spends ten
+ * minutes on a week she cannot change.
+ */
+export type WeekStatus = "open" | "submitted" | "approved";
+
 export function payrollWeek(input: {
   readonly weekStart: string;
-  readonly teachers: readonly { readonly employeeId: string; readonly teacherName: string; readonly week: TeacherWeekView }[];
+  readonly teachers: readonly {
+    readonly employeeId: string;
+    /** Null when the teacher has no week row at all. Nothing to approve. */
+    readonly weekId: string | null;
+    readonly teacherName: string;
+    readonly week: TeacherWeekView;
+  }[];
 }): PayrollWeek {
   const teachers: PayrollLine[] = input.teachers.map((t) => ({
     employeeId: t.employeeId,
+    weekId: t.weekId,
     teacherName: t.teacherName,
     totalCents: t.week.totalCents,
     virtualCents: t.week.virtualCents,
@@ -332,6 +361,8 @@ export function payrollWeek(input: {
     hsCents: teachers.reduce((n, t) => n + t.hsCents, 0),
     unattributedCents: teachers.reduce((n, t) => n + t.unattributedCents, 0),
     openCount: teachers.filter((t) => t.status === "open").length,
+    submittedCount: teachers.filter((t) => t.status === "submitted").length,
+    approvedCount: teachers.filter((t) => t.status === "approved").length,
     withProblems: teachers.filter((t) => t.problems.length > 0).map((t) => t.teacherName),
   };
 }

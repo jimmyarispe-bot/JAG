@@ -8,6 +8,7 @@ import {
   mondayOf,
 } from "@/lib/finance/teacher-pay/week-store";
 import { usd } from "@/lib/finance/teacher-pay/week-view";
+import { PayrollWeekControls } from "@/components/finance/teacher-pay/PayrollWeekControls";
 
 export const metadata = {
   title: "Teacher pay",
@@ -150,6 +151,11 @@ export default async function TeacherPayrollPage({
                       still open
                     </span>
                   ) : null}
+                  {t.status === "approved" ? (
+                    <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-medium text-emerald-800">
+                      approved
+                    </span>
+                  ) : null}
                   {t.problems.length > 0 ? (
                     <span className="ml-2 rounded bg-rose-100 px-1.5 py-0.5 text-[11px] font-medium text-rose-800">
                       cannot be priced
@@ -214,6 +220,15 @@ export default async function TeacherPayrollPage({
                     </tbody>
                   </table>
                 )}
+
+                <PayrollWeekControls
+                  employeeId={t.employeeId}
+                  weekId={t.weekId}
+                  weekStart={weekStart}
+                  status={t.status}
+                  totalCents={t.totalCents}
+                  hasProblems={t.problems.length > 0}
+                />
               </div>
             </details>
           ))}

@@ -111,7 +111,17 @@ export function TeacherWeekScreen(props: {
   teacherName: string;
 }) {
   const { view, weekStart } = props;
-  const submitted = view.status === "submitted";
+  /*
+   * CLOSED, NOT MERELY SUBMITTED. This read `=== "submitted"` until migration
+   * 474 added an approved status. An approved week is further from editable
+   * than a submitted one, and the old test would have called it open - so
+   * this page would have offered Remove buttons and a student grid on a week
+   * that is signed off and paid. Every server action behind those buttons
+   * refuses, so nothing could have been changed; the fault would have been a
+   * screen inviting work that could never save.
+   */
+  const submitted = view.status !== "open";
+  const approved = view.status === "approved";
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
   const [note, setNote] = useState(view.kookyNote ?? "");
@@ -201,17 +211,20 @@ export function TeacherWeekScreen(props: {
           ) : null}
           {view.extrasCents > 0 ? <Tile label="Extras" value={usd(view.extrasCents)} /> : null}
           <Tile
-            label={submitted ? "Submitted total" : "This week so far"}
+            label={approved ? "Approved" : submitted ? "Submitted total" : "This week so far"}
             value={usd(view.totalCents)}
           />
         </div>
 
         {submitted ? (
           <div className="rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-700">
-            <p className="font-semibold">Submitted — waiting to be checked</p>
+            <p className="font-semibold">
+              {approved ? "Approved" : "Submitted — waiting to be checked"}
+            </p>
             <p className="text-xs">
-              This week is closed. If something is wrong, tell Jimmy what needs correcting rather
-              than changing it here.
+              {approved
+                ? "This week has been checked and the amount is settled. If something is wrong, tell Jimmy — he can reopen it."
+                : "This week is closed. If something is wrong, tell Jimmy what needs correcting rather than changing it here."}
             </p>
           </div>
         ) : null}
@@ -393,8 +406,8 @@ export function TeacherWeekScreen(props: {
             {pending ? "Submitting…" : `Submit this week — ${usd(view.totalCents)}`}
           </button>
           <p className="text-xs text-slate-400">
-            The amount on the button is the amount that gets sent. Once submitted, this week
-            closes.
+            This week closes when you submit it. Jimmy checks it and settles the amount —
+            if anything is wrong before then, tell him rather than waiting.
           </p>
         </section>
       ) : view.kookyNote ? (

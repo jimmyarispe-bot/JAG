@@ -85,11 +85,18 @@ export async function loadPayrollWeek(
   /* One assembled week each, in parallel. Thirteen teachers is thirteen small
      reads rather than one query nobody can follow. */
   const loaded = await Promise.all(
-    withWeeks.map(async (employeeId) => ({
-      employeeId,
-      teacherName: nameById.get(employeeId) ?? `employee ${employeeId.slice(0, 8)}`,
-      week: (await loadTeacherWeek(supabase, employeeId, weekStart)).view,
-    }))
+    withWeeks.map(async (employeeId) => {
+      /* The whole load, not only the view: the week id is what approving and
+         reopening address, and a screen that can show a total but not name
+         the row it came from cannot act on it. */
+      const week = await loadTeacherWeek(supabase, employeeId, weekStart);
+      return {
+        employeeId,
+        weekId: week.weekId,
+        teacherName: nameById.get(employeeId) ?? `employee ${employeeId.slice(0, 8)}`,
+        week: week.view,
+      };
+    })
   );
 
   const notStarted = [...nameById.entries()]
