@@ -96,8 +96,9 @@ function prettyHour(hhmm: string): string {
 
 export function TeacherWeekScreen(props: {
   weekStart: string;
-  previousWeek: string;
-  nextWeek: string;
+  /** Null when there is nowhere to go that way, and no arrow is rendered. */
+  previousWeek: string | null;
+  nextWeek: string | null;
   view: TeacherWeekView;
   unavailable: string | null;
   courses: CourseOption[];
@@ -143,18 +144,22 @@ export function TeacherWeekScreen(props: {
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <Link
-            href={`/dashboard/teacher/week?week=${props.previousWeek}`}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50"
-          >
-            ← Previous week
-          </Link>
-          <Link
-            href={`/dashboard/teacher/week?week=${props.nextWeek}`}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50"
-          >
-            Next week →
-          </Link>
+          {props.previousWeek ? (
+            <Link
+              href={`/dashboard/teacher/week?week=${props.previousWeek}`}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50"
+            >
+              ← Last week
+            </Link>
+          ) : null}
+          {props.nextWeek ? (
+            <Link
+              href={`/dashboard/teacher/week?week=${props.nextWeek}`}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50"
+            >
+              This week →
+            </Link>
+          ) : null}
         </div>
       </div>
 

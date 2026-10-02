@@ -92,6 +92,32 @@ export function firstOfMonth(iso: string): string {
   return `${iso.slice(0, 7)}-01`;
 }
 
+/**
+ * How far a teacher may look: this week and last week. Nothing else.
+ *
+ * Jimmy, 2 October: "This week and last week only. Tightest - enough to check
+ * what she submitted, nothing more."
+ *
+ * WHY A BOUND AT ALL. The week arrows walked by seven days with nothing at
+ * either end, so a teacher could click forward into March and log classes
+ * against a Monday five months away. Those weeks would surface on the payroll
+ * screen when the date came round, as work nobody did. Looking back is
+ * useful; logging forward is only a way to make a mistake nobody asked for.
+ *
+ * THIS IS THE BOUNDARY, NOT THE ARROWS. The page hides the arrow that would
+ * leave the range, which is presentation - a URL is a string anybody can
+ * type. Every write is checked against this too.
+ */
+export function reachableWeeks(now: Date = new Date()): { thisWeek: string; lastWeek: string } {
+  const thisWeek = currentWeekStart(now);
+  return { thisWeek, lastWeek: mondayOf(addDays(thisWeek, -7)) };
+}
+
+export function weekIsReachable(weekStart: string, now: Date = new Date()): boolean {
+  const { thisWeek, lastWeek } = reachableWeeks(now);
+  return weekStart === thisWeek || weekStart === lastWeek;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Campus and school names                                                    */
 /* -------------------------------------------------------------------------- */

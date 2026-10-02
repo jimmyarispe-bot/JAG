@@ -27,6 +27,7 @@ import { requireTeacherWeekContext } from "@/lib/finance/teacher-pay/access";
 import {
   ensureOpenWeek,
   firstOfMonth,
+  weekIsReachable,
   mayLogCourse,
   RATE_BY_KEY,
   START_HOURS,
@@ -60,6 +61,17 @@ function refresh() {
 async function myOpenWeek(weekStart: string): Promise<OpenWeek> {
   const ctx = await requireTeacherWeekContext();
   if ("error" in ctx) return { ok: false, error: ctx.error };
+
+  /* The page hides the arrow that would leave the range. This is the half
+     that cannot be got round by typing a URL. */
+  if (!weekIsReachable(weekStart)) {
+    return {
+      ok: false,
+      error:
+        "You can only log this week and last week. Tell Jimmy if you need an " +
+        "older one reopened.",
+    };
+  }
 
   const week = await ensureOpenWeek(ctx.supabase, ctx.employeeId, weekStart);
   if ("error" in week) return { ok: false, error: week.error };

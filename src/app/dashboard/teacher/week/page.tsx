@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
 import { requireTeacherWeekContext } from "@/lib/finance/teacher-pay/access";
 import {
   currentWeekStart,
+  reachableWeeks,
+  weekIsReachable,
   listColleagues,
   listCourseOptions,
   hourlyRateKeysFor,
@@ -46,7 +49,14 @@ export default async function TeacherWeekPage({
 }) {
   const ctx = await requireTeacherWeekContext();
   const { week: weekParam } = await searchParams;
-  const weekStart = weekParam ? mondayOf(weekParam) : currentWeekStart();
+  /*
+   * THIS WEEK AND LAST WEEK. Anything else corrects the URL rather than
+   * showing a different week under the address the teacher typed.
+   */
+  const { thisWeek, lastWeek } = reachableWeeks();
+  const requested = weekParam ? mondayOf(weekParam) : thisWeek;
+  if (!weekIsReachable(requested)) redirect("/dashboard/teacher/week");
+  const weekStart = requested;
 
   if ("error" in ctx) {
     return (
@@ -101,8 +111,8 @@ export default async function TeacherWeekPage({
   return (
     <TeacherWeekScreen
       weekStart={weekStart}
-      previousWeek={mondayOf(addDays(weekStart, -7))}
-      nextWeek={mondayOf(addDays(weekStart, 7))}
+      previousWeek={weekStart === thisWeek ? lastWeek : null}
+      nextWeek={weekStart === lastWeek ? thisWeek : null}
       view={loaded.view}
       unavailable={loaded.unavailable}
       courses={courses}

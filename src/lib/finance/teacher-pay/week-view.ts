@@ -34,15 +34,17 @@ import {
 /** The four primary schools a child is enrolled at, as a parent would say them. */
 export type PrimarySchool = "virtual" | "ga" | "fl" | "hs";
 
+/* AV, not "Virtual" - Jimmy, 2 October: "display them like this - Jimmy
+   Arispe (AV)". It is what the roll is headed and what the office says. */
 const SCHOOL_LABEL: Readonly<Record<PrimarySchool, string>> = {
-  virtual: "Virtual",
+  virtual: "AV",
   ga: "GA",
   fl: "FL",
   hs: "HS",
 };
 
 /**
- * "Ada Lovelace (Virtual)".
+ * "Ada Lovelace (AV)".
  *
  * WHY THE LABEL IS NOT OPTIONAL DECORATION. A teacher choosing children for a
  * class sees every student at every school (items 12 and 13), and on

@@ -10,6 +10,12 @@ import { getAuthUser } from "@/lib/auth/auth-user";
 import { canViewExecutiveDirectorDashboard } from "@/lib/dashboard/executive-director-dashboard";
 import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-access";
 import { requireAuthorizedRoute } from "@/lib/platform/identity/page-guard";
+import {
+  isTeacherOnly,
+  isTeacherOnlyHome,
+  TEACHER_ONLY_HOME,
+} from "@/lib/platform/identity/teacher-only";
+import { TeacherOnlyShell } from "@/components/teacher/week/TeacherOnlyShell";
 import { getRequestWorkspaceContext } from "@/lib/platform/identity/request-context";
 import { getStaffNotifications } from "@/lib/admissions/communications/queries";
 import {
@@ -69,6 +75,34 @@ export default async function DashboardLayout({
   if (!ctx) {
     commitTrace({ route: pathname, label: "dashboard-layout-unauth", spans });
     redirect("/login");
+  }
+
+  /*
+   * A TEACHER SEES ONE PAGE. Jimmy, 2 October: "no option or ability to go to
+   * or choose any other page or function in the jag. only this."
+   *
+   * This sits before the notifications and branding load on purpose. A
+   * teacher has no bell to hang them on, so fetching them would be work done
+   * for a screen that cannot show it.
+   *
+   * THE REDIRECT IS THE HALF THAT MATTERS. Rendering no sidebar removes the
+   * links; it does not close the pages, which still answer to anybody who
+   * types a URL. Both jobs are done here, and the page-level permission
+   * guards underneath are untouched.
+   */
+  if (isTeacherOnly(ctx.permissions)) {
+    if (!isTeacherOnlyHome(pathname)) {
+      commitTrace({ route: pathname, label: "dashboard-layout-teacher-redirect", spans });
+      redirect(TEACHER_ONLY_HOME);
+    }
+
+    commitTrace({ route: pathname, label: "dashboard-layout-teacher", spans });
+
+    return (
+      <TeacherOnlyShell fullName={ctx.fullName} impersonation={ctx.impersonation}>
+        {children}
+      </TeacherOnlyShell>
+    );
   }
 
   // P006: branding/workspace and notifications are independent once identity is known.

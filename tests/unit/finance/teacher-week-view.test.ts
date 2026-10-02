@@ -32,7 +32,11 @@ function classRow(over: Partial<ClassRow> = {}): ClassRow {
 
 describe("a child's name says which school they belong to", () => {
   it("labels each of the four", () => {
-    expect(studentLabel("Ada Lovelace", "virtual")).toBe("Ada Lovelace (Virtual)");
+    /* "AV", not "Virtual" - Jimmy, 2 October: "for school of record,
+       display them like this - Jimmy Arispe (AV)". The roll is headed AV
+       and a teacher reading a class list should see the same four letters
+       the roll uses. */
+    expect(studentLabel("Ada Lovelace", "virtual")).toBe("Ada Lovelace (AV)");
     expect(studentLabel("Ada Lovelace", "ga")).toBe("Ada Lovelace (GA)");
     expect(studentLabel("Ada Lovelace", "fl")).toBe("Ada Lovelace (FL)");
     expect(studentLabel("Ada Lovelace", "hs")).toBe("Ada Lovelace (HS)");
@@ -59,7 +63,7 @@ describe("a teacher's week", () => {
     expect(week.lines).toHaveLength(1);
     expect(week.lines[0].cents).toBe(3_000); // 20 + 5 + 5
     expect(week.lines[0].scheduled).toBe(3);
-    expect(week.lines[0].studentLabels).toEqual(["A (Virtual)", "B (GA)", "C (FL)"]);
+    expect(week.lines[0].studentLabels).toEqual(["A (AV)", "B (GA)", "C (FL)"]);
   });
 
   it("counts absences without letting them touch the pay", () => {
