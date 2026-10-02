@@ -613,7 +613,8 @@ function Roster(props: {
         className="text-xs text-slate-600 underline decoration-dotted underline-offset-4 hover:text-slate-900"
       >
         {props.scheduled} scheduled
-        {props.absent > 0 ? `, ${props.absent} absent` : ""} · {open ? "hide" : "choose who"}
+        {props.absent > 0 ? `, ${props.absent} absent` : ""} ·{" "}
+        {open ? "Hide" : "Choose Students Scheduled for this Class"}
       </button>
 
       {open ? (
