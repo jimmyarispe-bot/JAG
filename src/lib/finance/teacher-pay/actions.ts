@@ -105,11 +105,30 @@ async function myOpenWeek(weekStart: string): Promise<OpenWeek> {
  * because a check constraint's error message is not something to put in front
  * of a teacher at ten to midnight on a Friday.
  */
+/**
+ * ONE SUBMISSION, AS MANY DAYS AS WERE TICKED.
+ *
+ * Peter Alouise, 2 October 2026: "It will only let me select each class for
+ * one day at a time, not Monday-Friday." He teaches the same class five days
+ * a week and was filling the form five times.
+ *
+ * EACH DAY IS STILL ITS OWN CLASS. Five ticks make five rows, not one row
+ * with five dates. That matters: pay is per class, a child can be absent on
+ * Wednesday and present on Thursday, and a teacher may want to remove Friday
+ * alone. Nothing downstream needs to learn a new shape.
+ *
+ * A DAY ALREADY LOGGED IS NOT AN ERROR. If Monday is already on the week and
+ * the teacher ticks Monday to Friday, Monday is left exactly as it is -
+ * children and all - and the other four are added. Saying "that class is
+ * already there" and adding nothing would make her undo her own ticks to get
+ * the four she wanted, at ten to midnight on a Friday.
+ */
 export async function addClassAction(input: {
   weekStart: string;
   courseId: string;
   campus: "virtual" | "hs";
-  classDate: string;
+  /** One date per ticked day, ISO. A single day is an array of one. */
+  classDates: string[];
   startTimeEt: string;
   isGuest: boolean;
   guestForEmployeeId: string | null;
@@ -118,7 +137,9 @@ export async function addClassAction(input: {
   if (!week.ok) return { error: week.error };
 
   if (!input.courseId) return { error: "Choose which class you taught." };
-  if (!input.classDate) return { error: "Choose which day you taught it." };
+
+  const dates = [...new Set((input.classDates ?? []).filter(Boolean))].sort();
+  if (dates.length === 0) return { error: "Tick at least one day you taught it." };
   if (!START_HOURS.includes(input.startTimeEt)) {
     return { error: "Choose a start time between 7:00am and 11:00pm." };
   }
@@ -139,27 +160,58 @@ export async function addClassAction(input: {
   const allowed = await mayLogCourse(week.supabase, week.employeeId, input.courseId);
   if (!allowed.ok) return { error: allowed.reason };
 
-  const { error } = await week.supabase.from("teacher_class_entries").insert({
-    teacher_week_id: week.weekId,
-    course_id: input.courseId,
-    campus: input.campus,
-    class_date: input.classDate,
-    start_time_et: input.startTimeEt,
-    is_guest: input.isGuest,
-    guest_for_employee_id: input.isGuest ? input.guestForEmployeeId : null,
-  });
+  /*
+   * INSERTED ONE DAY AT A TIME ON PURPOSE, not as one batch. A batch is a
+   * single statement: one day colliding with the unique constraint rolls the
+   * whole lot back, and the teacher is told nothing was saved when four of
+   * her five days were perfectly good.
+   */
+  const alreadyThere: string[] = [];
+  let added = 0;
 
-  if (error) {
-    /* The unique constraint is the one a teacher will actually hit. */
-    if (error.message.includes("teacher_class_entries_unique")) {
-      return {
-        error: "That class is already on this day at that hour. Nothing was added twice.",
-      };
+  for (const classDate of dates) {
+    const { error } = await week.supabase.from("teacher_class_entries").insert({
+      teacher_week_id: week.weekId,
+      course_id: input.courseId,
+      campus: input.campus,
+      class_date: classDate,
+      start_time_et: input.startTimeEt,
+      is_guest: input.isGuest,
+      guest_for_employee_id: input.isGuest ? input.guestForEmployeeId : null,
+    });
+
+    if (!error) {
+      added += 1;
+      continue;
     }
-    return { error: `The class was not saved: ${error.message}` };
+
+    if (error.message.includes("teacher_class_entries_unique")) {
+      alreadyThere.push(classDate);
+      continue;
+    }
+
+    /* A real failure stops here and says how far it got, rather than
+       pretending the earlier days did not happen. */
+    refresh();
+    return {
+      error:
+        added > 0
+          ? `${added} day(s) were added, then this one failed: ${error.message}. Nothing was added twice.`
+          : `The class was not saved: ${error.message}`,
+    };
   }
 
   refresh();
+
+  if (added === 0) {
+    return {
+      error:
+        alreadyThere.length === 1
+          ? "That class is already on that day at that hour. Nothing was added twice."
+          : "Those classes are all already on the week at that hour. Nothing was added twice.",
+    };
+  }
+
   return { success: true };
 }
 
@@ -239,6 +291,108 @@ export async function unscheduleStudentAction(
   }
 
   refresh();
+  return { success: true };
+}
+
+/**
+ * The same children, on the other days of the same class.
+ *
+ * Ticking Monday to Friday makes five classes. Tapping nine children onto
+ * each of them is forty-five taps for a week somebody already taught. This
+ * is the one button that does the other four.
+ *
+ * IT ONLY FILLS EMPTY CLASSES, and that is the whole safety of it. A day
+ * that already has children on it is left exactly alone - because a teacher
+ * who has already corrected Wednesday's roster should not have it quietly
+ * overwritten by Monday's. If she wants Wednesday replaced, she can take the
+ * children off it herself and press this again.
+ *
+ * ABSENCES ARE NOT COPIED either. Who was scheduled travels; who failed to
+ * turn up on Monday is a fact about Monday.
+ */
+export async function copyRosterToMyOtherClassesAction(
+  weekStart: string,
+  entryId: string
+): Promise<Result> {
+  const week = await myOpenWeek(weekStart);
+  if (!week.ok) return { error: week.error };
+
+  /* The class being copied FROM, and that it is this teacher's own week. */
+  const { data: source, error: sourceError } = await week.supabase
+    .from("teacher_class_entries")
+    .select("id, course_id")
+    .eq("id", entryId)
+    .eq("teacher_week_id", week.weekId)
+    .maybeSingle();
+
+  if (sourceError) return { error: `Could not read that class: ${sourceError.message}` };
+  if (!source) return { error: "That class is not on your week." };
+
+  const { data: roster, error: rosterError } = await week.supabase
+    .from("teacher_class_students")
+    .select("student_id")
+    .eq("entry_id", entryId);
+
+  if (rosterError) return { error: `Could not read the children: ${rosterError.message}` };
+  if (!roster || roster.length === 0) {
+    return { error: "Put the children on this class first, then copy them across." };
+  }
+
+  const { data: siblings, error: siblingError } = await week.supabase
+    .from("teacher_class_entries")
+    .select("id")
+    .eq("teacher_week_id", week.weekId)
+    .eq("course_id", (source as { course_id: string }).course_id)
+    .neq("id", entryId);
+
+  if (siblingError) return { error: `Could not find the other days: ${siblingError.message}` };
+  if (!siblings || siblings.length === 0) {
+    return { error: "There are no other days of this class on your week to copy to." };
+  }
+
+  const studentIds = (roster as { student_id: string }[]).map((r) => r.student_id);
+  let filled = 0;
+  let skipped = 0;
+
+  for (const sibling of siblings as { id: string }[]) {
+    const { count, error: countError } = await week.supabase
+      .from("teacher_class_students")
+      .select("id", { count: "exact", head: true })
+      .eq("entry_id", sibling.id);
+
+    if (countError) return { error: `Could not check a day: ${countError.message}` };
+
+    /* Already has children. Left alone, and counted so she is told. */
+    if ((count ?? 0) > 0) {
+      skipped += 1;
+      continue;
+    }
+
+    const { error: insertError } = await week.supabase
+      .from("teacher_class_students")
+      .insert(studentIds.map((studentId) => ({ entry_id: sibling.id, student_id: studentId })));
+
+    if (insertError) {
+      refresh();
+      return {
+        error:
+          filled > 0
+            ? `${filled} day(s) were filled, then this one failed: ${insertError.message}`
+            : `The children were not copied: ${insertError.message}`,
+      };
+    }
+    filled += 1;
+  }
+
+  refresh();
+
+  if (filled === 0) {
+    return {
+      error:
+        `The other ${skipped} day(s) of this class already have children on them, ` +
+        `so nothing was changed. Take the children off a day first if you want it replaced.`,
+    };
+  }
   return { success: true };
 }
 

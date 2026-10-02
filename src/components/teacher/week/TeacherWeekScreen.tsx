@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   addClassAction,
+  copyRosterToMyOtherClassesAction,
   removeClassAction,
   saveKookyNoteAction,
   scheduleStudentAction,
@@ -429,7 +430,12 @@ function AddClass(props: {
 }) {
   const [courseId, setCourseId] = useState("");
   const [campus, setCampus] = useState<"virtual" | "hs">("virtual");
-  const [date, setDate] = useState(props.weekStart);
+  /*
+   * TICKED DAYS, NOT ONE DAY. Peter Alouise, 2 October 2026: "It will only
+   * let me select each class for one day at a time, not Monday-Friday."
+   * Monday starts ticked because one day is still the common case.
+   */
+  const [dates, setDates] = useState<string[]>([props.weekStart]);
   const [hour, setHour] = useState("09:00");
   const [who, setWho] = useState("mine");
   const [busy, setBusy] = useState(false);
@@ -439,7 +445,7 @@ function AddClass(props: {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
       <h2 className="text-sm font-semibold text-slate-900">Add a class you taught</h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <label className="block lg:col-span-2">
           <span className="mb-1 block text-xs font-medium text-slate-500">Class</span>
           <select
@@ -469,23 +475,50 @@ function AddClass(props: {
           </select>
         </label>
 
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">Day</span>
-          <select
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          >
+        {/*
+          * Tick boxes rather than a dropdown. Five days of the same class is
+          * one submission, and each ticked day becomes its own class line -
+          * so pay stays per class and a child can be absent on Wednesday
+          * without touching Thursday.
+          */}
+        <fieldset className="block lg:col-span-2">
+          <legend className="mb-1 block text-xs font-medium text-slate-500">
+            Days you taught it
+          </legend>
+          <div className="flex flex-wrap gap-1.5">
             {DAY_LABELS.map((label, i) => {
               const d = addDays(props.weekStart, i);
+              const on = dates.includes(d);
               return (
-                <option key={d} value={d}>
-                  {label} {prettyDate(d)}
-                </option>
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() =>
+                    setDates((prev) =>
+                      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
+                    )
+                  }
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium ${
+                    on
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                  title={`${label} ${prettyDate(d)}`}
+                >
+                  {label.slice(0, 3)}
+                </button>
               );
             })}
-          </select>
-        </label>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            {dates.length === 0
+              ? "Tick at least one day."
+              : dates.length === 1
+                ? prettyDate(dates[0])
+                : `${dates.length} days, all at the same time. Each one is its own class.`}
+          </p>
+        </fieldset>
 
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-slate-500">Start time</span>
@@ -532,7 +565,7 @@ function AddClass(props: {
 
       <button
         type="button"
-        disabled={props.disabled || busy || !courseId}
+        disabled={props.disabled || busy || !courseId || dates.length === 0}
         onClick={async () => {
           if (!course) return;
           setBusy(true);
@@ -540,7 +573,7 @@ function AddClass(props: {
             weekStart: props.weekStart,
             courseId: course.courseId,
             campus,
-            classDate: date,
+            classDates: dates,
             startTimeEt: hour,
             isGuest: who !== "mine",
             guestForEmployeeId: who !== "mine" ? who : null,
@@ -551,7 +584,11 @@ function AddClass(props: {
         }}
         className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
       >
-        {busy ? "Adding…" : "Add this class"}
+        {busy
+          ? "Adding…"
+          : dates.length > 1
+            ? `Add this class on ${dates.length} days`
+            : "Add this class"}
       </button>
     </section>
   );
@@ -707,6 +744,28 @@ function Roster(props: {
             Tap a name to schedule them. Everyone scheduled counts as here unless you mark them
             absent, and marking somebody absent does not change what this class pays.
           </p>
+
+          {/*
+            * Forty-five taps become one. Ticking Monday to Friday makes five
+            * classes; this puts the same children on the four that are still
+            * empty. A day that already has children is left alone, so a
+            * roster already corrected is never quietly overwritten.
+            */}
+          {props.roster.length > 0 && !props.submitted ? (
+            <button
+              type="button"
+              disabled={props.pending}
+              onClick={() =>
+                props.onRun(
+                  () => copyRosterToMyOtherClassesAction(props.weekStart, props.entryId),
+                  "Those children are now on the other days of this class."
+                )
+              }
+              className="self-start rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            >
+              Put these {props.roster.length} children on the other days of this class
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
