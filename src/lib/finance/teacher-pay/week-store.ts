@@ -129,8 +129,9 @@ export function campusOf(schoolName: string | null | undefined): Campus | null {
 export interface CourseOption {
   readonly courseId: string;
   readonly name: string;
-  readonly campus: Campus;
-  readonly structuredLiteracy: boolean;
+  /** From teacher_pay_courses. No screen and no rule reads the NAME for this. */
+  readonly baseCents: number;
+  readonly perAdditionalCents: number;
 }
 
 export interface StudentOption {
@@ -167,39 +168,66 @@ const nameOf = (row: Record<string, unknown> | null): string =>
 /* -------------------------------------------------------------------------- */
 
 /**
- * Every class, on every day, at every hour - item 8. Nothing is prefilled and
- * nothing is filtered by what the teacher taught last week, because the whole
- * point of the new model is that there is no prebuilt schedule to deviate
- * from.
+ * The classes this teacher may log.
  *
- * Only Virtual and HS courses are offered. FL and GA classes are out of scope
- * for this system (the spec says so in its first line), and a course whose
- * school cannot be resolved is left out rather than guessed into a campus
- * that decides where the money is filed.
+ * READ FROM THE CATALOGUE, NOT FROM courses. teacher_pay_courses (migration
+ * 463) holds Jimmy's fourteen, in his order, with what each one pays. A
+ * course absent from it is not offered - which is how every old class
+ * disappears from this picker without a single row being deleted.
+ *
+ * NO CAMPUS. Jimmy, 2 October: "no campus unless i specify". A class is not
+ * a Virtual thing or an HS thing here; the teacher says which campus the
+ * session was for when she logs it, and that is what splits the money on the
+ * payroll screen.
+ *
+ * RESTRICTED CLASSES NEED A GRANT. Three of the fourteen are restricted -
+ * Structured Literacy and its 1:1 form for seven named teachers, and
+ * 1:1 Tutoring Craig & Ivy for Craig. No grant, not in the list, and
+ * addClassAction refuses it again on the way in.
  */
 export async function listCourseOptions(
-  supabase: AuthClient
+  supabase: AuthClient,
+  employeeId?: string
 ): Promise<{ courses: CourseOption[] } | { error: string }> {
-  const { data, error } = await supabase
-    .from("courses")
-    .select("id, name, schools(name)")
-    .order("name");
+  const [catalogue, grants] = await Promise.all([
+    supabase
+      .from("teacher_pay_courses")
+      .select("course_id, base_cents, per_additional_cents, restricted, sort_order, courses(name)")
+      .order("sort_order"),
+    employeeId
+      ? supabase
+          .from("teacher_pay_course_grants")
+          .select("course_id")
+          .eq("employee_id", employeeId)
+      : Promise.resolve({ data: [] as { course_id: string }[], error: null }),
+  ]);
 
-  if (error) return { error: `Could not read the class list: ${error.message}` };
+  if (catalogue.error) {
+    return { error: `Could not read the class list: ${catalogue.error.message}` };
+  }
+
+  const granted = new Set(
+    ((grants.data ?? []) as { course_id: string }[]).map((g) => String(g.course_id))
+  );
 
   const courses: CourseOption[] = [];
-  for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
-    const campus = campusOf(one(row.schools)?.name as string | undefined);
-    if (!campus) continue;
-    const name = String(row.name ?? "").trim();
+  for (const row of (catalogue.data ?? []) as unknown as Record<string, unknown>[]) {
+    const courseId = String(row.course_id);
+    if (row.restricted && !granted.has(courseId)) continue;
+
+    const name = String(one(row.courses)?.name ?? "").trim();
+    /* A catalogue row whose course has vanished is a broken link, not a
+       class. Left out rather than offered as a blank line. */
     if (!name) continue;
+
     courses.push({
-      courseId: String(row.id),
+      courseId,
       name,
-      campus,
-      structuredLiteracy: isStructuredLiteracy(name),
+      baseCents: Number(row.base_cents ?? 0),
+      perAdditionalCents: Number(row.per_additional_cents ?? 0),
     });
   }
+
   return { courses };
 }
 
@@ -240,28 +268,24 @@ export async function listStudentOptions(
   return { students };
 }
 
-/** Whose class a guest is covering - item 10. Names live on users, not employees. */
+/** Whose class a guest is covering - item 10. See namesByEmployeeId. */
 export async function listColleagues(
   supabase: AuthClient,
   exceptEmployeeId: string
 ): Promise<ColleagueOption[]> {
   const { data } = await supabase
     .from("employees")
-    .select("id, employment_status, users(first_name, last_name, display_name)")
+    .select("id")
     .eq("employment_status", "active");
 
-  return ((data ?? []) as unknown as Record<string, unknown>[])
-    .filter((r) => String(r.id) !== exceptEmployeeId)
-    .map((r) => {
-      const u = one(r.users);
-      return {
-        employeeId: String(r.id),
-        name:
-          (u?.display_name as string | undefined)?.trim() ||
-          nameOf(u) ||
-          `employee ${String(r.id).slice(0, 8)}`,
-      };
-    })
+  const ids = ((data ?? []) as { id: string }[])
+    .map((r) => String(r.id))
+    .filter((id) => id !== exceptEmployeeId);
+
+  const names = await namesByEmployeeId(supabase, ids);
+
+  return ids
+    .map((employeeId) => ({ employeeId, name: names.get(employeeId) ?? employeeId }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -425,20 +449,23 @@ export async function loadTeacherWeek(
         .filter((v): v is string => Boolean(v))
     ),
   ];
-  const guestNameById = new Map<string, string>();
-  if (guestIds.length > 0) {
-    const { data: colleagues } = await supabase
-      .from("employees")
-      .select("id, users(first_name, last_name, display_name)")
-      .in("id", guestIds);
-    for (const row of (colleagues ?? []) as unknown as Record<string, unknown>[]) {
-      const u = one(row.users);
-      guestNameById.set(
-        String(row.id),
-        (u?.display_name as string | undefined)?.trim() ||
-          nameOf(u) ||
-          `employee ${String(row.id).slice(0, 8)}`
-      );
+  const guestNameById =
+    guestIds.length > 0 ? await namesByEmployeeId(supabase, guestIds) : new Map<string, string>();
+
+  /* The rate for every class on the week, in one read. week-view prices from
+     these rather than from the course name - see CataloguePayInput. */
+  const courseIds = [...new Set(entryRows.map((e) => String(e.course_id)))];
+  const rateByCourse = new Map<string, { base: number; per: number }>();
+  if (courseIds.length > 0) {
+    const { data: rates } = await supabase
+      .from("teacher_pay_courses")
+      .select("course_id, base_cents, per_additional_cents")
+      .in("course_id", courseIds);
+    for (const row of (rates ?? []) as unknown as Record<string, unknown>[]) {
+      rateByCourse.set(String(row.course_id), {
+        base: Number(row.base_cents ?? 0),
+        per: Number(row.per_additional_cents ?? 0),
+      });
     }
   }
 
@@ -454,6 +481,8 @@ export async function loadTeacherWeek(
       isGuest: Boolean(e.is_guest),
       guestForName: guestId ? (guestNameById.get(guestId) ?? "a colleague") : null,
       structuredLiteracy: isStructuredLiteracy(courseName),
+      baseCents: rateByCourse.get(String(e.course_id))?.base,
+      perAdditionalCents: rateByCourse.get(String(e.course_id))?.per,
       students: studentsByEntry.get(String(e.id)) ?? [],
     };
   });
@@ -558,4 +587,143 @@ export async function hourlyRateKeysFor(
         .filter((k) => k in RATE_BY_KEY)
     ),
   ];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Names                                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * What to call a member of staff.
+ *
+ * WHY THIS IS A FUNCTION AND NOT A JOIN. The first version of the payroll
+ * screen embedded `users(first_name, last_name, display_name)` off employees
+ * and every single teacher came back as "employee 05546534". Jimmy saw a
+ * payroll page naming thirteen people by the first eight characters of a uuid.
+ *
+ * The employees table has no name columns at all. Names live in two other
+ * places - employee_profiles.display_name, which is what the pay calculator
+ * has always read, and public.users, which is what the identity side reads -
+ * and either can be empty for a given person.
+ *
+ * So this asks both, in that order, and selects * rather than naming columns:
+ * a column list is a guess about a table's shape, and a wrong guess here
+ * either errors or, worse, resolves to null and renders a uuid at somebody
+ * who is owed money.
+ *
+ * The uuid fallback stays, because a teacher with no name recorded anywhere
+ * must still appear on a payroll screen. It is the last resort, not the
+ * first answer.
+ */
+export async function namesByEmployeeId(
+  supabase: AuthClient,
+  employeeIds: readonly string[]
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const ids = [...new Set(employeeIds.filter(Boolean))];
+  if (ids.length === 0) return out;
+
+  const pick = (row: Record<string, unknown> | undefined | null): string => {
+    if (!row) return "";
+    const s = (k: string) => String(row[k] ?? "").trim();
+    return (
+      s("display_name") ||
+      s("full_name") ||
+      [s("first_name"), s("last_name")].filter(Boolean).join(" ").trim() ||
+      ""
+    );
+  };
+
+  const [profilesRes, employeesRes] = await Promise.all([
+    supabase.from("employee_profiles").select("*").in("employee_id", ids),
+    supabase.from("employees").select("id, user_id").in("id", ids),
+  ]);
+
+  const profileByEmployee = new Map<string, Record<string, unknown>>();
+  for (const row of (profilesRes.data ?? []) as unknown as Record<string, unknown>[]) {
+    profileByEmployee.set(String(row.employee_id), row);
+  }
+
+  const userIdByEmployee = new Map<string, string>();
+  for (const row of (employeesRes.data ?? []) as unknown as Record<string, unknown>[]) {
+    if (row.user_id) userIdByEmployee.set(String(row.id), String(row.user_id));
+  }
+
+  const userById = new Map<string, Record<string, unknown>>();
+  const userIds = [...new Set([...userIdByEmployee.values()])];
+  if (userIds.length > 0) {
+    const { data } = await supabase.from("users").select("*").in("id", userIds);
+    for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
+      userById.set(String(row.id), row);
+    }
+  }
+
+  for (const id of ids) {
+    const fromProfile = pick(profileByEmployee.get(id));
+    const uid = userIdByEmployee.get(id);
+    const fromUser = uid ? pick(userById.get(uid)) : "";
+    out.set(id, fromProfile || fromUser || `employee ${id.slice(0, 8)}`);
+  }
+
+  return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Who may teach Structured Literacy                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * May this teacher log this class, and what does it pay?
+ *
+ * CHECKED SERVER-SIDE BECAUSE IT IS MONEY. listCourseOptions leaves a
+ * restricted class out of the picker, and a dropdown is not a boundary - a
+ * course id is a string in a form submission. Structured Literacy pays 35.00
+ * where most classes pay 20.00 and Craig's session pays a flat 30.00, so the
+ * answer is established again here before anything is written.
+ *
+ * A class that is not in the catalogue at all is refused. That is how the old
+ * courses stay unusable after they are archived rather than deleted.
+ */
+export async function mayLogCourse(
+  supabase: AuthClient,
+  employeeId: string,
+  courseId: string
+): Promise<
+  | { ok: true; baseCents: number; perAdditionalCents: number }
+  | { ok: false; reason: string }
+> {
+  const { data: entry, error } = await supabase
+    .from("teacher_pay_courses")
+    .select("course_id, base_cents, per_additional_cents, restricted")
+    .eq("course_id", courseId)
+    .maybeSingle();
+
+  if (error) return { ok: false, reason: `That class could not be checked: ${error.message}` };
+  if (!entry) {
+    return { ok: false, reason: "That is not one of the classes on this year's list." };
+  }
+
+  if (entry.restricted) {
+    const { data: grant } = await supabase
+      .from("teacher_pay_course_grants")
+      .select("course_id")
+      .eq("employee_id", employeeId)
+      .eq("course_id", courseId)
+      .maybeSingle();
+
+    if (!grant) {
+      return {
+        ok: false,
+        reason:
+          "That is not one of your classes. If that is wrong, ask Jimmy or Heather " +
+          "and it can be added.",
+      };
+    }
+  }
+
+  return {
+    ok: true,
+    baseCents: Number(entry.base_cents ?? 0),
+    perAdditionalCents: Number(entry.per_additional_cents ?? 0),
+  };
 }

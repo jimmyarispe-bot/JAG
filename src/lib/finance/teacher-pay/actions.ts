@@ -27,6 +27,7 @@ import { requireTeacherWeekContext } from "@/lib/finance/teacher-pay/access";
 import {
   ensureOpenWeek,
   firstOfMonth,
+  mayLogCourse,
   RATE_BY_KEY,
   START_HOURS,
 } from "@/lib/finance/teacher-pay/week-store";
@@ -114,6 +115,17 @@ export async function addClassAction(input: {
   if (input.isGuest && !input.guestForEmployeeId) {
     return { error: "You marked this as guest teaching. Say whose class it was." };
   }
+
+  /*
+   * CHECKED AGAIN HERE, NOT ONLY IN THE DROPDOWN.
+   *
+   * listCourseOptions leaves a restricted class out of the picker, and a
+   * dropdown is not a boundary - a course id is a string in a form
+   * submission. This is also what keeps the archived classes unusable: a
+   * course absent from the catalogue is refused for not being on the list.
+   */
+  const allowed = await mayLogCourse(week.supabase, week.employeeId, input.courseId);
+  if (!allowed.ok) return { error: allowed.reason };
 
   const { error } = await week.supabase.from("teacher_class_entries").insert({
     teacher_week_id: week.weekId,

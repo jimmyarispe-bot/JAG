@@ -406,3 +406,56 @@ export function weekTotals(input: {
     refusals,
   };
 }
+
+
+/**
+ * What one class earns, when the rate comes from the catalogue.
+ *
+ * WHY THIS EXISTS BESIDE classPay(). classPay decides the base from a
+ * structuredLiteracy flag, which was right while exactly one class had a
+ * different rate. Jimmy's list of 2 October has three:
+ *
+ *   1:1 Tutoring Structured Literacy        3500 base
+ *   1:1 Tutoring Non-Structured Literacy    2000 base
+ *   1:1 Tutoring Craig & Ivy                3000 flat, no per-student amount
+ *
+ * The first two are one word apart, so any rule that reads a class NAME to
+ * decide the money pays the wrong one. Each course now carries its own
+ * figures in teacher_pay_courses, and this prices from those.
+ *
+ * classPay is left exactly as it is, still tested, still used by anything
+ * that has only the flag.
+ */
+export interface CataloguePayInput {
+  readonly scheduledStudents: number;
+  readonly baseCents: number;
+  /** Zero for a flat per-session rate - Craig and Ivy. */
+  readonly perAdditionalCents: number;
+}
+
+export function classPayAt(input: CataloguePayInput): ClassPay {
+  const n = input.scheduledStudents;
+
+  if (!Number.isInteger(n)) {
+    return { ok: false, reason: `A class cannot have ${n} students scheduled.` };
+  }
+  if (n < 0) {
+    return { ok: false, reason: "A class cannot have a negative number of students." };
+  }
+  /* The same rule as classPay: nobody scheduled earns nothing, and says so
+     rather than paying a base for a class that taught no one. */
+  if (n === 0) {
+    return { ok: false, reason: "Nobody was scheduled, so this class pays nothing." };
+  }
+  if (input.baseCents < 0 || input.perAdditionalCents < 0) {
+    return { ok: false, reason: "This class has no agreed rate." };
+  }
+
+  const cents = input.baseCents + (n - 1) * input.perAdditionalCents;
+  return {
+    ok: true,
+    cents,
+    baseCents: input.baseCents,
+    additional: Math.max(0, n - 1),
+  };
+}

@@ -69,7 +69,7 @@ export default async function TeacherWeekPage({
      week does not depend on them. */
   const [loaded, courseRes, studentRes, colleagues, hourlyKeys] = await Promise.all([
     loadTeacherWeek(ctx.supabase, ctx.employeeId, weekStart),
-    listCourseOptions(ctx.supabase),
+    listCourseOptions(ctx.supabase, ctx.employeeId),
     listStudentOptions(ctx.supabase),
     listColleagues(ctx.supabase, ctx.employeeId),
     hourlyRateKeysFor(ctx.supabase, ctx.employeeId),

@@ -1,6 +1,6 @@
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import { payrollWeek, type PayrollWeek } from "@/lib/finance/teacher-pay/week-view";
-import { loadTeacherWeek } from "@/lib/finance/teacher-pay/week-store";
+import { loadTeacherWeek, namesByEmployeeId } from "@/lib/finance/teacher-pay/week-store";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -56,29 +56,18 @@ export async function loadPayrollWeek(
     notStarted: [],
   });
 
-  /* Who could have a week. Names live on users; employees has none. */
+  /* Who could have a week. Names come from namesByEmployeeId, which asks
+     employee_profiles and then users - the embed this first used returned
+     nothing and printed thirteen uuids at Jimmy. */
   const { data: staff, error: staffError } = await supabase
     .from("employees")
-    .select("id, employment_status, users(first_name, last_name, display_name)")
+    .select("id")
     .eq("employment_status", "active");
 
   if (staffError) return empty(`Could not read the staff list: ${staffError.message}`);
 
-  const one = (v: unknown): Record<string, unknown> | null => {
-    const first = Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
-    return first && typeof first === "object" ? (first as Record<string, unknown>) : null;
-  };
-
-  const nameById = new Map<string, string>();
-  for (const row of (staff ?? []) as unknown as Record<string, unknown>[]) {
-    const u = one(row.users);
-    nameById.set(
-      String(row.id),
-      (u?.display_name as string | undefined)?.trim() ||
-        [u?.first_name, u?.last_name].filter(Boolean).join(" ").trim() ||
-        `employee ${String(row.id).slice(0, 8)}`
-    );
-  }
+  const staffIds = ((staff ?? []) as { id: string }[]).map((r) => String(r.id));
+  const nameById = await namesByEmployeeId(supabase, staffIds);
 
   /* Which of them have opened this week. RLS decides what comes back: for
      anyone but Jimmy and Danni that is their own row or nothing. */

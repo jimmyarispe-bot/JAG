@@ -21,6 +21,7 @@ import {
   type PersonalRate,
   EXTRA_RULES,
   classPay,
+  classPayAt,
   extraPay,
   hourlyPay,
   weekTotals,
@@ -74,6 +75,17 @@ export interface ClassRow {
   /** Item 10 — whose class this is, when guesting. */
   readonly guestForName: string | null;
   readonly structuredLiteracy: boolean;
+  /**
+   * The rate from teacher_pay_courses, when the caller has it.
+   *
+   * Present means price from these and ignore structuredLiteracy entirely -
+   * "1:1 Tutoring Structured Literacy" and "1:1 Tutoring Non-Structured
+   * Literacy" differ by one word and by 15.00, and no flag derived from a
+   * name can tell them apart. Absent keeps the old behaviour, so every test
+   * written against the flag still describes something real.
+   */
+  readonly baseCents?: number;
+  readonly perAdditionalCents?: number;
   readonly students: readonly {
     readonly studentId: string;
     readonly name: string;
@@ -94,6 +106,20 @@ export interface ClassLine {
   readonly absent: number;
   readonly cents: number;
   readonly studentLabels: readonly string[];
+  /**
+   * The children themselves, not only their labels.
+   *
+   * studentLabels is what a read-only screen prints. A screen that lets a
+   * teacher CHANGE the roster needs the id - the first version of the grid
+   * matched children by name, which cannot tell two Jessicas apart and
+   * cannot see who is already marked absent at all. An id can do both.
+   */
+  readonly roster: readonly {
+    readonly studentId: string;
+    readonly name: string;
+    readonly school: PrimarySchool | null;
+    readonly absent: boolean;
+  }[];
   /** Set when this line could not be priced. The line is still shown. */
   readonly problem: string | null;
 }
@@ -140,7 +166,15 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
   for (const row of input.classes) {
     const scheduled = row.students.length;
     const absent = row.students.filter((s) => s.absent).length;
-    const priced = classPay({ scheduledStudents: scheduled, structuredLiteracy: row.structuredLiteracy });
+    /* The catalogue rate wins when the caller has it. See CataloguePayInput. */
+    const priced =
+      row.baseCents !== undefined
+        ? classPayAt({
+            scheduledStudents: scheduled,
+            baseCents: row.baseCents,
+            perAdditionalCents: row.perAdditionalCents ?? 0,
+          })
+        : classPay({ scheduledStudents: scheduled, structuredLiteracy: row.structuredLiteracy });
 
     lines.push({
       entryId: row.entryId,
@@ -154,6 +188,12 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
       absent,
       cents: priced.ok ? priced.cents : 0,
       studentLabels: row.students.map((s) => studentLabel(s.name, s.school)),
+      roster: row.students.map((s) => ({
+        studentId: s.studentId,
+        name: s.name,
+        school: s.school,
+        absent: s.absent,
+      })),
       problem: priced.ok ? null : priced.reason,
     });
   }

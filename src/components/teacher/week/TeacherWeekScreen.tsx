@@ -14,7 +14,7 @@ import {
   unscheduleStudentAction,
 } from "@/lib/finance/teacher-pay/actions";
 import { EXTRA_RULES, type ExtraKind } from "@/lib/finance/teacher-pay/rates";
-import { studentLabel, usd, type PrimarySchool, type TeacherWeekView } from "@/lib/finance/teacher-pay/week-view";
+import { usd, type PrimarySchool, type TeacherWeekView } from "@/lib/finance/teacher-pay/week-view";
 
 /**
  * The teacher's week.
@@ -22,20 +22,24 @@ import { studentLabel, usd, type PrimarySchool, type TeacherWeekView } from "@/l
  * EVERY FAILURE IS SAID OUT LOUD. Each action returns either success or a
  * sentence, and the sentence is rendered next to the thing that failed.
  * Row-level security refuses by changing nothing and reporting nothing, which
- * on a screen is indistinguishable from working — so a silent action is the
+ * on a screen is indistinguishable from working - so a silent action is the
  * one outcome this component does not have.
  *
  * NOTHING HERE SENDS A NUMBER THAT IS MONEY. The teacher sends a course, a
- * day, an hour, a child, a count of reports. Every figure on screen was
- * computed on the server from those, and recomputing it here would create a
- * second opinion about what somebody is owed.
+ * campus, a day, an hour, a child, a count. Every figure on screen was
+ * computed on the server from those.
+ *
+ * THE CAMPUS IS HERS TO SAY. Jimmy, 2 October: "no campus unless i specify".
+ * A class is not a Virtual thing or an HS thing in this model - the SESSION
+ * is. Craig teaches at HS, several teach at both, and the campus chosen here
+ * is what splits the money on the payroll screen.
  */
 
 interface CourseOption {
   courseId: string;
   name: string;
-  campus: "virtual" | "hs";
-  structuredLiteracy: boolean;
+  baseCents: number;
+  perAdditionalCents: number;
 }
 interface StudentOption {
   studentId: string;
@@ -54,6 +58,19 @@ interface HourlyRate {
 }
 
 const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+/**
+ * The grid, in the order Jimmy named them: "categorized by the school they
+ * attend fl, ga, av, hs". Shown AV first because most of the roll is there
+ * and a teacher should not scroll past two empty columns to reach her own.
+ */
+const SCHOOL_GROUPS: { key: PrimarySchool | "none"; label: string }[] = [
+  { key: "virtual", label: "AV" },
+  { key: "hs", label: "HS" },
+  { key: "fl", label: "FL" },
+  { key: "ga", label: "GA" },
+  { key: "none", label: "No school recorded" },
+];
 
 function addDays(iso: string, n: number): string {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -147,7 +164,6 @@ export function TeacherWeekScreen(props: {
         </div>
       ) : null}
 
-      {/* A short picker is a wrong week waiting to happen. Said before it is used. */}
       {props.pickerProblems.map((p) => (
         <div
           key={p}
@@ -169,9 +185,6 @@ export function TeacherWeekScreen(props: {
         </div>
       ) : null}
 
-      {/* ---------------------------------------------------------------- */}
-      {/* The totals                                                        */}
-      {/* ---------------------------------------------------------------- */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
         <div className="flex flex-wrap gap-6 text-sm">
           <Tile label="Classes" value={String(view.lines.length)} />
@@ -198,7 +211,6 @@ export function TeacherWeekScreen(props: {
         ) : null}
       </div>
 
-      {/* Everything that could not be priced. Never folded quietly into a total. */}
       {view.problems.length > 0 ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
           <p className="font-semibold">Some of this week could not be priced</p>
@@ -210,9 +222,6 @@ export function TeacherWeekScreen(props: {
         </div>
       ) : null}
 
-      {/* ---------------------------------------------------------------- */}
-      {/* Add a class                                                       */}
-      {/* ---------------------------------------------------------------- */}
       {!submitted ? (
         <AddClass
           weekStart={weekStart}
@@ -222,14 +231,11 @@ export function TeacherWeekScreen(props: {
           disabled={pending}
           onDone={(r) => {
             if ("error" in r) setNotice({ kind: "error", text: r.error });
-            else setNotice({ kind: "ok", text: "Class added." });
+            else setNotice({ kind: "ok", text: "Class added. Now say who was scheduled." });
           }}
         />
       ) : null}
 
-      {/* ---------------------------------------------------------------- */}
-      {/* The week, day by day                                              */}
-      {/* ---------------------------------------------------------------- */}
       {view.lines.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
           Nothing logged for this week yet. Add the first class you taught above.
@@ -262,7 +268,7 @@ export function TeacherWeekScreen(props: {
                           <p className="font-medium text-slate-900">
                             {line.courseName}{" "}
                             <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium uppercase text-slate-500">
-                              {line.campus === "hs" ? "HS" : "Virtual"}
+                              {line.campus === "hs" ? "HS" : "AV"}
                             </span>
                           </p>
                           <p className="mt-0.5 text-xs text-slate-500">
@@ -282,7 +288,10 @@ export function TeacherWeekScreen(props: {
                               type="button"
                               disabled={pending}
                               onClick={() =>
-                                run(() => removeClassAction(weekStart, line.entryId), "Class removed.")
+                                run(
+                                  () => removeClassAction(weekStart, line.entryId),
+                                  "Class removed."
+                                )
                               }
                               className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                             >
@@ -295,7 +304,7 @@ export function TeacherWeekScreen(props: {
                       <Roster
                         weekStart={weekStart}
                         entryId={line.entryId}
-                        labels={line.studentLabels}
+                        roster={line.roster}
                         scheduled={line.scheduled}
                         absent={line.absent}
                         allStudents={props.students}
@@ -312,9 +321,6 @@ export function TeacherWeekScreen(props: {
         </div>
       )}
 
-      {/* ---------------------------------------------------------------- */}
-      {/* The extras — item 17                                              */}
-      {/* ---------------------------------------------------------------- */}
       {!submitted ? (
         <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
           <h2 className="text-sm font-semibold text-slate-900">Anything else this week</h2>
@@ -353,9 +359,6 @@ export function TeacherWeekScreen(props: {
         </section>
       ) : null}
 
-      {/* ---------------------------------------------------------------- */}
-      {/* The kooky question, and Submit — item 16                          */}
-      {/* ---------------------------------------------------------------- */}
       {!submitted ? (
         <section className="space-y-3 rounded-2xl border border-slate-200 bg-white px-5 py-4">
           <label className="block">
@@ -411,7 +414,6 @@ function Tile({ label, value, muted }: { label: string; value: string; muted?: b
   );
 }
 
-/** Item 7 to item 11, in one row of controls. */
 function AddClass(props: {
   weekStart: string;
   courses: CourseOption[];
@@ -421,10 +423,10 @@ function AddClass(props: {
   onDone: (r: { success: true } | { error: string }) => void;
 }) {
   const [courseId, setCourseId] = useState("");
+  const [campus, setCampus] = useState<"virtual" | "hs">("virtual");
   const [date, setDate] = useState(props.weekStart);
   const [hour, setHour] = useState("09:00");
-  const [isGuest, setIsGuest] = useState(false);
-  const [guestFor, setGuestFor] = useState("");
+  const [who, setWho] = useState("mine");
   const [busy, setBusy] = useState(false);
 
   const course = props.courses.find((c) => c.courseId === courseId);
@@ -432,8 +434,8 @@ function AddClass(props: {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
       <h2 className="text-sm font-semibold text-slate-900">Add a class you taught</h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="block">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="block lg:col-span-2">
           <span className="mb-1 block text-xs font-medium text-slate-500">Class</span>
           <select
             value={courseId}
@@ -443,9 +445,22 @@ function AddClass(props: {
             <option value="">Choose…</option>
             {props.courses.map((c) => (
               <option key={c.courseId} value={c.courseId}>
-                {c.name} ({c.campus === "hs" ? "HS" : "Virtual"})
+                {c.name}
               </option>
             ))}
+          </select>
+        </label>
+
+        {/* Hers to say, not the course's. See the note at the top of the file. */}
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-slate-500">Campus</span>
+          <select
+            value={campus}
+            onChange={(e) => setCampus(e.target.value === "hs" ? "hs" : "virtual")}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          >
+            <option value="virtual">The Academy Virtual</option>
+            <option value="hs">The Academy HS</option>
           </select>
         </label>
 
@@ -481,38 +496,31 @@ function AddClass(props: {
             ))}
           </select>
         </label>
-
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">Whose class</span>
-          <select
-            value={isGuest ? guestFor || "guest" : "mine"}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v === "mine") {
-                setIsGuest(false);
-                setGuestFor("");
-              } else {
-                setIsGuest(true);
-                setGuestFor(v === "guest" ? "" : v);
-              }
-            }}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          >
-            <option value="mine">My own scheduled class</option>
-            {props.colleagues.map((c) => (
-              <option key={c.employeeId} value={c.employeeId}>
-                Guest teaching for {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
 
+      <label className="mt-3 block max-w-sm">
+        <span className="mb-1 block text-xs font-medium text-slate-500">Whose class</span>
+        <select
+          value={who}
+          onChange={(e) => setWho(e.target.value)}
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+        >
+          <option value="mine">My own scheduled class</option>
+          {props.colleagues.map((c) => (
+            <option key={c.employeeId} value={c.employeeId}>
+              Guest teaching for {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {/* The rate comes from the catalogue, never from the class name. */}
       {course ? (
         <p className="mt-2 text-xs text-slate-500">
-          {course.structuredLiteracy
-            ? "Structured Literacy — $35 for the first student, $5 for each one after."
-            : "$20 for the first student, $5 for each one after."}{" "}
+          {usd(course.baseCents)} for the first student
+          {course.perAdditionalCents > 0
+            ? `, ${usd(course.perAdditionalCents)} for each one after.`
+            : " — a flat rate, no per-student amount."}{" "}
           Guest teaching pays the same.
         </p>
       ) : null}
@@ -526,11 +534,11 @@ function AddClass(props: {
           const r = await addClassAction({
             weekStart: props.weekStart,
             courseId: course.courseId,
-            campus: course.campus,
+            campus,
             classDate: date,
             startTimeEt: hour,
-            isGuest,
-            guestForEmployeeId: isGuest ? guestFor || null : null,
+            isGuest: who !== "mine",
+            guestForEmployeeId: who !== "mine" ? who : null,
           });
           setBusy(false);
           if (!("error" in r)) setCourseId("");
@@ -545,17 +553,31 @@ function AddClass(props: {
 }
 
 /**
- * Who was on the class, and who did not come.
+ * Who was scheduled, and who did not come.
  *
- * The label carries the child's school in parentheses — item 20, and the
- * reason is that on 21 September a Virtual teacher's class of four campus
- * children priced as zero because nobody could see which school a child
- * belonged to.
+ * A GRID, NOT A DROPDOWN. Jimmy, 2 October: "put all students into a grid
+ * categorized by the school they attend fl, ga, av, hs and the teachers will
+ * choose which students were scheduled". A dropdown opened once per child is
+ * fine for two and miserable for twenty; every name is on screen at once
+ * here, grouped by school, and scheduling is one tap.
+ *
+ * THE SCHOOL IS BESIDE THE NAME BECAUSE OF 21 SEPTEMBER, when a Virtual
+ * teacher's class of four campus children priced as zero and nobody could
+ * see which school a child belonged to.
+ *
+ * SCHEDULED IS WHAT PAYS. Absent is recorded next to it and changes nothing
+ * about the money - Jimmy's decision of 29 September, said on the row so
+ * nobody has to remember it.
  */
 function Roster(props: {
   weekStart: string;
   entryId: string;
-  labels: readonly string[];
+  roster: readonly {
+    studentId: string;
+    name: string;
+    school: PrimarySchool | null;
+    absent: boolean;
+  }[];
   scheduled: number;
   absent: number;
   allStudents: StudentOption[];
@@ -564,7 +586,24 @@ function Roster(props: {
   onRun: (fn: () => Promise<{ success: true } | { error: string }>, ok?: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [pick, setPick] = useState("");
+
+  /* By id, never by name. Two children can share a name; an id is the only
+     thing that says which of them is on this class and which is absent. */
+  const onThisClass = useMemo(
+    () => new Map(props.roster.map((r) => [r.studentId, r])),
+    [props.roster]
+  );
+
+  const groups = useMemo(
+    () =>
+      SCHOOL_GROUPS.map((g) => ({
+        ...g,
+        students: props.allStudents.filter((s) =>
+          g.key === "none" ? !s.school : s.school === g.key
+        ),
+      })).filter((g) => g.students.length > 0),
+    [props.allStudents]
+  );
 
   return (
     <div className="mt-2">
@@ -574,58 +613,94 @@ function Roster(props: {
         className="text-xs text-slate-600 underline decoration-dotted underline-offset-4 hover:text-slate-900"
       >
         {props.scheduled} scheduled
-        {props.absent > 0 ? `, ${props.absent} absent` : ""} · {open ? "hide" : "show"}
+        {props.absent > 0 ? `, ${props.absent} absent` : ""} · {open ? "hide" : "choose who"}
       </button>
 
       {open ? (
-        <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2">
-          {props.labels.length === 0 ? (
-            <p className="text-xs text-slate-500">
+        <div className="mt-2 space-y-3 rounded-xl bg-slate-50 px-3 py-3">
+          {props.scheduled === 0 ? (
+            <p className="m-0 text-xs text-slate-500">
               Nobody scheduled yet. A class with nobody on it pays nothing.
             </p>
-          ) : (
-            <ul className="space-y-1 text-xs">
-              {props.labels.map((label) => (
-                <li key={label} className="text-slate-600">
-                  {label}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {!props.submitted ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <select
-                value={pick}
-                onChange={(e) => setPick(e.target.value)}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
-              >
-                <option value="">Add a child…</option>
-                {props.allStudents.map((s) => (
-                  <option key={s.studentId} value={s.studentId}>
-                    {studentLabel(s.name, s.school)}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={props.pending || !pick}
-                onClick={() => {
-                  props.onRun(
-                    () => scheduleStudentAction(props.weekStart, props.entryId, pick),
-                    "Child added to the class."
-                  );
-                  setPick("");
-                }}
-                className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              >
-                Add
-              </button>
-              <span className="text-[11px] text-slate-400">
-                An absence is recorded and does not reduce what this class pays.
-              </span>
-            </div>
           ) : null}
+
+          {groups.map((g) => (
+            <div key={g.key}>
+              <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                {g.label}
+              </p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {g.students.map((s) => {
+                  const entry = onThisClass.get(s.studentId);
+                  const on = entry !== undefined;
+                  const away = entry?.absent === true;
+                  return (
+                    <span key={s.studentId} className="inline-flex items-center">
+                      <button
+                        type="button"
+                        disabled={props.pending || props.submitted}
+                        onClick={() =>
+                          props.onRun(
+                            () =>
+                              on
+                                ? unscheduleStudentAction(
+                                    props.weekStart,
+                                    props.entryId,
+                                    s.studentId
+                                  )
+                                : scheduleStudentAction(
+                                    props.weekStart,
+                                    props.entryId,
+                                    s.studentId
+                                  ),
+                            on ? `${s.name} taken off this class.` : `${s.name} scheduled.`
+                          )
+                        }
+                        className={
+                          on
+                            ? "rounded-l-lg border border-slate-900 bg-slate-900 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50"
+                            : "rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-50"
+                        }
+                      >
+                        {s.name}
+                      </button>
+                      {on && !props.submitted ? (
+                        <button
+                          type="button"
+                          disabled={props.pending}
+                          onClick={() =>
+                            props.onRun(
+                              () =>
+                                setAbsentAction(
+                                  props.weekStart,
+                                  props.entryId,
+                                  s.studentId,
+                                  !away
+                                ),
+                              away ? `${s.name} marked here.` : `${s.name} marked absent.`
+                            )
+                          }
+                          className={
+                            away
+                              ? "rounded-r-lg border border-l-0 border-amber-400 bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-900 disabled:opacity-50"
+                              : "rounded-r-lg border border-l-0 border-slate-900 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
+                          }
+                          title="Marking absent does not change what this class pays"
+                        >
+                          {away ? "absent" : "here"}
+                        </button>
+                      ) : null}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          <p className="m-0 text-[11px] leading-snug text-slate-400">
+            Tap a name to schedule them. Everyone scheduled counts as here unless you mark them
+            absent, and marking somebody absent does not change what this class pays.
+          </p>
         </div>
       ) : null}
     </div>
@@ -649,20 +724,18 @@ function ExtraRow(props: {
           {usd(rule.cents)} per {rule.per}
         </span>
       </span>
-      <span className="flex items-center gap-2">
-        <input
-          type="number"
-          min={0}
-          step={rule.per === "hour" ? 0.25 : 1}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={() =>
-            props.onRun(() => setExtraClaimAction(props.weekStart, props.kind, Number(value)))
-          }
-          disabled={props.disabled}
-          className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-sm"
-        />
-      </span>
+      <input
+        type="number"
+        min={0}
+        step={rule.per === "hour" ? 0.25 : 1}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() =>
+          props.onRun(() => setExtraClaimAction(props.weekStart, props.kind, Number(value)))
+        }
+        disabled={props.disabled}
+        className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-sm"
+      />
     </label>
   );
 }
