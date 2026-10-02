@@ -271,24 +271,53 @@ export async function listCourseOptions(
  * count is reported so the caller can say so out loud rather than render a
  * short list as if it were the whole school.
  */
+/**
+ * Every active child in the network, for the grid a teacher picks from.
+ *
+ * THIS USED TO READ public.students DIRECTLY AND IT RETURNED THE WRONG
+ * ANSWER WITHOUT SAYING SO. Peter Alouise, 2 October 2026: "Most of my kids
+ * are not on the list to be assigned into my classes." He was seeing nine
+ * names, all AV - exactly The Academy Virtual's roll - out of seventy-seven.
+ *
+ * There was no school filter in this function then either. The cut was
+ * underneath, in students_select_school_scoped, which for a teacher resolves
+ * to can_access_school() and so to her own campus. No error, just fewer rows.
+ *
+ * That policy is right for student records and wrong for this one question.
+ * Jimmy, 2 October: "i need to make sure every teacher can see all students
+ * for every class." Virtual teachers teach children enrolled at FL, GA and
+ * HS, and a teacher who cannot name the child she taught logs a class with
+ * nobody on it - which pays her nothing.
+ *
+ * So the read goes through students_a_teacher_may_log() (migration 468), a
+ * security-definer function returning FOUR COLUMNS for active children only,
+ * with the who-is-asking check inside it. Four columns, one question. If a
+ * fifth is ever needed, it is added there, with a reason.
+ *
+ * A MISSING FUNCTION IS REPORTED, NOT SWALLOWED. If 468 has not been run the
+ * teacher sees a sentence telling her to say something, rather than an empty
+ * grid she would read as "the children are gone".
+ */
 export async function listStudentOptions(
   supabase: AuthClient
 ): Promise<{ students: StudentOption[] } | { error: string }> {
-  const { data, error } = await supabase
-    .from("students")
-    .select("id, first_name, last_name, status, schools(name)")
-    .order("last_name");
+  const { data, error } = await supabase.rpc("students_a_teacher_may_log");
 
-  if (error) return { error: `Could not read the student list: ${error.message}` };
+  if (error) {
+    return {
+      error:
+        `Could not read the student list: ${error.message}. ` +
+        `Tell Jimmy or Heather - do not submit a class without its children on it.`,
+    };
+  }
 
   const students: StudentOption[] = [];
   for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
-    const status = String(row.status ?? "").toLowerCase();
-    if (status && status !== "active") continue;
+    const name = `${String(row.first_name ?? "").trim()} ${String(row.last_name ?? "").trim()}`.trim();
     students.push({
-      studentId: String(row.id),
-      name: nameOf(row) || "(unnamed student)",
-      school: primarySchoolOf(one(row.schools)?.name as string | undefined),
+      studentId: String(row.student_id),
+      name: name || "(unnamed student)",
+      school: primarySchoolOf(row.school_name as string | undefined),
     });
   }
   return { students };
