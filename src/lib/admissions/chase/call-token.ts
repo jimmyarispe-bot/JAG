@@ -147,27 +147,44 @@ export async function leadForCallToken(token: string): Promise<CallSubject | nul
   };
 }
 
+/**
+ * Four answers, in Jimmy's words (3 October 2026).
+ *
+ * They were longer and written in the first person - "I spoke to them - they
+ * will book". He shortened all four to a noun and a verb. He is right: this is
+ * read standing up, on a phone, by somebody who has just put the receiver down
+ * and wants to be finished. Four short labels are scanned; four sentences are
+ * read, and reading takes a decision she has already made and makes her make
+ * it again.
+ *
+ * THE STORED VALUES ARE UNCHANGED. `spoke_will_book` and
+ * `spoke_not_proceeding` still go into lead_call_outcomes, because migration
+ * 479's check constraint names them and nothing is gained by churning a
+ * database column to match a label. The value is what the system matches on;
+ * the label is what a person reads. Keeping them separate is what lets the
+ * wording change again without a migration.
+ */
 export const CALL_OUTCOMES = [
   {
     value: "spoke_will_book",
-    label: "I spoke to them — they will book",
+    label: "They will schedule",
     consequence: "No more automatic emails. You have this family in hand.",
   },
   {
     value: "spoke_not_proceeding",
-    label: "I spoke to them — they are not going ahead",
+    label: "Not interested",
     consequence:
       "Recorded against the family. Close the inquiry in JAG when you are ready — " +
       "nothing is sent to them from here.",
   },
   {
     value: "left_message",
-    label: "I left a message",
+    label: "Left message",
     consequence: "Recorded. No more automatic emails.",
   },
   {
     value: "no_answer",
-    label: "I could not reach them",
+    label: "No answer",
     consequence: "Recorded. No more automatic emails.",
   },
 ] as const;

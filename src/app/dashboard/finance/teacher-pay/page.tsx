@@ -89,11 +89,22 @@ export default async function TeacherPayrollPage({
     <Shell weekStart={weekStart}>
       {unavailable ? <Amber title="This week could not be read">{unavailable}</Amber> : null}
 
-      {/* The three numbers, split AV and HS — item 23. */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      {/*
+        FOUR NUMBERS, AND THEY ADD UP — item 23, corrected 3 October 2026.
+        There were three: the week, Virtual, HS. The two campus figures count
+        CLASS pay only, because an extra has no campus: a monthly teacher
+        meeting is not taught at Virtual or at HS, it is attended. So Virtual
+        plus HS never equalled the week, and nothing on the page said why.
+        Jimmy, looking at Peter Alouise's $1,145.00 beside $0.00 AV and
+        $1,130.00 HS: "why are there 2 different amount for peter at the top
+        right". The missing fifteen dollars was computed, carried all the way
+        here as unattributedCents, and then not drawn.
+      */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Figure label="The week" value={usd(week.totalCents)} big />
         <Figure label="The Academy Virtual" value={usd(week.virtualCents)} />
         <Figure label="The Academy HS" value={usd(week.hsCents)} />
+        <Figure label="Extras and hours" value={usd(week.unattributedCents)} />
       </div>
 
       {/* Nothing should be paid on a week nobody has submitted. */}
@@ -166,6 +177,7 @@ export default async function TeacherPayrollPage({
                   <span className="text-lg font-semibold text-slate-900">{usd(t.totalCents)}</span>
                   <span className="ml-2 text-xs text-slate-500">
                     {usd(t.virtualCents)} AV · {usd(t.hsCents)} HS
+                    {t.unattributedCents > 0 ? ` · ${usd(t.unattributedCents)} extras` : ""}
                   </span>
                 </span>
               </summary>
@@ -220,6 +232,43 @@ export default async function TeacherPayrollPage({
                     </tbody>
                   </table>
                 )}
+
+                {/*
+                  EVERY EXTRA, NAMED. Jimmy, 3 October: "i want to see all
+                  specific extras and the total for everyone". The claims were
+                  already priced and already carried a label and a quantity -
+                  "Monthly teacher meeting, 1 × occurrence" - and the payroll
+                  screen simply never asked for them. A refused claim is shown
+                  with its reason rather than dropped, for the same reason a
+                  class that cannot be priced is: a total that is quietly short
+                  is worse than one that says where it went wrong.
+                */}
+                {t.extras.length > 0 ? (
+                  <table className="mt-4 min-w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase tracking-wide text-slate-400">
+                        <th className="pb-1 pr-3 font-medium">Extras and hours</th>
+                        <th className="pb-1 pr-3 font-medium">How much</th>
+                        <th className="pb-1 text-right font-medium">Pays</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {t.extras.map((e, i) => (
+                        <tr key={`${e.label}-${i}`} className="align-top">
+                          <td className="py-1.5 pr-3 text-slate-900">{e.label}</td>
+                          <td className="py-1.5 pr-3 text-slate-500">{e.detail}</td>
+                          <td className="py-1.5 text-right font-medium text-slate-900">
+                            {e.problem ? (
+                              <span className="text-rose-700">{e.problem}</span>
+                            ) : (
+                              usd(e.cents)
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : null}
 
                 <PayrollWeekControls
                   employeeId={t.employeeId}

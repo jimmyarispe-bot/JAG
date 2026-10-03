@@ -277,6 +277,19 @@ export interface PayrollLine {
   readonly kookyNote: string | null;
   /** Item 22 — the classes themselves, so a week can be read, not just totalled. */
   readonly lines: readonly ClassLine[];
+  /**
+   * The extras and hours, itemised.
+   *
+   * WHY THEY HAD TO COME UP HERE. unattributedCents was carried to the payroll
+   * screen and the screen had no way to say what it was made of, because the
+   * claims themselves stopped at TeacherWeekView. So Peter Alouise's line read
+   * "$1,145.00 · $0.00 AV · $1,130.00 HS" and the fifteen dollars between the
+   * total and the split had no name and no explanation anywhere on the page.
+   *
+   * A number on a payroll screen that does not reconcile is not a rounding
+   * question. It is the reader deciding whether to trust the screen.
+   */
+  readonly extras: TeacherWeekView["extras"];
   readonly problems: readonly string[];
 }
 
@@ -348,6 +361,7 @@ export function payrollWeek(input: {
     status: t.week.status,
     kookyNote: t.week.kookyNote,
     lines: t.week.lines,
+    extras: t.week.extras,
     problems: t.week.problems,
   }));
 
