@@ -112,7 +112,10 @@ export interface ScanReport {
   readonly bookingsSeen: number;
   readonly bookingsMatched: number;
   readonly bookingsAmbiguous: readonly string[];
+  /** New, still to come, and the family and campus were told. */
   readonly bookingsRecorded: readonly string[];
+  /** New, but already in the past: the row is written and nobody is told. */
+  readonly bookingsNotNotified: readonly string[];
   readonly leadsConsidered: number;
   readonly letters: readonly {
     readonly leadId: string;
@@ -152,6 +155,7 @@ export async function runInterestMeetingScan(
     bookingsMatched: 0,
     bookingsAmbiguous: [],
     bookingsRecorded: [],
+    bookingsNotNotified: [],
     leadsConsidered: 0,
     letters: [],
     errors,
@@ -372,13 +376,36 @@ export async function runInterestMeetingScan(
 
   const bookingsAmbiguous: string[] = [];
   const bookingsRecorded: string[] = [];
+  const bookingsNotNotified: string[] = [];
   let bookingsMatched = 0;
 
   for (const booking of calendars.bookings) {
     const match = matchBookingToLead(booking, leadsByEmail);
     if (!match) continue;
+
     if ("ambiguous" in match) {
       bookingsAmbiguous.push(describe(booking, match.ambiguous));
+
+      /*
+       * UNMATCHABLE STILL MEANS UNCHASED.
+       *
+       * The first dry run, 2 October: ten families would have been sent "we
+       * have not managed to find a time yet", and TWO of them were sitting in
+       * this list. They had booked. The matcher simply could not tell which of
+       * two children with the same guardian address the meeting was for.
+       *
+       * Being unsure which sibling a meeting belongs to is not a reason to
+       * email their parent asking why they have not booked one. So every
+       * candidate is marked as booked for the purposes of the chase - which
+       * suppresses it - while nothing is recorded against any child, because
+       * that part genuinely is unknown and a person should decide it.
+       *
+       * The asymmetry is deliberate: silence is recoverable, a wrong letter
+       * is not.
+       */
+      for (const candidate of match.ambiguous) {
+        if (!bookedAt.has(candidate)) bookedAt.set(candidate, new Date(booking.startsAt));
+      }
       continue;
     }
 
@@ -388,8 +415,34 @@ export async function runInterestMeetingScan(
     /* Already known about. Nothing to do, and nothing to tell anyone twice. */
     if (bookedAt.has(leadId)) continue;
 
-    bookedAt.set(leadId, new Date(booking.startsAt));
-    bookingsRecorded.push(`${leadId} <- ${appointmentTextForFamily(booking.startsAt)}`);
+    /*
+     * A MEETING THAT HAS ALREADY HAPPENED IS RECORDED, AND NOBODY IS TOLD.
+     *
+     * The first dry run found seventeen bookings and SIXTEEN were in the past
+     * - 19 August, 25 August, 1 September, 22 September. Recording a booking
+     * fires the family's confirmation and the staff notice, so a real run
+     * would have posted sixteen letters in October reading "your interest
+     * meeting is Wednesday, 19 August 2026 at 9:00 AM", to families who either
+     * came or did not, six weeks ago.
+     *
+     * The ROW is still worth writing: it is what stops those families being
+     * chased, and it makes the pipeline true. The LETTER is worth nothing to
+     * anybody. So the two are separated here, which they never were before
+     * because nothing had ever looked at a calendar.
+     *
+     * The boundary is the start time against now. A meeting at three o'clock
+     * this afternoon is still ahead of the family and is announced normally.
+     */
+    const startsAt = new Date(booking.startsAt);
+    const alreadyHappened = startsAt.getTime() < now.getTime();
+
+    bookedAt.set(leadId, startsAt);
+    const when = appointmentTextForFamily(booking.startsAt);
+    if (alreadyHappened) {
+      bookingsNotNotified.push(`${leadId} <- ${when} (already happened; recorded, nobody told)`);
+    } else {
+      bookingsRecorded.push(`${leadId} <- ${when}`);
+    }
     if (dryRun) continue;
 
     const { error } = await supabase.from("admissions_interviews").insert({
@@ -407,6 +460,9 @@ export async function runInterestMeetingScan(
       errors.push(`Could not record the booking for ${leadId}: ${error.message}`);
       continue;
     }
+
+    /* The row is written. The letters are only for a meeting still to come. */
+    if (alreadyHappened) continue;
 
     try {
       /*
@@ -541,6 +597,7 @@ export async function runInterestMeetingScan(
     bookingsMatched,
     bookingsAmbiguous,
     bookingsRecorded,
+    bookingsNotNotified,
     leadsConsidered: leads.length,
     letters,
     errors,
