@@ -1,6 +1,26 @@
-import "server-only";
-
 import type { SendEmailParams } from "@/lib/platform/email/types";
+
+/*
+ * NO `import "server-only"` HERE, AND IT IS NOT AN OVERSIGHT.
+ *
+ * It was there, and it broke the build in under two seconds:
+ *
+ *     Error: Cannot find module 'server-only'
+ *     Require stack:
+ *     - src/lib/platform/email/divert.ts
+ *     - src/lib/platform/email/send.ts
+ *       ... twelve more ...
+ *     - src/lib/platform/diagnostics/validate-registry.ts
+ *
+ * `server-only` is not a dependency of this project. It is an alias Next
+ * resolves inside its own bundler. The twenty-one validation gates that run
+ * before `next build` run under tsx, outside Next, and the first of them
+ * imports a chain fourteen modules deep that reaches the email module - so
+ * the gate died before a line of the application was compiled.
+ *
+ * send.ts, the file this one sits beside and is only ever imported by, does
+ * not have the import either. That was the hint.
+ */
 
 /**
  * Nothing reaches a parent.
