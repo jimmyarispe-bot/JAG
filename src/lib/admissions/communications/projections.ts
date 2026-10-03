@@ -11,8 +11,16 @@ export const COMMUNICATION_TEMPLATE_COLS =
   "id, school_id, template_key, name, channel, trigger_event, subject, body, delay_hours, is_active, category, version_number, description" as const;
 
 /** Queue worker only needs ids + custom overrides + nested template. */
+/**
+ * merge_overrides carries what the moment of QUEUEING knew and the moment of
+ * SENDING cannot find out. Added 3 October 2026 for the interest-meeting
+ * escalation, which tells a school leader the three dates on which the family
+ * was emailed - facts the 11pm scan has in hand and which are unrecoverable by
+ * 7am the next morning. Null on every row that existed before, and null
+ * spreads as nothing.
+ */
 export const COMMUNICATION_QUEUE_PROCESS_COLS =
-  `id, lead_id, application_id, custom_subject, custom_body, admissions_communication_templates(${COMMUNICATION_TEMPLATE_COLS})` as const;
+  `id, lead_id, application_id, custom_subject, custom_body, merge_overrides, admissions_communication_templates(${COMMUNICATION_TEMPLATE_COLS})` as const;
 
 /** Interview/tour reminder scheduling only needs template identity + channel. */
 export const COMMUNICATION_TEMPLATE_QUEUE_COLS =

@@ -68,6 +68,27 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   "staff_application_submitted",
   "staff_application_accepted",
   "staff_portal_message",
+  /*
+   * The interest-meeting chase, 3 October 2026.
+   *
+   * There was no "the family never booked" event at all. The four parent
+   * reminders that exist cover applications, shadow days and enrollment, and
+   * all four are switched off, so today a family who is sent a booking link
+   * and never uses it is never heard from again by anybody.
+   *
+   * Decided by the 11pm calendar scan, which reads the campus calendars
+   * before it writes anything - so these can only ever reach a family who
+   * genuinely has not booked.
+   *
+   * The escalation is staff_* and sits on channel staff_email. That is not a
+   * detail: staff_parent_unresponsive was written on channel 'email', which
+   * sends to the guardian, and it carries the family's own name and telephone
+   * number and the line "Someone should call them". It has never gone out
+   * only because it is switched off at all four campuses.
+   */
+  "parent_interest_meeting_not_booked_1",
+  "parent_interest_meeting_not_booked_2",
+  "staff_interest_meeting_no_response",
 ] as const;
 
 export type CommunicationTriggerEvent = (typeof COMMUNICATION_TRIGGER_EVENTS)[number];
@@ -176,6 +197,31 @@ export const MERGE_FIELDS = [
      it depends on have to ship together, code first.
   */
   "attachment_note",
+  /*
+     THE CHASE, 3 October 2026. Four of these exist for one letter only -
+     staff_interest_meeting_no_response - and they are what make it worth
+     reading: a school leader about to telephone a family wants to know what
+     has already been tried, what the family said in the first place, and
+     where to record what came of the call.
+
+     Registered HERE as well as in the merge map on purpose. This list is the
+     closed set a template may use, and adding a value to the renderer without
+     adding its name here is a type error - which is exactly the gate that
+     caught attachment_note on 17 September, after a template had already been
+     updated in production to use a token the deployed code did not know.
+     renderTemplate leaves an unresolved token in place as literal text, so the
+     failure mode is a school leader reading "{{call_link}}".
+
+     Migration 479 seeds all three chase templates INACTIVE and must be run
+     AFTER this ships. Same ordering rule, same reason: code first.
+  */
+  "invite_sent_at",
+  "reminder_1_sent_at",
+  "reminder_2_sent_at",
+  /** What the family wrote about their child when they inquired. */
+  "inquiry_notes",
+  /** Opens /call/<token> - record how the phone call went. */
+  "call_link",
 ] as const;
 
 export type MergeField = (typeof MERGE_FIELDS)[number];
@@ -219,6 +265,9 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   staff_application_submitted: "Staff: Application Submitted",
   staff_application_accepted: "Staff: Application Accepted",
   staff_portal_message: "Staff: Portal Message",
+  parent_interest_meeting_not_booked_1: "Interest Meeting Not Booked (1st follow-up)",
+  parent_interest_meeting_not_booked_2: "Interest Meeting Not Booked (2nd follow-up)",
+  staff_interest_meeting_no_response: "Staff: Three Attempts, No Booking",
 };
 
 export const CHANNEL_LABELS: Record<CommunicationChannel, string> = {

@@ -67,6 +67,27 @@ export interface MergeContext {
    */
   shadowDaysNote?: string | null;
   /**
+   * What has already been tried, for the one letter that asks a school leader
+   * to pick up the telephone.
+   *
+   * ALREADY RENDERED FOR A READER, not ISO strings. The caller passes these
+   * through appointmentTextForFamily, because `interview_datetime` below is a
+   * passthrough and whatever a caller hands it is exactly what a human reads -
+   * which is how three families were told the wrong hour on 1 October. Typing
+   * these as strings puts the timezone decision at the one place that knows
+   * the rule instead of hoping each caller remembers it.
+   */
+  inviteSentAt?: string | null;
+  reminder1SentAt?: string | null;
+  reminder2SentAt?: string | null;
+  /**
+   * What the family wrote about their child when they inquired. The one thing
+   * that makes a cold telephone call easy to start.
+   */
+  inquiryNotes?: string | null;
+  /** Minted when the escalation is queued. Opens /call/<token>. */
+  interestCallToken?: string | null;
+  /**
    * The school's own From address. Not a merge field — nothing renders it into
    * a body — but it rides along here because this is the object the delivery
    * path already carries, and threading a parallel one would be two things to
@@ -219,6 +240,35 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     attachment_note: (ctx.uploadedDocuments ?? []).length
       ? `Attached: ${(ctx.uploadedDocuments ?? []).join(", ")}.`
       : "",
+    /*
+       "not recorded" rather than an empty line.
+
+       These three sit under the headings "1st —", "2nd —", "3rd —" in the
+       escalation letter. An empty value renders "2nd —" and nothing after it,
+       which reads as though the system is unsure whether it sent the letter.
+       It is not unsure: a blank here means the row is not in
+       admissions_communications, which is itself worth a school leader seeing
+       before she tells a family they were emailed three times.
+    */
+    invite_sent_at: ctx.inviteSentAt ?? "not recorded",
+    reminder_1_sent_at: ctx.reminder1SentAt ?? "not recorded",
+    reminder_2_sent_at: ctx.reminder2SentAt ?? "not recorded",
+    inquiry_notes:
+      (ctx.inquiryNotes ?? "").trim() ||
+      "They did not write anything when they inquired.",
+    /*
+       THE FALLBACK IS THE CASE PAGE, NOT A BROKEN LINK.
+
+       Same reasoning as applicationLink above: a lead with no token should
+       land somewhere real. The case page needs a sign-in, which is wrong for
+       a parent and perfectly fine for a school leader, who is the only person
+       this letter is ever sent to.
+    */
+    call_link: ctx.interestCallToken?.trim()
+      ? `${resolvePublicAppOrigin()}/call/${ctx.interestCallToken.trim()}`
+      : ctx.leadId
+        ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}`
+        : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
     award_amount: ctx.awardAmount ?? "",
     award_id: ctx.awardId ?? "",
     state_student_id: ctx.stateStudentId ?? "",

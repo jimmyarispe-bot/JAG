@@ -637,11 +637,32 @@ export async function processCommunicationQueue(supabase: AuthClient) {
       continue;
     }
 
+    /*
+     * WHAT THE QUEUE REMEMBERS ABOUT WHY IT WAS QUEUED.
+     *
+     * Until now a queued letter was rendered purely from the lead as it
+     * stands when the letter finally goes out, with no way to carry anything
+     * the moment of queueing knew. triggerCommunications has always accepted
+     * mergeOverrides; the queue silently dropped them.
+     *
+     * That is fine for a reminder that only needs the family's name, and it
+     * is useless for the escalation the 11pm scan writes, which has to tell a
+     * school leader the three dates on which this family was emailed. The
+     * scan knows them - it has just read them - and nothing else ever will,
+     * because by 7am the next morning they are three rows among thousands.
+     *
+     * Overrides are applied LAST, over the freshly loaded context, so a value
+     * the queue carried deliberately is not quietly replaced by a stale one.
+     * A null column spreads as nothing and every existing row behaves exactly
+     * as it did before.
+     */
+    const overrides = (item.merge_overrides ?? null) as Partial<MergeContext> | null;
+
     const commId = await deliverCommunication(supabase, {
       leadId: item.lead_id,
       applicationId: item.application_id,
       template,
-      mergeCtx: packed.mergeCtx,
+      mergeCtx: overrides ? { ...packed.mergeCtx, ...overrides } : packed.mergeCtx,
       sentBy: null,
       customSubject: item.custom_subject,
       customBody: item.custom_body,
