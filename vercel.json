@@ -9,20 +9,8 @@
       "schedule": "0 3 * * *"
     },
     {
-      "path": "/api/admissions/interest-meeting-scan",
-      "schedule": "0 4 * * *"
-    },
-    {
       "path": "/api/admissions/process-communications",
-      "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/admissions/process-communications",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/admissions/process-communications",
-      "schedule": "0 13 * * *"
+      "schedule": "0 * * * *"
     }
   ]
 }
