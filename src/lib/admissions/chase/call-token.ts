@@ -19,6 +19,19 @@ import "server-only";
  * The token is the authority, exactly as it is on the application link and
  * the fee page, and it is the only thing accepted here.
  *
+ * WHY THE CLIENT IS CAST, which is the other thing apply-link/token.ts does
+ * and for the same reason. createServiceRoleClient() is SupabaseClient<
+ * Database>, and src/types/database.ts was generated on 9 July 2026 - over a
+ * hundred migrations ago. lead_call_outcomes is not in it, and neither are
+ * teacher_class_entries, platform_job_runs or school_admissions_contacts.
+ * The cookie-bound client used everywhere else carries no generic at all, so
+ * this only ever bites on the service-role path.
+ *
+ * The cast is NARROW ON PURPOSE: these five methods and no others, so it
+ * cannot quietly become a licence to do anything at all with the most
+ * dangerous client in the codebase. It goes away the day somebody re-runs
+ * `supabase gen types typescript --linked`.
+ *
  * WHAT IT RETURNS IS WHAT THE PAGE NEEDS AND NOT ONE COLUMN MORE. A name, a
  * campus, a telephone number, an email, and what the family said when they
  * inquired. No date of birth, no address, no decision history. Whoever holds
@@ -29,6 +42,31 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
 const TOKEN_PATTERN = /^[0-9a-f]{64}$/;
+
+type Row = Record<string, unknown>;
+type Answer<T> = PromiseLike<{ data: T; error: { message: string } | null }>;
+
+interface Query {
+  select: (columns: string) => Query;
+  eq: (column: string, value: string) => Query;
+  order: (column: string, options: { ascending: boolean }) => Query;
+  limit: (count: number) => Query & Answer<Row[] | null>;
+  maybeSingle: () => Answer<Row | null>;
+  insert: (row: Row) => Answer<null>;
+}
+
+interface UntypedAdmin {
+  from: (table: string) => Query;
+}
+
+function admin(): UntypedAdmin {
+  return createServiceRoleClient() as unknown as UntypedAdmin;
+}
+
+function text(value: unknown): string | null {
+  const out = typeof value === "string" ? value.trim() : "";
+  return out ? out : null;
+}
 
 export interface CallSubject {
   readonly leadId: string;
@@ -47,26 +85,12 @@ export interface CallSubject {
   }[];
 }
 
-type LeadRow = {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  preferred_name: string | null;
-  guardian_first_name: string | null;
-  guardian_last_name: string | null;
-  guardian_email: string | null;
-  guardian_phone: string | null;
-  notes: string | null;
-  created_at: string;
-  schools: { name?: string } | { name?: string }[] | null;
-};
-
 export async function leadForCallToken(token: string): Promise<CallSubject | null> {
   if (!TOKEN_PATTERN.test(token)) return null;
 
-  const admin = createServiceRoleClient();
+  const db = admin();
 
-  const { data, error } = await admin
+  const { data, error } = await db
     .from("admissions_leads")
     .select(
       "id, first_name, last_name, preferred_name, guardian_first_name, " +
@@ -82,35 +106,43 @@ export async function leadForCallToken(token: string): Promise<CallSubject | nul
   }
   if (!data) return null;
 
-  const lead = data as unknown as LeadRow;
-  const school = Array.isArray(lead.schools) ? lead.schools[0] : lead.schools;
+  const lead = data as Row;
+  const leadId = String(lead.id ?? "");
+  if (!leadId) return null;
 
-  const { data: calls } = await admin
+  /* PostgREST returns an embedded row as an object or a one-element array. */
+  const embedded = lead.schools as Row | Row[] | null;
+  const school = (Array.isArray(embedded) ? embedded[0] : embedded) ?? null;
+
+  const { data: calls } = await db
     .from("lead_call_outcomes")
     .select("called_at, outcome, notes")
-    .eq("lead_id", lead.id)
+    .eq("lead_id", leadId)
     .order("called_at", { ascending: false })
     .limit(10);
 
   const studentName =
-    lead.preferred_name?.trim() ||
-    `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() ||
+    text(lead.preferred_name) ||
+    `${text(lead.first_name) ?? ""} ${text(lead.last_name) ?? ""}`.trim() ||
     "This student";
 
+  const guardianName =
+    `${text(lead.guardian_first_name) ?? ""} ${text(lead.guardian_last_name) ?? ""}`.trim() ||
+    null;
+
   return {
-    leadId: lead.id,
+    leadId,
     studentName,
-    schoolName: school?.name ?? null,
-    guardianName:
-      `${lead.guardian_first_name ?? ""} ${lead.guardian_last_name ?? ""}`.trim() || null,
-    guardianPhone: lead.guardian_phone,
-    guardianEmail: lead.guardian_email,
-    inquiryNotes: lead.notes,
-    inquiredAt: lead.created_at,
-    previousCalls: (calls ?? []).map((c) => ({
-      calledAt: String(c.called_at),
-      outcome: String(c.outcome),
-      notes: (c.notes as string | null) ?? null,
+    schoolName: text(school?.name),
+    guardianName,
+    guardianPhone: text(lead.guardian_phone),
+    guardianEmail: text(lead.guardian_email),
+    inquiryNotes: text(lead.notes),
+    inquiredAt: String(lead.created_at ?? new Date().toISOString()),
+    previousCalls: ((calls ?? []) as Row[]).map((call) => ({
+      calledAt: String(call.called_at ?? ""),
+      outcome: String(call.outcome ?? ""),
+      notes: text(call.notes),
     })),
   };
 }
@@ -143,7 +175,7 @@ export const CALL_OUTCOMES = [
 export type CallOutcome = (typeof CALL_OUTCOMES)[number]["value"];
 
 export function isCallOutcome(value: unknown): value is CallOutcome {
-  return CALL_OUTCOMES.some((o) => o.value === value);
+  return CALL_OUTCOMES.some((option) => option.value === value);
 }
 
 /**
@@ -170,18 +202,18 @@ export async function recordCallOutcome(params: {
   if (!TOKEN_PATTERN.test(params.token)) return { error: "That link is not valid." };
   if (!isCallOutcome(params.outcome)) return { error: "Choose how the call went." };
 
-  const admin = createServiceRoleClient();
+  const db = admin();
 
-  const { data: lead } = await admin
+  const { data: lead } = await db
     .from("admissions_leads")
     .select("id")
     .eq("interest_call_token", params.token)
     .maybeSingle();
 
-  const leadId = (lead as { id?: string } | null)?.id;
+  const leadId = lead ? String((lead as Row).id ?? "") : "";
   if (!leadId) return { error: "That link is not valid." };
 
-  const { error } = await admin.from("lead_call_outcomes").insert({
+  const { error } = await db.from("lead_call_outcomes").insert({
     lead_id: leadId,
     outcome: params.outcome,
     notes: params.notes?.trim() || null,
