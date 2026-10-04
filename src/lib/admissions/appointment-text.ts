@@ -19,23 +19,73 @@
  * everyone else adjusts."
  *
  * Built from parts rather than one format string because no single locale
- * gives "Thursday, 24 September 2026 at 1:00 PM" - en-US puts the month
- * first, en-GB uses a 24-hour clock.
+ * gives the shape below - en-US puts a comma in a different place, en-GB uses
+ * a 24-hour clock.
+ *
+ * THE SHAPE CHANGED ON 4 OCTOBER 2026, at Jimmy's request, reading a draft of
+ * the interest-meeting confirmation:
+ *
+ *     "Can we change this to day, month, date, year @ time am/pm?"
+ *
+ *   was   Wednesday, 7 October 2026 at 3:15 PM
+ *   now   Wednesday, October 7, 2026 @ 3:15 PM
+ *
+ * He is correcting an inconsistency, not just a preference. "7 October 2026"
+ * is British order, and his standing rule is American English - the same rule
+ * that gave us enrollment over enrolment and program over programme. A date a
+ * Florida parent reads should be written the way a Florida parent writes one.
+ *
+ * THIS IS THE ONLY PLACE ANY APPOINTMENT TIME IS FORMATTED, so the change
+ * reaches tours, interest meetings and shadow days together. That is the
+ * point of the file: on 1 October three families were told the wrong hour
+ * because a second, private formatting existed somewhere else.
  */
+
+const EASTERN = "America/New_York";
+
+function parts(iso: string, options: Intl.DateTimeFormatOptions) {
+  const found = new Intl.DateTimeFormat("en-US", {
+    timeZone: EASTERN,
+    ...options,
+  }).formatToParts(new Date(iso));
+  return (type: string) => found.find((p) => p.type === type)?.value ?? "";
+}
+
+/** "Wednesday, October 7, 2026 @ 3:15 PM" */
 export function appointmentTextForFamily(iso: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
+  const part = parts(iso, {
     weekday: "long",
-    day: "numeric",
     month: "long",
+    day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
-  }).formatToParts(new Date(iso));
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  });
   return (
-    `${part("weekday")}, ${part("day")} ${part("month")} ${part("year")}` +
-    ` at ${part("hour")}:${part("minute")} ${part("dayPeriod")}`
+    `${part("weekday")}, ${part("month")} ${part("day")}, ${part("year")}` +
+    ` @ ${part("hour")}:${part("minute")} ${part("dayPeriod")}`
   );
+}
+
+/**
+ * Just the clock: "3:15 PM".
+ *
+ * For a letter that has already said which day it means. The reminder sent
+ * the evening before reads "our meeting to discuss Callum tomorrow at
+ * 3:15 PM" - putting the full date after the word "tomorrow" would be both
+ * redundant and faintly absurd.
+ *
+ * Written as a second function rather than an argument to the first, because
+ * a caller choosing a format is a caller that can choose wrongly, and the one
+ * thing this file exists to prevent is a time rendered somewhere nobody
+ * thought to check.
+ */
+export function appointmentTimeForFamily(iso: string): string {
+  const part = parts(iso, {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${part("hour")}:${part("minute")} ${part("dayPeriod")}`;
 }

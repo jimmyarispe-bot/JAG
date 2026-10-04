@@ -9,7 +9,10 @@ import {
 import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/types";
 import { dispatchAdmissionsAutomation } from "@/lib/admissions/automation/dispatch";
 import type { WorkflowTriggerEvent } from "@/lib/admissions/automation/types";
-import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
+import {
+  appointmentTextForFamily,
+  appointmentTimeForFamily,
+} from "@/lib/admissions/appointment-text";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -108,6 +111,30 @@ export async function scheduleInterviewReminders(
         channel: template.channel,
         scheduled_for: scheduledFor,
         status: "pending",
+        /*
+         * THE REMINDER HAS NEVER CARRIED THE TIME IT IS REMINDING ABOUT.
+         *
+         * interviewDatetime is set only as a mergeOverride on the immediate
+         * send. A queued letter is rendered from the lead when it eventually
+         * goes out, and loadMergeContextsForQueue reads the latest TOUR, not
+         * the interview - so interview_datetime resolved to the empty string
+         * and the 24-hour reminder read:
+         *
+         *     "reminder: interview for Callum Tondreau tomorrow at ."
+         *
+         * Nothing after the "at". It had been that way since the templates
+         * were seeded and nobody saw it, because until the 11pm calendar scan
+         * ran for the first time on 3 October nothing had ever told the
+         * platform that a family had booked, so these two rows were never
+         * written at all.
+         *
+         * merge_overrides (migration 479) is what makes the fix possible: the
+         * moment of QUEUEING knows the appointment, and now says so.
+         */
+        merge_overrides: {
+          interviewDatetime: appointmentTextForFamily(interviewScheduledAt),
+          interviewTime: appointmentTimeForFamily(interviewScheduledAt),
+        },
       });
     }
   }
@@ -317,7 +344,10 @@ export async function onInterviewScheduled(
      * call, and replaced it on the shadow-day path only. This is the other
      * half, which every interest meeting has been going out with since.
      */
-    mergeOverrides: { interviewDatetime: appointmentTextForFamily(scheduledAt) },
+    mergeOverrides: {
+      interviewDatetime: appointmentTextForFamily(scheduledAt),
+      interviewTime: appointmentTimeForFamily(scheduledAt),
+    },
   });
 }
 

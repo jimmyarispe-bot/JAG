@@ -164,6 +164,14 @@ export const MERGE_FIELDS = [
   "lead_link",
   "tour_datetime",
   "interview_datetime",
+  /**
+   * Just the clock - "3:15 PM" - for a letter that has already said which day.
+   *
+   * The reminder the evening before reads "our meeting to discuss Callum
+   * tomorrow at {{interview_time}}". Putting the full date after the word
+   * "tomorrow" would be redundant and slightly absurd.
+   */
+  "interview_time",
   "missing_items",
   "missing_documents",
   "uploaded_documents",

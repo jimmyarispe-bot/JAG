@@ -22,6 +22,8 @@ export interface MergeContext {
   leadId?: string | null;
   tourDatetime?: string | null;
   interviewDatetime?: string | null;
+  /** Just the clock. See interview_time in types.ts. */
+  interviewTime?: string | null;
   missingItems?: string[];
   missingDocuments?: string[];
   uploadedDocuments?: string[];
@@ -220,6 +222,7 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
       : `${resolvePublicAppOrigin()}/dashboard/people`,
     tour_datetime: ctx.tourDatetime ?? "",
     interview_datetime: ctx.interviewDatetime ?? "",
+    interview_time: ctx.interviewTime ?? "",
     missing_items: (ctx.missingItems ?? []).map((i) => `• ${i}`).join("\n") || "See portal for details",
     missing_documents: (ctx.missingDocuments ?? []).map((d) => `• ${d}`).join("\n") || "See portal",
     uploaded_documents: (ctx.uploadedDocuments ?? []).join(", ") || "",
