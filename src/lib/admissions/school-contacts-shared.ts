@@ -44,6 +44,15 @@ export interface SchoolContactPatch {
    * by hand what this field now does.
    */
   shadowDaysUrl: string | null;
+  /**
+   * `schools.tour_booking_url` — the TOUR link, merged into {{tour_link}}.
+   *
+   * The column was added in migration 262 on 5 September and its own comment
+   * said so: "not yet rendered into any template." It has had no field and no
+   * reader for a month. Jimmy, 4 October: GA and FL now send a tour request
+   * after the interest call, so it needs both.
+   */
+  tourBookingUrl: string | null;
   publicInquiries: boolean;
   /**
    * The address this school's mail is sent FROM.
@@ -74,10 +83,15 @@ export function validateSchoolContact(patch: SchoolContactPatch): ContactIssue[]
   // Both links, same rules: https only, matching the CHECK on each column
   // (247 for shadow_days_url, and the booking one before it). A "URL" that is
   // not a URL gets mailed to a parent verbatim.
-  for (const field of ["bookingUrl", "shadowDaysUrl"] as const) {
+  for (const field of ["bookingUrl", "shadowDaysUrl", "tourBookingUrl"] as const) {
     const value = patch[field];
     if (!value) continue;
-    const label = field === "bookingUrl" ? "interest call link" : "shadow day link";
+    const label =
+      field === "bookingUrl"
+        ? "interest call link"
+        : field === "shadowDaysUrl"
+          ? "shadow day link"
+          : "tour link";
     if (!/^https:\/\//i.test(value)) {
       issues.push({
         field,

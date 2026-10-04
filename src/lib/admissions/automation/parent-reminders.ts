@@ -187,6 +187,8 @@ interface LeadRow {
    * than assuming it always was.
    */
   automation_started_at: string | null;
+  /** When the inquiry arrived. The interest-link clock runs from here. */
+  created_at: string | null;
 }
 
 interface OpenReminderRow {
@@ -408,7 +410,7 @@ export async function processParentReminders(): Promise<ParentReminderRunSummary
      */
     supabase
       .from("admissions_leads")
-      .select("id, school_id, lead_stage, guardian_email, automation_started_at")
+      .select("id, school_id, lead_stage, guardian_email, automation_started_at, created_at")
       .not("automation_started_at", "is", null),
     supabase
       .from("admissions_parent_reminders")
@@ -496,13 +498,48 @@ export async function processParentReminders(): Promise<ParentReminderRunSummary
   //        parked for months; backdating would fire three reminders and an
   //        escalation at all of them on the first night.
   const nowIso = new Date().toISOString();
+  /* Named for its unit: `now` is already taken further down, in step 3. */
+  const nowMs = Date.now();
   for (const [waitKey, leadIds] of waits) {
     for (const leadId of leadIds) {
       if (openByKey.has(`${leadId}:${waitKey}`)) continue;
+
+      /*
+       * THE ONE WAIT THAT IS BACKDATED, AND WHY THE RULE ABOVE DOES NOT
+       * APPLY TO IT.
+       *
+       * This job runs once a day, at midnight UTC - 8pm Eastern. For the
+       * four family waits, opening at `now` is right: they are reached from
+       * a gate a human answered, and 111 leads have been parked since
+       * February, so backdating would have fired three reminders and an
+       * escalation at all of them on the first night.
+       *
+       * interest_link_not_sent is the opposite case. It opens because an
+       * inquiry arrived and nobody has written back, and the inquiry is
+       * hours old, not months. Dating it `now` means a family who inquires
+       * at nine in the evening has their row opened at 8pm the FOLLOWING
+       * day, so the "24 hour" reminder lands nearly 48 hours after they
+       * wrote to us - with the family hearing nothing the whole time, which
+       * since migration 489 is literally true.
+       *
+       * So the clock starts when the family inquired. The one-day guard is
+       * the old rule, kept: a lead older than that which still has no letter
+       * is a backlog item, not a fresh inquiry, and is treated as new so it
+       * gets one reminder rather than the whole sequence at once.
+       */
+      const createdAt = leadById.get(leadId)?.created_at ?? null;
+      const createdMs = createdAt ? new Date(createdAt).getTime() : NaN;
+      const freshEnough =
+        Number.isFinite(createdMs) && nowMs - createdMs < 24 * HOUR_MS;
+      const openedAt =
+        waitKey === "interest_link_not_sent" && freshEnough && createdAt
+          ? createdAt
+          : nowIso;
+
       const { error } = await supabase.from("admissions_parent_reminders").insert({
         lead_id: leadId,
         wait_key: waitKey,
-        waiting_since: nowIso,
+        waiting_since: openedAt,
         reminders_sent: 0,
       });
       // A unique violation here means a resolved row already exists for this

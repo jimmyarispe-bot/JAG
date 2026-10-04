@@ -99,6 +99,23 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   "staff_interest_link_not_sent",
   /** 72 hours. To Jimmy and Danni, not to the campus that is sitting on it. */
   "staff_interest_link_escalation",
+  /**
+   * The four parent-reminder waits, one event each.
+   *
+   * All sixteen campus rows shared `additional_info_requested` - the same
+   * event as additional_info_email - so anything firing that event through
+   * the engine picked a campus row first, and there are four per school.
+   * "We need additional information for your child" could have sent
+   * "Booking {{student_first_name}}'s shadow days". Migration 494 separates
+   * them; these are the names it uses.
+   *
+   * The nightly job never had the bug: it looks templates up by key, not by
+   * event. The collision only ever bit the engine's trigger path.
+   */
+  "parent_reminder_application_not_started",
+  "parent_reminder_application_not_submitted",
+  "parent_reminder_shadow_days_not_scheduled",
+  "parent_reminder_enrollment_not_completed",
 ] as const;
 
 export type CommunicationTriggerEvent = (typeof COMMUNICATION_TRIGGER_EVENTS)[number];
@@ -308,6 +325,10 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   interest_meeting_link_sent: "Interest Meeting Link Sent",
   staff_interest_link_not_sent: "Staff: Interest Link Not Sent Yet",
   staff_interest_link_escalation: "Staff: Three Days, Nobody Contacted Them",
+  parent_reminder_application_not_started: "Reminder: Application Not Started",
+  parent_reminder_application_not_submitted: "Reminder: Application Not Submitted",
+  parent_reminder_shadow_days_not_scheduled: "Reminder: Shadow Days Not Scheduled",
+  parent_reminder_enrollment_not_completed: "Reminder: Enrollment Not Completed",
 };
 
 export const CHANNEL_LABELS: Record<CommunicationChannel, string> = {

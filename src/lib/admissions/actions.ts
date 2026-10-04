@@ -45,6 +45,42 @@ export async function createLead(formData: FormData) {
   const applyingForGrade = (formData.get("applying_for_grade") as GradeValue) || null;
   const referralSource = (formData.get("referral_source") as string) || null;
 
+  /**
+   * A FAMILY WE CANNOT REACH IS NOT A LEAD.
+   *
+   * The two inputs now carry `required`, and that is the first line, not the
+   * only one - an HTML attribute is advisory and a server action is a public
+   * endpoint. This is the refusal that actually holds.
+   *
+   * Both fields are load-bearing now. The GA and FL inquiry letter says "I
+   * will give you a call at the number you provided in the inquiry form".
+   * The five-day application escalation and the three-day no-contact
+   * escalation both put that number in front of a leader about to dial it.
+   * And without an address, nothing in the chain can reach the family at all
+   * - every one of the twenty-odd letters is on channel email.
+   *
+   * The message names the field rather than saying "invalid", because the
+   * person reading it is a school leader with a parent on the telephone.
+   */
+  const guardianEmail = ((formData.get("guardian_email") as string) || "").trim();
+  const guardianPhone = ((formData.get("guardian_phone") as string) || "").trim();
+
+  if (!guardianEmail) {
+    return {
+      error:
+        "An email address is required — every letter in admissions is email, so a family without one cannot be contacted at all.",
+    };
+  }
+  if (!guardianEmail.includes("@")) {
+    return { error: "That does not look like an email address." };
+  }
+  if (!guardianPhone) {
+    return {
+      error:
+        "A telephone number is required — the school leader is given it to call when a family goes quiet.",
+    };
+  }
+
   const { data, error } = await supabase
     .from("admissions_leads")
     .insert({
@@ -59,8 +95,8 @@ export async function createLead(formData: FormData) {
       referral_source: referralSource,
       guardian_first_name: (formData.get("guardian_first_name") as string) || null,
       guardian_last_name: (formData.get("guardian_last_name") as string) || null,
-      guardian_email: (formData.get("guardian_email") as string) || null,
-      guardian_phone: (formData.get("guardian_phone") as string) || null,
+      guardian_email: guardianEmail,
+      guardian_phone: guardianPhone,
       lead_stage: "new_inquiry",
     })
     .select("id")
@@ -395,8 +431,37 @@ export async function scheduleAppointmentAndAdvance(input: {
   // Whether anything actually reaches a parent is the automation gate's
   // decision, not this action's. Calling the trigger is what the proper door
   // has always done; the gate stays exactly where it is.
+  //
+  // WHICH LETTER. Three stages arrive here and two of them share a table, so
+  // the TABLE cannot choose the message - only the STAGE can.
+  //
+  // 1 October 2026. Heather Badger-Brown moved Harris to shadow days booked
+  // and the platform emailed "Interest meeting booked: Harris - The Academy
+  // HS", dated 10/7/2026, 1:00:00 PM. Her words: "It did not populate on my
+  // calendar and we don't need another interest meeting."
+  //
+  // This is the SAME fault as 17 September, when Amy D'Amico was told her son
+  // Maddox had an interview he did not have. That one was fixed - in
+  // scheduleInterview, which branches on the appointment type and sends the
+  // shadow-day letter. This action was written afterwards as "one door for
+  // both boards" and did not carry the branch across, so the board's door -
+  // the one on the screen, the one people actually use - went on sending the
+  // interest-meeting letter for every shadow day booked through it.
+  //
+  // A fix that lives in one of two doors is not a fix. Both doors now make
+  // the same decision the same way.
   if (spec.table === "admissions_tours") {
     await onTourScheduled(supabase, leadId, scheduledAtIso, user?.id ?? null);
+  } else if (leadStage === "shadow_day_scheduled") {
+    await notifyAdmissionsEvent(supabase, {
+      leadId,
+      events: ["shadow_day_scheduled", "staff_shadow_day_scheduled"],
+      sentBy: user?.id ?? null,
+      // Eastern, and no seconds. onInterviewScheduled still formats with
+      // toLocaleString, which is what put "1:00:00 PM" in Heather's email in
+      // the server's timezone rather than the school's.
+      mergeOverrides: { interviewDatetime: appointmentTextForFamily(scheduledAtIso) },
+    });
   } else {
     await onInterviewScheduled(supabase, leadId, null, scheduledAtIso, user?.id ?? null);
   }

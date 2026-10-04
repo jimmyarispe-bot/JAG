@@ -17,6 +17,8 @@ export interface SchoolAdmissionsContact {
   readonly bookingUrl: string | null;
   /** `shadow_days_url` — the shadow day link, merged into {{shadow_days_link}}. */
   readonly shadowDaysUrl: string | null;
+  /** `tour_booking_url` — the tour link, merged into {{tour_link}}. */
+  readonly tourBookingUrl: string | null;
   /** Null means "use the EMAIL_FROM environment variable". */
   readonly fromEmail: string | null;
   /** Whether this school appears in the public inquiry form's dropdown. */
@@ -37,7 +39,7 @@ export async function getSchoolAdmissionsContacts(): Promise<SchoolAdmissionsCon
     supabase
       .from("schools")
       .select(
-        "id, name, admissions_contact_name, admissions_contact_email, admissions_booking_url, shadow_days_url, admissions_from_email, admissions_interest_public"
+        "id, name, admissions_contact_name, admissions_contact_email, admissions_booking_url, shadow_days_url, tour_booking_url, admissions_from_email, admissions_interest_public"
       )
       .order("name"),
     supabase.from("admissions_leads").select("school_id"),
@@ -66,6 +68,7 @@ export async function getSchoolAdmissionsContacts(): Promise<SchoolAdmissionsCon
       contactEmail: clean(r.admissions_contact_email),
       bookingUrl: clean(r.admissions_booking_url),
       shadowDaysUrl: clean(r.shadow_days_url),
+      tourBookingUrl: clean(r.tour_booking_url),
       fromEmail: clean(r.admissions_from_email),
       publicInquiries: r.admissions_interest_public === true,
       leadCount: leadsBySchool.get(id) ?? 0,

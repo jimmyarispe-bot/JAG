@@ -28,6 +28,7 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
     contactEmail: initial.contactEmail,
     bookingUrl: initial.bookingUrl,
     shadowDaysUrl: initial.shadowDaysUrl,
+    tourBookingUrl: initial.tourBookingUrl,
     publicInquiries: initial.publicInquiries,
     fromEmail: initial.fromEmail,
   });
@@ -43,6 +44,7 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
     patch.contactEmail !== initial.contactEmail ||
     patch.bookingUrl !== initial.bookingUrl ||
     patch.shadowDaysUrl !== initial.shadowDaysUrl ||
+    patch.tourBookingUrl !== initial.tourBookingUrl ||
     patch.publicInquiries !== initial.publicInquiries ||
     patch.fromEmail !== initial.fromEmail;
 
@@ -188,6 +190,33 @@ function SchoolCard({ initial }: { initial: SchoolContactRow }) {
           )}
           {issueFor("shadowDaysUrl") && (
             <span className="mt-1 block text-xs text-rose-700">{issueFor("shadowDaysUrl")}</span>
+          )}
+        </label>
+
+        <label className="block sm:col-span-2">
+          <span className={label}>Tour booking link</span>
+          <input
+            value={patch.tourBookingUrl ?? ""}
+            onChange={(e) => set("tourBookingUrl", e.target.value || null)}
+            placeholder="https://calendar.app.google/…"
+            className={field}
+          />
+          <span className="mt-1 block text-xs text-slate-400">
+            A third schedule, separate from the other two — sent after the interest call at
+            GA and FL when the leader asks a family to come and look round. This is what{" "}
+            {"{{tour_link}}"} becomes in that email.
+          </span>
+          {/*
+            * Blank is a LEGITIMATE state and is not warned about the way the
+            * shadow-day link is. No letter sends {{tour_link}} today: the tour
+            * invitation is unwritten and seeded off. The day it ships, a blank
+            * link here must become a blocking condition on that letter rather
+            * than a quiet empty string in a family's inbox - which is what
+            * inquiry_thank_you_email_no_link exists to prevent on the interest
+            * call, and what nothing prevents yet here.
+            */}
+          {issueFor("tourBookingUrl") && (
+            <span className="mt-1 block text-xs text-rose-700">{issueFor("tourBookingUrl")}</span>
           )}
         </label>
       </div>

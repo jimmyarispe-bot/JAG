@@ -128,11 +128,11 @@ export function LeadForm({ schools }: LeadFormProps) {
           <FormField label="Last Name" htmlFor="guardian_last_name">
             <input id="guardian_last_name" name="guardian_last_name" className={inputClass} autoComplete="family-name" />
           </FormField>
-          <FormField label="Email" htmlFor="guardian_email">
-            <input id="guardian_email" name="guardian_email" type="email" className={inputClass} autoComplete="email" />
+          <FormField label="Email *" htmlFor="guardian_email">
+            <input id="guardian_email" name="guardian_email" type="email" required className={inputClass} autoComplete="email" />
           </FormField>
-          <FormField label="Phone" htmlFor="guardian_phone">
-            <input id="guardian_phone" name="guardian_phone" type="tel" className={inputClass} autoComplete="tel" />
+          <FormField label="Phone *" htmlFor="guardian_phone">
+            <input id="guardian_phone" name="guardian_phone" type="tel" required className={inputClass} autoComplete="tel" />
           </FormField>
         </div>
       </fieldset>

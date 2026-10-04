@@ -162,8 +162,8 @@ export function ParentInquiryForm({ schools }: ParentInquiryFormProps) {
             <input id="guardian_email" name="guardian_email" type="email" required className={portalInputClass} />
           </div>
           <div>
-            <label className={portalLabelClass} htmlFor="guardian_phone">Phone</label>
-            <input id="guardian_phone" name="guardian_phone" type="tel" className={portalInputClass} />
+            <label className={portalLabelClass} htmlFor="guardian_phone">Phone *</label>
+            <input id="guardian_phone" name="guardian_phone" type="tel" required className={portalInputClass} />
           </div>
           <div>
             <label className={portalLabelClass} htmlFor="preferred_contact_method">Preferred contact method</label>

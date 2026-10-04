@@ -183,8 +183,19 @@ export const INITIAL_INTEREST_FORM_DEFINITION: InterestFormDefinition = {
     {
       key: "guardian_phone",
       type: "phone",
+      /**
+       * REQUIRED since 4 October. GA and FL now tell a family "I will give
+       * you a call at the number you provided in the inquiry form", and the
+       * five-day and three-day escalations both put that number in front of
+       * a school leader who is about to dial it. An inquiry with no number
+       * breaks all three.
+       *
+       * This is the SEEDED definition, which only a brand-new organization
+       * gets. The live form's copy lives in admissions_interest_form_versions
+       * and is changed in the form builder.
+       */
       label: "Phone",
-      required: false,
+      required: true,
       order: 14,
       systemBinding: "lead.guardian_phone",
     },

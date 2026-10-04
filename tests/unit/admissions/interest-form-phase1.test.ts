@@ -378,6 +378,10 @@ describe("8–15 conditional visibility + validation", () => {
         last_name: "B",
         school_id: SCHOOL_B,
         guardian_email: "a@example.com",
+        // Required since 4 October. This case asserts a submission is
+        // ACCEPTED, so every visible required question has to be answered -
+        // the point being made is about the hidden one.
+        guardian_phone: "+1 770 555 0134",
       },
       schoolIds: new Set([SCHOOL_A, SCHOOL_B]),
       programCodesForSchool: new Set(),
@@ -498,6 +502,10 @@ describe("source metadata — submission column, not a question", () => {
     last_name: "B",
     school_id: SCHOOL_A,
     guardian_email: "a@example.com",
+    // Required since 4 October: GA and FL promise a family "I will give you
+    // a call at the number you provided", and two escalations put that
+    // number in front of a leader about to dial it.
+    guardian_phone: "+1 770 555 0134",
   };
 
   it("accepts source=express_interest as non-question metadata", () => {
@@ -862,6 +870,10 @@ describe("program type multi-select — public Interest Form", () => {
     last_name: "B",
     school_id: SCHOOL_A,
     guardian_email: "a@example.com",
+    // Required since 4 October: GA and FL promise a family "I will give you
+    // a call at the number you provided", and two escalations put that
+    // number in front of a leader about to dial it.
+    guardian_phone: "+1 770 555 0134",
   };
 
   function validate(values: Record<string, unknown>, schools = schoolIds) {

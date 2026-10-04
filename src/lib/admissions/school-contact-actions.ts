@@ -45,6 +45,7 @@ export async function updateSchoolAdmissionsContact(input: {
     contactEmail: text(input.patch.contactEmail)?.toLowerCase() ?? null,
     bookingUrl: text(input.patch.bookingUrl),
     shadowDaysUrl: text(input.patch.shadowDaysUrl),
+    tourBookingUrl: text(input.patch.tourBookingUrl),
     publicInquiries: input.patch.publicInquiries === true,
     fromEmail: text(input.patch.fromEmail)?.toLowerCase() ?? null,
   };
@@ -72,6 +73,7 @@ export async function updateSchoolAdmissionsContact(input: {
       admissions_contact_email: patch.contactEmail,
       admissions_booking_url: patch.bookingUrl,
       shadow_days_url: patch.shadowDaysUrl,
+      tour_booking_url: patch.tourBookingUrl,
       admissions_from_email: patch.fromEmail,
       admissions_interest_public: patch.publicInquiries,
     })
