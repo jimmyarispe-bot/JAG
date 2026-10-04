@@ -162,6 +162,20 @@ export const MERGE_FIELDS = [
   "admissions_contact_email",
   /** Straight to the lead in the dashboard — for staff mail only. */
   "lead_link",
+  /**
+   * The five-day application escalation's button page. Registered here as well
+   * as in the merge map because this list is what migration 296's audit
+   * compares live template bodies against, and a token in a body with no entry
+   * here is the 294 failure: it mails literal braces to a human.
+   */
+  "application_call_link",
+  /**
+   * What the family ticked on the interest form, comma separated. Registered
+   * here as well as in the merge map because this list is what migration
+   * 296's audit compares live template bodies against - a token in a body
+   * with no entry here mails literal braces to a human.
+   */
+  "inquiry_programs",
   "tour_datetime",
   "interview_datetime",
   /**

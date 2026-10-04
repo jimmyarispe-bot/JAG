@@ -25,11 +25,40 @@ type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
  * gates ask a SCHOOL LEADER a question. Reusing them would have chased you.
  */
 
-/** 48 hours, in milliseconds. The one place this number is written down. */
-const REMINDER_INTERVAL_MS = 48 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
 
-/** Three reminders, then a human. */
-const MAX_REMINDERS = 3;
+/**
+ * WHEN EACH REMINDER IS DUE, IN HOURS FROM THE MOMENT THE WAIT OPENED.
+ *
+ * Jimmy, 4 October 2026: "the 3 reminders need to go out at 24 hours, 72, 96
+ * hours. if we don't receive an application after 5 days send the school
+ * leader the same type of 'it's time to give the parent a call' email".
+ *
+ * MEASURED FROM waiting_since, NOT FROM THE LAST ONE SENT. The old code added
+ * a flat 48 hours to last_reminded_at, which means a night this job does not
+ * run pushes every later reminder back by a night and the schedule quietly
+ * becomes a function of the server's uptime. Cumulative hours from the
+ * opening of the wait cannot drift: a missed night catches up on the next
+ * run. Same rule, and the same reason, as the interest-meeting chase clock -
+ * checkpoints are `>=`, not `==`.
+ *
+ * THE OTHER TWO WAITS DO NOT MOVE. 48, 96, 144 and escalate at 192 is exactly
+ * what the flat interval produced, now written down instead of implied. Jimmy
+ * asked about the application; nothing else changes until he says so.
+ */
+interface WaitSchedule {
+  /** Hours from waiting_since at which reminders 1, 2 and 3 fall due. */
+  readonly reminders: readonly number[];
+  /** Hours from waiting_since at which a person is handed the problem. */
+  readonly escalateAt: number;
+}
+
+const SCHEDULE: Record<ParentWaitKey, WaitSchedule> = {
+  application_not_started: { reminders: [24, 72, 96], escalateAt: 120 },
+  application_not_submitted: { reminders: [24, 72, 96], escalateAt: 120 },
+  shadow_days_not_scheduled: { reminders: [48, 96, 144], escalateAt: 192 },
+  enrollment_not_completed: { reminders: [48, 96, 144], escalateAt: 192 },
+};
 
 /** Nothing is sent for a lead that has already left the pipeline. */
 const TERMINAL_STAGES = new Set([
@@ -52,7 +81,65 @@ const WAIT_TEMPLATE_KEY: Record<ParentWaitKey, string> = {
   enrollment_not_completed: "parent_reminder_enrollment_not_completed",
 };
 
-const ESCALATION_TEMPLATE_KEY = "staff_parent_unresponsive";
+/**
+ * THE ESCALATION LETTER IS NO LONGER ONE LETTER FOR ALL FOUR WAITS.
+ *
+ * staff_parent_unresponsive is a notice: it says what happened and leaves the
+ * reader to go and do something about it in another tab. For the two
+ * application waits Jimmy asked for the shape the interest-meeting chase
+ * already uses - a letter that carries a link to a page with the telephone
+ * number on it and the decision on the same screen.
+ *
+ * The other two waits keep the notice, because nobody has written the words
+ * for their version and a letter a human reads does not ship before he has
+ * seen it.
+ */
+const ESCALATION_TEMPLATE_KEY: Record<ParentWaitKey, string> = {
+  application_not_started: "staff_application_call_parent",
+  application_not_submitted: "staff_application_call_parent",
+  shadow_days_not_scheduled: "staff_parent_unresponsive",
+  enrollment_not_completed: "staff_parent_unresponsive",
+};
+
+/** The two waits whose escalation carries buttons rather than a sentence. */
+const WAITS_WITH_BUTTONS = new Set<ParentWaitKey>([
+  "application_not_started",
+  "application_not_submitted",
+]);
+
+/**
+ * The single-use link in that letter.
+ *
+ * MINTED ONCE AND REUSED, exactly like the interest-meeting token. A leader
+ * escalated twice about the same family should not find her first link dead.
+ * 64 lowercase hex, the same shape as the application token and the fee link,
+ * and read by exactly one route.
+ */
+async function mintApplicationCallToken(
+  supabase: AuthClient,
+  leadId: string
+): Promise<string | null> {
+  const { data: existing } = await supabase
+    .from("admissions_leads")
+    .select("application_call_token")
+    .eq("id", leadId)
+    .maybeSingle();
+
+  const held = (existing as { application_call_token?: string | null } | null)
+    ?.application_call_token;
+  if (held) return held;
+
+  const token = (
+    globalThis.crypto.randomUUID() + globalThis.crypto.randomUUID()
+  ).replace(/-/g, "");
+
+  const { error } = await supabase
+    .from("admissions_leads")
+    .update({ application_call_token: token })
+    .eq("id", leadId);
+
+  return error ? null : token;
+}
 
 export interface ParentReminderRunSummary {
   readonly opened: number;
@@ -191,6 +278,16 @@ async function enqueue(
     schoolId: string;
     templateKey: string;
     templatesBySchool: Map<string, Map<string, { id: string; trigger_event: string; channel: string }>>;
+    /**
+     * Rendered at the moment of queueing rather than left to the engine.
+     *
+     * A queued letter is otherwise rendered from the LEAD when it finally goes
+     * out, and that path knows nothing about a token minted tonight. This is
+     * the same hole that made the 24-hour interest-meeting reminder read
+     * "tomorrow at ." for as long as it has existed, and merge_overrides -
+     * migration 479 - is the thing built to close it.
+     */
+    mergeOverrides?: Record<string, unknown> | null;
   }
 ): Promise<boolean> {
   const template = params.templatesBySchool.get(params.schoolId)?.get(params.templateKey);
@@ -208,6 +305,7 @@ async function enqueue(
     channel: template.channel,
     scheduled_for: new Date().toISOString(),
     status: "pending",
+    merge_overrides: params.mergeOverrides ?? null,
   });
   return !error;
 }
@@ -373,24 +471,60 @@ export async function processParentReminders(): Promise<ParentReminderRunSummary
     const stillWaiting = waits.get(row.wait_key as ParentWaitKey)?.has(row.lead_id) ?? false;
     if (!stillWaiting) continue;
 
-    const since = row.last_reminded_at ?? row.waiting_since;
-    const dueAt = new Date(since).getTime() + REMINDER_INTERVAL_MS;
-    if (now < dueAt) continue;
+    const waitKey = row.wait_key as ParentWaitKey;
+    const schedule = SCHEDULE[waitKey];
+    /* An unknown wait_key is data this code does not understand. Say so. */
+    if (!schedule) {
+      errors.push(`unknown wait ${row.wait_key} on ${row.id}`);
+      continue;
+    }
+
+    /*
+     * reminders_sent is the index into the schedule: none sent yet means
+     * reminder 1 is due at reminders[0], and all three sent means the
+     * escalation is due at escalateAt.
+     */
+    const openedAt = new Date(row.waiting_since).getTime();
+    const dueHours =
+      row.reminders_sent >= schedule.reminders.length
+        ? schedule.escalateAt
+        : schedule.reminders[row.reminders_sent];
+    if (now < openedAt + dueHours * HOUR_MS) continue;
 
     const lead = leadById.get(row.lead_id);
     if (!lead) continue;
 
-    if (row.reminders_sent >= MAX_REMINDERS) {
+    if (row.reminders_sent >= schedule.reminders.length) {
       // Three reminders, no answer. Hand it to a person, with the phone number
       // in the email so they do not have to go and find it.
+      const templateKey = ESCALATION_TEMPLATE_KEY[waitKey];
+      const token = WAITS_WITH_BUTTONS.has(waitKey)
+        ? await mintApplicationCallToken(supabase, row.lead_id)
+        : null;
+
+      /*
+       * A LETTER WHOSE ONLY BUTTON IS DEAD IS WORSE THAN NO LETTER.
+       *
+       * The gate takes the same line when the application token cannot be
+       * minted: report it and send nothing, so nobody is handed a link that
+       * goes nowhere at seven in the morning.
+       */
+      if (WAITS_WITH_BUTTONS.has(waitKey) && !token) {
+        errors.push(
+          `could not mint a call link for ${row.lead_id}; escalation not sent`
+        );
+        continue;
+      }
+
       const sent = await enqueue(supabase, {
         leadId: row.lead_id,
         schoolId: lead.school_id,
-        templateKey: ESCALATION_TEMPLATE_KEY,
+        templateKey,
         templatesBySchool,
+        mergeOverrides: token ? { applicationCallToken: token } : null,
       });
       if (!sent) {
-        errors.push(`no ${ESCALATION_TEMPLATE_KEY} template for school ${lead.school_id}`);
+        errors.push(`no ${templateKey} template for school ${lead.school_id}`);
         continue;
       }
       const { error } = await supabase
@@ -412,12 +546,12 @@ export async function processParentReminders(): Promise<ParentReminderRunSummary
     const sent = await enqueue(supabase, {
       leadId: row.lead_id,
       schoolId: lead.school_id,
-      templateKey: WAIT_TEMPLATE_KEY[row.wait_key as ParentWaitKey],
+      templateKey: WAIT_TEMPLATE_KEY[waitKey],
       templatesBySchool,
     });
     if (!sent) {
       errors.push(
-        `no ${WAIT_TEMPLATE_KEY[row.wait_key as ParentWaitKey]} template for school ${lead.school_id}`
+        `no ${WAIT_TEMPLATE_KEY[waitKey]} template for school ${lead.school_id}`
       );
       continue;
     }

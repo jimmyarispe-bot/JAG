@@ -74,9 +74,107 @@ function clean(value: unknown): string | null {
   return text ? text : null;
 }
 
+/**
+ * The question key the interest form writes the program answer under.
+ *
+ * Confirmed against a live submission on 4 October: Adam Cross's inquiry for
+ * Arthur carried question_key 'program' with the value ["Only Virtual"].
+ */
+const INQUIRY_PROGRAM_QUESTION_KEY = "program";
+
+/** An answer is an array when the question is a checkbox group, which it is. */
+function programsFromAnswer(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v).trim()).filter(Boolean);
+  }
+  const single = typeof value === "string" ? value.trim() : "";
+  return single ? [single] : [];
+}
+
+/**
+ * WHAT THE FAMILY TICKED, READ FROM WHERE THEY TICKED IT.
+ *
+ * WHY NOT lead.program. submit.ts sets it to null on every public inquiry,
+ * deliberately, and says so on the line that does it: "Multi-select is
+ * archived on interest answers; do not collapse onto lead.program."
+ *
+ * It is right to. There are two program vocabularies and they do not meet.
+ * admissions_leads.program has a CHECK constraint on the canonical codes -
+ * academy_fl_campus, academy_virtual and four others - while the form offers
+ * a parent "In-Person", "Only Virtual" and "Hybrid (in-person + virtual)",
+ * and lets them tick more than one. "Only Virtual" would fail the
+ * constraint, and two ticks have nowhere to go in a single column.
+ *
+ * So the staff notice was asking the wrong place. {{program_name}} renders
+ * programLabel(lead.program), whose first line is `if (!value) return "—";`,
+ * and Heather has read "Programme: —" on every inquiry the public form has
+ * ever produced.
+ *
+ * THE NEWEST SUBMISSION WINS. A family who inquires twice has two, and the
+ * second one is what they currently want.
+ *
+ * A REFUSED READ RETURNS AN EMPTY MAP AND SAYS SO IN THE LOG. It renders as
+ * "not recorded on the inquiry", which is the same thing a genuinely
+ * unanswered question renders - deliberately, because this letter must not
+ * claim to know something it could not read. The console line is how the
+ * difference gets found.
+ */
+async function fetchInquiryProgramsByLeadIds(
+  supabase: AuthClient,
+  leadIds: string[]
+): Promise<Map<string, string[]>> {
+  const byLead = new Map<string, string[]>();
+  if (!leadIds.length) return byLead;
+
+  const { data: submissions, error: subError } = await supabase
+    .from("admissions_interest_submissions")
+    .select("id, lead_id, submitted_at")
+    .in("lead_id", leadIds)
+    .order("submitted_at", { ascending: false });
+
+  if (subError) {
+    console.error("[communications] inquiry programs, submissions:", subError.message);
+    return byLead;
+  }
+
+  const newestSubmission = new Map<string, string>();
+  for (const row of (submissions ?? []) as unknown as { id: string; lead_id: string }[]) {
+    if (newestSubmission.has(row.lead_id)) continue;
+    newestSubmission.set(row.lead_id, row.id);
+  }
+  if (!newestSubmission.size) return byLead;
+
+  const leadBySubmission = new Map(
+    [...newestSubmission].map(([leadId, submissionId]) => [submissionId, leadId])
+  );
+
+  const { data: answers, error: ansError } = await supabase
+    .from("admissions_interest_answers")
+    .select("submission_id, value")
+    .in("submission_id", [...newestSubmission.values()])
+    .eq("question_key", INQUIRY_PROGRAM_QUESTION_KEY);
+
+  if (ansError) {
+    console.error("[communications] inquiry programs, answers:", ansError.message);
+    return byLead;
+  }
+
+  for (const row of (answers ?? []) as unknown as {
+    submission_id: string;
+    value: unknown;
+  }[]) {
+    const leadId = leadBySubmission.get(row.submission_id);
+    if (!leadId) continue;
+    byLead.set(leadId, programsFromAnswer(row.value));
+  }
+
+  return byLead;
+}
+
 function buildMergeContextFromParts(
   lead: LeadMergeRow,
   fundingSources: string[],
+  inquiryPrograms: string[],
   tour: {
     tourDatetime: string | null;
     campusName: string | null;
@@ -103,6 +201,7 @@ function buildMergeContextFromParts(
     applicationToken: clean(lead.application_access_token),
     fromEmail: clean(schoolOf(lead)?.admissions_from_email),
     program: lead.program,
+    inquiryPrograms,
     campusName: tour.campusName,
     campusAddress: tour.campusAddress,
     fundingSources,
@@ -120,9 +219,11 @@ async function loadMergeContext(
   applicationId?: string | null,
   overrides?: Partial<MergeContext>
 ): Promise<{ mergeCtx: MergeContext; staff: LeadStaffHint }> {
-  const [{ data: lead }, fundingByLead, { data: tour }, checklistRes] = await Promise.all([
+  const [{ data: lead }, fundingByLead, inquiryProgramsByLead, { data: tour }, checklistRes] =
+    await Promise.all([
     supabase.from("admissions_leads").select(LEAD_MERGE_CONTEXT_COLS).eq("id", leadId).single(),
     fetchLeadFundingCodesByLeadIds(supabase, [leadId]),
+    fetchInquiryProgramsByLeadIds(supabase, [leadId]),
     supabase
       .from("admissions_tours")
       .select("scheduled_at, campuses(name, address)")
@@ -166,6 +267,7 @@ async function loadMergeContext(
     mergeCtx: buildMergeContextFromParts(
       leadRow,
       fundingByLead.get(leadId) ?? [],
+      inquiryProgramsByLead.get(leadId) ?? [],
       { tourDatetime, campusName, campusAddress },
       missingItems,
       applicationId,
@@ -191,10 +293,17 @@ async function loadMergeContextsForQueue(
     ...new Set(items.map((i) => i.application_id).filter((id): id is string => Boolean(id))),
   ];
 
-  const [{ data: leads }, fundingByLead, { data: tours }, { data: checklist }] =
+  const [
+    { data: leads },
+    fundingByLead,
+    inquiryProgramsByLead,
+    { data: tours },
+    { data: checklist },
+  ] =
     await Promise.all([
       supabase.from("admissions_leads").select(LEAD_MERGE_CONTEXT_COLS).in("id", leadIds),
       fetchLeadFundingCodesByLeadIds(supabase, leadIds),
+      fetchInquiryProgramsByLeadIds(supabase, leadIds),
       supabase
         .from("admissions_tours")
         .select("lead_id, scheduled_at, campuses(name, address)")
@@ -243,6 +352,7 @@ async function loadMergeContextsForQueue(
       mergeCtx: buildMergeContextFromParts(
         lead,
         fundingByLead.get(item.lead_id) ?? [],
+        inquiryProgramsByLead.get(item.lead_id) ?? [],
         latestTourByLead.get(item.lead_id) ?? {
           tourDatetime: null,
           campusName: null,

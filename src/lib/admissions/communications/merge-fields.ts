@@ -87,8 +87,26 @@ export interface MergeContext {
    * that makes a cold telephone call easy to start.
    */
   inquiryNotes?: string | null;
+  /**
+   * The programs the family ticked on their inquiry, in the words they saw -
+   * "Only Virtual", "In-Person", "Hybrid (in-person + virtual)".
+   *
+   * SEPARATE FROM `program`, which is the canonical code on the lead and is
+   * null on every public inquiry by design. The two vocabularies do not
+   * overlap and one of them is a list.
+   */
+  inquiryPrograms?: readonly string[] | null;
   /** Minted when the escalation is queued. Opens /call/<token>. */
   interestCallToken?: string | null;
+  /**
+   * Minted when the five-day application escalation is queued. Opens
+   * /application-call/<token>, which is a DIFFERENT page from /call/<token>:
+   * that one records what happened, this one re-sends the invitation or closes
+   * the lead. Two tokens and two columns rather than one, because a family can
+   * be chased for an interest meeting and then for an application, and the
+   * second link must not quietly reopen the first page.
+   */
+  applicationCallToken?: string | null;
   /**
    * The school's own From address. Not a merge field — nothing renders it into
    * a body — but it rides along here because this is the object the delivery
@@ -168,6 +186,22 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     parent_phone_dial: (telHref(ctx.guardianPhone) ?? "").replace(/^tel:/, ""),
     school_name: ctx.schoolName ?? "The Academy",
     program_name: programLabel(ctx.program),
+    /*
+       WHAT THEY TICKED, NOT WHAT THE LEAD SAYS. program_name above renders
+       programLabel(lead.program), and lead.program is null on every inquiry
+       that comes through the public form - submit.ts sets it so on purpose,
+       because the form's answers are a list of labels and the column takes
+       one code. programLabel returns the em dash for a null, which is how
+       "Programme: —" reached Heather on every single inquiry.
+
+       The fallback is a sentence rather than a dash. A dash looks like the
+       letter is broken; a sentence says which of the two things happened,
+       and this one is true whether the question was skipped or the read was
+       refused - see fetchInquiryProgramsByLeadIds.
+    */
+    inquiry_programs: (ctx.inquiryPrograms ?? []).length
+      ? [...(ctx.inquiryPrograms ?? [])].join(", ")
+      : "not recorded on the inquiry",
     campus_name: ctx.campusName ?? "Main Campus",
     campus_address: ctx.campusAddress ?? "See portal for directions",
     parking_info: "Visitor parking is available at the main entrance.",
@@ -269,6 +303,16 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     */
     call_link: ctx.interestCallToken?.trim()
       ? `${resolvePublicAppOrigin()}/call/${ctx.interestCallToken.trim()}`
+      : ctx.leadId
+        ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}`
+        : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
+    /*
+       THE FALLBACK IS THE CASE PAGE, for the same reason as call_link above:
+       a lead with no token should land somewhere real, and the only person
+       who ever reads this letter is a school leader who can sign in.
+    */
+    application_call_link: ctx.applicationCallToken?.trim()
+      ? `${resolvePublicAppOrigin()}/application-call/${ctx.applicationCallToken.trim()}`
       : ctx.leadId
         ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}`
         : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
