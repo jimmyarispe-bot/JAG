@@ -116,6 +116,19 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   "parent_reminder_application_not_submitted",
   "parent_reminder_shadow_days_not_scheduled",
   "parent_reminder_enrollment_not_completed",
+  /**
+   * GA AND FL ONLY. Ten minutes after the inquiry call was due to end, the
+   * school leader is asked what happened and what to do next. Virtual and HS
+   * do not have this step: their fork runs straight to the application, and
+   * neither campus has a tour calendar to send anybody to.
+   */
+  "staff_inquiry_call_held",
+  /**
+   * The tour request to the family. Fired by a school leader pressing a
+   * button on /post-call/<token>, never by a clock - a student does not move
+   * from one stage to the next without the school leader moving him or her.
+   */
+  "tour_invitation_sent",
 ] as const;
 
 export type CommunicationTriggerEvent = (typeof COMMUNICATION_TRIGGER_EVENTS)[number];
@@ -176,6 +189,18 @@ export const MERGE_FIELDS = [
   /** Shadow-days booking link. Separate calendar from tours -- see migration 247. */
   "shadow_days_link",
   /**
+   * The campus tour calendar, from schools.tour_booking_url. Registered here
+   * as well as in the merge map because this list is what migration 296's
+   * audit compares live template bodies against, and a token in a body with
+   * no entry here is the 294 failure: literal braces mailed to a parent.
+   *
+   * EMPTY AT HS AND VIRTUAL, on purpose. A letter carrying this token must
+   * not be rendered for a campus with no tour calendar - requireTourLink in
+   * tour.ts is the guard, and it refuses rather than mailing
+   * "You can book here: " with nothing after it.
+   */
+  "tour_link",
+  /**
    * The school leader's own words about what this child's day will look like,
    * written when gate 2 is answered yes. Registered HERE as well as in the
    * merge map, because this list is what migration 296's audit compares live
@@ -201,6 +226,11 @@ export const MERGE_FIELDS = [
    * family's first letter goes out: nothing fires on inquiry any more.
    */
   "interest_link_action",
+  /**
+   * The post-call decision page, /post-call/<token>. Same registration
+   * reasoning as application_call_link above.
+   */
+  "post_call_link",
   /**
    * What the family ticked on the interest form, comma separated. Registered
    * here as well as in the merge map because this list is what migration
@@ -329,6 +359,8 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   parent_reminder_application_not_submitted: "Reminder: Application Not Submitted",
   parent_reminder_shadow_days_not_scheduled: "Reminder: Shadow Days Not Scheduled",
   parent_reminder_enrollment_not_completed: "Reminder: Enrollment Not Completed",
+  staff_inquiry_call_held: "Staff: Inquiry Call Held — What Happens Next",
+  tour_invitation_sent: "Tour Invitation Sent",
 };
 
 export const CHANNEL_LABELS: Record<CommunicationChannel, string> = {

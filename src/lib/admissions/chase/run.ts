@@ -43,6 +43,7 @@ import {
   type CalendarBooking,
 } from "@/lib/admissions/chase/calendar";
 import { decideChase, type ChaseDecision } from "@/lib/admissions/chase/clock";
+import { campusRunsTours } from "@/lib/admissions/tour";
 import { easternDateKey, easternHour } from "@/lib/platform/time/eastern";
 import { getPrimaryOrganizationId } from "@/lib/configuration/context";
 import { ensureGoogleWorkspaceAccessToken } from "@/lib/platform/integrations/google-workspace/sync/token-bridge";
@@ -70,6 +71,23 @@ export const EARLIEST_SCAN_HOUR_EASTERN = 22;
 export const REMINDER_1_EVENT = "parent_interest_meeting_not_booked_1";
 export const REMINDER_2_EVENT = "parent_interest_meeting_not_booked_2";
 export const ESCALATION_EVENT = "staff_interest_meeting_no_response";
+
+/** GA and FL: the school leader's letter after the inquiry call. */
+export const POST_CALL_EVENT = "staff_inquiry_call_held";
+
+/** Jimmy's ten minutes, measured from the END of the call. See the use site. */
+export const POST_CALL_DELAY_MINUTES = 10;
+
+/**
+ * Only used when Google sends an event with no end time, which should not
+ * happen for an appointment-schedule booking and is not worth guessing
+ * cleverly about. Thirty is the length of the inquiry call on both campus
+ * calendars today.
+ */
+export const DEFAULT_CALL_MINUTES = 30;
+
+/** Only used when Google sends a tour event with no end time. */
+export const DEFAULT_TOUR_MINUTES = 60;
 
 /** The letter that actually carries the booking link today. */
 const BOOKING_LINK_TEMPLATE_KEY = "inquiry_thank_you_email";
@@ -116,6 +134,21 @@ export interface ScanReport {
   readonly bookingsRecorded: readonly string[];
   /** New, but already in the past: the row is written and nobody is told. */
   readonly bookingsNotNotified: readonly string[];
+  /**
+   * A GA or FL booking whose post-call letter could not be queued, and why.
+   *
+   * Almost always one thing: staff_inquiry_call_held is seeded switched off,
+   * because Jimmy reads the exact words a human will see before they ship.
+   * Reported rather than silent, so "the letters are off" and "the scan is
+   * broken" cannot look the same from the outside.
+   */
+  readonly postCallSkipped: readonly string[];
+  /**
+   * A tour the family booked after being invited to one. New on 4 October:
+   * before it, a booked tour hit the "this family already has an
+   * appointment" guard and told nobody at all.
+   */
+  readonly toursRecorded: readonly string[];
   readonly leadsConsidered: number;
   readonly letters: readonly {
     readonly leadId: string;
@@ -128,6 +161,12 @@ export interface ScanReport {
 type LeadRow = {
   id: string;
   school_id: string | null;
+  /**
+   * The campus name, embedded, because the GA/FL fork is keyed on it - see
+   * the long note in tour.ts about why the name and not a column. PostgREST
+   * returns an embedded row as an object or a one-element array.
+   */
+  schools?: { name?: string } | { name?: string }[] | null;
   lead_stage: string | null;
   guardian_email: string | null;
   created_at: string;
@@ -156,6 +195,8 @@ export async function runInterestMeetingScan(
     bookingsAmbiguous: [],
     bookingsRecorded: [],
     bookingsNotNotified: [],
+    postCallSkipped: [],
+    toursRecorded: [],
     leadsConsidered: 0,
     letters: [],
     errors,
@@ -258,7 +299,7 @@ export async function runInterestMeetingScan(
   const since = new Date(now.getTime() - LEAD_LOOKBACK_DAYS * 86400000).toISOString();
   const { data: leadRows, error: leadError } = await supabase
     .from("admissions_leads")
-    .select("id, school_id, lead_stage, guardian_email, created_at, notes")
+    .select("id, school_id, lead_stage, guardian_email, created_at, notes, schools(name)")
     .gte("created_at", since)
     .order("created_at", { ascending: true })
     .limit(1000);
@@ -377,7 +418,35 @@ export async function runInterestMeetingScan(
   const bookingsAmbiguous: string[] = [];
   const bookingsRecorded: string[] = [];
   const bookingsNotNotified: string[] = [];
+  const postCallSkipped: string[] = [];
+  const toursRecorded: string[] = [];
+
+  /*
+   * Families who already have a tour row.
+   *
+   * THE STAGE ALONE WOULD ALMOST DO IT: recording a tour moves the family off
+   * tour_requested, so the next night's run no longer matches. Almost is not
+   * enough. If the insert succeeds and the stage update fails - two separate
+   * statements, no transaction between them - the family stays at
+   * tour_requested and tomorrow's scan inserts a second tour row for the same
+   * appointment. This set is what makes that impossible, and the stage write
+   * failing is already reported as an error above.
+   */
+  const { data: existingTours } = await supabase
+    .from("admissions_tours")
+    .select("lead_id")
+    .in("lead_id", leadIds.length ? leadIds : ["00000000-0000-0000-0000-000000000000"]);
+
+  const alreadyRecordedTour = new Set<string>(
+    ((existingTours ?? []) as { lead_id: string }[]).map((t) => t.lead_id)
+  );
   let bookingsMatched = 0;
+
+  /**
+   * id -> lead, so the booking loop can ask which campus a lead belongs to.
+   * The loop matches on an email address and has only ever held the id.
+   */
+  const leadById = new Map<string, LeadRow>(leads.map((l) => [l.id, l]));
 
   for (const booking of calendars.bookings) {
     const match = matchBookingToLead(booking, leadsByEmail);
@@ -411,6 +480,81 @@ export async function runInterestMeetingScan(
 
     bookingsMatched++;
     const leadId = match.leadId;
+
+    /*
+     * ── IS THIS A TOUR? ─────────────────────────────────────────────────
+     *
+     * The scan matches a calendar event to a family by the parent's email
+     * address and nothing else - that is the whole design, and it is why the
+     * probe asked about attendee addresses before a line of this was written.
+     * An event carries no label saying which KIND of appointment it is, and
+     * Nina's three Google schedules all sit on the same calendar.
+     *
+     * THE FAMILY'S STAGE IS THE DISCRIMINATOR, not the calendar, not the
+     * event title. A family at Tour Requested was emailed the tour calendar
+     * and asked to book; the next thing they book is a tour. A family who has
+     * not been asked is booking the inquiry call. The stage is a fact the
+     * platform set itself, which makes it a better witness than an event
+     * summary a parent never sees and Google is free to reword.
+     *
+     * THIS BLOCK COMES BEFORE THE bookedAt GUARD BELOW, and that is the point
+     * of it. That guard says "this family already has an appointment, there
+     * is nothing new here" - true for a second inquiry call, and exactly
+     * wrong for a tour, which by definition happens to a family who already
+     * had one. Until today a booked tour hit that guard and told nobody.
+     */
+    const tourLead = leadById.get(leadId) ?? null;
+    if (tourLead && tourLead.lead_stage === "tour_requested") {
+      if (alreadyRecordedTour.has(leadId)) continue;
+      alreadyRecordedTour.add(leadId);
+      toursRecorded.push(`${leadId} <- tour ${appointmentTextForFamily(booking.startsAt)}`);
+      if (dryRun) continue;
+
+      const { error: tourError } = await supabase.from("admissions_tours").insert({
+        lead_id: leadId,
+        scheduled_at: booking.startsAt,
+        tour_type: "in_person",
+        tour_status: "scheduled",
+        duration_minutes: tourDurationMinutes(booking),
+        notes: `Booked by the family. ${booking.summary ?? "Google Calendar"}.`,
+        host_user_id: null,
+      });
+
+      if (tourError) {
+        /* CHECKED, not awaited and discarded. A refused insert that moved the
+           stage anyway is how 28 families came to sit in "Tour Scheduled"
+           with no tour behind it. */
+        errors.push(`Could not record the tour for ${leadId}: ${tourError.message}`);
+        continue;
+      }
+
+      const { error: tourStageError } = await supabase
+        .from("admissions_leads")
+        .update({ lead_stage: "tour_scheduled", updated_at: new Date().toISOString() })
+        .eq("id", leadId);
+
+      if (tourStageError) {
+        errors.push(
+          `Tour recorded for ${leadId} but the stage did not move: ${tourStageError.message}`
+        );
+      }
+
+      /*
+       * NO LETTER, DELIBERATELY. Google has already sent this family a
+       * calendar invitation for the tour they just booked - that is what an
+       * appointment schedule does. A second email from us saying the same
+       * thing is noise, and there is no approved wording for it. If Jimmy
+       * wants a confirmation he will say the words and it is one queueLetter
+       * call beside this comment.
+       *
+       * THE STAGE DOES NOT ADVANCE PAST tour_scheduled HERE EITHER. A tour
+       * that has been BOOKED is a fact about a calendar; a tour that was HELD
+       * is a judgement about whether a family turned up, and nothing in this
+       * codebase makes that judgement for the interest meeting either - a
+       * school leader moves the card. The same hand moves this one.
+       */
+      continue;
+    }
 
     /* Already known about. Nothing to do, and nothing to tell anyone twice. */
     if (bookedAt.has(leadId)) continue;
@@ -459,6 +603,64 @@ export async function runInterestMeetingScan(
          sit in "Tour Scheduled" with no tour behind it. */
       errors.push(`Could not record the booking for ${leadId}: ${error.message}`);
       continue;
+    }
+
+    /*
+     * GA AND FL: THE POST-CALL LETTER, TEN MINUTES AFTER THE CALL.
+     *
+     * Queued here rather than by a clock of its own, because this is the
+     * moment the platform learns the appointment exists at all. Jimmy, 4
+     * October: "10 minutes after this scheduled phone conversation day/time
+     * the school leader should be sent an email with a notes box to add in
+     * summary of the phone conversation and a decision button to send the
+     * parent a request to schedule a tour or not".
+     *
+     * TEN MINUTES AFTER IT ENDS, NOT AFTER IT STARTS. Read literally, "the
+     * scheduled day/time" is the start, and start-plus-ten would reach her
+     * while she is still on the telephone with the family - the letter asks
+     * what came of a conversation that is still happening. So it is the end
+     * time, which is why endsAt was added to CalendarBooking today. When
+     * Google sends no end time the fallback is start + DEFAULT_CALL_MINUTES,
+     * which is wrong only for a call that overruns badly.
+     *
+     * IT IS QUEUED EVEN FOR A CALL THAT HAS ALREADY HAPPENED, and that is
+     * deliberate - it is the one letter here for which the past is not a
+     * reason to stay silent. The family's confirmation is worthless six weeks
+     * late; "what came of this call, and what should happen next" is exactly
+     * as useful late as on time, because the decision it asks for has not
+     * been made. The queue sends anything whose scheduled_for has passed on
+     * its next run, so a past appointment produces one letter on the next
+     * pass rather than nothing at all.
+     */
+    const bookedLead = leadById.get(leadId) ?? null;
+    if (bookedLead && campusRunsTours(schoolNameOf(bookedLead))) {
+      const endsAt = booking.endsAt ? new Date(booking.endsAt) : null;
+      const base =
+        endsAt && Number.isFinite(endsAt.getTime())
+          ? endsAt
+          : new Date(startsAt.getTime() + DEFAULT_CALL_MINUTES * 60000);
+      const sendAt = new Date(base.getTime() + POST_CALL_DELAY_MINUTES * 60000);
+
+      const postCallToken = dryRun ? "dry-run" : await mintPostCallToken(supabase, leadId);
+      if (!postCallToken) {
+        errors.push(`Could not mint a post-call token for ${leadId}.`);
+      } else if (!dryRun) {
+        const problem = await queueLetter(supabase, {
+          leadId,
+          schoolId: bookedLead.school_id,
+          triggerEvent: POST_CALL_EVENT,
+          sendAt,
+          /*
+           * The token rides on the queue row because the row is rendered
+           * hours later by a worker that has no idea which occasion this
+           * was. Same reasoning as the escalation's three dates: what the
+           * moment of queueing knows and the moment of sending cannot find
+           * out. See COMMUNICATION_QUEUE_PROCESS_COLS.
+           */
+          mergeOverrides: { postCallToken },
+        });
+        if (problem) postCallSkipped.push(problem);
+      }
     }
 
     /* The row is written. The letters are only for a meeting still to come. */
@@ -598,6 +800,8 @@ export async function runInterestMeetingScan(
     bookingsAmbiguous,
     bookingsRecorded,
     bookingsNotNotified,
+    postCallSkipped,
+    toursRecorded,
     leadsConsidered: leads.length,
     letters,
     errors,
@@ -726,6 +930,67 @@ async function queueLetter(
  * value is a lookup key on an indexed column rather than a secret that
  * protects money.
  */
+/**
+ * How long the family's tour slot actually is, from Google, falling back to
+ * the hour that both campus tour schedules use today. Stored because
+ * admissions_tours.duration_minutes is NOT NULL and a wrong default would
+ * show the wrong length on the board.
+ */
+function tourDurationMinutes(booking: CalendarBooking): number {
+  if (!booking.endsAt) return DEFAULT_TOUR_MINUTES;
+  const ms = new Date(booking.endsAt).getTime() - new Date(booking.startsAt).getTime();
+  if (!Number.isFinite(ms) || ms <= 0) return DEFAULT_TOUR_MINUTES;
+  return Math.round(ms / 60000);
+}
+
+/** PostgREST hands an embedded row back as an object or a one-element array. */
+function schoolNameOf(lead: LeadRow): string | null {
+  const embedded = lead.schools;
+  const school = Array.isArray(embedded) ? embedded[0] : embedded;
+  return school?.name?.trim() || null;
+}
+
+/**
+ * The single-use link in the post-call letter.
+ *
+ * A SEPARATE COLUMN FROM interest_call_token AND application_call_token, and
+ * the reason is worth keeping written down: a family can be chased for a
+ * booking, asked about after the call, and chased again for an application.
+ * Three emails, three pages, three different questions. One shared token
+ * would mean the oldest email in a leader's inbox opens the newest page -
+ * she would answer "what came of the call?" and be shown "re-send the
+ * application?" instead.
+ *
+ * MINTED ONCE AND REUSED, same as the other two: the token identifies the
+ * family, not the occasion, and each decision is its own row in
+ * lead_call_outcomes.
+ */
+async function mintPostCallToken(
+  supabase: AuthClient,
+  leadId: string
+): Promise<string | null> {
+  const { data: existing } = await supabase
+    .from("admissions_leads")
+    .select("post_call_token")
+    .eq("id", leadId)
+    .maybeSingle();
+
+  const held = (existing as { post_call_token?: string | null } | null)
+    ?.post_call_token;
+  if (held) return held;
+
+  const token = (
+    globalThis.crypto.randomUUID() + globalThis.crypto.randomUUID()
+  ).replace(/-/g, "");
+
+  const { error } = await supabase
+    .from("admissions_leads")
+    .update({ post_call_token: token })
+    .eq("id", leadId);
+
+  return error ? null : token;
+}
+
 async function mintCallToken(
   supabase: AuthClient,
   leadId: string

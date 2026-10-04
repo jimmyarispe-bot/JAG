@@ -61,6 +61,16 @@ export interface CalendarBooking {
   readonly summary: string | null;
   /** ISO 8601 with the offset Google supplied. Never reformatted here. */
   readonly startsAt: string;
+  /**
+   * When Google says the appointment ENDS, same format, null when the event
+   * carries no end time.
+   *
+   * Captured on 4 October for one reason: the GA and FL post-call letter is
+   * due "10 minutes after this scheduled phone conversation", and ten minutes
+   * after it STARTS lands in the middle of it. The end time has been sitting
+   * in every Google event this scan has ever read and was simply never taken.
+   */
+  readonly endsAt: string | null;
   readonly organizerEmail: string | null;
   /** Lower-cased, de-duplicated. The matching key. */
   readonly attendeeEmails: readonly string[];
@@ -79,6 +89,7 @@ type GoogleEvent = {
   status?: string;
   summary?: string;
   start?: { dateTime?: string; date?: string };
+  end?: { dateTime?: string; date?: string };
   organizer?: { email?: string };
   attendees?: { email?: string; responseStatus?: string }[];
 };
@@ -190,6 +201,10 @@ export async function readSharedCalendarBookings(
           eventId: event.id ?? `${id}:${startsAt}`,
           summary: event.summary ?? null,
           startsAt,
+          /* An all-day event is already skipped above, so a missing dateTime
+             here means Google sent an event with no end - rare, and handled
+             by the caller rather than guessed at with a default length. */
+          endsAt: event.end?.dateTime ?? null,
           organizerEmail: event.organizer?.email?.trim().toLowerCase() ?? null,
           attendeeEmails: emails,
         });

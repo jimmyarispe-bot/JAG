@@ -205,7 +205,7 @@ export async function transitionCaseStage(
 ): Promise<{ error?: string; success?: boolean }> {
   const { data: lead } = await supabase
     .from("admissions_leads")
-    .select("lead_stage, school_id, schools(organization_id)")
+    .select("lead_stage, school_id, schools(organization_id, name)")
     .eq("id", leadId)
     .single();
 
@@ -218,7 +218,10 @@ export async function transitionCaseStage(
 
   if (result.error || previousStage === newStage) return result;
 
-  const schools = lead.schools as { organization_id?: string } | { organization_id?: string }[] | null;
+  const schools = lead.schools as
+    | { organization_id?: string; name?: string }
+    | { organization_id?: string; name?: string }[]
+    | null;
   const orgId =
     context?.organizationId ??
     (Array.isArray(schools) ? schools[0]?.organization_id : schools?.organization_id) ??
@@ -281,7 +284,15 @@ export async function transitionCaseStage(
    * to open leaves a decision unasked, which is visible and recoverable; a stage
    * transition reported as failed after it committed is neither.
    */
-  const gateKey = gateOpeningAtStage(newStage);
+  /*
+   * The campus decides whether interest_meeting_held opens this gate. See the
+   * fork note in gates/definitions.ts; the name is already loaded above.
+   */
+  const schoolNameForGate = Array.isArray(schools)
+    ? schools[0]?.name ?? null
+    : schools?.name ?? null;
+
+  const gateKey = gateOpeningAtStage(newStage, schoolNameForGate);
   if (gateKey) {
     try {
       const opened = await openDecisionGateWith(supabase, leadId, gateKey);

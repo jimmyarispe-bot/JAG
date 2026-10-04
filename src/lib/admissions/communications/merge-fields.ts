@@ -56,6 +56,16 @@ export interface MergeContext {
    * small mistake.
    */
   shadowDaysUrl?: string | null;
+  /**
+   * The campus tour calendar. A THIRD link, not a substitute for either of the
+   * two above: migration 262 recorded three separate Google schedules because
+   * a tour, an inquiry call and a shadow day are three different appointments.
+   *
+   * Null at HS and Virtual and expected to stay that way. Tours are a
+   * physical-campus thing — migration 263 says so in its own note — so the
+   * guard is at the sender, not here. See requireTourLink in tour.ts.
+   */
+  tourUrl?: string | null;
   /** Minted per lead when a family is invited. Lets them apply with no account. */
   applicationToken?: string | null;
   /**
@@ -112,6 +122,15 @@ export interface MergeContext {
    * one-button page that sends the family their booking link.
    */
   interestLinkToken?: string | null;
+  /**
+   * Minted when the post-call letter is queued, ten minutes after the inquiry
+   * call. Opens /post-call/<token>, which is a THIRD button page and a third
+   * column, for the same reason the application one is not the interest one:
+   * a family can be chased for a booking, asked about after a call, and
+   * chased again for an application, and the second link must never quietly
+   * reopen the first page.
+   */
+  postCallToken?: string | null;
   /**
    * The school's own From address. Not a merge field — nothing renders it into
    * a body — but it rides along here because this is the object the delivery
@@ -228,6 +247,19 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
      */
     scheduling_link: ctx.schedulingUrl ?? "",
     shadow_days_link: ctx.shadowDaysUrl ?? "",
+    /*
+       EMPTY STRING IS THE WRONG ANSWER HERE, and it is deliberate that this
+       is the one link whose emptiness is somebody else's job to catch.
+
+       shadow_days_link above renders "" and mails "You can book here: " with
+       nothing after it when a school has no calendar. That is the failure
+       this project has already had once. The fix for tours is not a cleverer
+       fallback - any string put here is a lie to a parent - it is that the
+       sender refuses to render the letter at all. requireTourLink in tour.ts
+       does that, and the three callers that can reach a tour letter all go
+       through it.
+    */
+    tour_link: ctx.tourUrl ?? "",
     shadow_days_note: (ctx.shadowDaysNote ?? "").trim(),
     /*
        THE DECISION FOR THIS CHILD, NOT THE OLDEST ONE WAITING.
@@ -329,6 +361,16 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     */
     interest_link_action: ctx.interestLinkToken?.trim()
       ? `${resolvePublicAppOrigin()}/send-interest-link/${ctx.interestLinkToken.trim()}`
+      : ctx.leadId
+        ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}`
+        : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
+    /*
+       THE FALLBACK IS THE CASE PAGE, for the same reason as call_link and
+       application_call_link above: the only person who ever reads this letter
+       is a school leader, who can sign in.
+    */
+    post_call_link: ctx.postCallToken?.trim()
+      ? `${resolvePublicAppOrigin()}/post-call/${ctx.postCallToken.trim()}`
       : ctx.leadId
         ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}`
         : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,

@@ -42,6 +42,7 @@ type SchoolContact = {
   admissions_booking_url?: string | null;
   admissions_from_email?: string | null;
   shadow_days_url?: string | null;
+  tour_booking_url?: string | null;
 };
 
 type LeadStaffHint = {
@@ -197,6 +198,17 @@ function buildMergeContextFromParts(
     admissionsContactEmail: clean(schoolOf(lead)?.admissions_contact_email),
     schedulingUrl: clean(schoolOf(lead)?.admissions_booking_url),
     shadowDaysUrl: clean(schoolOf(lead)?.shadow_days_url),
+    /*
+       A THIRD CALENDAR, NOT A SPARE ONE. Tours, interest calls and shadow
+       days are three different appointments of three different lengths, and
+       migration 262 recorded three separate Google schedules for exactly that
+       reason. Sending a family to the wrong one is not a small mistake.
+
+       Empty at HS and Virtual by design - tours are a physical-campus thing -
+       which is why the sender must check before rendering a letter that
+       carries {{tour_link}}. See requireTourLink in tour.ts.
+    */
+    tourUrl: clean(schoolOf(lead)?.tour_booking_url),
     /* The application link carries its own authority. See merge-fields. */
     applicationToken: clean(lead.application_access_token),
     fromEmail: clean(schoolOf(lead)?.admissions_from_email),

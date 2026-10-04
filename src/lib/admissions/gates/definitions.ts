@@ -13,6 +13,7 @@
 
 import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/types";
 import type { LeadStageValue } from "@/lib/constants/admissions";
+import { campusRunsTours, tourGateArmed } from "@/lib/admissions/tour";
 
 export type GateKey = "invite_to_apply" | "invite_to_shadow_days" | "accept_or_deny";
 
@@ -183,7 +184,45 @@ export interface PendingGate {
  * Derived from the definitions rather than written out again, so a gate cannot
  * be given an opening stage in one place and opened from another.
  */
-export function gateOpeningAtStage(stage: string): GateKey | null {
+export function gateOpeningAtStage(
+  stage: string,
+  schoolName?: string | null
+): GateKey | null {
+  /*
+   * ── THE GA AND FL FORK ──────────────────────────────────────────────────
+   *
+   * invite_to_apply opens at two stages: tour_completed and
+   * interest_meeting_held. That was written for a world with one path, where
+   * either one could be the last thing before the application.
+   *
+   * At GA and FL there is now a tour BETWEEN them. Leaving
+   * interest_meeting_held as an opening stage there would ask a school leader
+   * to invite the family to apply the moment the inquiry call is over -
+   * before the tour she has just decided to send them on, and before the
+   * visit that is supposed to inform the answer. She would be asked twice,
+   * and the first asking is the wrong question.
+   *
+   * So at a tour campus, interest_meeting_held opens nothing and
+   * tour_completed opens the gate. At Virtual and HS nothing changes at all.
+   *
+   * SUPPRESSED, NOT RE-POINTED. The definition keeps both stages and this
+   * narrows it, because opensAtStage is read by the registry audit and by the
+   * board, and a gate whose declared opening stage depends on a campus is a
+   * harder thing to reason about than a gate that declares both and opens one.
+   *
+   * NO SCHOOL NAME MEANS NO SUPPRESSION. A caller that does not know the
+   * campus gets today's behaviour, which keeps the family moving. Every
+   * failure mode in this file is chosen to be a question asked twice rather
+   * than a child who stops dead.
+   */
+  if (
+    stage === "interest_meeting_held" &&
+    tourGateArmed() &&
+    campusRunsTours(schoolName)
+  ) {
+    return null;
+  }
+
   for (const key of GATE_KEYS) {
     if ((GATES[key].opensAtStage as readonly string[]).includes(stage)) return key;
   }
