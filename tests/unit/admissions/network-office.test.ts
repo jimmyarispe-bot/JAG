@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  NETWORK_ESCALATION_EMAILS,
   NETWORK_OFFICE_EMAIL,
+  NETWORK_SECOND_EMAIL,
+  notifiesNetworkEscalation,
   notifiesNetworkOffice,
   withNetworkOffice,
 } from "@/lib/admissions/communications/network-office";
@@ -45,6 +48,44 @@ describe("the network office address", () => {
     expect(NETWORK_OFFICE_EMAIL).not.toContain(",");
     expect(NETWORK_OFFICE_EMAIL.trim()).toBe(NETWORK_OFFICE_EMAIL);
     expect(NETWORK_OFFICE_EMAIL).toMatch(/^[^@\s]+@[^@\s]+\.[^@\s]+$/);
+  });
+});
+
+describe("the second address", () => {
+  // Same rule as above, for the same reason. A three-day-old inquiry carries
+  // a child's name, their parent's name, email and telephone number, and what
+  // the family wrote about their child's difficulties.
+  it("is not a consumer mailbox", () => {
+    expect(CONSUMER_DOMAINS).not.toContain(domainOf(NETWORK_SECOND_EMAIL));
+  });
+
+  it("is on one of the network's own domains", () => {
+    expect(NETWORK_DOMAINS).toContain(domainOf(NETWORK_SECOND_EMAIL));
+  });
+
+  it("is a single address, not a list somebody pasted in", () => {
+    expect(NETWORK_SECOND_EMAIL).not.toContain(",");
+    expect(NETWORK_SECOND_EMAIL).toMatch(/^[^@\s]+@[^@\s]+\.[^@\s]+$/);
+  });
+
+  it("is both people, and not the same person twice", () => {
+    expect(NETWORK_ESCALATION_EMAILS).toHaveLength(2);
+    expect(new Set(NETWORK_ESCALATION_EMAILS.map((e) => e.toLowerCase())).size).toBe(2);
+  });
+
+  it("is reached by the three-day inquiry escalation and nothing else", () => {
+    expect(notifiesNetworkEscalation("staff_interest_link_escalation" as never)).toBe(true);
+    expect(notifiesNetworkEscalation("staff_new_inquiry" as never)).toBe(false);
+    expect(notifiesNetworkEscalation("staff_application_accepted" as never)).toBe(false);
+  });
+
+  it("adds both to the campus list, de-duplicated", () => {
+    const out = withNetworkOffice(
+      "staff_interest_link_escalation" as never,
+      ["nina.gaddy@theacademyga.org", NETWORK_OFFICE_EMAIL]
+    );
+    expect(out).toContain(NETWORK_SECOND_EMAIL);
+    expect(out.filter((e) => e === NETWORK_OFFICE_EMAIL)).toHaveLength(1);
   });
 });
 

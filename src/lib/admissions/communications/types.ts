@@ -89,6 +89,16 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   "parent_interest_meeting_not_booked_1",
   "parent_interest_meeting_not_booked_2",
   "staff_interest_meeting_no_response",
+  /**
+   * The family's first letter, sent by a school leader rather than by the
+   * form. inquiry_thank_you_email and its no-link twin moved onto this event
+   * in migration 489; nothing fires them automatically any more.
+   */
+  "interest_meeting_link_sent",
+  /** 24 and 48 hours, to the campus, while the link has not gone out. */
+  "staff_interest_link_not_sent",
+  /** 72 hours. To Jimmy and Danni, not to the campus that is sitting on it. */
+  "staff_interest_link_escalation",
 ] as const;
 
 export type CommunicationTriggerEvent = (typeof COMMUNICATION_TRIGGER_EVENTS)[number];
@@ -169,6 +179,11 @@ export const MERGE_FIELDS = [
    * here is the 294 failure: it mails literal braces to a human.
    */
   "application_call_link",
+  /**
+   * The one-click link in the new-inquiry notice. It is the only way the
+   * family's first letter goes out: nothing fires on inquiry any more.
+   */
+  "interest_link_action",
   /**
    * What the family ticked on the interest form, comma separated. Registered
    * here as well as in the merge map because this list is what migration
@@ -290,6 +305,9 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   parent_interest_meeting_not_booked_1: "Interest Meeting Not Booked (1st follow-up)",
   parent_interest_meeting_not_booked_2: "Interest Meeting Not Booked (2nd follow-up)",
   staff_interest_meeting_no_response: "Staff: Three Attempts, No Booking",
+  interest_meeting_link_sent: "Interest Meeting Link Sent",
+  staff_interest_link_not_sent: "Staff: Interest Link Not Sent Yet",
+  staff_interest_link_escalation: "Staff: Three Days, Nobody Contacted Them",
 };
 
 export const CHANNEL_LABELS: Record<CommunicationChannel, string> = {

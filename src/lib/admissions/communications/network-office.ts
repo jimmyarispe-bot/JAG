@@ -58,15 +58,58 @@ export function notifiesNetworkOffice(event: CommunicationTriggerEvent): boolean
 }
 
 /**
- * The campus list with the network office added, de-duplicated and never
- * reordered, so a campus that already lists him gets one copy rather than two.
+ * The second address, and the one event that reaches it.
+ *
+ * Jimmy, 4 October 2026, on a campus sitting three days on an inquiry
+ * nobody has contacted: "2 then tells me n danni".
+ *
+ * This is a DIFFERENT QUESTION from the network office above. Acceptance is
+ * told to the network because it hands a family to the business office.
+ * This one is told to two named people because a campus has not done
+ * something, and the point of it is that somebody outside that campus sees
+ * it. Same domain rule, same env override, same refusal to default to a
+ * mailbox the network does not control.
+ */
+export const NETWORK_SECOND_EMAIL =
+  process.env.ADMISSIONS_NETWORK_SECOND_EMAIL?.trim() || "danni.treu@theacademyway.org";
+
+/** Both people told when a campus has gone quiet on an inquiry. */
+export const NETWORK_ESCALATION_EMAILS: readonly string[] = [
+  NETWORK_OFFICE_EMAIL,
+  NETWORK_SECOND_EMAIL,
+];
+
+/** Events that reach the pair rather than the single network address. */
+const NETWORK_ESCALATION_EVENTS: ReadonlySet<string> = new Set<CommunicationTriggerEvent>([
+  "staff_interest_link_escalation",
+]);
+
+export function notifiesNetworkEscalation(event: CommunicationTriggerEvent): boolean {
+  return NETWORK_ESCALATION_EVENTS.has(event);
+}
+
+/**
+ * The campus list with whoever the event adds, de-duplicated and never
+ * reordered, so a campus that already lists someone gets one copy not two.
  */
 export function withNetworkOffice(
   event: CommunicationTriggerEvent,
   campusEmails: readonly string[]
 ): readonly string[] {
-  if (!notifiesNetworkOffice(event)) return campusEmails;
+  const extra: readonly string[] = notifiesNetworkEscalation(event)
+    ? NETWORK_ESCALATION_EMAILS
+    : notifiesNetworkOffice(event)
+      ? [NETWORK_OFFICE_EMAIL]
+      : [];
+  if (!extra.length) return campusEmails;
+
   const seen = new Set(campusEmails.map((email) => email.trim().toLowerCase()));
-  if (seen.has(NETWORK_OFFICE_EMAIL.toLowerCase())) return campusEmails;
-  return [...campusEmails, NETWORK_OFFICE_EMAIL];
+  const out = [...campusEmails];
+  for (const email of extra) {
+    const key = email.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(email);
+  }
+  return out;
 }

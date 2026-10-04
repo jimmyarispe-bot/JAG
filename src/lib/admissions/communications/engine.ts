@@ -320,6 +320,43 @@ async function loadMergeContextsForQueue(
 
   const leadById = new Map((leads ?? []).map((l) => [l.id as string, l as LeadMergeRow]));
 
+  /**
+   * WHO A QUEUED STAFF LETTER ACTUALLY REACHES.
+   *
+   * This was never resolved here. loadMergeContext does it for the IMMEDIATE
+   * path and this one did not, so every queued staff_email fell through to
+   * the single admissions_contact_email - one person, however many contacts
+   * a campus has configured since migration 327. The 7am interest-meeting
+   * escalation has been going to one address.
+   *
+   * The network office was never added either, because withNetworkOffice is
+   * keyed on the trigger event and nothing here knew it. That is applied per
+   * ITEM below rather than here, because one lead's two queued letters can
+   * carry two different events.
+   */
+  const schoolIds = [
+    ...new Set(
+      (leads ?? [])
+        .map((l) => (l as LeadMergeRow).school_id)
+        .filter((id): id is string => Boolean(id))
+    ),
+  ];
+  const campusEmailsBySchool = new Map<string, readonly string[]>();
+  await Promise.all(
+    schoolIds.map(async (schoolId) => {
+      const lead = (leads ?? []).find(
+        (l) => (l as LeadMergeRow).school_id === schoolId
+      ) as LeadMergeRow | undefined;
+      const school = lead ? schoolOf(lead) : null;
+      const contacts = await resolveSchoolAdmissionsContacts(supabase, schoolId, {
+        contactName: clean(school?.admissions_contact_name),
+        contactEmail: clean(school?.admissions_contact_email),
+        bookingUrl: clean(school?.admissions_booking_url),
+      });
+      campusEmailsBySchool.set(schoolId, contacts.notificationEmails);
+    })
+  );
+
   const latestTourByLead = new Map<
     string,
     { tourDatetime: string | null; campusName: string | null; campusAddress: string | null }
@@ -349,18 +386,24 @@ async function loadMergeContextsForQueue(
     const lead = leadById.get(item.lead_id);
     if (!lead) continue;
     result.set(key, {
-      mergeCtx: buildMergeContextFromParts(
-        lead,
-        fundingByLead.get(item.lead_id) ?? [],
-        inquiryProgramsByLead.get(item.lead_id) ?? [],
-        latestTourByLead.get(item.lead_id) ?? {
-          tourDatetime: null,
-          campusName: null,
-          campusAddress: null,
-        },
-        item.application_id ? (missingByApp.get(item.application_id) ?? []) : [],
-        item.application_id
-      ),
+      mergeCtx: {
+        ...buildMergeContextFromParts(
+          lead,
+          fundingByLead.get(item.lead_id) ?? [],
+          inquiryProgramsByLead.get(item.lead_id) ?? [],
+          latestTourByLead.get(item.lead_id) ?? {
+            tourDatetime: null,
+            campusName: null,
+            campusAddress: null,
+          },
+          item.application_id ? (missingByApp.get(item.application_id) ?? []) : [],
+          item.application_id
+        ),
+        /* The campus list, raw. The event decides who is added, per item. */
+        staffNotificationEmails: lead.school_id
+          ? (campusEmailsBySchool.get(lead.school_id) ?? [])
+          : [],
+      },
       staff: {
         schoolId: lead.school_id,
         assignedToUserId: lead.assigned_to_user_id,
@@ -768,11 +811,26 @@ export async function processCommunicationQueue(supabase: AuthClient) {
      */
     const overrides = (item.merge_overrides ?? null) as Partial<MergeContext> | null;
 
+    /*
+     * The recipient list is decided per ITEM, not per lead, because
+     * withNetworkOffice is keyed on the trigger event and one family's two
+     * queued letters can carry two different ones. staff_interest_link_escalation
+     * is the case this exists for: the campus is the thing being escalated
+     * ABOUT, so that letter goes to Jimmy and Danni on top of it.
+     */
+    const withRecipients: MergeContext = {
+      ...packed.mergeCtx,
+      staffNotificationEmails: withNetworkOffice(
+        template.trigger_event as CommunicationTriggerEvent,
+        packed.mergeCtx.staffNotificationEmails ?? []
+      ),
+    };
+
     const commId = await deliverCommunication(supabase, {
       leadId: item.lead_id,
       applicationId: item.application_id,
       template,
-      mergeCtx: overrides ? { ...packed.mergeCtx, ...overrides } : packed.mergeCtx,
+      mergeCtx: overrides ? { ...withRecipients, ...overrides } : withRecipients,
       sentBy: null,
       customSubject: item.custom_subject,
       customBody: item.custom_body,

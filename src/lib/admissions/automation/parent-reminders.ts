@@ -54,6 +54,8 @@ interface WaitSchedule {
 }
 
 const SCHEDULE: Record<ParentWaitKey, WaitSchedule> = {
+  /* Two to the campus, then out of the campus's hands. */
+  interest_link_not_sent: { reminders: [24, 48], escalateAt: 72 },
   application_not_started: { reminders: [24, 72, 96], escalateAt: 120 },
   application_not_submitted: { reminders: [24, 72, 96], escalateAt: 120 },
   shadow_days_not_scheduled: { reminders: [48, 96, 144], escalateAt: 192 },
@@ -69,12 +71,23 @@ const TERMINAL_STAGES = new Set([
 ]);
 
 export type ParentWaitKey =
+  /**
+   * THE ONLY WAIT WHERE WE ARE WAITING ON US.
+   *
+   * Jimmy, 4 October: the interest meeting link is no longer sent by the
+   * form. A school leader reads the inquiry and presses send. Nothing at all
+   * reaches the family until she does, which is what makes this chase the
+   * one that matters most - 24 and 48 hours to the campus, then Jimmy and
+   * Danni at 72.
+   */
+  | "interest_link_not_sent"
   | "application_not_started"
   | "application_not_submitted"
   | "shadow_days_not_scheduled"
   | "enrollment_not_completed";
 
 const WAIT_TEMPLATE_KEY: Record<ParentWaitKey, string> = {
+  interest_link_not_sent: "staff_interest_link_not_sent",
   application_not_started: "parent_reminder_application_not_started",
   application_not_submitted: "parent_reminder_application_not_submitted",
   shadow_days_not_scheduled: "parent_reminder_shadow_days_not_scheduled",
@@ -95,11 +108,22 @@ const WAIT_TEMPLATE_KEY: Record<ParentWaitKey, string> = {
  * seen it.
  */
 const ESCALATION_TEMPLATE_KEY: Record<ParentWaitKey, string> = {
+  interest_link_not_sent: "staff_interest_link_escalation",
   application_not_started: "staff_application_call_parent",
   application_not_submitted: "staff_application_call_parent",
   shadow_days_not_scheduled: "staff_parent_unresponsive",
   enrollment_not_completed: "staff_parent_unresponsive",
 };
+
+/**
+ * Waits where the person being chased is STAFF, not the family.
+ *
+ * It matters at one line: a family with no email address cannot be reminded,
+ * and is counted rather than skipped quietly. A school leader can be
+ * reminded perfectly well about a family who gave us no address - in fact
+ * that is a family she especially needs to look at.
+ */
+const STAFF_WAITS = new Set<ParentWaitKey>(["interest_link_not_sent"]);
 
 /** The two waits whose escalation carries buttons rather than a sentence. */
 const WAITS_WITH_BUTTONS = new Set<ParentWaitKey>([
@@ -185,6 +209,7 @@ async function currentWaits(
 ): Promise<Map<ParentWaitKey, Set<string>>> {
   const leadIds = leads.map((l) => l.id);
   const waits = new Map<ParentWaitKey, Set<string>>([
+    ["interest_link_not_sent", new Set()],
     ["application_not_started", new Set()],
     ["application_not_submitted", new Set()],
     ["shadow_days_not_scheduled", new Set()],
@@ -192,7 +217,7 @@ async function currentWaits(
   ]);
   if (!leadIds.length) return waits;
 
-  const [gatesResult, appsResult, packetsResult] = await Promise.all([
+  const [gatesResult, appsResult, packetsResult, firstLetterResult] = await Promise.all([
     supabase
       .from("admissions_decision_gates")
       .select("lead_id, gate_key, answer, status")
@@ -206,6 +231,19 @@ async function currentWaits(
       .from("enrollment_packets")
       .select("lead_id, packet_status")
       .in("lead_id", leadIds),
+    /*
+     * HAS THE FAMILY HEARD FROM US AT ALL YET.
+     *
+     * The sent log, not a flag on the lead. A flag would have to be kept in
+     * step with the thing it describes, and the thing it describes is "an
+     * email left the building" - which admissions_communications already
+     * records, for both versions of the letter.
+     */
+    supabase
+      .from("admissions_communications")
+      .select("lead_id, template_key")
+      .in("lead_id", leadIds)
+      .in("template_key", ["inquiry_thank_you_email", "inquiry_thank_you_email_no_link"]),
   ]);
 
   // A refused read returns no rows, which here would read as "nobody is
@@ -214,6 +252,9 @@ async function currentWaits(
   if (gatesResult.error) throw new Error(`gates: ${gatesResult.error.message}`);
   if (appsResult.error) throw new Error(`applications: ${appsResult.error.message}`);
   if (packetsResult.error) throw new Error(`packets: ${packetsResult.error.message}`);
+  if (firstLetterResult.error) {
+    throw new Error(`first letter: ${firstLetterResult.error.message}`);
+  }
 
   const invitedToApply = new Set<string>();
   const invitedToShadow = new Set<string>();
@@ -230,6 +271,11 @@ async function currentWaits(
     if (!a.submitted_at) unsubmitted.add(a.lead_id as string);
   }
 
+  const firstLetterSent = new Set<string>();
+  for (const c of firstLetterResult.data ?? []) {
+    firstLetterSent.add(c.lead_id as string);
+  }
+
   const completedPacket = new Set<string>();
   for (const p of packetsResult.data ?? []) {
     if (p.packet_status === "completed") completedPacket.add(p.lead_id as string);
@@ -238,6 +284,13 @@ async function currentWaits(
   for (const lead of leads) {
     const stage = lead.lead_stage ?? "";
     if (TERMINAL_STAGES.has(stage)) continue;
+
+    // 0. The inquiry arrived and nobody has sent them the booking link.
+    //    Stage-gated on purpose: once a family has moved on, this is moot
+    //    however the letter got skipped.
+    if (stage === "new_inquiry" && !firstLetterSent.has(lead.id)) {
+      waits.get("interest_link_not_sent")!.add(lead.id);
+    }
 
     // 1. We invited them to apply and no application exists at all.
     if (invitedToApply.has(lead.id) && !hasApplication.has(lead.id)) {
@@ -537,8 +590,13 @@ export async function processParentReminders(): Promise<ParentReminderRunSummary
     }
 
     // No address, no email. Counted, because a family nobody can reach is a
-    // thing to fix, not a row to skip quietly.
-    if (!lead.guardian_email || !lead.guardian_email.includes("@")) {
+    // thing to fix, not a row to skip quietly. It does not apply to a wait
+    // addressed to a school leader - she is reachable whatever the family
+    // did or did not type into the form.
+    if (
+      !STAFF_WAITS.has(waitKey) &&
+      (!lead.guardian_email || !lead.guardian_email.includes("@"))
+    ) {
       skippedNoEmail += 1;
       continue;
     }

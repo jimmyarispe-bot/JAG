@@ -108,6 +108,11 @@ export interface MergeContext {
    */
   applicationCallToken?: string | null;
   /**
+   * Minted when the inquiry arrives. Opens /send-interest-link/<token>, the
+   * one-button page that sends the family their booking link.
+   */
+  interestLinkToken?: string | null;
+  /**
    * The school's own From address. Not a merge field — nothing renders it into
    * a body — but it rides along here because this is the object the delivery
    * path already carries, and threading a parallel one would be two things to
@@ -313,6 +318,17 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     */
     application_call_link: ctx.applicationCallToken?.trim()
       ? `${resolvePublicAppOrigin()}/application-call/${ctx.applicationCallToken.trim()}`
+      : ctx.leadId
+        ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}`
+        : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
+    /*
+       THE ONLY WAY THE FAMILY'S FIRST LETTER GOES OUT.
+       A lead with no token falls back to the case page, which needs a sign-in
+       - wrong for a parent, perfectly fine for the school leader who is the
+       only person this ever reaches.
+    */
+    interest_link_action: ctx.interestLinkToken?.trim()
+      ? `${resolvePublicAppOrigin()}/send-interest-link/${ctx.interestLinkToken.trim()}`
       : ctx.leadId
         ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}`
         : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,

@@ -483,6 +483,30 @@ export async function submitPublishedInterestForm(
   await recordInitialStage(admin, leadId, null);
 
   /*
+     THE LINK THAT SENDS THE FAMILY THEIR FIRST LETTER.
+
+     Minted here, before the staff notice renders, because that notice is
+     where it appears. Nothing reaches the family on inquiry any more: a
+     school leader reads what they wrote and presses send. If this mint
+     fails the notice still goes out, and {{interest_link_action}} falls back
+     to the case page, which needs a sign-in - inconvenient for her, and far
+     better than a notice that does not arrive.
+  */
+  const interestLinkToken = (
+    globalThis.crypto.randomUUID() + globalThis.crypto.randomUUID()
+  ).replace(/-/g, "");
+  const { error: tokenError } = await admin
+    .from("admissions_leads")
+    .update({ interest_link_token: interestLinkToken } as never)
+    .eq("id", leadId);
+  if (tokenError) {
+    console.error("[interest-form] could not mint the interest link token", {
+      leadId,
+      error: tokenError.message,
+    });
+  }
+
+  /*
      DOCUMENTS FIRST, THEN THE NOTICE THAT MENTIONS THEM.
      
      These two ran the other way round, and the timestamps show what it cost:
