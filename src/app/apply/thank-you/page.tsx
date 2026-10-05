@@ -87,12 +87,11 @@ export default async function ApplyThankYouPage({ searchParams }: ThankYouPagePr
    * a full application was told "Inquiry Received" and invited to book a tour
    * they had already had.
    *
-   * Both notices below are Jimmy's own words, 24 September. The inquiry one is
-   * unchanged and stays exactly as it was: "this needs to be the inquiry
-   * received confirmation notice."
+   * The APPLICATION notice is Jimmy's own words from 24 September, with one
+   * correction he was told about: he wrote "your will receive".
    *
-   * One correction to his application text, which he was told about: he wrote
-   * "your will receive". It reads "you will receive".
+   * THE INQUIRY NOTICE WAS ALSO HIS, AND WAS REWRITTEN ON 5 OCTOBER because
+   * the behaviour underneath it had changed. See the long note below.
    */
   const applicationSubmitted = applied === "1";
 
@@ -100,19 +99,40 @@ export default async function ApplyThankYouPage({ searchParams }: ThankYouPagePr
   const child = school.studentFirstName ?? "your child";
 
   /**
-   * THE INQUIRY WORDING, UNCHANGED.
+   * THE INQUIRY WORDING, REWRITTEN 5 OCTOBER.
    *
-   * A campus with a building offers a tour. The high school and Virtual have
-   * no building, and offering a tour of one would be a promise nobody can
-   * keep - so they offer the thing they actually do.
+   * ── WHAT WAS WRONG WITH IT ──────────────────────────────────────────────
    *
-   * Falls back to the in-person wording when the school could not be read,
-   * which is the same case where the page names the network rather than a
-   * campus. Vaguer, but never wrong about a specific school.
+   * It said "Our admissions team is sending you an email NOW". That was true
+   * when Jimmy wrote it on 24 September and stopped being true six days
+   * later. Migration 489 made the family's first letter a decision: nothing
+   * reaches them until a school leader reads what they wrote and presses
+   * send, and the reminders behind her run to seventy-two hours.
+   *
+   * So a parent read "now", waited two days, received nothing, and either
+   * concluded we were broken or emailed to ask - which is worse, because it
+   * arrives in a mailbox nobody is watching for it.
+   *
+   * It also offered a "tour". There is no tour at inquiry stage anywhere:
+   * GA and FL schedule a phone conversation (migration 493) and Virtual and
+   * HS a virtual meeting (496, 498). A page promising a tour and a letter
+   * offering a telephone call are two different schools to the person
+   * reading them.
+   *
+   * ── WHAT IT SAYS NOW ────────────────────────────────────────────────────
+   *
+   * Jimmy approved this on 5 October. It describes a person doing something,
+   * because that is what happens, and it deliberately PROMISES NO TIMEFRAME:
+   * "within two business days" is a commitment four campuses would have to
+   * keep, and the only thing enforcing it today is a reminder to one leader.
+   *
+   * THE TWO VARIANTS MUST AGREE WITH THE 1d LETTERS. If the wording of
+   * inquiry_thank_you_email ever changes at a campus, this changes with it -
+   * the page and the letter are read ten minutes apart by the same person.
    */
   const nextStep = school.meetsVirtually
-    ? "schedule a day/time to meet virtually with them"
-    : "schedule your tour or meeting";
+    ? "schedule a virtual meeting with us"
+    : "schedule a phone conversation with us";
 
   return (
     // No navigation, and no buttons below. A family who has just submitted an
@@ -132,10 +152,15 @@ export default async function ApplyThankYouPage({ searchParams }: ThankYouPagePr
             an email with a link to schedule {child}&rsquo;s Shadow Day(s).
           </p>
         ) : (
-          <p className="mt-2 text-slate-600">
-            Thank you for your interest in {name}. Our admissions team is sending you an email now
-            for you to {nextStep}.
-          </p>
+          <>
+            <p className="mt-2 text-slate-600">
+              Thank you for your interest in {name}. We have everything you told us about {child}.
+            </p>
+            <p className="mt-3 text-slate-600">
+              We will read it and email you a link so you can {nextStep}. Nothing else is needed
+              from you right now.
+            </p>
+          </>
         )}
         {lead && (
           <p className="mt-3 text-xs text-slate-400">Reference: {lead.slice(0, 8).toUpperCase()}</p>
