@@ -134,6 +134,26 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
    * from one stage to the next without the school leader moving him or her.
    */
   "tour_invitation_sent",
+  /**
+   * The five-day "no application, time to telephone" letter.
+   *
+   * IT WAS SEEDED ON SOMEBODY ELSE'S EVENT. Migration 484 gave
+   * staff_application_call_parent trigger_event 'staff_portal_message',
+   * which belongs to a different letter entirely. Nothing has gone wrong
+   * yet for one reason only: the letter is switched off, and
+   * getTemplatesForTrigger filters on is_active.
+   *
+   * Switch it on as it stands and firing staff_portal_message delivers both
+   * - "a new message in your portal" and "time to call this family, here is
+   * their telephone number" - because that function de-duplicates by
+   * template KEY and two keys means two survivors. Exactly the collision
+   * migration 494 cleared out of sixteen rows.
+   *
+   * Named after its template, the convention 494 established, so the two
+   * cannot drift apart again. The nightly job is unaffected either way: it
+   * looks this letter up by key, not by event.
+   */
+  "staff_application_call_parent",
 ] as const;
 
 export type CommunicationTriggerEvent = (typeof COMMUNICATION_TRIGGER_EVENTS)[number];
@@ -387,6 +407,7 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   parent_reminder_enrollment_not_completed: "Reminder: Enrollment Not Completed",
   staff_inquiry_call_held: "Staff: RECORD Your Notes (at the meeting time)",
   tour_invitation_sent: "Tour Invitation Sent",
+  staff_application_call_parent: "Staff: Five Days, No Application — Call Them",
 };
 
 export const CHANNEL_LABELS: Record<CommunicationChannel, string> = {
