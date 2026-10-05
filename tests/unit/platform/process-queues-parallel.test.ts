@@ -126,6 +126,24 @@ describe("processAllPlatformQueues parallel waves", () => {
     vi.clearAllMocks();
   });
 
+  /*
+   * THIRTY SECONDS, NOT THE DEFAULT FIVE.
+   *
+   * 5 October 2026: this test blocked a ship with no assertion and no
+   * message - Error: STACK_TRACE_ERROR, vitest's placeholder, which is what
+   * a timeout looks like in the JSON report. Run on its own it passes in
+   * 701ms. The cost is the dynamic import of process-queues below, which
+   * pulls in some thirty processor modules; under the full parallel suite
+   * the transform contention pushes that past five seconds. The same suite
+   * then passed on a re-run with the same code, which is the definition of
+   * passing by luck.
+   *
+   * The tempting fix was tests/known-failures.json. That would have hidden
+   * a real ordering guarantee - sync before process - behind a line nobody
+   * reads again. This gives the test the room its own design needs instead,
+   * and thirty seconds is still short enough that a genuine hang fails
+   * rather than hides.
+   */
   it("invokes wave-1 processors and keeps instruction sync-before-process order", async () => {
     const order: string[] = [];
     mocks.syncInstructionReminderJobs.mockImplementation(async () => {
@@ -156,5 +174,5 @@ describe("processAllPlatformQueues parallel waves", () => {
     expect(mocks.generateExecutiveInsights).toHaveBeenCalledWith(supabase, "school-1");
     expect(mocks.captureDailyExecutiveSnapshot).toHaveBeenCalled();
     expect(mocks.processRc11ProductionWorkers).toHaveBeenCalledWith(supabase);
-  });
+  }, 30_000);
 });
