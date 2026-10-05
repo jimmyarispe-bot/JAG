@@ -58,7 +58,7 @@
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { campusRunsTours, requireTourLink } from "@/lib/admissions/tour";
+import { campusRunsTours, requireTourLink, tourGateArmed } from "@/lib/admissions/tour";
 import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/types";
 
 const TOKEN_PATTERN = /^[0-9a-f]{64}$/;
@@ -156,7 +156,28 @@ export async function leadForPostCallToken(
   const embedded = lead.schools as Row | Row[] | null;
   const school = (Array.isArray(embedded) ? embedded[0] : embedded) ?? null;
   const schoolName = text(school?.name);
-  const fork: MeetingFork = campusRunsTours(schoolName) ? "tour" : "shadow_day";
+  /*
+   * THE GATE IS READ HERE, AND UNTIL 5 OCTOBER IT WAS NOT.
+   *
+   * ADMISSIONS_TOUR_GATE was checked in exactly one place - the gate
+   * suppression in gates/definitions.ts - and nowhere near the button a human
+   * presses. So the tour fork was live at GA and FL the moment the RECORD
+   * your notes letter went on, while T1 was still switched off.
+   *
+   * What that would have done, the first time Nina or Danni pressed it: notes
+   * recorded, stage moved to tour_requested, tour_invitation_sent fired at a
+   * template that is off, and THE FAMILY SENT NOTHING. The booking scan then
+   * waits for a tour booking from a family who never got a link, and the
+   * child sits at tour_requested with no action left on the page to move
+   * them - the shadow day button is the other fork and is not offered here.
+   *
+   * A child stopping dead with nothing on screen to explain it is the exact
+   * thing the gate exists to prevent, so the gate is now read where the fork
+   * is chosen. Off means GA and FL behave as they did before the tour step
+   * was built: the shadow day fork, which is already approved and working.
+   */
+  const fork: MeetingFork =
+    tourGateArmed() && campusRunsTours(schoolName) ? "tour" : "shadow_day";
 
   const tour =
     fork === "tour"
@@ -279,7 +300,10 @@ export async function recordPostCallDecision(params: {
   const embedded = leadRow?.schools as Row | Row[] | null;
   const school = (Array.isArray(embedded) ? embedded[0] : embedded) ?? null;
   const schoolName = text(school?.name);
-  const fork: MeetingFork = campusRunsTours(schoolName) ? "tour" : "shadow_day";
+  /* The gate again - see the note at the first fork. Both sides must agree,
+   * or a button rendered by one is refused by the other. */
+  const fork: MeetingFork =
+    tourGateArmed() && campusRunsTours(schoolName) ? "tour" : "shadow_day";
 
   /* A button from the other campus's fork is not a valid answer here. */
   const chosen = POST_CALL_ACTIONS.find((a) => a.value === params.action);
