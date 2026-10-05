@@ -35,6 +35,28 @@ type LeadMergeRow = {
   current_grade: string | null;
   date_of_birth: string | null;
   application_access_token: string | null;
+  /**
+   * THE FOUR BUTTON TOKENS, READ BACK FROM THE LEAD.
+   *
+   * Added 5 October after the first real inquiry proved they were not.
+   * interest_link_token was minted by submit.ts, written to the lead, and
+   * then never read by anything: it was absent from this type, from the
+   * projection, and from every caller's merge overrides. So
+   * {{interest_link_action}} rendered its FALLBACK on every single staff
+   * notice - the case page, which asks a school leader to sign in.
+   *
+   * That link is not a convenience. Since migration 489 a family hears
+   * nothing at all until somebody presses it, and it had never once been a
+   * button.
+   *
+   * The other three arrive as merge overrides from the jobs that mint them,
+   * and worked. They are read here as well because "the only caller always
+   * passes it" is exactly the assumption that broke this one.
+   */
+  interest_link_token: string | null;
+  interest_call_token: string | null;
+  application_call_token: string | null;
+  post_call_token: string | null;
   schools: SchoolContact | SchoolContact[] | null;
 };
 
@@ -214,6 +236,12 @@ function buildMergeContextFromParts(
     tourUrl: clean(schoolOf(lead)?.tour_booking_url),
     /* The application link carries its own authority. See merge-fields. */
     applicationToken: clean(lead.application_access_token),
+    /* See the note on the four token columns above. Overrides still win:
+       processCommunicationQueue spreads merge_overrides last. */
+    interestLinkToken: clean(lead.interest_link_token),
+    interestCallToken: clean(lead.interest_call_token),
+    applicationCallToken: clean(lead.application_call_token),
+    postCallToken: clean(lead.post_call_token),
     fromEmail: clean(schoolOf(lead)?.admissions_from_email),
     program: lead.program,
     /* What they are applying FOR first; what they are in now is the fallback. */
