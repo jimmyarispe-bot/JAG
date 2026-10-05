@@ -525,8 +525,52 @@ export async function submitPublishedInterestForm(
     values: visible,
   });
 
+  /*
+   * WHAT THEY TICKED, CARRIED RATHER THAN LOOKED UP.
+   *
+   * ── THE BUG THIS FIXES ──────────────────────────────────────────────────
+   *
+   * Every staff inquiry notice since migration 488 has read "Program: not
+   * recorded on the inquiry", at every campus, including for families who
+   * ticked a program. Five leads checked on 5 October, five answers present
+   * in admissions_interest_answers, five notices saying nothing was
+   * recorded.
+   *
+   * It is not a permission fault and not a parsing fault. It is the ORDER of
+   * the two calls below. onInquirySubmitted renders the notice here;
+   * persistInterestSubmission writes the submission and its answers TEN
+   * LINES FURTHER DOWN. fetchInquiryProgramsByLeadIds looked for a
+   * submission that did not exist yet, found none, and rendered the fallback
+   * - which reads identically to a question nobody answered.
+   *
+   * THIS IS THE SAME MISTAKE AS THE ATTACHMENTS, twenty lines above, and the
+   * comment there describes it exactly: a notice that went out before the
+   * thing it mentions existed. That one was fixed by carrying the labels as
+   * a merge override. So is this.
+   *
+   * ── WHY NOT JUST MOVE persistInterestSubmission UP ──────────────────────
+   *
+   * Because a notice is worth more than one line inside it. Today a failure
+   * to persist still produces a staff notice; reorder, and a persist that
+   * throws takes the only alert about a new family with it. The override
+   * also survives the next person who reorders this function, which is the
+   * failure mode this file has now had twice.
+   *
+   * ── WHY NOT lead.program ────────────────────────────────────────────────
+   *
+   * submit.ts sets it to null on every public inquiry, on purpose, and says
+   * so where it does it. There are two program vocabularies and they do not
+   * meet: the column takes one canonical code, the form offers a parent
+   * "In-Person", "Only Virtual" and "Hybrid (in-person + virtual)" and lets
+   * them tick several.
+   */
+  const inquiryPrograms = Array.isArray(visible.program)
+    ? visible.program.map((entry) => asString(entry)).filter(Boolean)
+    : [asString(visible.program)].filter(Boolean);
+
   await onInquirySubmitted(admin, leadId, null, {
     uploadedDocuments: attachedDocuments,
+    inquiryPrograms,
   });
 
   await sendStudentQuestionnaireIfAsked({
