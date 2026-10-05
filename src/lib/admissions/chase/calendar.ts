@@ -71,6 +71,16 @@ export interface CalendarBooking {
    * in every Google event this scan has ever read and was simply never taken.
    */
   readonly endsAt: string | null;
+  /**
+   * The Google Meet link for this appointment, or null.
+   *
+   * Null at GA and FL, where the inquiry call is a telephone call and Google
+   * creates no conference for it. Read from `hangoutLink` first, which is
+   * what an appointment schedule sets, and from conferenceData's video entry
+   * point second, which is what a manually created event with Meet attached
+   * sets instead.
+   */
+  readonly meetingLink: string | null;
   readonly organizerEmail: string | null;
   /** Lower-cased, de-duplicated. The matching key. */
   readonly attendeeEmails: readonly string[];
@@ -90,9 +100,32 @@ type GoogleEvent = {
   summary?: string;
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
+  hangoutLink?: string;
+  conferenceData?: {
+    entryPoints?: { entryPointType?: string; uri?: string }[];
+  };
   organizer?: { email?: string };
   attendees?: { email?: string; responseStatus?: string }[];
 };
+
+/**
+ * Where Google hides the Meet link, in the two places it puts one.
+ *
+ * Only a `video` entry point is accepted. conferenceData also carries `phone`
+ * and `sip` entries, and mailing a school leader a dial-in PIN where she
+ * expects a Meet link is worse than mailing her nothing.
+ */
+function meetingLinkOf(event: GoogleEvent): string | null {
+  const direct = event.hangoutLink?.trim();
+  if (direct) return direct;
+
+  for (const entry of event.conferenceData?.entryPoints ?? []) {
+    if (entry.entryPointType === "video" && entry.uri?.trim()) {
+      return entry.uri.trim();
+    }
+  }
+  return null;
+}
 
 async function googleJson(
   url: string,
@@ -205,6 +238,7 @@ export async function readSharedCalendarBookings(
              here means Google sent an event with no end - rare, and handled
              by the caller rather than guessed at with a default length. */
           endsAt: event.end?.dateTime ?? null,
+          meetingLink: meetingLinkOf(event),
           organizerEmail: event.organizer?.email?.trim().toLowerCase() ?? null,
           attendeeEmails: emails,
         });

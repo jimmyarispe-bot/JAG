@@ -117,10 +117,15 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   "parent_reminder_shadow_days_not_scheduled",
   "parent_reminder_enrollment_not_completed",
   /**
-   * GA AND FL ONLY. Ten minutes after the inquiry call was due to end, the
-   * school leader is asked what happened and what to do next. Virtual and HS
-   * do not have this step: their fork runs straight to the application, and
-   * neither campus has a tour calendar to send anybody to.
+   * "RECORD your notes for ..." - to the school leader at every campus, at
+   * the appointment time. Carries the notes box and whichever decision
+   * belongs to that campus: the tour at GA and FL, the shadow day at Virtual
+   * and HS, plus "not the right school" and "not yet" everywhere.
+   *
+   * THE KEY STILL SAYS "inquiry call" because it was coined on 4 October for
+   * a GA and FL letter ten minutes after that call. Renaming it would touch
+   * six files to change nothing a human reads; the LABEL below, which is what
+   * shows in the template admin, says what it actually is.
    */
   "staff_inquiry_call_held",
   /**
@@ -238,6 +243,27 @@ export const MERGE_FIELDS = [
    * with no entry here mails literal braces to a human.
    */
   "inquiry_programs",
+  /**
+   * The child's full name - first and last, never the preferred name alone.
+   *
+   * SEPARATE FROM student_name, which returns the preferred name when there
+   * is one. That is right in a letter to a family, who call the child what
+   * they call the child, and wrong on a staff letter a school leader is
+   * scanning for a record: "Birdie" does not find Beatrice Okonkwo.
+   */
+  "student_full_name",
+  /** The grade the child is applying for, as a label. */
+  "student_grade",
+  /** Whole years, from date_of_birth. "not given" when there is none. */
+  "student_age",
+  /**
+   * The Google Meet link for THIS appointment, read off the calendar event.
+   *
+   * Empty at GA and FL, where the inquiry call is a telephone call and
+   * Google creates no conference. The letter carrying it says "Call them or
+   * go to the google meets link", which covers both.
+   */
+  "meeting_link",
   "tour_datetime",
   "interview_datetime",
   /**
@@ -359,7 +385,7 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   parent_reminder_application_not_submitted: "Reminder: Application Not Submitted",
   parent_reminder_shadow_days_not_scheduled: "Reminder: Shadow Days Not Scheduled",
   parent_reminder_enrollment_not_completed: "Reminder: Enrollment Not Completed",
-  staff_inquiry_call_held: "Staff: Inquiry Call Held — What Happens Next",
+  staff_inquiry_call_held: "Staff: RECORD Your Notes (at the meeting time)",
   tour_invitation_sent: "Tour Invitation Sent",
 };
 

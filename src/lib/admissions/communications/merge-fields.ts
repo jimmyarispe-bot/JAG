@@ -1,4 +1,5 @@
 import { programLabel } from "@/lib/constants/programs";
+import { gradeLabel } from "@/lib/constants/grades";
 import { fundingSourceLabels } from "@/lib/constants/programs";
 import type { MergeField } from "@/lib/admissions/communications/types";
 import { resolvePublicAppOrigin } from "@/lib/platform/branding";
@@ -14,6 +15,16 @@ export interface MergeContext {
   guardianPhone?: string | null;
   schoolName?: string | null;
   program?: string | null;
+  /** `applying_for_grade`, falling back to `current_grade`. A code, not a label. */
+  grade?: string | null;
+  /** ISO date on the lead. Rendered as whole years, never as a date. */
+  dateOfBirth?: string | null;
+  /**
+   * The Google Meet link for one appointment, passed as a merge override by
+   * whatever queued the letter. Not on the lead and never will be: a family
+   * can have several appointments and each has its own conference.
+   */
+  meetingLink?: string | null;
   campusName?: string | null;
   campusAddress?: string | null;
   fundingSources?: string[];
@@ -160,6 +171,47 @@ function guardianFirstName(ctx: MergeContext): string {
   return ctx.guardianFirstName?.trim() || parentName(ctx).split(" ")[0] || "there";
 }
 
+/**
+ * First and last, never the preferred name on its own.
+ *
+ * studentName above answers "what do we call this child", which is what a
+ * family's letter wants. This answers "which child is this", which is what a
+ * school leader scanning her inbox wants - and "Birdie" does not find
+ * Beatrice Okonkwo in anybody's records.
+ */
+function studentFullName(ctx: MergeContext): string {
+  return (
+    `${ctx.studentFirstName ?? ""} ${ctx.studentLastName ?? ""}`.trim() ||
+    studentName(ctx)
+  );
+}
+
+/**
+ * Whole years, or "not given".
+ *
+ * NOT A DATE. A school leader about to telephone a parent wants "9", not
+ * "2016-04-02" to do arithmetic on between two meetings. Returns "not given"
+ * rather than an empty string for the same reason invite_sent_at does: a
+ * blank line reads as though the platform is broken, and a missing date of
+ * birth is itself worth seeing.
+ */
+function studentAge(ctx: MergeContext): string {
+  const raw = ctx.dateOfBirth?.trim();
+  if (!raw) return "not given";
+  const born = new Date(raw);
+  if (!Number.isFinite(born.getTime())) return "not given";
+
+  const now = new Date();
+  let years = now.getFullYear() - born.getFullYear();
+  const monthDelta = now.getMonth() - born.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < born.getDate())) {
+    years -= 1;
+  }
+  /* A future or nonsense date is a data fault, not a negative child. */
+  if (years < 0 || years > 120) return "not given";
+  return String(years);
+}
+
 function studentFirstName(ctx: MergeContext): string {
   return (
     ctx.preferredName?.trim() ||
@@ -208,6 +260,11 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     guardian_phone: ctx.guardianPhone ?? "",
     // Same number, stripped to what a dialler will accept. See types.ts.
     parent_phone_dial: (telHref(ctx.guardianPhone) ?? "").replace(/^tel:/, ""),
+    student_full_name: studentFullName(ctx),
+    student_grade: gradeLabel(ctx.grade),
+    student_age: studentAge(ctx),
+    /* Empty at GA and FL: a telephone call has no conference link. */
+    meeting_link: ctx.meetingLink ?? "",
     school_name: ctx.schoolName ?? "The Academy",
     program_name: programLabel(ctx.program),
     /*

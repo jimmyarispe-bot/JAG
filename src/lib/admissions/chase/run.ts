@@ -43,7 +43,6 @@ import {
   type CalendarBooking,
 } from "@/lib/admissions/chase/calendar";
 import { decideChase, type ChaseDecision } from "@/lib/admissions/chase/clock";
-import { campusRunsTours } from "@/lib/admissions/tour";
 import { easternDateKey, easternHour } from "@/lib/platform/time/eastern";
 import { getPrimaryOrganizationId } from "@/lib/configuration/context";
 import { ensureGoogleWorkspaceAccessToken } from "@/lib/platform/integrations/google-workspace/sync/token-bridge";
@@ -72,19 +71,26 @@ export const REMINDER_1_EVENT = "parent_interest_meeting_not_booked_1";
 export const REMINDER_2_EVENT = "parent_interest_meeting_not_booked_2";
 export const ESCALATION_EVENT = "staff_interest_meeting_no_response";
 
-/** GA and FL: the school leader's letter after the inquiry call. */
+/**
+ * "RECORD your notes for ..." - to the school leader, at the appointment
+ * time, at every campus.
+ *
+ * THE EVENT KEEPS ITS ORIGINAL NAME. It was coined on 4 October for a GA and
+ * FL letter after the inquiry call; renaming it would touch six files to
+ * change nothing a human sees. The label in TRIGGER_EVENT_LABELS, which is
+ * what Jimmy reads in the template admin, was updated instead.
+ */
 export const POST_CALL_EVENT = "staff_inquiry_call_held";
 
-/** Jimmy's ten minutes, measured from the END of the call. See the use site. */
-export const POST_CALL_DELAY_MINUTES = 10;
-
-/**
- * Only used when Google sends an event with no end time, which should not
- * happen for an appointment-schedule booking and is not worth guessing
- * cleverly about. Thirty is the length of the inquiry call on both campus
- * calendars today.
+/*
+ * THE TEN-MINUTE DELAY IS GONE, and the constants with it. Until 5 October
+ * this letter went ten minutes after the appointment ENDED. Jimmy moved it to
+ * the appointment's start time, so there is nothing left to offset and
+ * nothing to guess when Google sends no end time.
+ *
+ * CalendarBooking.endsAt is still read - tourDurationMinutes uses it - so the
+ * work that added it is not wasted.
  */
-export const DEFAULT_CALL_MINUTES = 30;
 
 /** Only used when Google sends a tour event with no end time. */
 export const DEFAULT_TOUR_MINUTES = 60;
@@ -606,61 +612,82 @@ export async function runInterestMeetingScan(
     }
 
     /*
-     * GA AND FL: THE POST-CALL LETTER, TEN MINUTES AFTER THE CALL.
+     * "RECORD YOUR NOTES" - TO THE SCHOOL LEADER, AT THE APPOINTMENT TIME.
      *
      * Queued here rather than by a clock of its own, because this is the
-     * moment the platform learns the appointment exists at all. Jimmy, 4
-     * October: "10 minutes after this scheduled phone conversation day/time
-     * the school leader should be sent an email with a notes box to add in
-     * summary of the phone conversation and a decision button to send the
-     * parent a request to schedule a tour or not".
+     * moment the platform learns the appointment exists at all.
      *
-     * TEN MINUTES AFTER IT ENDS, NOT AFTER IT STARTS. Read literally, "the
-     * scheduled day/time" is the start, and start-plus-ten would reach her
-     * while she is still on the telephone with the family - the letter asks
-     * what came of a conversation that is still happening. So it is the end
-     * time, which is why endsAt was added to CalendarBooking today. When
-     * Google sends no end time the fallback is start + DEFAULT_CALL_MINUTES,
-     * which is wrong only for a call that overruns badly.
+     * Jimmy, 5 October: "i want the email to go to the school leader at the
+     * exact time of the scheduled appointment ... and the ability to record
+     * all of the notes for the conversation/meeting is provided in the email
+     * and all the school leader has to do is hit the button or fill in the
+     * notes box."
      *
-     * IT IS QUEUED EVEN FOR A CALL THAT HAS ALREADY HAPPENED, and that is
-     * deliberate - it is the one letter here for which the past is not a
-     * reason to stay silent. The family's confirmation is worthless six weeks
-     * late; "what came of this call, and what should happen next" is exactly
-     * as useful late as on time, because the decision it asks for has not
-     * been made. The queue sends anything whose scheduled_for has passed on
-     * its next run, so a past appointment produces one letter on the next
-     * pass rather than nothing at all.
+     * ALL FOUR CAMPUSES. It began life on 4 October as a GA and FL letter
+     * ten minutes after the call ENDED, carrying only the tour decision. It
+     * is now one letter everywhere, at the start time, carrying the notes box
+     * and whichever decision belongs to that campus. A leader gets one email
+     * about one meeting, not two.
+     *
+     * IT IS IN PLACE OF 3a. Marking a child "Interest Meeting Held" is the
+     * one step in the chain with nothing chasing her for it, and a meeting
+     * that happened and was never marked leaves the child frozen. Writing
+     * notes about a meeting is proof it happened, so saving them moves the
+     * child.
+     *
+     * "THE EXACT TIME" IS AS EXACT AS THE SENDER ALLOWS. scheduled_for is set
+     * to the appointment's start, to the second. The queue that delivers it,
+     * /api/admissions/process-communications, runs on `0 * * * *` - so a
+     * meeting at 2:15pm produces a letter at 3:00pm. Closing that gap means a
+     * more frequent cron, which is a Vercel plan question rather than a code
+     * one. The row carries the honest time either way.
+     *
+     * IT IS QUEUED EVEN FOR A MEETING THAT HAS ALREADY HAPPENED, deliberately
+     * - the one letter here for which the past is not a reason to stay
+     * silent. The family's confirmation is worthless six weeks late; "what
+     * happened, and what should happen next" is exactly as useful late,
+     * because the decision it asks for has not been made. The queue sends
+     * anything whose scheduled_for has passed on its next run.
      */
-    const bookedLead = leadById.get(leadId) ?? null;
-    if (bookedLead && campusRunsTours(schoolNameOf(bookedLead))) {
-      const endsAt = booking.endsAt ? new Date(booking.endsAt) : null;
-      const base =
-        endsAt && Number.isFinite(endsAt.getTime())
-          ? endsAt
-          : new Date(startsAt.getTime() + DEFAULT_CALL_MINUTES * 60000);
-      const sendAt = new Date(base.getTime() + POST_CALL_DELAY_MINUTES * 60000);
-
-      const postCallToken = dryRun ? "dry-run" : await mintPostCallToken(supabase, leadId);
-      if (!postCallToken) {
-        errors.push(`Could not mint a post-call token for ${leadId}.`);
-      } else if (!dryRun) {
-        const problem = await queueLetter(supabase, {
-          leadId,
-          schoolId: bookedLead.school_id,
-          triggerEvent: POST_CALL_EVENT,
-          sendAt,
+    const notesToken = dryRun ? "dry-run" : await mintPostCallToken(supabase, leadId);
+    if (!notesToken) {
+      errors.push(`Could not mint a notes token for ${leadId}.`);
+    } else if (!dryRun) {
+      const problem = await queueLetter(supabase, {
+        leadId,
+        schoolId: leadById.get(leadId)?.school_id ?? null,
+        triggerEvent: POST_CALL_EVENT,
+        sendAt: startsAt,
+        /*
+         * The token rides on the queue row because the row is rendered later
+         * by a worker with no idea which occasion this was. Same reasoning as
+         * the escalation's three dates: what the moment of queueing knows and
+         * the moment of sending cannot find out.
+         */
+        mergeOverrides: {
+          postCallToken: notesToken,
           /*
-           * The token rides on the queue row because the row is rendered
-           * hours later by a worker that has no idea which occasion this
-           * was. Same reasoning as the escalation's three dates: what the
-           * moment of queueing knows and the moment of sending cannot find
-           * out. See COMMUNICATION_QUEUE_PROCESS_COLS.
+           * ALREADY RENDERED FOR A READER, not an ISO string.
+           * interview_datetime is a passthrough - whatever a caller hands it
+           * is exactly what a human reads - which is how three families were
+           * told the wrong hour on 1 October. appointmentTextForFamily is the
+           * one place that knows the Eastern rule.
+           *
+           * Passed as an override because loadMergeContextsForQueue has no
+           * way to know WHICH appointment a queued letter is about. It would
+           * otherwise render as nothing, and the letter would open "is
+           * scheduled for ." in a school leader's inbox.
            */
-          mergeOverrides: { postCallToken },
-        });
-        if (problem) postCallSkipped.push(problem);
-      }
+          interviewDatetime: appointmentTextForFamily(booking.startsAt),
+          /*
+           * Null at GA and FL - a telephone call has no conference - and the
+           * letter is written to cover both: "Call them or go to the google
+           * meets link to start your meeting".
+           */
+          meetingLink: booking.meetingLink,
+        },
+      });
+      if (problem) postCallSkipped.push(problem);
     }
 
     /* The row is written. The letters are only for a meeting still to come. */

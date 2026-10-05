@@ -31,6 +31,9 @@ type LeadMergeRow = {
   guardian_email: string | null;
   guardian_phone: string | null;
   program: string | null;
+  applying_for_grade: string | null;
+  current_grade: string | null;
+  date_of_birth: string | null;
   application_access_token: string | null;
   schools: SchoolContact | SchoolContact[] | null;
 };
@@ -213,6 +216,9 @@ function buildMergeContextFromParts(
     applicationToken: clean(lead.application_access_token),
     fromEmail: clean(schoolOf(lead)?.admissions_from_email),
     program: lead.program,
+    /* What they are applying FOR first; what they are in now is the fallback. */
+    grade: lead.applying_for_grade ?? lead.current_grade ?? null,
+    dateOfBirth: lead.date_of_birth,
     inquiryPrograms,
     campusName: tour.campusName,
     campusAddress: tour.campusAddress,

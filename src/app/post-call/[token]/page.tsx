@@ -4,17 +4,23 @@ import { recordPostCallAction } from "@/app/post-call/[token]/actions";
 import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
 import {
   POST_CALL_ACTIONS,
+  actionsForFork,
   leadForPostCallToken,
 } from "@/lib/admissions/automation/post-call";
 import { telHref } from "@/lib/format/contact";
 
 /**
- * Ten minutes after the inquiry call. GA and FL only.
+ * "RECORD your notes" — opened from the letter that lands when the interest
+ * meeting starts. All four campuses.
  *
  * Same posture as the other three button pages: no sign-in, the number big
- * enough to dial from, one question, and a notes box that does not insist on
- * anything. Jimmy asked for the notes box first and the decision second, and
- * that is the order on the screen.
+ * enough to dial from, and a notes box that does not insist on anything.
+ * Jimmy asked for the notes box first and the decision second, and that is
+ * the order on the screen.
+ *
+ * THE BUTTONS DEPEND ON THE CHILD'S CAMPUS, not on who is signed in - nobody
+ * is signed in. GA and FL are offered the tour; Virtual and HS are offered
+ * the shadow day; both are offered "not the right school" and "not yet".
  *
  * TWO OF THESE THREE BUTTONS DO SOMETHING, so each says what it will do
  * before it is pressed, and the page afterwards says what it did rather than
@@ -67,16 +73,32 @@ export default async function PostCallPage({
     );
   }
 
+  if (done === "shadow_days_invited") {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-16">
+        <h1 className="text-2xl font-semibold text-slate-900">
+          The shadow day invitation is on its way.
+        </h1>
+        <p className="mt-4 text-slate-700">
+          {subject.guardianName ?? "The family"} has the booking link and has
+          been asked to choose a day. {subject.studentName} is marked Interest
+          Meeting Held, and your notes are on their record.
+        </p>
+        <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
+      </main>
+    );
+  }
+
   if (done === "post_call_not_the_right_school") {
     return (
       <main className="mx-auto max-w-xl px-6 py-16">
         <h1 className="text-2xl font-semibold text-slate-900">
-          Closed out. Nothing was sent to the family.
+          Closed out, and the family has been thanked.
         </h1>
         <p className="mt-4 text-slate-700">
-          {subject.studentName} is marked declined and will not be emailed again.
-          If you want them to hear something from us, send it from their case
-          page in JAG.
+          {subject.studentName} is marked declined. The family has been sent the
+          short thank-you and best wishes — the same letter the decision in JAG
+          sends — and will not be emailed again.
         </p>
         <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
       </main>
@@ -87,19 +109,24 @@ export default async function PostCallPage({
     return (
       <main className="mx-auto max-w-xl px-6 py-16">
         <h1 className="text-2xl font-semibold text-slate-900">
-          Saved. {subject.studentName} has not moved.
+          Saved. {subject.studentName} is marked Interest Meeting Held.
         </h1>
         <p className="mt-4 text-slate-700">
-          Your notes are on the family&rsquo;s record. Nothing was sent and
-          nothing changed, so this is yours to pick up when you are ready.
+          Your notes are on the family&rsquo;s record and nothing was sent to
+          them. The decision about what happens next is now waiting for you in
+          JAG, whenever you are ready for it.
         </p>
         <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
       </main>
     );
   }
 
-  /* The tour option is only offered where it can actually be carried out. */
-  const options = POST_CALL_ACTIONS.filter(
+  /*
+   * This campus's fork, minus the tour button where it cannot be carried out.
+   * POST_CALL_ACTIONS stays imported because the label map above reads every
+   * action, including the one this campus never sees.
+   */
+  const options = actionsForFork(subject.fork).filter(
     (option) => option.value !== "tour_requested" || subject.canRequestTour
   );
 
@@ -112,7 +139,10 @@ export default async function PostCallPage({
         {subject.studentName}
       </h1>
       <p className="mt-1 text-sm text-slate-500">
-        Your inquiry call with this family has just finished.
+        {subject.fork === "tour"
+          ? "Your inquiry call with this family is scheduled for now."
+          : "Your meeting with this family is scheduled for now."}{" "}
+        Write down what was said while it is fresh.
       </p>
 
       <section className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-5">
@@ -185,7 +215,7 @@ export default async function PostCallPage({
 
         <label className="block">
           <span className="text-sm font-medium text-slate-700">
-            How did the conversation go?{" "}
+            Your notes{" "}
             <span className="font-normal text-slate-500">(optional)</span>
           </span>
           <textarea
