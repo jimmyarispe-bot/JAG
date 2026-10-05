@@ -9,8 +9,12 @@
       "schedule": "0 3 * * *"
     },
     {
-      "path": "/api/admissions/process-communications",
+      "path": "/api/admissions/booking-scan",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/admissions/process-communications",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

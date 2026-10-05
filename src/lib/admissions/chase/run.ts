@@ -117,6 +117,40 @@ export interface ScanOptions {
   /** Decide everything, write nothing. The safe first run. */
   readonly dryRun?: boolean;
   /**
+   * FIND BOOKINGS AND STOP. No chase letters, no escalations, no night claim,
+   * and no 10pm gate. Added 5 October for the hourly discovery pass.
+   *
+   * ── WHY THIS MODE EXISTS ────────────────────────────────────────────────
+   *
+   * The 11pm scan is the only thing that ever learns a booking exists -
+   * Google tells us nothing, we read the calendars. That is fine for a
+   * meeting booked a day ahead and useless for one booked the same morning:
+   * the "RECORD your notes" letter is queued when the booking is found, so a
+   * 9am booking for a 2pm meeting produced a letter at 11pm that night, nine
+   * hours after the meeting ended, still reading "happening now".
+   *
+   * Jimmy, 5 October: same-day bookings happen, "usually not before 3
+   * hours". An hourly discovery pass catches them with two hours to spare.
+   *
+   * ── WHY IT IS SAFE TO RUN WITHOUT THE NIGHT CLAIM ───────────────────────
+   *
+   * The claim exists to stop two runs queueing the same chase letter twice.
+   * This mode writes no chase letters at all. Everything it DOES do is
+   * already idempotent, and was before this option existed:
+   *
+   *   bookedAt            seeded from the admissions_interviews rows that
+   *                       exist, so a booking recorded at 10am is skipped at
+   *                       11am by the guard that already stood there
+   *   alreadyRecordedTour seeded from admissions_tours, same reasoning
+   *   the notes letter    queued only on the branch that records a NEW
+   *                       booking, so it cannot be queued twice
+   *
+   * Taking the claim here would be actively WRONG: the first hourly pass of
+   * the day would own the night, and the 11pm run would find it taken and do
+   * nothing at all.
+   */
+  readonly discoveryOnly?: boolean;
+  /**
    * Hold a 7am escalation that would land at the weekend until Monday.
    * See ChaseInput.holdWeekendEscalation - Jimmy has not ruled on it yet.
    */
@@ -210,7 +244,11 @@ export async function runInterestMeetingScan(
 
   const easternDate = easternDateKey(now);
 
-  if (!options.force && easternHour(now) < EARLIEST_SCAN_HOUR_EASTERN) {
+  const discoveryOnly = options.discoveryOnly ?? false;
+
+  /* The 10pm gate is about CHASE letters landing at a civilised hour. A
+     discovery pass writes none, so it runs whenever it is asked to. */
+  if (!discoveryOnly && !options.force && easternHour(now) < EARLIEST_SCAN_HOUR_EASTERN) {
     return empty(false, `Too early - it is ${easternHour(now)}:00 in Eastern.`);
   }
 
@@ -229,7 +267,7 @@ export async function runInterestMeetingScan(
    *
    * A dry run claims nothing. It is meant to be repeatable.
    */
-  if (!dryRun) {
+  if (!dryRun && !discoveryOnly) {
     const { data: claimed, error: claimError } = await supabase
       .from("interest_meeting_scan_runs")
       .upsert(
@@ -707,6 +745,37 @@ export async function runInterestMeetingScan(
           (err instanceof Error ? err.message : String(err))
       );
     }
+  }
+
+  /*
+   * THE DISCOVERY PASS STOPS HERE.
+   *
+   * Everything above is a fact about a calendar: this family booked, here is
+   * the row, here is the notes letter timed to it. Everything below is a
+   * judgement about a family who has NOT booked, and that judgement is made
+   * once a night at 11pm under the claim - not twenty-four times a day.
+   */
+  if (discoveryOnly) {
+    return {
+      ran: true,
+      why: "Discovery pass - bookings only, no chase letters.",
+      dryRun,
+      easternDate,
+      calendarsRead: calendars.calendarsRead,
+      calendarsSkipped: calendars.calendarsSkipped,
+      calendarProblems: calendars.problems,
+      campusesWithNoCalendar,
+      bookingsSeen: calendars.bookings.length,
+      bookingsMatched,
+      bookingsAmbiguous,
+      bookingsRecorded,
+      bookingsNotNotified,
+      postCallSkipped,
+      toursRecorded,
+      leadsConsidered: leads.length,
+      letters: [],
+      errors,
+    };
   }
 
   /* ------------------------------------------------------------------ */
