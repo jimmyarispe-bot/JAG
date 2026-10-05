@@ -280,9 +280,34 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
        and this one is true whether the question was skipped or the read was
        refused - see fetchInquiryProgramsByLeadIds.
     */
-    inquiry_programs: (ctx.inquiryPrograms ?? []).length
-      ? [...(ctx.inquiryPrograms ?? [])].join(", ")
-      : "not recorded on the inquiry",
+    inquiry_programs: (() => {
+      const ticked = [...(ctx.inquiryPrograms ?? [])];
+      if (ticked.length) return ticked.join(", ");
+
+      /*
+         THE OTHER VOCABULARY, BEFORE GIVING UP.
+
+         Two forms create leads and they record a program in two different
+         places. /apply - the interest form - writes a LIST OF LABELS to
+         admissions_interest_answers and leaves lead.program null on purpose.
+         submitPublicInquiry, behind /admissions/schedule-tour,
+         /discovery-call and /assessment, does the opposite: it writes a
+         single canonical CODE to lead.program through parseProgramValue and
+         never writes an answer row at all.
+
+         Before 5 October this token only knew about the first, so every
+         notice from the second said "not recorded on the inquiry" about a
+         program sitting in plain sight on the lead.
+
+         THE ORDER MATTERS. What a family ticked, in the words they saw,
+         beats a code somebody mapped for them - and a family who ticked two
+         things has two, which the column cannot hold.
+      */
+      const onTheLead = programLabel(ctx.program);
+      if (onTheLead && onTheLead !== "—") return onTheLead;
+
+      return "not recorded on the inquiry";
+    })(),
     campus_name: ctx.campusName ?? "Main Campus",
     campus_address: ctx.campusAddress ?? "See portal for directions",
     parking_info: "Visitor parking is available at the main entrance.",
