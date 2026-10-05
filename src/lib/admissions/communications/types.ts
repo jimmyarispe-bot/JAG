@@ -154,6 +154,23 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
    * looks this letter up by key, not by event.
    */
   "staff_application_call_parent",
+  /**
+   * The escalation behind the shadow-day and enrollment reminders: three
+   * reminders, no response, somebody should telephone.
+   *
+   * SEEDED ON SOMEBODY ELSE'S EVENT, same as the five-day letter was.
+   * Migration 294 gave it trigger_event 'staff_portal_message'. Harmless
+   * while it is switched off - getTemplatesForTrigger filters on is_active -
+   * and the moment it is on, firing staff_portal_message delivers both that
+   * letter and this one, because that function de-duplicates by template KEY.
+   *
+   * This is the third row found carrying a borrowed event, after the sixteen
+   * migration 494 cleared and the one 503 moved. Named after its template,
+   * the convention 494 set.
+   *
+   * THE NIGHTLY JOB IS UNAFFECTED: parent-reminders.ts looks it up by key.
+   */
+  "staff_parent_unresponsive",
 ] as const;
 
 export type CommunicationTriggerEvent = (typeof COMMUNICATION_TRIGGER_EVENTS)[number];
@@ -408,6 +425,7 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   staff_inquiry_call_held: "Staff: RECORD Your Notes (at the meeting time)",
   tour_invitation_sent: "Tour Invitation Sent",
   staff_application_call_parent: "Staff: Five Days, No Application — Call Them",
+  staff_parent_unresponsive: "Staff: Three Reminders, No Response — Call Them",
 };
 
 export const CHANNEL_LABELS: Record<CommunicationChannel, string> = {
