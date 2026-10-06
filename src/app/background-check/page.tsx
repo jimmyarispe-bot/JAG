@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { submitBackgroundCheckAction } from "@/app/background-check/actions";
+import { PRIVACY_ACK_BLANK_URL } from "@/lib/employees/background-check";
 import {
   EYE_COLOR_OPTIONS,
   HAIR_COLOR_OPTIONS,
@@ -69,8 +70,22 @@ export default async function BackgroundCheckPage({
           gave us. Watch for it — your screening cannot be completed until you
           have read it and been fingerprinted.
         </p>
+        <p className="mt-4 text-slate-700">
+          If you have not been fingerprinted yet,{" "}
+          <a
+            href="https://www.certifixlivescan.com/category/fingerprinting-service-locations"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-slate-900 underline"
+          >
+            find the location closest to you
+          </a>{" "}
+          and book an appointment. Tell them your fingerprints are for the
+          Florida Care Provider Background Screening Clearinghouse, and bring
+          photo identification.
+        </p>
         <p className="mt-6 text-sm text-slate-500">
-          Nothing else is needed from you right now. You can close this page.
+          Nothing else is needed from us right now. You can close this page.
         </p>
       </main>
     );
@@ -360,6 +375,81 @@ export default async function BackgroundCheckPage({
               </select>
             </div>
           </div>
+        </section>
+
+        {/* ── The signed acknowledgement. Nothing submits without it. ── */}
+        <section className="rounded-lg border-2 border-slate-900 p-6">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Signed Privacy Policy Acknowledgement
+            <Required />
+          </h2>
+          <p className="mt-3 text-slate-700">
+            Florida requires you to acknowledge the privacy notices from the
+            Department of Law Enforcement and the FBI before your screening can
+            go ahead. There are three things to do:
+          </p>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-slate-700">
+            <li>
+              <a
+                href={PRIVACY_ACK_BLANK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-slate-900 underline"
+              >
+                Open the Privacy Policy Acknowledgement Form
+              </a>{" "}
+              and read it.
+            </li>
+            <li>
+              On the first page, print your name, sign it, and write the date.
+            </li>
+            <li>
+              Upload it below — a scan or a clear photo of the signed page is
+              fine.
+            </li>
+          </ol>
+
+          <div className="mt-5">
+            <label className={LABEL} htmlFor="privacyAck">
+              Your signed and dated form
+              <Required />
+            </label>
+            <input
+              id="privacyAck"
+              name="privacyAck"
+              type="file"
+              required
+              accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 file:mr-4 file:rounded file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-white"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              PDF or photo, up to 10 MB. Your screening cannot be started
+              without it.
+            </p>
+          </div>
+        </section>
+
+        {/* ── Fingerprinting. The link, and nothing else. ─────────────── */}
+        <section className="rounded-lg border border-slate-200 p-6">
+          <h2 className="text-lg font-semibold text-slate-900">Fingerprinting</h2>
+          <p className="mt-3 text-slate-700">
+            You also need to be fingerprinted. Find the location closest to you
+            by entering your ZIP code here, then book an appointment:
+          </p>
+          <p className="mt-4">
+            <a
+              href="https://www.certifixlivescan.com/category/fingerprinting-service-locations"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-slate-900 underline"
+            >
+              Find a fingerprinting location near you
+            </a>
+          </p>
+          <p className="mt-3 text-sm text-slate-600">
+            Tell them your fingerprints are for the Florida Care Provider
+            Background Screening Clearinghouse. Bring photo identification.
+          </p>
         </section>
 
         <div>

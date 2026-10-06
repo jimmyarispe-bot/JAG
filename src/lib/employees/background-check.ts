@@ -27,6 +27,8 @@
  * where that alias does not exist.
  */
 
+import { randomUUID } from "node:crypto";
+
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendTransactionalEmail } from "@/lib/platform/email/send";
 import { NETWORK_ESCALATION_EMAILS } from "@/lib/admissions/communications/network-office";
@@ -58,6 +60,56 @@ interface UntypedAdmin {
 /** src/types/database.ts predates this table by three months. */
 function admin(): UntypedAdmin {
   return createServiceRoleClient() as unknown as UntypedAdmin;
+}
+
+/* ───────────────────── the signed acknowledgement ────────────────────── */
+
+/**
+ * THE BLANK FORM AND THE BUCKET IT COMES BACK TO.
+ *
+ * The blank Clearinghouse Privacy Policy Acknowledgement is the same document
+ * for every hire, so it is a static asset. Only the SIGNED copy is
+ * per-person, and only the signed copy is stored - in a private bucket, at a
+ * path keyed by the row it belongs to.
+ */
+export const PRIVACY_ACK_BLANK_URL = "/privacy-policy-acknowledgement.pdf";
+export const PRIVACY_ACK_BUCKET = "employee-documents";
+
+/** The bucket enforces 10MB too; this refuses first, with our own wording. */
+const PRIVACY_ACK_MAX_BYTES = 10 * 1024 * 1024;
+
+/**
+ * A signed sheet arrives as a scan or as a phone photograph. Refusing the
+ * photograph would mean a new hire with a pen and a phone cannot finish.
+ */
+const PRIVACY_ACK_TYPES: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/heic": "heic",
+};
+
+interface StorageBucket {
+  upload: (
+    path: string,
+    body: ArrayBuffer | Uint8Array,
+    options: { contentType: string; upsert: boolean }
+  ) => PromiseLike<{ error: { message: string } | null }>;
+}
+
+interface StorageClient {
+  storage: { from: (bucket: string) => StorageBucket };
+}
+
+function storage(): StorageClient {
+  return createServiceRoleClient() as unknown as StorageClient;
+}
+
+export function readAcknowledgement(form: FormData): File | null {
+  const entry = form.get("privacyAck");
+  if (!entry || typeof entry === "string") return null;
+  return entry.size > 0 ? entry : null;
 }
 
 function text(value: FormDataEntryValue | null): string {
@@ -124,8 +176,34 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * developer. They are a new hire on their first day and a validation error is
  * the first thing the school has ever said to them.
  */
-export function validate(input: BackgroundCheckSubmission): string[] {
+export function validate(
+  input: BackgroundCheckSubmission,
+  acknowledgement: File | null
+): string[] {
   const problems: string[] = [];
+
+  /*
+   * THE SIGNED FORM IS CHECKED FIRST, BECAUSE IT IS THE ONE THEY MIGHT MISS.
+   *
+   * Jimmy, 6 October: "they cannot submit the form without uploading this
+   * signed and dated". Every other field is on the screen in front of them;
+   * this one needs downloading, printing or annotating, signing and sending
+   * back, so it is the single most likely thing to be left undone - and the
+   * screening cannot proceed without it.
+   */
+  if (!acknowledgement) {
+    problems.push(
+      "Please attach your signed Privacy Policy Acknowledgement. Download it from the link on this page, sign and date it, then upload it here."
+    );
+  } else if (!PRIVACY_ACK_TYPES[acknowledgement.type]) {
+    problems.push(
+      "Please attach the signed form as a PDF or a photo (JPG, PNG, WEBP or HEIC)."
+    );
+  } else if (acknowledgement.size > PRIVACY_ACK_MAX_BYTES) {
+    problems.push(
+      "That file is larger than 10 MB. A photo of each signed page, or a black-and-white scan, will be small enough."
+    );
+  }
 
   if (!input.firstName) problems.push("Please enter your first name.");
   if (!input.lastName) problems.push("Please enter your last name.");
@@ -203,7 +281,10 @@ function spokenDate(iso: string): string {
  * so the order is theirs, not ours, and an optional field left blank still
  * gets a line. A missing line would make him wonder whether it was asked.
  */
-export function composeEmail(input: BackgroundCheckSubmission): {
+export function composeEmail(
+  input: BackgroundCheckSubmission,
+  acknowledgement: string | null
+): {
   subject: string;
   body: string;
 } {
@@ -250,6 +331,13 @@ export function composeEmail(input: BackgroundCheckSubmission): {
     `Hair Color:        ${input.hairColor}`,
     `Eye Color:         ${input.eyeColor}`,
     `Height:            ${input.height}`,
+    "",
+    "SIGNED PRIVACY ACKNOWLEDGEMENT",
+    acknowledgement
+      ? `Received: ${acknowledgement}`
+      : "*** NOT RECEIVED - the screening cannot proceed ***",
+    "Stored in The JAG against this person's record, in the private",
+    "employee-documents bucket. It is not attached to this email.",
     "────────────────────────────────────────",
     "",
     "The platform has kept only the last four digits of the SSN. The nine",
@@ -266,12 +354,46 @@ export function composeEmail(input: BackgroundCheckSubmission): {
 /* ──────────────────────────────── the submit ───────────────────────────── */
 
 export async function submitBackgroundCheck(
-  input: BackgroundCheckSubmission
+  input: BackgroundCheckSubmission,
+  acknowledgement: File | null
 ): Promise<{ ok: true } | { problems: string[] }> {
-  const problems = validate(input);
+  const problems = validate(input, acknowledgement);
   if (problems.length) return { problems };
 
   const db = admin();
+
+  /*
+   * THE DOCUMENT GOES UP BEFORE THE ROW GOES IN.
+   *
+   * The row id is generated here rather than by the database so the storage
+   * path can be keyed to it, which means no row ever exists without its
+   * signed form: if the upload fails, nothing is written and the hire is
+   * asked to try again. The other order leaves a record that claims a
+   * screening is ready when the document behind it is missing.
+   *
+   * A failed insert after a good upload leaves one orphan file named by a
+   * uuid. That is harmless and traceable, and it is the right way round.
+   */
+  const rowId = randomUUID();
+  const file = acknowledgement as File;
+  const extension = PRIVACY_ACK_TYPES[file.type] ?? "pdf";
+  const storagePath = `${rowId}/privacy-policy-acknowledgement.${extension}`;
+
+  const { error: uploadError } = await storage()
+    .storage.from(PRIVACY_ACK_BUCKET)
+    .upload(storagePath, await file.arrayBuffer(), {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error("[background-check] upload failed:", uploadError.message);
+    return {
+      problems: [
+        "Your signed form did not upload. Please try once more, and if it fails again tell the person who sent you this link.",
+      ],
+    };
+  }
 
   /*
    * THE ROW IS WRITTEN BEFORE THE EMAIL IS SENT, AND ON PURPOSE.
@@ -283,6 +405,7 @@ export async function submitBackgroundCheck(
   const { data: inserted, error: insertError } = await db
     .from("employee_background_checks")
     .insert({
+      id: rowId,
       first_name: input.firstName,
       middle_name: input.middleName || null,
       last_name: input.lastName,
@@ -303,6 +426,11 @@ export async function submitBackgroundCheck(
       hair_color: input.hairColor,
       eye_color: input.eyeColor,
       height: input.height,
+      privacy_ack_path: storagePath,
+      privacy_ack_filename: file.name,
+      privacy_ack_bytes: file.size,
+      privacy_ack_content_type: file.type,
+      privacy_ack_uploaded_at: new Date().toISOString(),
     })
     .select("id");
 
@@ -315,8 +443,11 @@ export async function submitBackgroundCheck(
     };
   }
 
-  const rowId = String(((inserted ?? []) as Row[])[0]?.id ?? "");
-  const { subject, body } = composeEmail(input);
+  void inserted;
+  const { subject, body } = composeEmail(
+    input,
+    `${file.name} (${Math.round(file.size / 1024)} KB) — ${PRIVACY_ACK_BUCKET}/${storagePath}`
+  );
 
   let sendError: string | null = null;
   try {

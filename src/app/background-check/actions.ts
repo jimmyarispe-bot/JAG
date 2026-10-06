@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import {
+  readAcknowledgement,
   readSubmission,
   submitBackgroundCheck,
 } from "@/lib/employees/background-check";
@@ -25,7 +26,8 @@ import {
  */
 export async function submitBackgroundCheckAction(formData: FormData) {
   const input = readSubmission(formData);
-  const result = await submitBackgroundCheck(input);
+  const acknowledgement = readAcknowledgement(formData);
+  const result = await submitBackgroundCheck(input, acknowledgement);
 
   if ("problems" in result) {
     const params = new URLSearchParams();

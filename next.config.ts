@@ -37,6 +37,22 @@ const nextConfig: NextConfig = {
   experimental: {
     // P010 — tree-shake common package entrypoints when imported from barrels.
     optimizePackageImports: ["@supabase/supabase-js", "@supabase/ssr"],
+    /*
+     * A SERVER ACTION TAKES 1MB BY DEFAULT, AND A SIGNED FORM IS BIGGER.
+     *
+     * /background-check requires the hire to upload their signed Clearinghouse
+     * privacy acknowledgement. A phone photograph of a signed sheet is
+     * routinely 3-6MB and a colour scan can be more. At the default limit the
+     * submission fails with a body-size error the hire cannot act on, after
+     * they have typed their social security number.
+     *
+     * 12MB, which is above the bucket's own 10MB cap - so the file is refused
+     * by storage with a message we control rather than by the framework with
+     * one we do not.
+     */
+    serverActions: {
+      bodySizeLimit: "12mb",
+    },
   },
   async headers() {
     const headers = [
