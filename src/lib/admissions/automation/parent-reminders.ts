@@ -70,6 +70,28 @@ const TERMINAL_STAGES = new Set([
   "waitlisted",
 ]);
 
+/**
+ * PAST THE APPLICATION, WHATEVER THE ROWS SAY.
+ *
+ * Jimmy, 5 October 2026. Lisa Roy's son Jayden was accepted to The Academy GA
+ * on 25 September. On 5 October this chase told her, three times in one day,
+ * that her application was nearly done. EMAIL_DIVERT_TO is the only reason
+ * she did not read it.
+ *
+ * WHY accepted IS NOT IN TERMINAL_STAGES, AND MUST NOT BE. Wait 4 below is
+ * the enrollment-packet chase and it fires ON accepted. Widening
+ * TERMINAL_STAGES to silence wait 2 would silence wait 4 with it and a family
+ * would hear nothing about their packet. The guard belongs on wait 2 alone.
+ */
+const PAST_APPLICATION_STAGES = new Set([
+  "application_submitted",
+  "records_requested",
+  "admissions_review",
+  "shadow_day_scheduled",
+  "shadow_day_completed",
+  "accepted",
+]);
+
 export type ParentWaitKey =
   /**
    * THE ONLY WAIT WHERE WE ARE WAITING ON US.
@@ -268,9 +290,20 @@ async function currentWaits(
 
   const hasApplication = new Set<string>();
   const unsubmitted = new Set<string>();
+  /*
+   * THESE TWO SETS ARE NOT OPPOSITES, AND THAT IS THE WHOLE BUG.
+   *
+   * They are keyed by LEAD, and a lead can hold more than one application. One
+   * submitted and one abandoned draft puts the same lead in `unsubmitted` and
+   * in `submittedOne` at once - so "they never sent it" has to mean "no
+   * application of theirs was ever sent", not "some application of theirs is
+   * unsent".
+   */
+  const submittedOne = new Set<string>();
   for (const a of appsResult.data ?? []) {
     hasApplication.add(a.lead_id as string);
-    if (!a.submitted_at) unsubmitted.add(a.lead_id as string);
+    if (a.submitted_at) submittedOne.add(a.lead_id as string);
+    else unsubmitted.add(a.lead_id as string);
   }
 
   const firstLetterSent = new Set<string>();
@@ -299,8 +332,25 @@ async function currentWaits(
       waits.get("application_not_started")!.add(lead.id);
     }
 
-    // 2. They started one and never sent it.
-    if (unsubmitted.has(lead.id)) {
+    /*
+     * 2. They started one and never sent it.
+     *
+     * TWO GUARDS, AND EACH ONE CATCHES A CASE THE OTHER MISSES.
+     *
+     *   submittedOne  a lead whose application IS in, carrying a stray draft
+     *                 beside it. The rows alone cannot tell these apart.
+     *   stage         a lead the school leader has moved on regardless of what
+     *                 any application row says. The stage is the human record
+     *                 and it outranks the paperwork.
+     *
+     * Until 5 October this was the only one of the four waits with no stage
+     * check at all - see the note on PAST_APPLICATION_STAGES above.
+     */
+    if (
+      unsubmitted.has(lead.id) &&
+      !submittedOne.has(lead.id) &&
+      !PAST_APPLICATION_STAGES.has(stage)
+    ) {
       waits.get("application_not_submitted")!.add(lead.id);
     }
 
