@@ -792,8 +792,69 @@ export async function triggerCommunications(
   }
 }
 
+/**
+ * HOW LONG A CLAIM CAN BE HELD BEFORE WE ASSUME THE RUN DIED.
+ *
+ * /api/admissions/process-communications declares maxDuration = 60, so Vercel
+ * kills the function at one minute and no LIVE run can still be holding a
+ * claim after that. Five minutes is five times the longest possible lifetime,
+ * which is why a merely slow run can never have a row taken from it - and a
+ * letter stranded by a run that crashed mid-delivery goes out on the next
+ * cron tick instead of never.
+ *
+ * IF maxDuration EVER RISES, THIS MUST RISE WITH IT. A window shorter than a
+ * run's lifetime reintroduces the exact duplicate this file now prevents.
+ */
+const CLAIM_RELEASE_MINUTES = 5;
+
+/*
+ * src/types/database.ts was generated on 9 July 2026. Migration 509 added the
+ * status 'sending' and the column claimed_at on 5 October, so the generated
+ * types reject both. These two interfaces are the narrowest structural shape
+ * that lets the claim compile, and nothing wider.
+ */
+interface QueueWrite
+  extends PromiseLike<{
+    data: { id: string }[] | null;
+    error: { message: string } | null;
+  }> {
+  eq: (column: string, value: string) => QueueWrite;
+  in: (column: string, values: string[]) => QueueWrite;
+  lt: (column: string, value: string) => QueueWrite;
+  select: (columns: string) => QueueWrite;
+}
+
+interface QueueWriter {
+  update: (row: Record<string, unknown>) => QueueWrite;
+}
+
 export async function processCommunicationQueue(supabase: AuthClient) {
   const now = new Date().toISOString();
+
+  const queue = () =>
+    supabase.from("admissions_communication_queue") as unknown as QueueWriter;
+
+  /*
+   * A ROW CLAIMED BY A RUN THAT NEVER CAME BACK.
+   *
+   * Released before anything else, so a letter lost to a crash is recovered by
+   * this very run rather than waiting for a human to notice. A letter nobody
+   * receives is worse than a letter received twice - Jimmy's own rule, from
+   * gates/definitions.ts: "a question asked twice rather than a child who
+   * stops dead".
+   */
+  const staleBefore = new Date(
+    Date.now() - CLAIM_RELEASE_MINUTES * 60 * 1000
+  ).toISOString();
+
+  const { error: releaseError } = await queue()
+    .update({ status: "pending", claimed_at: null })
+    .eq("status", "sending")
+    .lt("claimed_at", staleBefore);
+
+  if (releaseError) {
+    console.error("[communications] releasing stale claims:", releaseError.message);
+  }
 
   const { data: pending } = await supabase
     .from("admissions_communication_queue")
@@ -802,7 +863,39 @@ export async function processCommunicationQueue(supabase: AuthClient) {
     .lte("scheduled_for", now)
     .limit(50);
 
-  const items = pending ?? [];
+  const candidates = pending ?? [];
+  if (!candidates.length) return;
+
+  /*
+   * CLAIM BEFORE SENDING, AND SEND ONLY WHAT WAS CLAIMED.
+   *
+   * Until 5 October this function read status = 'pending', delivered, and only
+   * then marked the row sent. Between the read and the mark the row was still
+   * 'pending', so an overlapping run read the same row and sent the same
+   * letter again. Lisa Roy received one letter three times on 5 October that
+   * way, and Resend's log and admissions_communications agreed on all three.
+   *
+   * `.eq("status", "pending")` on the UPDATE is what makes this safe: it is a
+   * compare-and-set, so of two runs reaching the same row exactly one update
+   * matches and the other changes nothing. `.select("id")` returns only the
+   * rows this run actually won.
+   */
+  const { data: claimedRows, error: claimError } = await queue()
+    .update({ status: "sending", claimed_at: now })
+    .in(
+      "id",
+      candidates.map((item) => String(item.id))
+    )
+    .eq("status", "pending")
+    .select("id");
+
+  if (claimError) {
+    console.error("[communications] claim failed:", claimError.message);
+    return;
+  }
+
+  const claimed = new Set((claimedRows ?? []).map((row) => String(row.id)));
+  const items = candidates.filter((item) => claimed.has(String(item.id)));
   if (!items.length) return;
 
   const mergeByKey = await loadMergeContextsForQueue(
@@ -820,19 +913,17 @@ export async function processCommunicationQueue(supabase: AuthClient) {
       | null;
     const template = (Array.isArray(nested) ? nested[0] : nested) ?? null;
     if (!template) {
-      await supabase
-        .from("admissions_communication_queue")
-        .update({ status: "failed" })
-        .eq("id", item.id);
+      await queue()
+        .update({ status: "failed", claimed_at: null })
+        .eq("id", String(item.id));
       continue;
     }
 
     const packed = mergeByKey.get(`${item.lead_id}:${item.application_id ?? ""}`);
     if (!packed) {
-      await supabase
-        .from("admissions_communication_queue")
-        .update({ status: "failed" })
-        .eq("id", item.id);
+      await queue()
+        .update({ status: "failed", claimed_at: null })
+        .eq("id", String(item.id));
       continue;
     }
 
@@ -883,13 +974,15 @@ export async function processCommunicationQueue(supabase: AuthClient) {
       staff: packed.staff,
     });
 
-    await supabase
-      .from("admissions_communication_queue")
+    /* claimed_at is cleared with the status, so a finished row is never
+     * mistaken for a stale claim. */
+    await queue()
       .update({
         status: commId ? "sent" : "failed",
         sent_communication_id: commId,
+        claimed_at: null,
       })
-      .eq("id", item.id);
+      .eq("id", String(item.id));
   }
 }
 
