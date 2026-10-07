@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendTransactionalEmail } from "@/lib/platform/email/send";
 import {
+  STUDENT_QUESTIONNAIRE_SCHOOL_NAME,
   STUDENT_QUESTIONNAIRE_INTRO,
   STUDENT_QUESTIONS,
 } from "@/lib/admissions/student-questionnaire/questions";
@@ -57,11 +58,11 @@ function escapeHtml(value: string): string {
  * typing.
  */
 export function renderStudentQuestionnaireEmail(input: {
-  schoolName: string;
   studentFirstName: string;
   link: string;
 }): { subject: string; html: string; text: string } {
-  const { schoolName, studentFirstName, link } = input;
+  const { studentFirstName, link } = input;
+  const schoolName = STUDENT_QUESTIONNAIRE_SCHOOL_NAME;
   const greeting = studentFirstName ? `Hi ${studentFirstName},` : "Hi,";
   const subject = `${schoolName}: five questions for you`;
 
@@ -131,11 +132,11 @@ export function renderStudentQuestionnaireEmail(input: {
  * student's.
  */
 export function renderParentQuestionnaireCopyEmail(input: {
-  schoolName: string;
   studentFirstName: string;
   studentEmail: string;
 }): { subject: string; html: string; text: string } {
-  const { schoolName, studentFirstName, studentEmail } = input;
+  const { studentFirstName, studentEmail } = input;
+  const schoolName = STUDENT_QUESTIONNAIRE_SCHOOL_NAME;
   // Always the child's name, never a pronoun.
   const child = studentFirstName.trim() || "your student";
   const subject = `${schoolName}: the five questions we sent ${child}`;
@@ -193,13 +194,67 @@ export function renderParentQuestionnaireCopyEmail(input: {
  * index allows only one row in `sent` per lead, and a second working link would
  * make "did they answer?" unanswerable.
  */
+/**
+ * WRITE THE LETTER DOWN WHERE EVERYTHING ELSE LOOKS FOR IT.
+ *
+ * Until 7 October this feature recorded only the REQUEST - a row in
+ * admissions_student_questionnaires carrying a lead, an address and a token -
+ * and never the MESSAGE. admissions_communications is what the audits, the
+ * case file and every "what has this family actually received" query read, so
+ * two real families on 29 September had been emailed by a school that, as far
+ * as its own records went, had never written to them.
+ *
+ * NO template_key, AND THAT IS WHAT MAKES THIS SAFE. There is no template -
+ * these questions are rendered in code. Every reader of this table filters on
+ * template_key: getTemplatesForTrigger de-duplicates by it, parent-reminders
+ * matches `.in("template_key", [...])`, send-interest-link looks for
+ * inquiry_thank_you_email. A null matches none of them, so these rows become
+ * visible to an audit without becoming visible to the chase.
+ *
+ * The manual-send path in communications/actions.ts has written rows this way
+ * - trigger_event "manual", no template_key - since it was built. This is the
+ * same shape, and it is proven.
+ *
+ * A failed write is logged and swallowed. The family has the email either way,
+ * and losing the questionnaire because the bookkeeping failed would be the
+ * worse trade.
+ */
+async function recordQuestionnaireEmail(
+  admin: SupabaseClient,
+  row: {
+    leadId: string;
+    sentTo: string;
+    subject: string;
+    body: string;
+    triggerEvent: string;
+    delivered: boolean;
+  }
+): Promise<void> {
+  const { error } = await admin
+    .from("admissions_communications" as never)
+    .insert({
+      lead_id: row.leadId,
+      communication_type: "email",
+      subject: row.subject,
+      body: row.body,
+      sent_to: row.sentTo,
+      trigger_event: row.triggerEvent,
+      delivery_status: row.delivered ? "sent" : "failed",
+      open_status: "unknown",
+      is_staff_notification: false,
+    } as never);
+
+  if (error) {
+    console.error("[student-questionnaire] not recorded:", error.message, row.triggerEvent);
+  }
+}
+
 export async function sendStudentQuestionnaire(
   admin: SupabaseClient,
   input: {
     leadId: string;
     studentEmail: string;
     studentFirstName: string;
-    schoolName: string;
     /** The parent's address, copied on what was asked. Optional: an inquiry
      *  without one still sends the student their questions. */
     guardianEmail?: string | null;
@@ -234,7 +289,6 @@ export async function sendStudentQuestionnaire(
   }
 
   const message = renderStudentQuestionnaireEmail({
-    schoolName: input.schoolName,
     studentFirstName: input.studentFirstName,
     link: studentQuestionnaireLink(token),
   });
@@ -245,6 +299,15 @@ export async function sendStudentQuestionnaire(
     body: message.html,
     text: message.text,
     kind: "transactional",
+  });
+
+  await recordQuestionnaireEmail(admin, {
+    leadId: input.leadId,
+    sentTo: email,
+    subject: message.subject,
+    body: message.text,
+    triggerEvent: "student_questionnaire_sent",
+    delivered: delivery.success,
   });
 
   if (!delivery.success) {
@@ -269,16 +332,27 @@ export async function sendStudentQuestionnaire(
   const guardian = input.guardianEmail?.trim() ?? "";
   if (guardian && guardian.toLowerCase() !== email.toLowerCase()) {
     const parentCopy = renderParentQuestionnaireCopyEmail({
-      schoolName: input.schoolName,
       studentFirstName: input.studentFirstName,
       studentEmail: email,
     });
-    await sendTransactionalEmail({
+    const copyDelivery = await sendTransactionalEmail({
       to: guardian,
       subject: parentCopy.subject,
       body: parentCopy.html,
       text: parentCopy.text,
       kind: "transactional",
+    });
+
+    /* The parent's copy is a second letter to the family and is recorded as
+     * one. It was the half of this that showed up in Resend with nothing
+     * behind it. */
+    await recordQuestionnaireEmail(admin, {
+      leadId: input.leadId,
+      sentTo: guardian,
+      subject: parentCopy.subject,
+      body: parentCopy.text,
+      triggerEvent: "student_questionnaire_parent_copy",
+      delivered: copyDelivery.success,
     });
   }
 

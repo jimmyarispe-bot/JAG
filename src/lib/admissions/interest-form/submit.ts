@@ -348,16 +348,19 @@ async function sendStudentQuestionnaireIfAsked(input: {
   const studentEmail = asString(input.values.hs_student_email);
   if (!studentEmail) return;
 
-  const schoolId = asString(input.values.school_id);
-  const schoolName =
-    input.schools.find((school) => school.id === schoolId)?.name ?? "The Academy";
-
+  /*
+   * NO CAMPUS IS PASSED, ON PURPOSE.
+   *
+   * This used to resolve the campus the family ticked and put it in the
+   * subject line - which is how two families got "The Academy GA: five
+   * questions for you" asking why they want to join The Academy HS. The email
+   * names its own school now; see STUDENT_QUESTIONNAIRE_SCHOOL_NAME.
+   */
   const admin = createServiceRoleClient();
   const result = await sendStudentQuestionnaire(admin, {
     leadId: input.leadId,
     studentEmail,
     studentFirstName: asString(input.values.preferred_name) || asString(input.values.first_name),
-    schoolName,
     // Copied on what was asked, with no link - see renderParentQuestionnaireCopyEmail.
     guardianEmail: asString(input.values.guardian_email) || null,
   });

@@ -28,6 +28,26 @@ export const STUDENT_QUESTION_KEYS = [
 
 export type StudentQuestionKey = (typeof STUDENT_QUESTION_KEYS)[number];
 
+/**
+ * THE SCHOOL THIS EMAIL IS FROM, AND WHY IT IS A CONSTANT.
+ *
+ * Jimmy, 7 October 2026: "HS".
+ *
+ * These questions name The Academy HS in their own words - "join The Academy
+ * HS family", "successful at The Academy HS" - and the send is gated on
+ * hs_student_email, a field only the high school's section asks. So the email
+ * is always from the high school.
+ *
+ * It did not always SAY so. The subject and header were built from the campus
+ * the family ticked on the inquiry form, so on 29 September two families read
+ * "The Academy GA: five questions for you" and then "why you believe you would
+ * be successful at The Academy HS" four lines later.
+ *
+ * Making it a constant here, next to the questions that name it, is what stops
+ * that coming back: there is no longer a campus to pass in and get wrong.
+ */
+export const STUDENT_QUESTIONNAIRE_SCHOOL_NAME = "The Academy HS";
+
 export const STUDENT_QUESTIONNAIRE_INTRO =
   "Answer these on your own. We are not critiquing spelling or grammar. " +
   "These questions are so we can learn what is in your head and heart, and why " +
