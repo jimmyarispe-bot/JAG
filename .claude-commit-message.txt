@@ -1,96 +1,51 @@
-fix(admissions): a mother's inquiry stops running the school's nightly jobs
+fix(admissions): an archived lead is not chased
 
-STEP 1 — THE PUBLIC INTEREST FORM at apply.theacademyway.org.
+THE NIGHTLY CHASE and THE INTEREST-MEETING CHASE.
 
 WHAT WAS HAPPENING
 
-dispatchAdmissionsAutomation ended with:
+Migration 228 added archived_at / archived_by / archived_reason to
+admissions_leads so a lead could be taken off a list without erasing a
+child's record. Its own comment names the case it was built for:
 
-    await processAllPlatformQueues(supabase);
+    "the only way to remove one was a hard delete, which is why the test
+     rows and the duplicate entries are still sitting in the pipeline"
 
-That is the NIGHTLY RUNNER. It budgets itself RUN_BUDGET_MS = 45_000 and
-works through thirty-odd jobs — KPI snapshots, executive insights,
-compliance sync, and the heavy integration syncs for Google Workspace,
-Microsoft 365, EDI and the rest. vercel.json schedules it at 0 0 * * *,
-8pm Eastern, for exactly that reason.
+Sixteen files under src honour that column. The two jobs that chase
+families every night were not among them.
 
-The public interest form reaches that function:
+    parent-reminders.ts:462   .not("automation_started_at", "is", null)
+                              and nothing else
 
-    submitPublishedInterestForm       (interest-form/submit.ts:574)
-      -> onInquirySubmitted           (communications/triggers.ts:229)
-      -> dispatch                     (communications/triggers.ts:147)
-      -> dispatchAdmissionsAutomation (automation/dispatch.ts:31)
-      -> processAllPlatformQueues     (automation/dispatch.ts:79)
+    chase/run.ts:345          .gte("created_at", since).limit(1000)
+                              and nothing else
 
-and hands it the SERVICE ROLE client (interest-form/submit.ts:454).
+So a lead archived from the board carried on being chased, every night,
+indefinitely — the one thing archiving exists to stop.
 
-So every mother who filled in the form on the website ran the school's
-entire nightly job runner inside her own submission, with full
-privileges, and waited for it to finish.
+HOW IT SURFACED
 
-THE EVIDENCE
+On 7 October Logan Astor's mother submitted the public interest form
+three times, because the form was taking fifty seconds to answer her
+(fixed in ab5ae152). The Academy Virtual received three lead rows for
+one boy.
 
-admissions_leads.created_at is written at the start of a submission.
-admissions_interest_submissions.submitted_at is written at the very end.
-The gap between them is what the family sat and waited.
+Archiving the two extra rows is the obvious cleanup, and on its own it
+would have changed nothing: Heather Brown would have gone on being
+chased every night about two children who do not exist. Migration 512
+had to reach in and clear automation_started_at on those two leads by
+hand to stop it.
 
-Fourteen submissions, 30 September to 7 October 2026:
+This is the general fix, so the next archive does not need one.
 
-    Logan Astor              07:14:50 -> 07:15:38    48s
-    Logan Astor              07:33:18 -> 07:34:08    50s
-    Logan Astor              07:34:48 -> 07:35:37    49s
-    Ella Rose Douet Reeves   11:13:03 -> 11:13:52    49s
-    Ian Xavier Matos Ortiz   19:29:38 -> 19:30:26    48s
-    Arthur Cross             04:57:04 -> 04:57:51    47s
-    Minnie Wheeler           17:39:02 -> 17:39:51    49s
-    Gabrianna Carvajal       10:41:12 -> 10:42:01    49s
-    Maxson Rolax             14:52:48 -> 14:53:39    51s
-    Athena Betras            20:14:46 -> 20:15:35    49s
+WHAT IS AND IS NOT CHANGED
 
-Every one between 47 and 51 seconds. That is not variance. That is the
-45-second budget plus overhead, measured fourteen times.
+Two sweeps gain `.is("archived_at", null)`. Nothing else.
 
-WHAT IT COST A FAMILY
-
-Logan Astor's mother pressed submit three times — 07:14, 07:33 and
-07:34 on 7 October. The Academy Virtual now holds three lead rows for
-one child, with three full answer sets, and Heather Brown received
-three new-inquiry alerts for the same boy.
-
-Nothing crashed. The form came back every time. It simply took fifty
-seconds to do it, with nothing on the screen to say so.
-
-WHY REMOVING THE LINE COSTS NOTHING
-
-Every letter this event sends has already gone out before that line is
-reached. notifyAdmissionsEvent drains the communication queue itself at
-communications/triggers.ts:59, near the top of the same call. The line
-sent no letter, raised no notice, and did nothing at all for the family
-whose request was paying for it.
-
-The 8pm cron still runs every one of those jobs, unchanged.
-/api/admissions/process-communications still drains the communication
-queue every five minutes. Nothing stops happening. It stops happening
-on a parent's click.
-
-WHAT THIS DOES NOT FIX, SO NOBODY MISTAKES IT FOR FINISHED
-
-- The three Logan Astor lead rows are still in production. Closing the
-  first two is a separate migration, and a school leader's decision.
-- The public form still has no guard against a second identical inquiry
-  from the same guardian. detect_admission_duplicates already exists in
-  admissions/duplicates.ts and is unused on that path. Separate work.
-- The eighteen nightly failures are unchanged and were never part of
-  this: six real timeouts (compliance.missionControl,
-  ssis.disengagedFamilies, four kpi.snapshot jobs) and twelve syncs
-  starved behind them. That triage is documented at
-  platform/automation/process-queues.ts:465 and the decision there is
-  still open.
-
-THE RULE THIS WRITES DOWN
-
-A request a family is waiting on does that family's work and no one
-else's. Platform-wide work belongs to a schedule.
+The per-lead lookups elsewhere in these files — .eq("id", leadId) —
+are deliberately untouched. Reaching an archived lead by its id is
+somebody acting on purpose, and that is allowed. A SWEEP that picks up
+an archived lead is the job forgetting it was put away.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

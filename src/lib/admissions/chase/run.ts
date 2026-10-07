@@ -345,6 +345,10 @@ export async function runInterestMeetingScan(
     .from("admissions_leads")
     .select("id, school_id, lead_stage, guardian_email, created_at, notes, schools(name)")
     .gte("created_at", since)
+    // An archived lead is not chased. Same omission as the nightly
+    // parent-reminder sweep, found alongside it on 7 October: migration
+    // 228 added archived_at and this sweep never read it.
+    .is("archived_at", null)
     .order("created_at", { ascending: true })
     .limit(1000);
 

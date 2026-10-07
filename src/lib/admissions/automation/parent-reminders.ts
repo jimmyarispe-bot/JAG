@@ -461,7 +461,25 @@ export async function processParentReminders(): Promise<ParentReminderRunSummary
     supabase
       .from("admissions_leads")
       .select("id, school_id, lead_stage, guardian_email, automation_started_at, created_at")
-      .not("automation_started_at", "is", null),
+      .not("automation_started_at", "is", null)
+      /*
+       * AN ARCHIVED LEAD IS NOT CHASED.
+       *
+       * This swept every lead with automation_started_at set and filtered
+       * on nothing else, so a lead archived from the board kept being
+       * chased every night, for ever. Migration 228 added archived_at for
+       * exactly this and says every list filters on "not archived" -- this
+       * sweep was not one of them.
+       *
+       * It showed up on 7 October. Logan Astor's mother submitted the
+       * public form three times, The Academy Virtual got three lead rows
+       * for one boy, and archiving two of them would have left Heather
+       * Brown chased nightly about two children who do not exist.
+       * Migration 512 had to clear automation_started_at on those two by
+       * hand to stop it. This is the general fix, so the next archive does
+       * not need one.
+       */
+      .is("archived_at", null),
     supabase
       .from("admissions_parent_reminders")
       .select("id, lead_id, wait_key, waiting_since, reminders_sent, last_reminded_at")
