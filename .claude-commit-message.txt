@@ -1,77 +1,68 @@
-feat(finance): Jimmy and Danni may pay a different amount
+feat(teacher): the register says what the class pays, and that combining pays once
 
-PAYSHEET CHANGE 4 of 6, from Jimmy on 8 October 2026:
+PAYSHEET CHANGE 6 of 6, from Jimmy on 8 October 2026:
 
-    "this function only for me - add ability to enter a different pay amount
-     than what the jag figured"
+    "ensure all calculations are done correctly. see renees email from last
+     week attached"
 
-and, asked who: him AND Danni, keeping to the standing rule that only those
-two see anything to do with money.
+THE CALCULATION WAS NEVER WRONG
 
-Migrations 519 and 520 are the database half. This is the screen.
+Renee Tracewell, 3 October:
 
-IT SITS BESIDE THE COMPUTED FIGURE AND NEVER REPLACES IT
+    "I guest taught Marisa Vanella's class on October 1st at 11am, I put
+     those 3 students in my scheduled class, but the pay didn't add up
+     correctly for Thursday. Total for being a guest teacher: $45 Total for
+     having my class is $40. This system only gave me $55, it should have
+     been $85 Total payment should b $550 for the week."
 
-override_total_cents is its own column next to frozen_total_cents. The
-computed figure keeps being computed and keeps being shown, and the panel
-prints both:
+Her 1 October 11:00am row: five students, $55, "Scheduled class".
 
-    $550.00 is being paid, not the $520.00 the JAG worked out.
-    guest cover combined into her own class, agreed
+Structured Literacy pays $35 for the first student and $5 for each one
+after. Five children in one session is $55. Every other row in her week fits
+the same rule - one student $35, two $40.
 
-A paysheet read in March has to answer two different questions - what did
-the platform work out, and what did a person decide to pay. One number
-cannot answer both. Collapse them and an override becomes indistinguishable
-from a fault in the rate table, which is the worst thing that can happen to
-a pay record nobody can reconstruct.
+What she expected was two classes: her own at $40 and the cover at $45. The
+difference is $30, which is exactly $550 - $520. Her arithmetic was right.
+The JAG's was right. They were answering different questions.
 
-THIS IS THE ONLY ACTION IN EITHER FILE THAT TAKES A FIGURE
+JIMMY'S RULING, 8 October: ONE CLASS. $55 is correct. A teacher who combines
+a colleague's children into her own session taught one class and is paid for
+one class.
 
-payroll-actions.ts refuses numbers from the browser on purpose, and says so
-at the top: approving reloads the week server-side and freezes what IT
-computes, so the money is produced by one implementation of pricing with
-tests behind it.
+SO THE FIX IS A SENTENCE, NOT A FORMULA
 
-The override is the opposite case by definition. It exists precisely because
-a person disagrees with that implementation. A figure nobody typed is not an
-override, it is the total again.
+Nothing on that screen told her the rule. She could tick five children, read
+"$55", and still go home believing she was owed $85 - so she reconstructed
+her own week at the kitchen table, got a different answer, and wrote to the
+CEO about $30 she was never owed.
 
-DOLLARS IN, CENTS STORED. A screen that asks for cents is a screen that will
-one day pay somebody a hundred times what was meant. A stray $ or comma is
-forgiven; anything else is refused by name, so "1,2 00" cannot quietly
-become 1200. The multiply is rounded rather than truncated - 550.29 is
-55028.999... in floating point, and a truncation there is a cent a teacher
-never sees and nobody can find.
+The register now says, while she is still choosing:
 
-A REASON IS REQUIRED TO SET ONE, AND NOT TO CLEAR ONE
+    5 students · $55.00 for this class. If you took another teacher's
+    children into it, tick them here too — it is still one class and pays
+    once, for everyone on it.
 
-Going back to what the JAG computed is not a decision that needs defending.
-Departing from it is. It is a free sentence and not a dropdown, because the
-useful reasons are never on the list - Renee Tracewell's week is the
-example, where the honest answer is "guest cover combined into her own
-class", which is not a category.
+It is in the one place where somebody would otherwise get it wrong: open at
+the moment she is adding the second teacher's children, carrying the live
+amount as she ticks.
 
-Enforced in the function as well as the screen. A disabled button is a
-courtesy to the person using it, not a rule.
+WHY THE AMOUNT AND NOT ONLY THE RULE. A rule in a sentence is something to
+remember. A figure that moves as she ticks is something she can check. Renee
+did not misunderstand the rate - she never saw the arithmetic happen.
 
-WHO IS ALLOWED IS NOT DECIDED HERE
+ON ITEM 2 OF THE SIX, WHICH NEEDED NO CODE
 
-set_teacher_week_override checks may_administer_teacher_pay() inside itself,
-the same predicate approve_teacher_week and reopen_teacher_week use, because
-security definer runs past row-level security and a check around a function
-is not a check.
+    "are teachers seeing all students when they select guest teaching?"
 
-Migration 519 wrote its own role list there - has_role('FOUNDER') or
-has_role('EXECUTIVE_DIRECTOR') - which was correct and was a SECOND
-definition of a question this build already answered. 520 removed it. One
-answer to who may touch a teacher's pay, and changing it changes all three
-functions at once.
+They are, and have since 2 October. students_a_teacher_may_log (migration
+468) is security definer and returns every ACTIVE child at all four schools
+to any teacher, because the campus-scoped policy was wrong for this one
+question. Guest teaching uses the same picker as a teacher's own class.
 
-That is the same fault found twice earlier the same day: Danni Treu's
-calendar invisible for five days because the JAG held
-danni.treu@theacademyfl.org while Google answered to
-danni.treu@theacademyway.org, and Cassandra Manghum's name spelled two ways
-in two tables.
+One gap in it, not fixed here: that function filters status = 'active', and
+migration 470 recorded forty-three children sitting inactive. A teacher who
+taught one of them cannot tick them, so the class prices low and nothing
+says why. That is a roll question, not a pay one.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

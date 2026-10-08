@@ -408,6 +408,7 @@ export function TeacherWeekScreen(props: {
                       <Roster
                         weekStart={weekStart}
                         entryId={line.entryId}
+                        cents={line.cents}
                         roster={line.roster}
                         scheduled={line.scheduled}
                         absent={line.absent}
@@ -713,6 +714,7 @@ function AddClass(props: {
 function Roster(props: {
   weekStart: string;
   entryId: string;
+  cents: number;
   roster: readonly {
     studentId: string;
     name: string;
@@ -764,7 +766,33 @@ function Roster(props: {
             <p className="m-0 text-xs text-slate-500">
               Nobody scheduled yet. A class with nobody on it pays nothing.
             </p>
-          ) : null}
+          ) : (
+            /*
+             * WHAT THIS CLASS PAYS, WHILE SHE IS STILL CHOOSING.
+             *
+             * Renee Tracewell, 3 October 2026: she guest-covered Marisa
+             * Vanella's class, put those three children into her own, and
+             * went home expecting $85 - $40 for her class and $45 for the
+             * cover. The JAG paid $55, because five children in one session
+             * is one class. Jimmy ruled on 8 October that $55 is correct.
+             *
+             * Her arithmetic was never the problem. Nothing on this screen
+             * told her the rule, so she reconstructed her own week at home,
+             * got a different answer, and wrote to the CEO about $30 she was
+             * never owed. The sentence costs nothing and the evening cost her
+             * one.
+             */
+            <p className="m-0 text-xs text-slate-600">
+              <span className="font-semibold text-slate-900">
+                {props.scheduled} {props.scheduled === 1 ? "student" : "students"}
+                {" · "}
+                {usd(props.cents)}
+              </span>{" "}
+              for this class. If you took another teacher’s children into it,
+              tick them here too — it is still one class and pays once, for
+              everyone on it.
+            </p>
+          )}
 
           {groups.map((g) => (
             <div key={g.key}>
