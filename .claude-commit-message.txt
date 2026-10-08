@@ -1,75 +1,77 @@
-feat(teacher): a teacher can say she missed a class
+feat(finance): Jimmy and Danni may pay a different amount
 
-PAYSHEET CHANGE 3 of 6, from Jimmy on 8 October 2026:
+PAYSHEET CHANGE 4 of 6, from Jimmy on 8 October 2026:
 
-    "teachers need to identify/select which classes they missed each day"
+    "this function only for me - add ability to enter a different pay amount
+     than what the jag figured"
 
-WHAT WAS WRONG
+and, asked who: him AND Danni, keeping to the standing rule that only those
+two see anything to do with money.
 
-A teacher's week is built from what she ADDS. If she did not teach a class
-she simply never adds it, or removes it. So the JAG holds no record that a
-class was supposed to happen and did not, and a missed class is
-indistinguishable from one nobody ever scheduled.
+Migrations 519 and 520 are the database half. This is the screen.
 
-Which means nobody can see a gap in cover without asking her, a colleague
-who stood in has nothing to point at, and the week reads as complete when it
-is not. An absence recorded is an absence somebody can act on. An absence
-that is only a missing row is one nobody will ever find.
+IT SITS BESIDE THE COMPUTED FIGURE AND NEVER REPLACES IT
 
-WHAT THIS ADDS
+override_total_cents is its own column next to frozen_total_cents. The
+computed figure keeps being computed and keeps being shown, and the panel
+prints both:
 
-Migration 518 puts two columns on teacher_class_entries:
+    $550.00 is being paid, not the $520.00 the JAG worked out.
+    guest cover combined into her own class, agreed
 
-    missed       boolean not null default false
-    missed_note  text
+A paysheet read in March has to answer two different questions - what did
+the platform work out, and what did a person decide to pay. One number
+cannot answer both. Collapse them and an override becomes indistinguishable
+from a fault in the rate table, which is the worst thing that can happen to
+a pay record nobody can reconstruct.
 
-and a partial index on the missed rows only, which is the one the planner
-wants for "what was missed this week" and a fraction of the size of a full
-one.
+THIS IS THE ONLY ACTION IN EITHER FILE THAT TAKES A FIGURE
 
-The row STAYS, at its real day and hour. That is the whole point: deleting
-the entry is what happens today and is exactly the behaviour being fixed.
+payroll-actions.ts refuses numbers from the browser on purpose, and says so
+at the top: approving reloads the week server-side and freezes what IT
+computes, so the money is produced by one implementation of pricing with
+tests behind it.
 
-THE PRICING IS DECIDED BEFORE THE RATE IS CONSULTED
+The override is the opposite case by definition. It exists precisely because
+a person disagrees with that implementation. A figure nobody typed is not an
+override, it is the total again.
 
-week-view.ts returns zero for a missed line BEFORE it looks at the roster.
+DOLLARS IN, CENTS STORED. A screen that asks for cents is a screen that will
+one day pay somebody a hundred times what was meant. A stray $ or comma is
+forgiven; anything else is refused by name, so "1,2 00" cannot quietly
+become 1200. The multiply is rounded rather than truncated - 550.29 is
+55028.999... in floating point, and a truncation there is a cent a teacher
+never sees and nobody can find.
 
-This matters more than it reads. The children stay ticked on a missed class
-on purpose — she marked who was due, and whoever covered it needs that list.
-But a roster is exactly what the pricing reads. Leaving the decision to
-classPay would pay her for a morning she was not there, because the class
-still has five children on it.
+A REASON IS REQUIRED TO SET ONE, AND NOT TO CLEAR ONE
 
-A missed line also carries no pricing PROBLEM. A missed class with nobody on
-it would otherwise shout "could not be priced" at a teacher who had just
-told us plainly that she was not there.
+Going back to what the JAG computed is not a decision that needs defending.
+Departing from it is. It is a free sentence and not a dropdown, because the
+useful reasons are never on the list - Renee Tracewell's week is the
+example, where the honest answer is "guest cover combined into her own
+class", which is not a category.
 
-WHY NOT instructional_sessions.session_status
+Enforced in the function as well as the screen. A disabled button is a
+courtesy to the person using it, not a rule.
 
-setClassHeldAction already writes 'cancelled' there, and that is a different
-fact: the SCHOOL'S record of whether a session happened, on a table the
-teacher's own week does not read. The week screen is built from
-teacher_class_entries.
+WHO IS ALLOWED IS NOT DECIDED HERE
 
-Writing one and reading the other is how two systems come to disagree about
-the same morning — which is the lesson of this week twice over: Danni's
+set_teacher_week_override checks may_administer_teacher_pay() inside itself,
+the same predicate approve_teacher_week and reopen_teacher_week use, because
+security definer runs past row-level security and a check around a function
+is not a check.
+
+Migration 519 wrote its own role list there - has_role('FOUNDER') or
+has_role('EXECUTIVE_DIRECTOR') - which was correct and was a SECOND
+definition of a question this build already answered. 520 removed it. One
+answer to who may touch a teacher's pay, and changing it changes all three
+functions at once.
+
+That is the same fault found twice earlier the same day: Danni Treu's
 calendar invisible for five days because the JAG held
 danni.treu@theacademyfl.org while Google answered to
 danni.treu@theacademyway.org, and Cassandra Manghum's name spelled two ways
 in two tables.
-
-ON THE SCREEN
-
-The button says what it will DO — "I missed this", and "I did teach this" to
-undo it — rather than labelling the state. A button marked "Missed" on a
-class she taught is ambiguous at a glance on a Friday evening.
-
-The amount is struck through, the row explains itself in a line, and the
-register is HIDDEN rather than removed: the children stay on the row for
-whoever covered it, but a teacher who was not there has no business taking
-an attendance she did not see.
-
-Nothing is writable on a submitted week, as before.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

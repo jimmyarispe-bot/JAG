@@ -276,6 +276,8 @@ export default async function TeacherPayrollPage({
                   weekStart={weekStart}
                   status={t.status}
                   totalCents={t.totalCents}
+                  overrideCents={t.overrideCents}
+                  overrideReason={t.overrideReason}
                   hasProblems={t.problems.length > 0}
                 />
               </div>

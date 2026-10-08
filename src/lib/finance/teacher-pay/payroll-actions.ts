@@ -114,3 +114,91 @@ export async function reopenWeekAction(
   refresh();
   return { success: true };
 }
+
+/**
+ * Pay something other than what the JAG worked out - paysheet change 4 of 6.
+ *
+ * Jimmy, 8 October 2026: "add ability to enter a different pay amount than
+ * what the jag figured", and asked who: him and Danni.
+ *
+ * THIS ONE DOES TAKE A FIGURE, and it is the only thing in either actions
+ * file that does. Everything else here refuses a number from the browser on
+ * purpose - approving reloads the week server-side and freezes what IT
+ * computes, so the money is produced by one implementation of pricing with
+ * tests behind it.
+ *
+ * The override is the opposite case by definition: it exists precisely
+ * because a person disagrees with that implementation. A figure nobody typed
+ * is not an override, it is just the total again.
+ *
+ * SO IT IS STORED SOMEWHERE ELSE. override_total_cents sits BESIDE
+ * frozen_total_cents and never replaces it. The computed figure keeps being
+ * computed and keeps being shown. A paysheet read in March answers both
+ * questions - what was worked out, and what was decided - and an override is
+ * never mistaken for a fault in the rate table.
+ *
+ * WHO IS ALLOWED IS NOT DECIDED HERE, same as approving and reopening:
+ * set_teacher_week_override checks may_administer_teacher_pay() inside
+ * itself, because security definer runs past row-level security and a check
+ * around a function is not a check. Migration 519 wrote its own role list
+ * there and 520 removed it - one answer to who may touch a teacher's pay.
+ *
+ * Dollars in, cents stored. A screen that asks for cents is a screen that
+ * will one day be paid a hundred times what somebody meant.
+ */
+export async function setWeekOverrideAction(
+  weekId: string,
+  dollars: string,
+  reason: string
+): Promise<Result> {
+  const supabase = await createAuthClient();
+
+  const trimmed = dollars.trim();
+
+  /* Empty means "go back to what the JAG worked out", which needs no
+     reason: returning to the computed figure is not a decision to defend. */
+  if (trimmed === "") {
+    const { error } = await supabase.rpc("set_teacher_week_override", {
+      p_week_id: weekId,
+      p_cents: null,
+      p_reason: null,
+    });
+    if (error) return { error: error.message };
+    refresh();
+    return { success: true };
+  }
+
+  /* Typed by a person at the end of a long week. A stray $ or comma is not
+     a reason to refuse, but anything else is - "1,2 00" must not quietly
+     become 1200. */
+  const cleaned = trimmed.replace(/[$,\s]/g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) {
+    return {
+      error:
+        `"${trimmed}" is not an amount. Type it in dollars, like 550 or 550.25.`,
+    };
+  }
+
+  /* Round AFTER multiplying. 550.29 is 55028.999... in floating point, and
+     a truncation here is a cent a teacher never sees and nobody can find. */
+  const cents = Math.round(Number(cleaned) * 100);
+
+  if (!reason.trim()) {
+    return {
+      error:
+        "Say why the amount is different. A figure somebody changed with no " +
+        "reason on it is indistinguishable from a fault six weeks later.",
+    };
+  }
+
+  const { error } = await supabase.rpc("set_teacher_week_override", {
+    p_week_id: weekId,
+    p_cents: cents,
+    p_reason: reason.trim(),
+  });
+
+  if (error) return { error: error.message };
+
+  refresh();
+  return { success: true };
+}

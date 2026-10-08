@@ -425,7 +425,7 @@ export async function loadTeacherWeek(
 
   const { data: weekRow, error: weekError } = await supabase
     .from("teacher_weeks")
-    .select("id, status, kooky_note")
+    .select("id, status, kooky_note, override_total_cents, override_reason")
     .eq("employee_id", employeeId)
     .eq("week_start", weekStart)
     .maybeSingle();
@@ -447,6 +447,10 @@ export async function loadTeacherWeek(
   const status: WeekStatus =
     raw === "submitted" || raw === "approved" ? raw : "open";
   const kookyNote = (weekRow.kooky_note as string | null) ?? null;
+  /* Beside the computed figure, never folded into it. See TeacherWeekView. */
+  const overrideCents =
+    typeof weekRow.override_total_cents === "number" ? weekRow.override_total_cents : null;
+  const overrideReason = (weekRow.override_reason as string | null) ?? null;
 
   const [entriesRes, extrasRes, hourlyRes] = await Promise.all([
     supabase
@@ -608,7 +612,16 @@ export async function loadTeacherWeek(
     weekId,
     weekStart,
     unavailable: null,
-    view: teacherWeekView({ weekStart, status, classes, extras, hourly, kookyNote }),
+    view: teacherWeekView({
+      weekStart,
+      status,
+      classes,
+      extras,
+      hourly,
+      kookyNote,
+      overrideCents,
+      overrideReason,
+    }),
   };
 }
 

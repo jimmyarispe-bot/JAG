@@ -148,11 +148,26 @@ export interface TeacherWeekView {
   /** Everything that could not be priced, so a total is never quietly short. */
   readonly problems: readonly string[];
   readonly kookyNote: string | null;
+  /*
+   * WHAT A PERSON DECIDED TO PAY, when that differs from what was worked
+   * out above. Null means pay the computed figure.
+   *
+   * Carried BESIDE totalCents and never folded into it. A paysheet read in
+   * March has to answer two questions - what did the platform compute, and
+   * what did a person decide - and one number cannot answer both. Collapse
+   * them and an override becomes indistinguishable from a fault in the rate
+   * table, which is the worst thing that can happen to a pay record nobody
+   * can reconstruct.
+   */
+  readonly overrideCents: number | null;
+  readonly overrideReason: string | null;
 }
 
 export interface WeekInput {
   readonly weekStart: string;
   readonly status: WeekStatus;
+  readonly overrideCents?: number | null;
+  readonly overrideReason?: string | null;
   readonly classes: readonly ClassRow[];
   readonly extras: readonly ExtraClaim[];
   readonly hourly: readonly { readonly rate: PersonalRate; readonly hours: number }[];
@@ -272,6 +287,8 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
     guestCount: totals.guestCount,
     problems: totals.refusals,
     kookyNote: input.kookyNote ?? null,
+    overrideCents: input.overrideCents ?? null,
+    overrideReason: input.overrideReason ?? null,
   };
 }
 
@@ -297,6 +314,8 @@ export interface PayrollLine {
   readonly studentsAbsent: number;
   readonly status: WeekStatus;
   readonly kookyNote: string | null;
+  readonly overrideCents: number | null;
+  readonly overrideReason: string | null;
   /** Item 22 — the classes themselves, so a week can be read, not just totalled. */
   readonly lines: readonly ClassLine[];
   /**
@@ -382,6 +401,8 @@ export function payrollWeek(input: {
     studentsAbsent: t.week.studentsAbsent,
     status: t.week.status,
     kookyNote: t.week.kookyNote,
+    overrideCents: t.week.overrideCents,
+    overrideReason: t.week.overrideReason,
     lines: t.week.lines,
     extras: t.week.extras,
     problems: t.week.problems,
