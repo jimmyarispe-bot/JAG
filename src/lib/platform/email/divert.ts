@@ -44,11 +44,46 @@ import type { SendEmailParams } from "@/lib/platform/email/types";
  * them, which is his standing rule anyway: he sees the exact words before they
  * ship.
  *
- * ONE CHOKEPOINT, NO EXCEPTIONS. sendTransactionalEmail is the only way mail
- * leaves this codebase - admissions letters, staff notices, password resets,
- * invitations, everything. A rule with an exception list is a rule somebody
- * will fall outside of, so there is no exception list. While this is on,
- * nothing at all reaches anybody but the diversion address.
+ * ONE CHOKEPOINT. sendTransactionalEmail is the only way mail leaves this
+ * codebase - admissions letters, staff notices, password resets, invitations,
+ * everything.
+ *
+ * THIS FILE USED TO SAY "NO EXCEPTIONS", in those words, and gave the reason:
+ * a rule with an exception list is a rule somebody will fall outside of. That
+ * reasoning still stands and the sentence was removed anyway, on 8 October
+ * 2026, because it made one ordinary thing impossible.
+ *
+ * Leesa Davis was hired at The Academy Virtual. Her password-reset email was
+ * diverted into Jimmy's inbox, as designed, so she could not sign in, so she
+ * could not record her classes, her hours or her children. No staff member
+ * can be onboarded at all while every outbound message is caught - and the
+ * protection exists to shield FAMILIES, not to lock out the people who work
+ * here.
+ *
+ *   EMAIL_DIVERT_EXCEPT=leesa.davis@theacademyvirtual.org
+ *
+ * THE EXCEPTION IS AS NARROW AS IT CAN BE MADE, because the warning it
+ * replaces was right:
+ *
+ *   - EXACT ADDRESSES ONLY. No domains, no wildcards, no patterns. Allowing
+ *     @theacademyway.org would be one typo away from allowing a parent whose
+ *     address happens to end that way, and whole-domain rules are how these
+ *     lists quietly become everybody.
+ *
+ *   - EVERY RECIPIENT MUST BE ON THE LIST, not just one. A staff notice
+ *     addressed to a school leader AND a guardian is diverted exactly as
+ *     before. This is the rule that matters: it is the only reason a family
+ *     cannot be reached by riding along on somebody else's letter.
+ *
+ *   - THE REPLY-TO IS STILL REMOVED unless it is itself on the list. A staff
+ *     notice sets reply-to to the GUARDIAN so a leader can answer without
+ *     leaving her inbox. Let an excepted message keep that header and the
+ *     first reply typed goes straight to a parent, by the one route nobody
+ *     thinks to check.
+ *
+ * Empty or unset, nothing changes: everything is diverted, as before. The
+ * list fails safe the same way the diversion does - an address that does not
+ * parse is dropped from it, which diverts that mail rather than releasing it.
  *
  * AN ENVIRONMENT VARIABLE, AND DELIBERATELY NOT A DATABASE SETTING. A row in a
  * table can be flipped by anybody with a SQL editor and a tired evening.
@@ -69,6 +104,10 @@ import type { SendEmailParams } from "@/lib/platform/email/types";
 
 const LOOKS_LIKE_AN_ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function asList(to: string | string[]): string[] {
+  return (Array.isArray(to) ? to : [to]).map((t) => t.trim()).filter(Boolean);
+}
+
 /** Who everything goes to instead. Empty means the platform is live. */
 export function emailDivertAddresses(): string[] {
   const raw = process.env.EMAIL_DIVERT_TO ?? "";
@@ -78,12 +117,44 @@ export function emailDivertAddresses(): string[] {
     .filter((address) => LOOKS_LIKE_AN_ADDRESS.test(address));
 }
 
-export function emailIsDiverted(): boolean {
-  return (process.env.EMAIL_DIVERT_TO ?? "").trim().length > 0;
+/**
+ * Addresses that may be written to while the diversion is on.
+ *
+ * Lower-cased on the way in so that a capitalised entry in Vercel still
+ * matches - every other address in this build is compared case-sensitively
+ * somewhere, and the HR roll already holds Cassandra.Manghun@... beside
+ * cassandra.manghum@... Case is not a thing to be strict about here.
+ */
+export function emailDivertExceptions(): string[] {
+  const raw = process.env.EMAIL_DIVERT_EXCEPT ?? "";
+  return raw
+    .split(",")
+    .map((address) => address.trim().toLowerCase())
+    .filter((address) => LOOKS_LIKE_AN_ADDRESS.test(address));
 }
 
-function asList(to: string | string[]): string[] {
-  return (Array.isArray(to) ? to : [to]).map((t) => t.trim()).filter(Boolean);
+/**
+ * May this message be delivered as addressed?
+ *
+ * EVERY recipient must be on the list. One address off it and the whole
+ * message is diverted, which is what stops a family being reached as the
+ * second name on a staff notice.
+ *
+ * A message addressed to nobody is never excepted: an empty list of
+ * recipients would otherwise satisfy `every` and pass straight through.
+ */
+export function everyRecipientIsExcepted(to: string | string[]): boolean {
+  const allowed = emailDivertExceptions();
+  if (!allowed.length) return false;
+  const recipients = asList(to);
+  if (!recipients.length) return false;
+  return recipients.every((address) =>
+    allowed.includes(address.toLowerCase())
+  );
+}
+
+export function emailIsDiverted(): boolean {
+  return (process.env.EMAIL_DIVERT_TO ?? "").trim().length > 0;
 }
 
 /**
@@ -99,6 +170,23 @@ function asList(to: string | string[]): string[] {
 export function divertEmail(params: SendEmailParams): SendEmailParams | null {
   const inbox = emailDivertAddresses();
   if (!inbox.length) return null;
+
+  /*
+   * THE EXCEPTION, AND WHY IT RETURNS PARAMS RATHER THAN null.
+   *
+   * send.ts reads null as "EMAIL_DIVERT_TO is set but unreadable" and
+   * REFUSES TO SEND. Returning null for an allowed recipient would therefore
+   * not deliver her mail, it would silently throw it away and log a
+   * malformed-setting error that is not true.
+   */
+  if (everyRecipientIsExcepted(params.to)) {
+    const allowed = emailDivertExceptions();
+    const replyTo =
+      params.replyTo && allowed.includes(params.replyTo.trim().toLowerCase())
+        ? params.replyTo
+        : undefined;
+    return { ...params, replyTo };
+  }
 
   const intended = asList(params.to);
   const wouldHaveGoneTo = intended.length ? intended.join(", ") : "(nobody)";

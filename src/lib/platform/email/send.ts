@@ -3,6 +3,7 @@ import {
   divertEmail,
   emailDivertAddresses,
   emailIsDiverted,
+  everyRecipientIsExcepted,
 } from "@/lib/platform/email/divert";
 import type {
   EmailDeliveryResult,
@@ -53,11 +54,22 @@ export async function sendTransactionalEmail(
       return { success: false, provider: "none", error: detail };
     }
 
+    /*
+     * THE LOG MUST NOT SAY "diverted" ABOUT MAIL THAT WENT TO THE PERSON.
+     *
+     * EMAIL_DIVERT_EXCEPT lets a named staff address through. This line is
+     * the only record that it happened, and a log claiming a letter was
+     * caught when it was delivered is worse than no log: it is the thing
+     * somebody would check first, answering confidently and wrongly.
+     */
+    const letThrough = everyRecipientIsExcepted(withKind.to);
     console.log(
-      "[email] diverted",
+      letThrough ? "[email] delivered, divert exception" : "[email] diverted",
       JSON.stringify({
-        wouldHaveGoneTo: Array.isArray(params.to) ? params.to : [params.to],
-        sentTo: emailDivertAddresses(),
+        addressedTo: Array.isArray(params.to) ? params.to : [params.to],
+        sentTo: letThrough
+          ? (Array.isArray(params.to) ? params.to : [params.to])
+          : emailDivertAddresses(),
         kind: withKind.kind,
         subject: params.subject,
       })

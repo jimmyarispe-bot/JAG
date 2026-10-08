@@ -1,51 +1,82 @@
-fix(admissions): an archived lead is not chased
+feat(platform): a named staff address may be written to while families are not
 
-THE NIGHTLY CHASE and THE INTEREST-MEETING CHASE.
+WHY THIS EXISTS
 
-WHAT WAS HAPPENING
+Leesa Davis was hired at The Academy Virtual on 8 October. Her password
+reset was sent, EMAIL_DIVERT_TO caught it, and it arrived in Jimmy's
+inbox under the "[ NOT SENT TO THE FAMILY ]" banner. She could not sign
+in, so she could not record her classes, her hours or her children.
 
-Migration 228 added archived_at / archived_by / archived_reason to
-admissions_leads so a lead could be taken off a list without erasing a
-child's record. Its own comment names the case it was built for:
+No member of staff can be onboarded at all while every outbound message
+is diverted. The protection exists to shield FAMILIES; locking out the
+people who work here is collateral, not intent.
 
-    "the only way to remove one was a hard delete, which is why the test
-     rows and the duplicate entries are still sitting in the pipeline"
+    EMAIL_DIVERT_EXCEPT=leesa.davis@theacademyvirtual.org
 
-Sixteen files under src honour that column. The two jobs that chase
-families every night were not among them.
+WHAT I AM OVERRULING, SAID OUT LOUD
 
-    parent-reminders.ts:462   .not("automation_started_at", "is", null)
-                              and nothing else
+divert.ts said this, in these words:
 
-    chase/run.ts:345          .gte("created_at", since).limit(1000)
-                              and nothing else
+    "ONE CHOKEPOINT, NO EXCEPTIONS. [...] A rule with an exception list
+     is a rule somebody will fall outside of, so there is no exception
+     list."
 
-So a lead archived from the board carried on being chased, every night,
-indefinitely — the one thing archiving exists to stop.
+That sentence is now gone and its reasoning is not. It was right. The
+list is therefore as narrow as it can be made, and the file says so
+where the old sentence stood, so the next person meets the argument
+rather than the conclusion.
 
-HOW IT SURFACED
+THE THREE RULES THAT KEEP IT NARROW
 
-On 7 October Logan Astor's mother submitted the public interest form
-three times, because the form was taking fifty seconds to answer her
-(fixed in ab5ae152). The Academy Virtual received three lead rows for
-one boy.
+  EXACT ADDRESSES ONLY. No domains, no wildcards, no patterns. A rule
+  like @theacademyway.org is one typo from matching a parent, and
+  whole-domain rules are how these lists quietly become everybody.
 
-Archiving the two extra rows is the obvious cleanup, and on its own it
-would have changed nothing: Heather Brown would have gone on being
-chased every night about two children who do not exist. Migration 512
-had to reach in and clear automation_started_at on those two leads by
-hand to stop it.
+  EVERY RECIPIENT MUST BE ON THE LIST. Not one of them - all of them. A
+  staff notice addressed to a school leader AND a guardian is diverted
+  exactly as before. This is the rule that matters: it is the only
+  reason a family cannot be reached by riding along as the second name
+  on somebody else's letter.
 
-This is the general fix, so the next archive does not need one.
+  THE REPLY-TO IS STILL STRIPPED unless it is itself on the list. Staff
+  notices set reply-to to the GUARDIAN, so a leader can answer a family
+  without leaving her inbox. Let an excepted message keep that header
+  and the first reply typed goes straight to a parent - by the one route
+  nobody thinks to check. That is the same reasoning the original
+  reply-to removal was written with.
 
-WHAT IS AND IS NOT CHANGED
+Unset or empty, nothing changes. Everything is diverted, as before.
 
-Two sweeps gain `.is("archived_at", null)`. Nothing else.
+IT FAILS IN THE SAFE DIRECTION
 
-The per-lead lookups elsewhere in these files — .eq("id", leadId) —
-are deliberately untouched. Reaching an archived lead by its id is
-somebody acting on purpose, and that is allowed. A SWEEP that picks up
-an archived lead is the job forgetting it was put away.
+An address that does not parse is dropped from the list, which DIVERTS
+that mail rather than releasing it. A message addressed to nobody is
+never excepted - an empty recipient list would otherwise satisfy
+`every()` and pass straight through, which is the one way a careless
+`every` becomes a hole.
+
+THE RETURN VALUE IS NOT null, AND THAT IS NOT A STYLE CHOICE
+
+send.ts reads null from divertEmail as "EMAIL_DIVERT_TO is set but
+unreadable" and refuses to send. Returning null for an allowed
+recipient would not deliver her mail - it would throw it away silently
+and log a malformed-setting error that is not true. So the excepted
+path returns the params themselves.
+
+AND THE LOG NO LONGER LIES
+
+"[email] diverted" was printed for every send while the diversion was
+on. A letter that now reaches the person would have been logged as
+caught - and that line is the first thing anybody would check, so it
+would answer confidently and wrongly. It reads "[email] delivered,
+divert exception" on that path, and reports where the mail actually
+went rather than where the diversion address is.
+
+WHAT THIS DOES NOT CHANGE
+
+Nothing reaches a family. EMAIL_DIVERT_TO is untouched and still set.
+The only mail that leaves is mail addressed solely to an address a
+person typed into Vercel on purpose.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
