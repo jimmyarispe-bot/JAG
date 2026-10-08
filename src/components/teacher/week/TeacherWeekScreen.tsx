@@ -135,6 +135,26 @@ export function TeacherWeekScreen(props: {
     });
   };
 
+  /*
+   * ONE HANDLER, TWO BUTTONS.
+   *
+   * Jimmy, 8 October 2026: "submit buttons located at top n bottom". The
+   * week is a long page - thirteen classes and a register under each one -
+   * and the only Submit was at the foot of it.
+   *
+   * BOTH BUTTONS CALL THIS, and both are disabled by the same `pending`.
+   * Two buttons wired to two copies of the same call is how a week gets
+   * submitted twice: a teacher presses the top one, nothing visibly happens
+   * because the page has not moved, she scrolls down and presses the other.
+   * submitWeekAction would then run against a week already closed and
+   * answer with an error about her own submission, which is a confusing way
+   * to end a Friday.
+   *
+   * The note is read at press time rather than captured, so the top button
+   * sends whatever she has typed at the bottom.
+   */
+  const submitWeek = () => run(() => submitWeekAction(weekStart, note));
+
   const days = useMemo(
     () =>
       DAY_LABELS.map((label, i) => {
@@ -215,6 +235,21 @@ export function TeacherWeekScreen(props: {
             value={usd(view.totalCents)}
           />
         </div>
+
+        {!submitted ? (
+          /* The same button as the one at the foot of the page, and
+             deliberately carrying the same total: a teacher who submits from
+             the top should see the figure she is agreeing to without
+             scrolling to find it. */
+          <button
+            type="button"
+            disabled={pending}
+            onClick={submitWeek}
+            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+          >
+            {pending ? "Submitting…" : `Submit this week — ${usd(view.totalCents)}`}
+          </button>
+        ) : null}
 
         {submitted ? (
           <div className="rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-700">
@@ -400,7 +435,7 @@ export function TeacherWeekScreen(props: {
           <button
             type="button"
             disabled={pending}
-            onClick={() => run(() => submitWeekAction(weekStart, note))}
+            onClick={submitWeek}
             className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
           >
             {pending ? "Submitting…" : `Submit this week — ${usd(view.totalCents)}`}
