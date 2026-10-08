@@ -11,6 +11,7 @@ import {
   setAbsentAction,
   setExtraClaimAction,
   setHourlyClaimAction,
+  setClassMissedAction,
   submitWeekAction,
   unscheduleStudentAction,
 } from "@/lib/finance/teacher-pay/actions";
@@ -329,14 +330,58 @@ export function TeacherWeekScreen(props: {
                             {prettyHour(line.startTimeEt)} · {line.kind}
                             {line.guestForName ? ` for ${line.guestForName}` : ""}
                           </p>
+                          {line.missed ? (
+                            /* The row stays on her week at its real day and hour.
+                               A gap nobody can see is a gap nobody can cover. */
+                            <p className="mt-1 text-xs font-medium text-amber-800">
+                              You were down for this and did not teach it. It pays
+                              nothing and stays here so the gap is visible.
+                              {line.missedNote ? ` — ${line.missedNote}` : ""}
+                            </p>
+                          ) : null}
                           {line.problem ? (
                             <p className="mt-1 text-xs font-medium text-rose-700">{line.problem}</p>
                           ) : null}
                         </div>
                         <div className="flex items-center gap-3 whitespace-nowrap">
-                          <span className="text-sm font-medium text-slate-900">
+                          <span
+                            className={
+                              line.missed
+                                ? "text-sm font-medium text-slate-400 line-through"
+                                : "text-sm font-medium text-slate-900"
+                            }
+                          >
                             {usd(line.cents)}
                           </span>
+                          {!submitted ? (
+                            /* Says what it will DO, not what the class is. A
+                               button labelled "Missed" on a class she taught is
+                               ambiguous at a glance on a Friday evening. */
+                            <button
+                              type="button"
+                              disabled={pending}
+                              onClick={() =>
+                                run(
+                                  () =>
+                                    setClassMissedAction(
+                                      weekStart,
+                                      line.entryId,
+                                      !line.missed
+                                    ),
+                                  line.missed
+                                    ? "Marked as taught. It pays again."
+                                    : "Marked as missed. It pays nothing."
+                                )
+                              }
+                              className={
+                                line.missed
+                                  ? "rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                                  : "rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                              }
+                            >
+                              {line.missed ? "I did teach this" : "I missed this"}
+                            </button>
+                          ) : null}
                           {!submitted ? (
                             <button
                               type="button"
@@ -355,6 +400,11 @@ export function TeacherWeekScreen(props: {
                         </div>
                       </div>
 
+                      {/* The register is hidden on a missed class, not removed:
+                          the children she marked stay on the row for whoever
+                          covered it, but a teacher who was not there has no
+                          business taking an attendance she did not see. */}
+                      {line.missed ? null : (
                       <Roster
                         weekStart={weekStart}
                         entryId={line.entryId}
@@ -366,6 +416,7 @@ export function TeacherWeekScreen(props: {
                         pending={pending}
                         onRun={run}
                       />
+                      )}
                     </li>
                   ))}
                 </ul>

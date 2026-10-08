@@ -68,6 +68,9 @@ export function studentLabel(name: string, school: PrimarySchool | null | undefi
 
 export interface ClassRow {
   readonly entryId: string;
+  /** She was down to teach this and did not. Pays nothing. */
+  readonly missed?: boolean;
+  readonly missedNote?: string | null;
   readonly courseName: string;
   readonly campus: Campus;
   readonly classDate: string;
@@ -98,6 +101,8 @@ export interface ClassRow {
 
 export interface ClassLine {
   readonly entryId: string;
+  readonly missed: boolean;
+  readonly missedNote: string | null;
   readonly courseName: string;
   readonly campus: Campus;
   readonly classDate: string;
@@ -168,6 +173,18 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
   for (const row of input.classes) {
     const scheduled = row.students.length;
     const absent = row.students.filter((s) => s.absent).length;
+
+    /*
+     * A CLASS SHE DID NOT TEACH PAYS NOTHING, decided HERE and not by
+     * the rate code.
+     *
+     * Children stay ticked on a missed class on purpose - she marked who
+     * was due, and whoever covered it needs that list. But a roster is
+     * exactly what the pricing reads, so leaving this to classPay would
+     * pay her for a morning she was not there. Zero is asserted before
+     * the rate is ever consulted.
+     */
+    const missed = row.missed === true;
     /* The catalogue rate wins when the caller has it. See CataloguePayInput. */
     const priced =
       row.baseCents !== undefined
@@ -188,7 +205,9 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
       guestForName: row.isGuest ? row.guestForName : null,
       scheduled,
       absent,
-      cents: priced.ok ? priced.cents : 0,
+      missed,
+      missedNote: row.missedNote ?? null,
+      cents: missed ? 0 : priced.ok ? priced.cents : 0,
       studentLabels: row.students.map((s) => studentLabel(s.name, s.school)),
       roster: row.students.map((s) => ({
         studentId: s.studentId,
@@ -196,7 +215,10 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
         school: s.school,
         absent: s.absent,
       })),
-      problem: priced.ok ? null : priced.reason,
+      /* Not a problem, a decision. A missed class with no children on it
+         would otherwise shout "could not be priced" at a teacher who
+         told us plainly that she was not there. */
+      problem: missed ? null : priced.ok ? null : priced.reason,
     });
   }
 

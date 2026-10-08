@@ -453,7 +453,7 @@ export async function loadTeacherWeek(
       .from("teacher_class_entries")
       .select(
         "id, course_id, campus, class_date, start_time_et, is_guest, guest_for_employee_id, " +
-          "courses(name)"
+          "missed, missed_note, courses(name)"
       )
       .eq("teacher_week_id", weekId)
       .order("class_date")
@@ -539,6 +539,10 @@ export async function loadTeacherWeek(
     const guestId = e.guest_for_employee_id ? String(e.guest_for_employee_id) : null;
     return {
       entryId: String(e.id),
+      /* A class she was down for and did not teach. Priced at zero by
+         week-view.ts before the roster is looked at. */
+      missed: e.missed === true,
+      missedNote: typeof e.missed_note === "string" ? e.missed_note : null,
       courseName,
       campus: (String(e.campus) === "hs" ? "hs" : "virtual") as Campus,
       classDate: String(e.class_date).slice(0, 10),

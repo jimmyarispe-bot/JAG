@@ -236,6 +236,56 @@ export async function removeClassAction(weekStart: string, entryId: string): Pro
   return { success: true };
 }
 
+/**
+ * She was down to teach this and did not - paysheet change 3 of 6.
+ *
+ * Jimmy, 8 October 2026: "teachers need to identify/select which classes
+ * they missed each day".
+ *
+ * THE ROW STAYS. Until now the only way to say "I did not teach that" was
+ * to never add it, or to remove it - and a missing row is indistinguishable
+ * from a class nobody ever scheduled. Nobody can see a gap in cover without
+ * asking her, and a colleague who stood in has nothing to point at.
+ *
+ * A MISSED CLASS PAYS NOTHING, and the pricing is not consulted to decide
+ * that - week-view.ts returns zero for a missed line before it looks at the
+ * roster at all. A class she did not teach must not be able to pay her by
+ * accident because children are still ticked on it.
+ *
+ * Her own week, while it is open, like every other write here. The
+ * teacher_week_id filter is what makes that true rather than hoped for.
+ */
+export async function setClassMissedAction(
+  weekStart: string,
+  entryId: string,
+  missed: boolean,
+  note?: string
+): Promise<Result> {
+  const week = await myOpenWeek(weekStart);
+  if (!week.ok) return { error: week.error };
+
+  const { data, error } = await week.supabase
+    .from("teacher_class_entries")
+    .update({
+      missed,
+      /* Cleared when she un-marks it. A reason left behind on a class she
+         did teach is a sentence nobody can explain six weeks later. */
+      missed_note: missed && note?.trim() ? note.trim() : null,
+    })
+    .eq("id", entryId)
+    .eq("teacher_week_id", week.weekId)
+    .select("id");
+
+  if (error) return { error: `That was not saved: ${error.message}` };
+  /* Zero rows and no error is a refusal wearing a success costume. */
+  if (!data || data.length === 0) {
+    return { error: "That class was not changed. It may not be yours, or the week may be closed." };
+  }
+
+  refresh();
+  return { success: true };
+}
+
 /* -------------------------------------------------------------------------- */
 /* Who was on the class                                                       */
 /* -------------------------------------------------------------------------- */
