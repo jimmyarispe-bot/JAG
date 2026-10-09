@@ -1,68 +1,66 @@
-feat(teacher): the register says what the class pays, and that combining pays once
+feat(finance): what each campus paid its teachers, by month
 
-PAYSHEET CHANGE 6 of 6, from Jimmy on 8 October 2026:
+PAYSHEET CHANGE 5 of 6, from Jimmy on 8 October 2026:
 
-    "ensure all calculations are done correctly. see renees email from last
-     week attached"
+    "provide totals each month per school for how much was paid out to
+     teachers"
 
-THE CALCULATION WAS NEVER WRONG
+/dashboard/finance/teacher-pay/monthly, linked from the weekly screen.
 
-Renee Tracewell, 3 October:
+WHO SEES IT. mayReadPayroll, the same gate as the weekly screen, which asks
+may_read_all_teacher_pay() rather than re-deciding in TypeScript. Jimmy and
+Danni. A refusal says so in words: an empty page would read as "nothing was
+paid", which is the one wrong answer this page must never give.
 
-    "I guest taught Marisa Vanella's class on October 1st at 11am, I put
-     those 3 students in my scheduled class, but the pay didn't add up
-     correctly for Thursday. Total for being a guest teacher: $45 Total for
-     having my class is $40. This system only gave me $55, it should have
-     been $85 Total payment should b $550 for the week."
+"PAID OUT" IS DELIBERATELY NARROW
 
-Her 1 October 11:00am row: five students, $55, "Scheduled class".
+ONLY APPROVED WEEKS. A submitted week is a claim; an approved one is a
+decision. A total that counted submissions would move every time a teacher
+pressed Submit, and would overstate every month in the days between Friday
+and whenever Jimmy gets to it - a figure nobody could reconcile against a
+bank statement.
 
-Structured Literacy pays $35 for the first student and $5 for each one
-after. Five children in one session is $55. Every other row in her week fits
-the same rule - one student $35, two $40.
+Weeks still waiting are listed SEPARATELY AND BY NAME. Folding them in would
+be wrong and dropping them silently would be worse: a month nobody has got
+to would read as a month that is finished.
 
-What she expected was two classes: her own at $40 and the cover at $45. The
-difference is $30, which is exactly $550 - $520. Her arithmetic was right.
-The JAG's was right. They were answering different questions.
+A WEEK BELONGS TO THE MONTH ITS MONDAY FALLS IN
 
-JIMMY'S RULING, 8 October: ONE CLASS. $55 is correct. A teacher who combines
-a colleague's children into her own session taught one class and is paid for
-one class.
+29 September runs into October. Splitting it would mean apportioning one
+frozen figure by day, which is a second arithmetic nobody asked for and
+nobody could check. Said on the page as well as here, because the other
+choice is defensible and somebody will wonder which was made.
 
-SO THE FIX IS A SENTENCE, NOT A FORMULA
+THE CAMPUS COLUMNS AND THE PAID TOTAL COME FROM DIFFERENT PLACES
 
-Nothing on that screen told her the rule. She could tick five children, read
-"$55", and still go home believing she was owed $85 - so she reconstructed
-her own week at the kitchen table, got a different answer, and wrote to the
-CEO about $30 she was never owed.
+This is the part worth reading.
 
-The register now says, while she is still choosing:
+WHAT WAS PAID is the override if there is one, otherwise the week's total.
+WHERE THE WORK WAS is the campus split of the same week.
 
-    5 students · $55.00 for this class. If you took another teacher's
-    children into it, tick them here too — it is still one class and pays
-    once, for everyone on it.
+They can disagree, because an override is a decision about a WHOLE WEEK and
+nothing records which campus it was meant for. Apportioning it would be
+putting a number in Jimmy's mouth.
 
-It is in the one place where somebody would otherwise get it wrong: open at
-the moment she is adding the second teacher's children, carrying the live
-amount as she ticks.
+So the campus figures always sum to the COMPUTED total, the paid figure is
+what actually went out, and any difference is shown as its own line with the
+reason beside the teacher's name - never quietly reconciled. A month that
+was corrected shows both numbers and why.
 
-WHY THE AMOUNT AND NOT ONLY THE RULE. A rule in a sentence is something to
-remember. A figure that moves as she ticks is something she can check. Renee
-did not misunderstand the rate - she never saw the arithmetic happen.
+Each teacher's row carries the same: the paid figure, and the computed one
+underneath it whenever they differ.
 
-ON ITEM 2 OF THE SIX, WHICH NEEDED NO CODE
+ONE LOAD PER APPROVED WEEK, through loadTeacherWeek - the same function the
+weekly screen uses. Thirteen teachers across five Mondays is sixty-five
+small reads rather than one query nobody can follow, and it means the two
+screens cannot disagree about what a week was worth.
 
-    "are teachers seeing all students when they select guest teaching?"
+Eastern for "this month", because the school runs on Eastern and a month
+that rolls over at 7pm for somebody in California is a month nobody can
+reconcile.
 
-They are, and have since 2 October. students_a_teacher_may_log (migration
-468) is security definer and returns every ACTIVE child at all four schools
-to any teacher, because the campus-scoped policy was wrong for this one
-question. Guest teaching uses the same picker as a teacher's own class.
-
-One gap in it, not fixed here: that function filters status = 'active', and
-migration 470 recorded forty-three children sitting inactive. A teacher who
-taught one of them cannot tick them, so the class prices low and nothing
-says why. That is a roll question, not a pay one.
+THIS COMPLETES THE SIX. 1 fbac7d93, 3 2428941f, 4 7ed7ebbe (with migrations
+519 and 520), 6 626f294e, 2 needed no code, and 5 is here.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

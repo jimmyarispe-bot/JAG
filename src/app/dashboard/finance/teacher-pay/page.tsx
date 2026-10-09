@@ -299,6 +299,12 @@ function Shell({ weekStart, children }: { weekStart: string; children: React.Rea
             Week of {prettyDate(weekStart)}. Largest first, so an unusual week is the first thing
             you read rather than the ninth.
           </p>
+          <Link
+            href="/dashboard/finance/teacher-pay/monthly"
+            className="mt-2 inline-block text-sm text-slate-600 underline decoration-dotted underline-offset-4 hover:text-slate-900"
+          >
+            What each campus paid this month →
+          </Link>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Link
