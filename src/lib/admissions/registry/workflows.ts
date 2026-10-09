@@ -79,8 +79,8 @@ export const ADMISSIONS_WORKFLOW_CATALOG: AdmissionsWorkflowCatalogEntry[] = [
   },
   {
     workflowKey: "wf_interview_scheduled",
-    name: "Interview Scheduled",
-    description: "Confirm interview and schedule reminders",
+    name: "Interest Meeting/Conversation Scheduled",
+    description: "Confirm interest meeting/conversation and schedule reminders",
     triggerEvent: "interview_scheduled",
     category: "interview",
     pipelineStage: "interest_call_scheduled",

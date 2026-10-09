@@ -3,7 +3,10 @@ import { fetchLeadFundingCodesByLeadIds } from "@/lib/funding/sync";
 import { resolveSchoolAdmissionsContacts } from "@/lib/admissions/communications/staff-recipients";
 import { withNetworkOffice } from "@/lib/admissions/communications/network-office";
 import { renderTemplate, type MergeContext } from "@/lib/admissions/communications/merge-fields";
-import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
+import {
+  appointmentTextForFamily,
+  appointmentTimeForFamily,
+} from "@/lib/admissions/appointment-text";
 import { adjustManyScheduledForBusinessHours } from "@/lib/platform/automation/business-hours";
 import { sendTransactionalEmail } from "@/lib/platform/email";
 import {
@@ -220,10 +223,17 @@ function buildMergeContextFromParts(
   lead: LeadMergeRow,
   fundingSources: string[],
   inquiryPrograms: string[],
-  tour: {
+  /*
+   * APPOINTMENTS, PLURAL. This was `tour` and carried only a tour, which is
+   * why a queued interest-meeting reminder had nothing to say. See the note
+   * on interviewDatetime below.
+   */
+  appt: {
     tourDatetime: string | null;
     campusName: string | null;
     campusAddress: string | null;
+    interviewDatetime?: string | null;
+    interviewTime?: string | null;
   },
   missingItems: string[],
   applicationId?: string | null,
@@ -267,12 +277,42 @@ function buildMergeContextFromParts(
     grade: lead.applying_for_grade ?? lead.current_grade ?? null,
     dateOfBirth: lead.date_of_birth,
     inquiryPrograms,
-    campusName: tour.campusName,
-    campusAddress: tour.campusAddress,
+    campusName: appt.campusName,
+    campusAddress: appt.campusAddress,
     fundingSources,
     applicationId: applicationId ?? null,
     leadId: lead.id,
-    tourDatetime: tour.tourDatetime,
+    tourDatetime: appt.tourDatetime,
+    /*
+     * THE HOUR OF THE INTEREST MEETING, RESOLVED FROM THE LEAD.
+     *
+     * Amy D'Amico, 23 September, the whole letter:
+     *
+     *     "Dear Amy D'Amico, reminder: interview for Maddox tomorrow at ."
+     *
+     * Nothing after the "at". interview_datetime and interview_time were set
+     * ONLY as merge_overrides on the immediate send, and a queued reminder is
+     * rendered here, later, from the lead. This builder had no idea the child
+     * had an appointment, so merge-fields resolved both to the empty string
+     * and the sentence simply stopped.
+     *
+     * Commit 30f4efbd fixed the WRITING end - the queue row now carries the
+     * time it was given at the moment of queueing. This is the READING end,
+     * and both are wanted:
+     *
+     *   - a row queued before that commit still has no override
+     *   - a row queued by any future path that forgets one
+     *   - AND THE RESCHEDULE. An override is a photograph of the hour at the
+     *     time of booking. Move the meeting and the override still shows the
+     *     old hour, confidently, which is worse than blank. Reading the lead
+     *     means the reminder tells the family where the appointment actually
+     *     is now.
+     *
+     * `...overrides` stays last, so an override still wins where it exists.
+     * This is the floor, not the answer.
+     */
+    interviewDatetime: appt.interviewDatetime ?? null,
+    interviewTime: appt.interviewTime ?? null,
     missingItems,
     ...overrides,
   };
@@ -284,7 +324,14 @@ async function loadMergeContext(
   applicationId?: string | null,
   overrides?: Partial<MergeContext>
 ): Promise<{ mergeCtx: MergeContext; staff: LeadStaffHint }> {
-  const [{ data: lead }, fundingByLead, inquiryProgramsByLead, { data: tour }, checklistRes] =
+  const [
+    { data: lead },
+    fundingByLead,
+    inquiryProgramsByLead,
+    { data: tour },
+    { data: interview },
+    checklistRes,
+  ] =
     await Promise.all([
     supabase.from("admissions_leads").select(LEAD_MERGE_CONTEXT_COLS).eq("id", leadId).single(),
     fetchLeadFundingCodesByLeadIds(supabase, [leadId]),
@@ -292,6 +339,14 @@ async function loadMergeContext(
     supabase
       .from("admissions_tours")
       .select("scheduled_at, campuses(name, address)")
+      .eq("lead_id", leadId)
+      .order("scheduled_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    /* The latest interest meeting, for the same reason as the tour above. */
+    supabase
+      .from("admissions_interviews")
+      .select("scheduled_at")
       .eq("lead_id", leadId)
       .order("scheduled_at", { ascending: false })
       .limit(1)
@@ -334,7 +389,17 @@ async function loadMergeContext(
       fundingByLead.get(leadId) ?? [],
       inquiryProgramsByLead.get(leadId) ?? [],
       /* The booking's campus first; the school's address when it is silent. */
-      { tourDatetime, campusName, campusAddress: campusAddress ?? schoolAddressFromLead(leadRow) },
+      {
+        tourDatetime,
+        campusName,
+        campusAddress: campusAddress ?? schoolAddressFromLead(leadRow),
+        interviewDatetime: interview?.scheduled_at
+          ? appointmentTextForFamily(interview.scheduled_at as string)
+          : null,
+        interviewTime: interview?.scheduled_at
+          ? appointmentTimeForFamily(interview.scheduled_at as string)
+          : null,
+      },
       missingItems,
       applicationId,
       overrides
@@ -364,6 +429,7 @@ async function loadMergeContextsForQueue(
     fundingByLead,
     inquiryProgramsByLead,
     { data: tours },
+    { data: interviews },
     { data: checklist },
   ] =
     await Promise.all([
@@ -373,6 +439,11 @@ async function loadMergeContextsForQueue(
       supabase
         .from("admissions_tours")
         .select("lead_id, scheduled_at, campuses(name, address)")
+        .in("lead_id", leadIds)
+        .order("scheduled_at", { ascending: false }),
+      supabase
+        .from("admissions_interviews")
+        .select("lead_id, scheduled_at")
         .in("lead_id", leadIds)
         .order("scheduled_at", { ascending: false }),
       applicationIds.length
@@ -438,6 +509,19 @@ async function loadMergeContextsForQueue(
     });
   }
 
+  /* Latest first, so the first row wins - the same shape as the tours map. */
+  const latestInterviewByLead = new Map<string, { datetime: string; time: string }>();
+  for (const iv of interviews ?? []) {
+    const leadId = iv.lead_id as string;
+    if (latestInterviewByLead.has(leadId)) continue;
+    const at = iv.scheduled_at as string | null;
+    if (!at) continue;
+    latestInterviewByLead.set(leadId, {
+      datetime: appointmentTextForFamily(at),
+      time: appointmentTimeForFamily(at),
+    });
+  }
+
   const missingByApp = new Map<string, string[]>();
   for (const row of checklist ?? []) {
     const appId = row.application_id as string;
@@ -467,10 +551,14 @@ async function loadMergeContextsForQueue(
            */
           (() => {
             const t = latestTourByLead.get(item.lead_id);
+            const iv = latestInterviewByLead.get(item.lead_id);
             return {
               tourDatetime: t?.tourDatetime ?? null,
               campusName: t?.campusName ?? null,
               campusAddress: t?.campusAddress ?? schoolAddressFromLead(lead),
+              /* "tomorrow at ." was rendered right here. */
+              interviewDatetime: iv?.datetime ?? null,
+              interviewTime: iv?.time ?? null,
             };
           })(),
           item.application_id ? (missingByApp.get(item.application_id) ?? []) : [],

@@ -654,6 +654,72 @@ export async function runInterestMeetingScan(
     }
 
     /*
+     * STEP 3 MOVES ITSELF.
+     *
+     * Jimmy, 9 October: "can we make certain ones/steps in the jag
+     * automatically get labeled when the parent initiates an appt - such as
+     * 3. interest meeting scheduled ... 6. tour scheduled same thing." Then,
+     * on the rule it changes: "yes this is the rule now."
+     *
+     * THE RULE, AND WHERE ITS EDGE IS. On 29 September he said "a student
+     * does not move from one stage to the next without the school leader
+     * moving him/her." That still holds for every stage that is a JUDGEMENT.
+     * This one is not. The line, which the tour block above already draws:
+     *
+     *     A BOOKING IS A FACT. HOLDING IT IS A JUDGEMENT.
+     *
+     * "Scheduled" means a parent clicked a time, and a calendar cannot be
+     * wrong about that. "Interest Meeting Held", "Tour Completed" and
+     * "Accepted" mean somebody turned up or somebody decided, and a school
+     * leader still moves every one of those by hand.
+     *
+     * Tours have worked this way since 3 October. The interest meeting was
+     * simply never given the same line - this path predates that block - so
+     * a leader has been dragging a card to say something the platform had
+     * already read off a calendar hours earlier.
+     *
+     * ONLY FORWARD, AND ONLY FROM THE TWO STAGES THAT PRECEDE IT. A family
+     * at step 9 who books a chat about their application has not gone back to
+     * step 3, and nothing here may suggest they have. Anyone past step 2 is
+     * left exactly where the school leader put them.
+     *
+     * AFTER THE INSERT, NEVER BEFORE IT. The row above is the evidence; this
+     * is the label. Moving the label first is how 28 families came to sit in
+     * "Tour Scheduled" with no tour behind them, and the comment on that
+     * insert says so.
+     *
+     * NO LETTER. Google has already sent this family the calendar invitation
+     * for the meeting they just booked, and onInterviewScheduled below sends
+     * the confirmation. A third message about one booking is noise.
+     */
+    const meetingLead = leadById.get(leadId) ?? null;
+    const STAGES_THAT_MAY_ADVANCE_TO_SCHEDULED = ["new_inquiry", "information_sent"];
+    if (
+      meetingLead &&
+      STAGES_THAT_MAY_ADVANCE_TO_SCHEDULED.includes(meetingLead.lead_stage ?? "")
+    ) {
+      const { error: meetingStageError } = await supabase
+        .from("admissions_leads")
+        .update({ lead_stage: "interview_scheduled", updated_at: new Date().toISOString() })
+        .eq("id", leadId)
+        /*
+         * THE STAGE IS CHECKED AGAIN IN THE WRITE ITSELF. Between reading the
+         * lead at the top of this run and this update, a school leader may
+         * have moved the card herself. She wins: this is a scan catching up,
+         * not an authority.
+         */
+        .in("lead_stage", STAGES_THAT_MAY_ADVANCE_TO_SCHEDULED);
+
+      if (meetingStageError) {
+        errors.push(
+          `Booking recorded for ${leadId} but the stage did not move: ${meetingStageError.message}`
+        );
+      } else {
+        bookingsRecorded.push(`${leadId} <- stage moved to Interest Meeting Scheduled`);
+      }
+    }
+
+    /*
      * "RECORD YOUR NOTES" - TO THE SCHOOL LEADER, AT THE APPOINTMENT TIME.
      *
      * Queued here rather than by a clock of its own, because this is the

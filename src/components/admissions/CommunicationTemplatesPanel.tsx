@@ -89,7 +89,11 @@ function TemplateSaveForm({ template }: { template: CommunicationTemplate }) {
           "general",
         ].map((cat) => (
           <option key={cat} value={cat}>
-            {cat.replace(/_/g, " ")}
+            {/* The VALUE stays "interview" - it is the stored category and
+                every existing template row is filed under it. Only the word
+                on screen changes. Jimmy, 9 October: "in place of interview it
+                should be interest meeting/conversation instead." */}
+            {cat === "interview" ? "interest meeting/conversation" : cat.replace(/_/g, " ")}
           </option>
         ))}
       </select>

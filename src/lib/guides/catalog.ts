@@ -132,7 +132,7 @@ export const GUIDE_AREAS: readonly GuideArea[] = [
           { title: "Open the pipeline board", href: "/dashboard/admissions?view=pipeline" },
           { title: "Find the family", detail: "Use the campus filter to narrow it down." },
           {
-            title: "Change their stage to Tour, Interview or Shadow Days Scheduled",
+            title: "Change their stage to Tour, Interest Meeting/Conversation or Shadow Days Scheduled",
             detail: "A date box opens — the stage will not move until you fill it in.",
           },
           {

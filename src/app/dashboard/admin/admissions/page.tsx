@@ -6,14 +6,14 @@ export default async function AdmissionsConfigPage() {
   const { organizationId, config } = await loadConfigPage("admissions");
 
   return (
-    <ConfigStudioShell title="Admissions Configuration" subtitle="Forms, workflows, tours, interviews, and automation">
+    <ConfigStudioShell title="Admissions Configuration" subtitle="Forms, workflows, tours, interest meetings/conversations, and automation">
       <ConfigSectionForm
         sectionKey="admissions"
         organizationId={organizationId}
         title="Admissions pipeline"
         config={config}
         fields={[
-          { name: "interview_process", label: "Interview enabled (JSON)", placeholder: '{"enabled":true}' },
+          { name: "interview_process", label: "Interest meeting/conversation enabled (JSON)", placeholder: '{"enabled":true}' },
           { name: "tour_process", label: "Tour enabled (JSON)", placeholder: '{"enabled":true}' },
         ]}
       />

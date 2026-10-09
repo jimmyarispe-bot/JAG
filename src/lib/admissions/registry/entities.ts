@@ -58,12 +58,12 @@ export const ADMISSIONS_ENTITIES: AdmissionsEntityDefinition[] = [
   },
   {
     key: "interview",
-    label: "Interview",
-    pluralLabel: "Interviews",
+    label: "Interest Meeting/Conversation",
+    pluralLabel: "Interest Meetings/Conversations",
     table: "admissions_interviews",
     moduleKey: "admissions",
     status: "live",
-    description: "Scheduled family or student interviews.",
+    description: "Scheduled family or student interest meetings/conversations.",
   },
   {
     key: "tour",

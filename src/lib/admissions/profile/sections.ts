@@ -462,7 +462,7 @@ export const ADMISSIONS_CASE_PROFILE_SECTIONS: ProfileSectionDefinition[] = [
   }),
   section({
     key: "visits",
-    label: "Tours & Interviews",
+    label: "Tours & Interest Meetings/Conversations",
     group: "operations",
     sortOrder: 50,
     moduleKey: "admissions",

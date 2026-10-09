@@ -69,7 +69,7 @@ export default function AdmissionsLandingPage() {
             <li>1. Interest & CRM lead</li>
             <li>2. Discovery / assessment</li>
             <li>3. Online application & documents</li>
-            <li>4. Interview & decision</li>
+            <li>4. Interest meeting/conversation &amp; decision</li>
             <li>5. Offer, contracts & tuition</li>
             <li>6. Parent portal onboarding</li>
           </ol>

@@ -42,7 +42,7 @@ export const ADMISSIONS_INTEGRATIONS: AdmissionsIntegrationDefinition[] = [
     label: "Calendar",
     targetModule: "scheduling",
     status: "partial",
-    description: "Tour and interview calendar events via workflow actions.",
+    description: "Tour and interest meeting/conversation calendar events via workflow actions.",
   },
   {
     key: "tasks",

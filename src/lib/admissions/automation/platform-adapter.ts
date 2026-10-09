@@ -14,7 +14,7 @@ const TRIGGER_LABELS: Partial<Record<WorkflowTriggerEvent, string>> = {
   documents_uploaded: "Documents uploaded",
   funding_verified: "Funding verified",
   funding_rejected: "Funding rejected",
-  interview_scheduled: "Interview scheduled",
+  interview_scheduled: "Interest meeting/conversation scheduled",
   accepted: "Student accepted",
   waitlisted: "Student waitlisted",
   declined: "Student declined",
