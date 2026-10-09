@@ -415,6 +415,7 @@ export function TeacherWeekScreen(props: {
                         scheduled={line.scheduled}
                         absent={line.absent}
                         allStudents={props.students}
+                        otherDays={line.otherDaysOfThisClass}
                         submitted={submitted}
                         pending={pending}
                         onRun={run}
@@ -717,6 +718,8 @@ function Roster(props: {
   weekStart: string;
   entryId: string;
   cents: number;
+  /** How many other days of this same class are on the week. */
+  otherDays: number;
   roster: readonly {
     studentId: string;
     name: string;
@@ -880,20 +883,50 @@ function Roster(props: {
             * empty. A day that already has children is left alone, so a
             * roster already corrected is never quietly overwritten.
             */}
+          {/*
+            * THE BUTTON ONLY APPEARS WHEN THERE IS SOMEWHERE TO COPY TO.
+            *
+            * Cassandra Manghum, 9 October 2026, on a Friday with timesheets
+            * due: "I see this: Put these 5 children on the other days of this
+            * class but it is not allowing me to do so and it's not letting me
+            * edit the other days of the week to add students."
+            *
+            * She had one day. This copies a roster onto class entries that
+            * ALREADY EXIST - it has never created them - so the offer was
+            * impossible and the refusal only came after she pressed it. Then
+            * she tried to add children straight to Tuesday, where there was
+            * no class to add them to, and got nowhere.
+            *
+            * So when there are no other days, it says what to do instead of
+            * offering what it cannot do. Naming the Add-a-class box and the
+            * day buttons matters: the step she was missing is that a class
+            * taught on four days is FOUR entries, added by ticking four days,
+            * and nothing on the screen had ever said so.
+            */}
           {props.roster.length > 0 && !props.submitted ? (
-            <button
-              type="button"
-              disabled={props.pending}
-              onClick={() =>
-                props.onRun(
-                  () => copyRosterToMyOtherClassesAction(props.weekStart, props.entryId),
-                  "Those children are now on the other days of this class."
-                )
-              }
-              className="self-start rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-            >
-              Put these {props.roster.length} children on the other days of this class
-            </button>
+            props.otherDays > 0 ? (
+              <button
+                type="button"
+                disabled={props.pending}
+                onClick={() =>
+                  props.onRun(
+                    () => copyRosterToMyOtherClassesAction(props.weekStart, props.entryId),
+                    "Those children are now on the other days of this class."
+                  )
+                }
+                className="self-start rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Put these {props.roster.length} children on the other{" "}
+                {props.otherDays === 1 ? "day" : `${props.otherDays} days`} of this class
+              </button>
+            ) : (
+              <p className="m-0 text-[11px] leading-snug text-slate-500">
+                This class is only on your week once. To teach it on other days, add it again
+                above in <span className="font-medium">Add a class you taught</span> and tick
+                every day you taught it — each day is its own class. Then come back here and
+                you will be offered to put these {props.roster.length} children on all of them.
+              </p>
+            )
           ) : null}
         </div>
       ) : null}

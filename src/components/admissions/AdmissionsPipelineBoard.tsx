@@ -264,9 +264,11 @@ export function AdmissionsPipelineBoard({ leads, decisionGates }: AdmissionsPipe
                       className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
                       aria-busy={action.isBusy || undefined}
                     >
+                      {/* The step number is shown because people say it out
+                          loud - "she's at 4, waiting on a tour". */}
                       {LEAD_STAGES.map((s) => (
                         <option key={s.value} value={s.value}>
-                          {s.label}
+                          {s.step ? `${s.step}. ${s.label}` : s.label}
                         </option>
                       ))}
                     </select>

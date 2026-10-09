@@ -308,8 +308,23 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
 
       return "not recorded on the inquiry";
     })(),
-    campus_name: ctx.campusName ?? "Main Campus",
-    campus_address: ctx.campusAddress ?? "See portal for directions",
+    campus_name: ctx.campusName ?? ctx.schoolName ?? "The Academy",
+
+    /*
+     * NO ADDRESS MEANS SAY SO, NOT "SEE PORTAL FOR DIRECTIONS".
+     *
+     * That string went to Candace Martin at 11:21am on 9 October 2026, in the
+     * first letter The JAG ever really sent a family, above a tour she is
+     * driving to on Monday 19 October. There is no portal. She had no way of
+     * finding the building and nothing told anybody.
+     *
+     * The chain is now campus address, then the school's address, both filled
+     * before this line is reached. If BOTH are empty the letter must not
+     * invent somewhere to look - it asks her to reply, which reaches a person.
+     */
+    campus_address:
+      ctx.campusAddress ??
+      "we will confirm this with you — please reply to this email",
     parking_info: "Visitor parking is available at the main entrance.",
     funding_program: ctx.fundingProgram ?? "",
     funding_source: fundingSourceLabels(ctx.fundingSources).join(", ") || "—",

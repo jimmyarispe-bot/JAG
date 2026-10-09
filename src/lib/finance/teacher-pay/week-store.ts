@@ -596,6 +596,7 @@ export async function loadTeacherWeek(
          week-view.ts before the roster is looked at. */
       missed: e.missed === true,
       missedNote: typeof e.missed_note === "string" ? e.missed_note : null,
+      courseId: e.course_id ? String(e.course_id) : null,
       courseName,
       campus: (String(e.campus) === "hs" ? "hs" : "virtual") as Campus,
       classDate: String(e.class_date).slice(0, 10),

@@ -62,6 +62,8 @@ type LeadMergeRow = {
 
 type SchoolContact = {
   name?: string;
+  /** Added 9 October 2026. See schoolAddressFromLead(). */
+  address?: string | null;
   admissions_contact_name?: string | null;
   admissions_contact_email?: string | null;
   admissions_booking_url?: string | null;
@@ -93,6 +95,23 @@ function schoolOf(lead: LeadMergeRow): SchoolContact | null {
 
 function schoolNameFromLead(lead: LeadMergeRow): string | null {
   return schoolOf(lead)?.name ?? null;
+}
+
+/**
+ * Where the school is, for when the tour booking does not say.
+ *
+ * WHY THIS IS NEEDED AT ALL. campus_address is read off the CAMPUS attached
+ * to the tour, and on 9 October 2026 every tour ever booked had campus_id
+ * null - Candace Martin, Ian Xavier Matos Ortiz and Jayden Roy, all three.
+ * So campusAddress was always null and merge-fields fell through to the
+ * string "See portal for directions", which went to Candace at 11:21am
+ * above a tour she is driving to on Monday 19 October. There is no portal.
+ *
+ * The school's own address is the right answer when the booking is silent:
+ * one building per school, and it is the building she is coming to.
+ */
+function schoolAddressFromLead(lead: LeadMergeRow): string | null {
+  return clean(schoolOf(lead)?.address);
 }
 
 function clean(value: unknown): string | null {
@@ -302,7 +321,7 @@ async function loadMergeContext(
     tourDatetime = appointmentTextForFamily(tour.scheduled_at);
     const campus = tour.campuses as { name?: string; address?: string } | null;
     campusName = campus?.name ?? null;
-    campusAddress = campus?.address ?? null;
+    campusAddress = clean(campus?.address);
   }
 
   const missingItems = (checklistRes.data ?? []).map((c) =>
@@ -314,7 +333,8 @@ async function loadMergeContext(
       leadRow,
       fundingByLead.get(leadId) ?? [],
       inquiryProgramsByLead.get(leadId) ?? [],
-      { tourDatetime, campusName, campusAddress },
+      /* The booking's campus first; the school's address when it is silent. */
+      { tourDatetime, campusName, campusAddress: campusAddress ?? schoolAddressFromLead(leadRow) },
       missingItems,
       applicationId,
       overrides
@@ -413,8 +433,8 @@ async function loadMergeContextsForQueue(
     const campus = tour.campuses as { name?: string; address?: string } | null;
     latestTourByLead.set(leadId, {
       tourDatetime: appointmentTextForFamily(tour.scheduled_at),
-      campusName: campus?.name ?? null,
-      campusAddress: campus?.address ?? null,
+      campusName: clean(campus?.name),
+      campusAddress: clean(campus?.address),
     });
   }
 
@@ -437,11 +457,22 @@ async function loadMergeContextsForQueue(
           lead,
           fundingByLead.get(item.lead_id) ?? [],
           inquiryProgramsByLead.get(item.lead_id) ?? [],
-          latestTourByLead.get(item.lead_id) ?? {
-            tourDatetime: null,
-            campusName: null,
-            campusAddress: null,
-          },
+          /*
+           * THE SAME FALLBACK AS THE SINGLE PATH, AND IT HAS TO BE HERE TOO.
+           *
+           * This is the batch the QUEUE PROCESSOR runs, so it is what renders
+           * Candace Martin's tour reminder on 18 October. Fixing only the
+           * single-lead path above would have left the reminder saying "See
+           * portal for directions" the morning before she drives to Smyrna.
+           */
+          (() => {
+            const t = latestTourByLead.get(item.lead_id);
+            return {
+              tourDatetime: t?.tourDatetime ?? null,
+              campusName: t?.campusName ?? null,
+              campusAddress: t?.campusAddress ?? schoolAddressFromLead(lead),
+            };
+          })(),
           item.application_id ? (missingByApp.get(item.application_id) ?? []) : [],
           item.application_id
         ),

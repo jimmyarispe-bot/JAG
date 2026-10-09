@@ -71,6 +71,14 @@ export interface ClassRow {
   /** She was down to teach this and did not. Pays nothing. */
   readonly missed?: boolean;
   readonly missedNote?: string | null;
+  /**
+   * Which class this is, so the week can count the other days of it.
+   *
+   * The NAME is not enough: two classes can share a name across campuses and
+   * the copy action matches on course_id, so counting by name would promise
+   * a copy the action then refuses. See otherDaysOfThisClass below.
+   */
+  readonly courseId?: string | null;
   readonly courseName: string;
   readonly campus: Campus;
   readonly classDate: string;
@@ -104,6 +112,22 @@ export interface ClassLine {
   readonly missed: boolean;
   readonly missedNote: string | null;
   readonly courseName: string;
+  /**
+   * How many OTHER days of this same class are on the week.
+   *
+   * Cassandra Manghum, 9 October 2026: "I see this: Put these 5 children on
+   * the other days of this class but it is not allowing me to do so and it's
+   * not letting me edit the other days of the week to add students."
+   *
+   * She had one day. The button copies a roster onto class entries that
+   * already exist; it cannot create them. So it offered her something that
+   * could not happen, and the refusal only arrived after she pressed it -
+   * then she tried to add children straight to Tuesday, where there was no
+   * class to add them to, and lost an evening on a Friday deadline.
+   *
+   * The screen now knows the answer before she presses anything.
+   */
+  readonly otherDaysOfThisClass: number;
   readonly campus: Campus;
   readonly classDate: string;
   readonly startTimeEt: string;
@@ -213,6 +237,13 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
     lines.push({
       entryId: row.entryId,
       courseName: row.courseName,
+      /* Matched on course id, exactly as copyRosterToMyOtherClassesAction
+         matches, so the button and the action cannot disagree. */
+      otherDaysOfThisClass: row.courseId
+        ? input.classes.filter(
+            (other) => other.entryId !== row.entryId && other.courseId === row.courseId
+          ).length
+        : 0,
       campus: row.campus,
       classDate: row.classDate,
       startTimeEt: row.startTimeEt,

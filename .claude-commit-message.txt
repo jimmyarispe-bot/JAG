@@ -1,86 +1,154 @@
-fix(finance): the line and the week agree
+fix: tell the family where to come, number the stages, stop offering
+     a teacher something the button cannot do
 
-Jessica Price, 9 October 2026, looking at her own screen:
+Two things Jimmy asked for on 9 October, both from looking at a real screen.
 
-    1:1 Tutoring Structured Literacy    9:00am    $35.00
-    1 student - $35.00 for this class
-    Monday October 5                              $35.00
+════════════════════════════════════════════════════════════════════════
+1. "See portal for directions"
+════════════════════════════════════════════════════════════════════════
 
-    This week so far        $20.00
-    [ Submit this week - $20.00 ]
+Candace Martin, 11:21am, in the first letter The JAG ever really sent a
+family - eight minutes after the divert came off:
 
-Same class. Same screen. Two answers.
+    Campus: Main Campus
+    Directions: See portal for directions
 
-WHY
+She is driving to a tour on Monday 19 October. There is no portal.
 
-week-view.ts priced each LINE from the catalogue rate, then built the input
-for weekTotals by mapping the same rows into WeekClassEntry - a shape that
-carried neither baseCents nor missed. So weekTotals re-priced every class
-from the structuredLiteracy boolean alone and reached a different number.
+THREE SEPARATE FAILURES STACKED
 
-isStructuredLiteracy uses startsWith. "1:1 Tutoring Structured Literacy"
-does not START with "Structured Literacy", so the boolean was false and the
-total priced it at the $20.00 default while the line read $35.00 from the
-catalogue, where the rate is correctly recorded.
+Not one missing address. Three:
 
-Two courses are affected, and it is not only Jessica:
+  1. No campus row holds an address. All six are null.
+  2. No tour booking records a campus. EVERY tour ever booked - Candace
+     Martin, Ian Xavier Matos Ortiz, Jayden Roy - has campus_id null.
+  3. merge-fields.ts filled the resulting nothing with "Main Campus" and
+     "See portal for directions", strings that read like answers.
 
-    COURSE                             LINE     TOTAL COUNTED
-    1:1 Tutoring Structured Literacy   $35.00   $20.00
-    1:1 Tutoring Craig & Ivy           $30.00   $20.00
+THE PROJECTION NEVER FETCHED THE ADDRESS EITHER
 
-    Craig Mann    week of 29 Sept   APPROVED   5 classes   short $50.00
-    Holly Medlong week of 29 Sept   APPROVED   2 classes   short $30.00
-    Jessica Price week of 5 Oct     open       1 class     short $15.00
+LEAD_MERGE_CONTEXT_COLS selects schools(name, admissions_contact_name,
+admissions_contact_email, admissions_booking_url, admissions_from_email,
+shadow_days_url, tour_booking_url). No address. So even a correct address
+in the database could not have reached the letter. Writing one would have
+looked like a fix and changed nothing.
 
-Craig's and Holly's weeks were approved and paid at the short figure. That
-is $80.00 owed, and it is Jimmy's call how to settle it - not corrected
-here. The September network total of $6,985.00 reported earlier the same
-evening carries the same $80.00 shortfall, because the frozen figures were
-frozen from the broken total.
+THE CHAIN NOW
 
-AND A SECOND ONE, FOUND WHILE READING THE FIRST
+    the tour's campus address
+      -> the school's address
+        -> "we will confirm this with you — please reply to this email"
 
-The same map dropped `missed`. A class marked "I missed this" is struck
-through and shows $0.00 on the line - and was still being added to the week
-total. Shipped in 2428941f yesterday; teacher_hourly_claims-style luck meant
-nobody had pressed the button yet, so it had never been seen. It would have
-been, this Friday.
+The last one is honest and gives the parent an action. A portal that does
+not exist gives her nothing and tells nobody.
 
-THE FIX, AND WHY IT IS SHAPED THIS WAY
+BOTH PATHS, AND THE SECOND IS THE ONE THAT MATTERED
 
-WeekClassEntry now carries baseCents, perAdditionalCents and missed, and
-weekTotals applies the same two rules the line already applied:
+engine.ts resolves this twice: once per lead, once in the batch the QUEUE
+PROCESSOR runs. Fixing only the single path would have left Candace's
+reminder on 18 October - the morning before she drives to Smyrna - still
+pointing at the portal. Same shape as the line-and-the-week fix earlier
+today: one fact, two code paths, only one of them corrected.
 
-    if (entry.missed === true) continue;        // zero before the rate
-    entry.baseCents !== undefined               // catalogue wins
-      ? classPayAt({ ... })
-      : classPay(entry);
+clean() is applied to campus name and address so an empty string in the
+database behaves like null rather than rendering a blank line.
 
-Counting moved ABOVE the missed check on purpose. Who was scheduled and who
-was away is a fact about the morning and stays true whether the class paid
-or not - a class she missed with six children booked is still six children
-who turned up to nothing.
+════════════════════════════════════════════════════════════════════════
+2. The stage dropdown was in file order, not flow order
+════════════════════════════════════════════════════════════════════════
 
-THE REAL FIX IS THE TEST. Two code paths pricing the same class will drift
-again; the next divergence will be a field nobody thought to add to the map.
-So the new tests assert an invariant rather than three examples:
+    "the drop down on this page to match up to the stages with numbers
+     visable in the dropdown match up to the admissions flow"
 
-    sum of line amounts === classCents
+LEAD_STAGES was in the order lines were added to the file. The comment
+sitting in it said so:
 
-across a catalogue rate the name would have priced differently, a flat rate
-with no per-student amount, a missed class, a missed class's children still
-being counted, and a mixed week that also balances by campus.
+    "Deliberately NOT added to PIPELINE_STAGES below — that list drives
+     the board columns, and adding four columns is a visible change
+     nobody asked for."
 
-47 tests pass, up from 42. Typecheck clean.
+So the four Academy Way stages were appended to the bottom, and the
+control a school leader uses to move a child through admissions offered
+Interest Meeting Held and Tour Requested BELOW Assessment Scheduled.
 
-NOT FIXED HERE. isStructuredLiteracy is now vestigial wherever the catalogue
-rate is present, and it is still consulted when it is absent. A rate decided
-by whether a course NAME begins with two particular words is the same fault
-one layer down - rename a course and somebody's pay changes. The catalogue
-is the answer and classPay's boolean should go. That is a change with a
-screen behind it, and this was found with a teacher already looking at the
-wrong number.
+Reordered to the flow, numbered 1 to 18. Shadow days after the
+application - Jimmy ruled on it directly, and it matches
+ADMISSIONS_PIPELINE_STAGES, which has application at 70 and 80 and shadow
+days at 90 and 100.
+
+THE NUMBER IS A FIELD, NOT THE ARRAY INDEX. An index renumbers everything
+below any stage that is ever filtered, hidden or inserted. These numbers
+are what people will say to each other - "she's at 4, waiting on a tour" -
+so they are written down.
+
+ASSESSMENT SCHEDULED IS LAST AND UNNUMBERED. appointment-stages.ts already
+says "nothing in the codebase writes an assessment appointment anywhere",
+raised there as a question and never answered. No lead has ever been in
+it. Kept in the array so the type and any stored value survive, with no
+step, so it cannot pretend to be part of the flow.
+
+════════════════════════════════════════════════════════════════════════
+3. A button that offered what it could not do
+════════════════════════════════════════════════════════════════════════
+
+Cassandra Manghum, Specialized Teacher at The Academy Virtual, 9 October,
+on the Friday her timesheet was due:
+
+    "I see this: Put these 5 children on the other days of this class
+     but it is not allowing me to do so and it's not letting me edit the
+     other days of the week to add students."
+
+Her Monday had six children. Her Tuesday and Wednesday read "Nothing
+logged."
+
+copyRosterToMyOtherClassesAction copies a roster onto class entries that
+ALREADY EXIST. It has never created them. With one day on the week there
+was nothing to copy onto, so the action returned "There are no other days
+of this class on your week to copy to" - correct, and far too late. She
+had already pressed a button that told her those days existed.
+
+Then she did the sensible next thing and tried to add children straight
+to Tuesday, where there was no class to add them to, and got nowhere.
+
+THE SCREEN NOW KNOWS BEFORE SHE PRESSES. The view carries
+otherDaysOfThisClass per line, counted on COURSE ID - the same field the
+action matches on, so the button and the action cannot disagree about
+what exists. Matching on name would have promised a copy the action then
+refused, which is the fault being fixed, one layer down.
+
+With other days: "Put these 6 children on the other 4 days of this
+class", which also says how many.
+
+With none: no button, and the sentence she needed instead - add the class
+again above and tick every day you taught it, because a class taught on
+four days is four entries. Nothing on that screen had ever said so.
+
+════════════════════════════════════════════════════════════════════════
+WHAT THIS DOES NOT FIX
+════════════════════════════════════════════════════════════════════════
+
+TWO LISTS STILL DESCRIBE ONE FLOW. LEAD_STAGES here and
+ADMISSIONS_PIPELINE_STAGES in the registry. They now agree on order; they
+are still two places holding one fact, and they have different members -
+the registry has documents_pending and committee_review, this has
+records_requested and admissions_review. That is the same fault that
+produced $35 on the line and $20 in the total this morning. The dropdown
+should read the registry. Larger change, not this one.
+
+TOUR BOOKINGS STILL RECORD NO CAMPUS. Migration 523 pins the two upcoming
+GA tours by hand and the fallback covers the rest, but the booking flow
+itself still writes campus_id null. Until that is fixed every tour relies
+on the safety net.
+
+HS AND VIRTUAL SCHEDULE NO TOURS and have no building. The tour letter
+should not be reachable for them at all. No tour has ever been booked at
+either, so it is a guard to add rather than a fire to put out.
+
+"CALENDAR INVITE ATTACHED." Unverified. If no .ics is attached, that line
+tells a parent something untrue.
+
+Migration 523 carries the addresses, the two tour bookings and the
+template. Typecheck clean, 47 pay tests pass.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
