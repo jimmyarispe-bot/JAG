@@ -123,9 +123,9 @@ describe("the two personal rates", () => {
     expect(p.ok && p.cents).toBe(9_000);
   });
 
-  it("pays Katie Vetere $25 an hour for admin", () => {
+  it("pays Katie Vetere $20 an hour for Approved Admin Work", () => {
     const p = hourlyPay(KATIE_VETERE_ADMIN, 20);
-    expect(p.ok && p.cents).toBe(50_000);
+    expect(p.ok && p.cents).toBe(40_000);
   });
 
   it("accepts a zero-hour week from Katie rather than refusing it", () => {
@@ -166,9 +166,9 @@ describe("a whole week", () => {
   /** Extras and hourly work are taught at neither campus. Reporting them
    *  separately is what makes the two campus figures add up to the week. */
   it("keeps extras and hourly work out of the campus split, and still balances", () => {
-    expect(week.unattributedCents).toBe(1_500 + 5_000);
+    expect(week.unattributedCents).toBe(1_500 + 4_000);
     expect(week.virtualCents + week.hsCents + week.unattributedCents).toBe(week.totalCents);
-    expect(week.totalCents).toBe(17_000);
+    expect(week.totalCents).toBe(16_000);
   });
 
   it("counts what Jimmy's view needs, per item 22", () => {

@@ -99,7 +99,7 @@ describe("a teacher's week", () => {
     });
     expect(week.virtualCents).toBe(3_000);
     expect(week.hsCents).toBe(4_500);
-    expect(week.unattributedCents).toBe(1_500 + 5_000);
+    expect(week.unattributedCents).toBe(1_500 + 4_000);
     expect(week.virtualCents + week.hsCents + week.unattributedCents).toBe(week.totalCents);
   });
 

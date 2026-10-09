@@ -265,10 +265,30 @@ export const CRAIG_MANN_IVY_ASH_TUTORING: PersonalRate = {
   weeklyHourCap: null,
 };
 
+/**
+ * Katie Vetere's admin hours.
+ *
+ * Jimmy, 8 October 2026: "only on katie veters timesheet - include a box with
+ * similar dropdown that is for \"Approved Admin Work\" @ $20 per hour".
+ *
+ * RENAMED AND REPRICED, NOT ADDED BESIDE. This rate already existed as "Admin
+ * work" at $25.00 an hour. Jimmy ruled it a replacement rather than a second
+ * claim, so there is one box on her sheet and not two.
+ *
+ * NO PAST PAY MOVES. teacher_hourly_claims was empty across the whole platform
+ * on the day this changed - not one claim, by anybody, ever - because the box
+ * had never once appeared on a screen. See RATE_KEYS_BY_EMPLOYEE in
+ * week-store.ts for why, and for the fix.
+ *
+ * THE 20-HOUR CAP IS UNCHANGED, and deliberately so. Jimmy said a different
+ * number and did not say which. Twenty is the figure already approved, so it
+ * stands until he names another - changing it to a number he did not give
+ * would be inventing a pay rule.
+ */
 export const KATIE_VETERE_ADMIN: PersonalRate = {
-  cents: 2_500,
+  cents: 2_000,
   per: "hour",
-  label: "Admin work",
+  label: "Approved Admin Work",
   weeklyHourCap: 20,
 };
 

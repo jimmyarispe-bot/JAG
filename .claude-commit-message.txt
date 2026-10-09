@@ -1,66 +1,90 @@
-feat(finance): what each campus paid its teachers, by month
+feat(finance): Katie's Approved Admin Work, and the box that never appeared
 
-PAYSHEET CHANGE 5 of 6, from Jimmy on 8 October 2026:
+Jimmy, 8 October 2026:
 
-    "provide totals each month per school for how much was paid out to
-     teachers"
+    "only on katie veters timesheet - include a box with similar dropdown
+     that is for "Approved Admin Work" @ $20 per hour"
 
-/dashboard/finance/teacher-pay/monthly, linked from the weekly screen.
+Two changes. The rate is the one that was asked for. The second is the
+reason the first would not have worked.
 
-WHO SEES IT. mayReadPayroll, the same gate as the weekly screen, which asks
-may_read_all_teacher_pay() rather than re-deciding in TypeScript. Jimmy and
-Danni. A refusal says so in words: an empty page would read as "nothing was
-paid", which is the one wrong answer this page must never give.
+THE RATE
 
-"PAID OUT" IS DELIBERATELY NARROW
+KATIE_VETERE_ADMIN already existed: "Admin work", $25.00 an hour, capped at
+20 hours a week. Asked whether $20.00 was a replacement or a second claim,
+Jimmy ruled replacement - one box on her sheet, not two.
 
-ONLY APPROVED WEEKS. A submitted week is a claim; an approved one is a
-decision. A total that counted submissions would move every time a teacher
-pressed Submit, and would overstate every month in the days between Friday
-and whenever Jimmy gets to it - a figure nobody could reconcile against a
-bank statement.
+    label   "Admin work"   ->  "Approved Admin Work"
+    cents   2_500          ->  2_000
 
-Weeks still waiting are listed SEPARATELY AND BY NAME. Folding them in would
-be wrong and dropping them silently would be worse: a month nobody has got
-to would read as a month that is finished.
+NO PAST PAY MOVES, and that is not luck. See below.
 
-A WEEK BELONGS TO THE MONTH ITS MONDAY FALLS IN
+THE 20-HOUR CAP IS UNCHANGED. Jimmy said a different number and did not say
+which. Twenty is the figure already approved, so it stands until he names
+another - a cap he did not give is a pay rule nobody decided.
 
-29 September runs into October. Splitting it would mean apportioning one
-frozen figure by day, which is a second arithmetic nobody asked for and
-nobody could check. Said on the page as well as here, because the other
-choice is defensible and somebody will wonder which was made.
+THE BOX HAD NEVER APPEARED, FOR ANYBODY
 
-THE CAMPUS COLUMNS AND THE PAID TOTAL COME FROM DIFFERENT PLACES
+hourlyRateKeysFor built its list from rate keys a teacher had ALREADY
+claimed against. A box that only appears once you have used it, and can only
+be used through the box, is a door locked from the inside.
 
-This is the part worth reading.
+Checked against production on 8 October: teacher_hourly_claims held ZERO
+rows. Not one claim, by anybody, ever. Katie's admin rate and Craig Mann's
+"1:1 tutoring with Ivy Ash" at $30.00 had both been live in the code for
+days, and neither had ever rendered on a screen. The teacher simply had
+nowhere to put the hours, and nothing anywhere said so.
 
-WHAT WAS PAID is the override if there is one, otherwise the week's total.
-WHERE THE WORK WAS is the campus split of the same week.
+That is why no past pay moves when the rate changes - there was never any.
 
-They can disagree, because an override is a decision about a WHOLE WEEK and
-nothing records which campus it was meant for. Apportioning it would be
-putting a number in Jimmy's mouth.
+Same shape as two faults already found this fortnight: step 3a, armed and
+never fired; and Danni Treu's calendar, connected to an address Google did
+not answer to. The system knows and no person is told.
 
-So the campus figures always sum to the COMPUTED total, the paid figure is
-what actually went out, and any difference is shown as its own line with the
-reason beside the teacher's name - never quietly reconciled. A month that
-was corrected shows both numbers and why.
+RATE_KEYS_BY_EMPLOYEE, beside RATE_BY_KEY, says who holds what:
 
-Each teacher's row carries the same: the paid figure, and the computed one
-underneath it whenever they differ.
+    5b646b18-...  Katie Vetere  katie.vetere@theacademyvirtual.org
+    dcf87a23-...  Craig Mann    craig.mann@theacademyhs.org
 
-ONE LOAD PER APPROVED WEEK, through loadTeacherWeek - the same function the
-weekly screen uses. Thirteen teachers across five Mondays is sixty-five
-small reads rather than one query nobody can follow, and it means the two
-screens cannot disagree about what a week was worth.
+Both ids verified against production, name and address, before being
+written down.
 
-Eastern for "this month", because the school runs on Eastern and a month
-that rolls over at 7pm for somebody in California is a month nobody can
-reconcile.
+BY EMPLOYEE ID, NOT NAME OR EMAIL. A name is spelled two ways in two tables
+in this build already - Cassandra Manghum, found the same day - and an
+address changes when somebody moves campus. An id does neither.
 
-THIS COMPLETES THE SIX. 1 fbac7d93, 3 2428941f, 4 7ed7ebbe (with migrations
-519 and 520), 6 626f294e, 2 needed no code, and 5 is here.
+IN CODE RATHER THAN A TABLE, because the rates themselves are already named
+per person in this file. Splitting the person from their rate across a table
+and a constant makes two places to look and two places to disagree, which is
+the fault this commit is fixing. When the list outgrows a handful of people
+it earns a table; not before.
+
+PAST CLAIMS ARE STILL READ. Somebody taken off the list keeps the box for
+weeks they already claimed in, so a rate that ends does not erase hours
+already entered under it.
+
+CRAIG IS IN THE MAP, AND HIS RATE IS UNTOUCHED. Jimmy said Katie only, so
+$30.00 and the label stand exactly as they were. He is listed because the
+visibility fault was never about her - it was about the function - and
+fixing it for one person while knowingly leaving the other unable to claim
+would be choosing which teacher gets paid.
+
+TESTS
+
+Four assertions moved with the rate, none weakened:
+
+    $25 x 20 = 50_000   ->   $20 x 20 = 40_000
+    unattributed 1_500 + 5_000  ->  1_500 + 4_000   (two files)
+    week total 17_000   ->   16_000
+
+The 21-hours-refused test is unchanged, because the cap is unchanged.
+
+ON "DROPDOWN". The live screen's hourly row is a small number box stepping
+in quarter hours, which is what every other figure on that page uses. It is
+built to match. The dropdown Jimmy may have in mind is in weekly-work.ts,
+which belongs to the superseded 41-slot model and caps admin at ten hours -
+a second admin rule in a second place, left alone here and worth retiring
+with the rest of that model.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

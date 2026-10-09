@@ -52,6 +52,39 @@ export const RATE_BY_KEY: Readonly<Record<string, PersonalRate>> = {
   katie_vetere_admin: KATIE_VETERE_ADMIN,
 };
 
+/**
+ * Who holds a personal hourly rate.
+ *
+ * THE BUG THIS EXISTS TO FIX. hourlyRateKeysFor used to derive the list from
+ * rate keys a teacher had ALREADY claimed against. A box that only appears
+ * once you have used it, and can only be used through the box, is a door
+ * locked from the inside: checked on 8 October 2026, teacher_hourly_claims
+ * held ZERO rows across the entire platform. Katie Vetere's admin rate and
+ * Craig Mann's Ivy Ash rate had both been live in the code for days and
+ * neither had ever rendered on a screen, for anybody.
+ *
+ * Nobody was told. The rate was written, the screen read the wrong source,
+ * and the teacher simply had nowhere to put the hours - the same shape as
+ * step 3a, armed and never fired, and as Danni Treu's calendar, connected to
+ * an address Google did not answer to.
+ *
+ * BY EMPLOYEE ID, NOT BY NAME OR EMAIL. A name is spelled two ways in two
+ * tables in this build already - Cassandra Manghum on 8 October - and an
+ * address changes when somebody moves campus. An id does neither.
+ *
+ * IN CODE, BESIDE THE RATES, ON PURPOSE. The rates themselves are already
+ * named per person here; splitting the person from their rate across a table
+ * and a constant would make two places to look and two places to disagree.
+ * When this list outgrows a handful of people it earns a table, and that is
+ * the moment to build one - not before.
+ */
+export const RATE_KEYS_BY_EMPLOYEE: Readonly<Record<string, readonly string[]>> = {
+  /* Katie Vetere - katie.vetere@theacademyvirtual.org */
+  "5b646b18-83f9-4855-b27f-d9b3111c80b4": ["katie_vetere_admin"],
+  /* Craig Mann - craig.mann@theacademyhs.org */
+  "dcf87a23-20d2-447b-964f-51902bdd4a18": ["craig_mann_ivy_ash_tutoring"],
+};
+
 /* -------------------------------------------------------------------------- */
 /* Dates                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -649,26 +682,40 @@ export async function hourlyRateKeysFor(
   supabase: AuthClient,
   employeeId: string
 ): Promise<string[]> {
+  /*
+   * ASSIGNED FIRST, AND WITHOUT A QUERY. This is the half that was missing:
+   * a rate a person holds shows up on their first week, before they have
+   * claimed anything. See RATE_KEYS_BY_EMPLOYEE above for how long it was
+   * broken and what it cost.
+   */
+  const assigned = (RATE_KEYS_BY_EMPLOYEE[employeeId] ?? []).filter(
+    (k) => k in RATE_BY_KEY
+  );
+
   const { data: weeks } = await supabase
     .from("teacher_weeks")
     .select("id")
     .eq("employee_id", employeeId);
 
   const weekIds = ((weeks ?? []) as { id: string }[]).map((w) => String(w.id));
-  if (weekIds.length === 0) return [];
+  if (weekIds.length === 0) return [...new Set(assigned)];
 
   const { data } = await supabase
     .from("teacher_hourly_claims")
     .select("rate_key")
     .in("teacher_week_id", weekIds);
 
-  return [
-    ...new Set(
-      ((data ?? []) as { rate_key: string }[])
-        .map((r) => String(r.rate_key))
-        .filter((k) => k in RATE_BY_KEY)
-    ),
-  ];
+  /*
+   * PAST CLAIMS ARE STILL READ, and they are not redundant. Somebody taken
+   * off this list keeps the box for the weeks they already claimed in, so a
+   * rate that ends does not erase the hours already entered under it and
+   * leave a week that cannot be reconciled.
+   */
+  const claimed = ((data ?? []) as { rate_key: string }[])
+    .map((r) => String(r.rate_key))
+    .filter((k) => k in RATE_BY_KEY);
+
+  return [...new Set([...assigned, ...claimed])];
 }
 
 /* -------------------------------------------------------------------------- */
