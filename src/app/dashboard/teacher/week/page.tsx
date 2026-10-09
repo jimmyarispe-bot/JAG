@@ -124,6 +124,9 @@ export default async function TeacherWeekPage({
         label: RATE_BY_KEY[key].label,
         cents: RATE_BY_KEY[key].cents,
         weeklyHourCap: RATE_BY_KEY[key].weeklyHourCap,
+        /* What she already saved. A box that always opens at zero is a box
+           that deletes her hours the next time she tabs through it. */
+        hours: loaded.hoursByRateKey[key] ?? 0,
       }))}
       pickerProblems={pickerProblems}
       teacherName={ctx.fullName}

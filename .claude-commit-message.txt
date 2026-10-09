@@ -1,90 +1,97 @@
-feat(finance): Katie's Approved Admin Work, and the box that never appeared
+fix(finance): whose rate it is, and a box that remembers her hours
 
-Jimmy, 8 October 2026:
+Two faults in 002b12a5, found by review within the hour it shipped. Both
+were dormant for as long as no hourly box rendered anywhere. That commit
+made them render.
 
-    "only on katie veters timesheet - include a box with similar dropdown
-     that is for "Approved Admin Work" @ $20 per hour"
+1. ANY TEACHER COULD CLAIM ANY RATE
 
-Two changes. The rate is the one that was asked for. The second is the
-reason the first would not have worked.
+setHourlyClaimAction asked whether the rate EXISTED:
 
-THE RATE
+    const rate = RATE_BY_KEY[rateKey];
+    if (!rate) return { error: "That is not an hourly rate this platform knows." };
 
-KATIE_VETERE_ADMIN already existed: "Admin work", $25.00 an hour, capped at
-20 hours a week. Asked whether $20.00 was a replacement or a second claim,
-Jimmy ruled replacement - one box on her sheet, not two.
+and nothing else. Not whose rate it is.
 
-    label   "Admin work"   ->  "Approved Admin Work"
-    cents   2_500          ->  2_000
+CRAIG_MANN_IVY_ASH_TUTORING is $30.00 an hour with weeklyHourCap null. From
+002b12a5 until this commit, any of thirteen teachers could have posted
+craig_mann_ivy_ash_tutoring with four hundred hours and put a well-formed
+$12,000 line on Jimmy's payroll screen, under "1:1 tutoring with Ivy Ash".
 
-NO PAST PAY MOVES, and that is not luck. See below.
+The picker would never have offered it. A server action is not a picker: a
+rate key is a string in a form submission.
 
-THE 20-HOUR CAP IS UNCHANGED. Jimmy said a different number and did not say
-which. Twenty is the figure already approved, so it stands until he names
-another - a cap he did not give is a pay rule nobody decided.
+WHY ROW-LEVEL SECURITY DID NOT CATCH IT. Migration 462's policies let a
+teacher write any row on her own open week. RLS establishes WHICH WEEK is
+hers and has never had an opinion about which RATES she holds. myOpenWeek
+answers the first question. Nothing answered the second, in code or in the
+database, and the check therefore has to live here.
 
-THE BOX HAD NEVER APPEARED, FOR ANYBODY
+A RATE SHE NO LONGER HOLDS BUT HAS ALREADY CLAIMED STAYS EDITABLE. Taking
+somebody off RATE_KEYS_BY_EMPLOYEE must not freeze hours already entered
+under it - that leaves a week carrying a figure its owner cannot correct and
+nobody can reconcile. One extra read, only on the key that is not hers.
 
-hourlyRateKeysFor built its list from rate keys a teacher had ALREADY
-claimed against. A box that only appears once you have used it, and can only
-be used through the box, is a door locked from the inside.
+HOW LONG IT WAS EXPLOITABLE. About ninety minutes, and teacher_hourly_claims
+is empty, so nothing was taken. It was never exploitable before, for the
+reason the earlier commit set out at length: the box had never appeared, so
+no teacher had any reason to know a rate key existed.
 
-Checked against production on 8 October: teacher_hourly_claims held ZERO
-rows. Not one claim, by anybody, ever. Katie's admin rate and Craig Mann's
-"1:1 tutoring with Ivy Ash" at $30.00 had both been live in the code for
-days, and neither had ever rendered on a screen. The teacher simply had
-nowhere to put the hours, and nothing anywhere said so.
+2. THE BOX OPENED AT ZERO AND DELETED HER HOURS
 
-That is why no past pay moves when the rate changes - there was never any.
+HourlyRow held useState("0") and was never given the saved figure. The row
+had never rendered, so this had never been met.
 
-Same shape as two faults already found this fortnight: step 3a, armed and
-never fired; and Danni Treu's calendar, connected to an address Google did
-not answer to. The system knows and no person is told.
+    Monday    Katie enters 8 hours. Saved. Week reads $160.00.
+    Wednesday She reopens the week. Total still says $160.00.
+              The box says 0.
+              She clicks into it to check, and clicks away.
+              onBlur posts 0. setHourlyClaimAction DELETES the row.
+              $160.00 gone, behind a success message.
 
-RATE_KEYS_BY_EMPLOYEE, beside RATE_BY_KEY, says who holds what:
+Or she reads the 0, assumes the field is per-visit, and types Wednesday's 4
+over Monday's 8 - the upsert on (teacher_week_id, rate_key) replaces rather
+than adds, and she is $80 short with nothing to see.
 
-    5b646b18-...  Katie Vetere  katie.vetere@theacademyvirtual.org
-    dcf87a23-...  Craig Mann    craig.mann@theacademyhs.org
+THE SAVED HOURS NOW COME DOWN WITH THE WEEK. LoadedWeek carries
+hoursByRateKey, built from the hourly rows loadTeacherWeek ALREADY reads -
+no new query. page.tsx puts the figure on each rate and the field opens on
+it.
 
-Both ids verified against production, name and address, before being
-written down.
+WHY NOT READ IT OFF THE VIEW. teacherWeekView flattens an hourly claim into
+a display row - a label and the words "8 hours" - which is right for reading
+a week and useless for refilling a field. Parsing a number back out of a
+sentence is how the next one of these gets written.
 
-BY EMPLOYEE ID, NOT NAME OR EMAIL. A name is spelled two ways in two tables
-in this build already - Cassandra Manghum, found the same day - and an
-address changes when somebody moves campus. An id does neither.
+KEYED ON THE SAVED VALUE, so a figure that changes underneath - her own save
+and the refresh after it, or a second tab - resets the field instead of
+being held off by stale state.
 
-IN CODE RATHER THAN A TABLE, because the rates themselves are already named
-per person in this file. Splitting the person from their rate across a table
-and a constant makes two places to look and two places to disagree, which is
-the fault this commit is fixing. When the list outgrows a handful of people
-it earns a table; not before.
+ExtraRow has the identical shape and is NOT fixed here. Those boxes have
+rendered for weeks, so it is a standing fault rather than one this pair of
+commits created, and it deserves its own change and its own test rather than
+being swept in at midnight.
 
-PAST CLAIMS ARE STILL READ. Somebody taken off the list keeps the box for
-weeks they already claimed in, so a rate that ends does not erase hours
-already entered under it.
+WHAT THIS DOES NOT FIX, and what the same review found:
 
-CRAIG IS IN THE MAP, AND HIS RATE IS UNTOUCHED. Jimmy said Katie only, so
-$30.00 and the label stand exactly as they were. He is listed because the
-visibility fault was never about her - it was about the function - and
-fixing it for one person while knowingly leaving the other unable to claim
-would be choosing which teacher gets paid.
+Katie Vetere's admin hour is defined FOUR times.
 
-TESTS
+    work_pay_rates  admin_hourly   $25.00  from 1 Sept   Katie Vetere
+    work_pay_rates  admin_hour     $25.00  from 21 Sept  Katie Vetere
+    weekly-work.ts  admin_hourly   $25     max 10 hours a week
+    rates.ts        katie_vetere_admin  $20.00  cap 20 hours
 
-Four assertions moved with the rate, none weakened:
+Two rows in one table under two codes, a third in the superseded 41-slot
+model, and 002b12a5 added the fourth. work_pay_rates already solves this -
+nullable employee_id, versioned by effective_from, exactly as migration 377
+set out and 379 extended to class rates. PersonalRate has no effective_from,
+so editing the constant silently reprices every period that reads it.
 
-    $25 x 20 = 50_000   ->   $20 x 20 = 40_000
-    unattributed 1_500 + 5_000  ->  1_500 + 4_000   (two files)
-    week total 17_000   ->   16_000
+That is the real fix and it is not a midnight change. These two are, because
+one of them is a hole and the other eats a teacher's pay on a Wednesday.
 
-The 21-hours-refused test is unchanged, because the cap is unchanged.
-
-ON "DROPDOWN". The live screen's hourly row is a small number box stepping
-in quarter hours, which is what every other figure on that page uses. It is
-built to match. The dropdown Jimmy may have in mind is in weekly-work.ts,
-which belongs to the superseded 41-slot model and caps admin at ten hours -
-a second admin rule in a second place, left alone here and worth retiring
-with the rest of that model.
+Typecheck clean. No test references LoadedWeek, loadTeacherWeek,
+hourlyRates, setHourlyClaimAction or HourlyRow, so nothing moved with it.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

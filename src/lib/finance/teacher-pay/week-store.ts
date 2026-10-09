@@ -388,6 +388,21 @@ export interface LoadedWeek {
   readonly view: TeacherWeekView;
   /** Set when the week could not be read. The screen prints this, never a zero. */
   readonly unavailable: string | null;
+  /**
+   * Hours already saved, by rate key, so the box can show them back.
+   *
+   * WHY THE VIEW IS NOT ENOUGH. teacherWeekView flattens an hourly claim into
+   * a display row - a label and the words "8 hours" - which is right for
+   * reading and useless for refilling a field. The input needs the number and
+   * the key it belongs to.
+   *
+   * WHAT IT COSTS TO LEAVE OUT. HourlyRow opened at "0" regardless of what was
+   * saved. Katie enters 8 hours on Monday; on Wednesday the week still totals
+   * $160.00 but the box reads 0, and clicking into it and away again posts
+   * zero - which deletes the row and the $160 with a success message. Nothing
+   * on the screen says anything changed.
+   */
+  readonly hoursByRateKey: Readonly<Record<string, number>>;
 }
 
 /**
@@ -453,6 +468,7 @@ export async function loadTeacherWeek(
     weekId: null,
     weekStart,
     unavailable,
+    hoursByRateKey: {},
     view: teacherWeekView({ weekStart, status, classes: [], extras: [], hourly: [] }),
   });
 
@@ -641,10 +657,17 @@ export async function loadTeacherWeek(
     })
     .filter((v): v is { rate: PersonalRate; hours: number } => v !== null);
 
+  const hoursByRateKey: Record<string, number> = {};
+  for (const r of (hourlyRes.data ?? []) as unknown as Record<string, unknown>[]) {
+    const key = String(r.rate_key);
+    if (key in RATE_BY_KEY) hoursByRateKey[key] = Number(r.hours ?? 0);
+  }
+
   return {
     weekId,
     weekStart,
     unavailable: null,
+    hoursByRateKey,
     view: teacherWeekView({
       weekStart,
       status,

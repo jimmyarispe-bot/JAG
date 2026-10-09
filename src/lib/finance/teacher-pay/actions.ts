@@ -30,6 +30,7 @@ import {
   weekIsReachable,
   mayLogCourse,
   RATE_BY_KEY,
+  RATE_KEYS_BY_EMPLOYEE,
   START_HOURS,
 } from "@/lib/finance/teacher-pay/week-store";
 import { EXTRA_RULES, type ExtraKind } from "@/lib/finance/teacher-pay/rates";
@@ -560,6 +561,44 @@ export async function setHourlyClaimAction(
 
   const rate = RATE_BY_KEY[rateKey];
   if (!rate) return { error: "That is not an hourly rate this platform knows." };
+
+  /*
+   * WHOSE RATE IS IT. Added 9 October 2026, within the hour of 002b12a5.
+   *
+   * Until that commit this function asked only whether the rate EXISTED. That
+   * was survivable for exactly as long as no hourly box rendered anywhere -
+   * teacher_hourly_claims was empty platform-wide, so no teacher had a reason
+   * to know a rate key, and none was ever posted.
+   *
+   * 002b12a5 turned the boxes on. Craig Mann's rate is $30.00 an hour with
+   * weeklyHourCap null, so from that deploy until this one, any of thirteen
+   * teachers could have posted craig_mann_ivy_ash_tutoring with four hundred
+   * hours and put a well-formed $12,000 line on Jimmy's payroll screen. The
+   * picker never offered it; a server action is not a picker.
+   *
+   * CHECKED HERE AND NOT ONLY IN THE PICKER, because migration 462's policies
+   * let a teacher write any row on her own open week. Row-level security
+   * establishes WHICH WEEK is hers. It has never had an opinion about which
+   * rates she holds, and this is the only place that can.
+   *
+   * A RATE SHE NO LONGER HOLDS BUT HAS ALREADY CLAIMED STAYS EDITABLE. Taking
+   * somebody off RATE_KEYS_BY_EMPLOYEE must not freeze hours already entered
+   * under it, or a week is left with a figure its owner cannot correct and
+   * nobody can reconcile.
+   */
+  if (!(RATE_KEYS_BY_EMPLOYEE[week.employeeId] ?? []).includes(rateKey)) {
+    const { data: alreadyClaimed } = await week.supabase
+      .from("teacher_hourly_claims")
+      .select("rate_key")
+      .eq("teacher_week_id", week.weekId)
+      .eq("rate_key", rateKey)
+      .maybeSingle();
+
+    if (!alreadyClaimed) {
+      return { error: `${rate.label} is not one of your rates. Tell Jimmy if that is wrong.` };
+    }
+  }
+
   if (!Number.isFinite(hours) || hours < 0) return { error: `${rate.label}: enter your hours.` };
   if (rate.weeklyHourCap !== null && hours > rate.weeklyHourCap) {
     return { error: `${rate.label} is capped at ${rate.weeklyHourCap} hours a week.` };

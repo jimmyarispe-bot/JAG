@@ -57,6 +57,8 @@ interface HourlyRate {
   label: string;
   cents: number;
   weeklyHourCap: number | null;
+  /** Hours already saved for this week. The field opens on this, not on zero. */
+  hours: number;
 }
 
 const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -452,7 +454,7 @@ export function TeacherWeekScreen(props: {
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {props.hourlyRates.map((rate) => (
                   <HourlyRow
-                    key={rate.key}
+                    key={`${rate.key}:${rate.hours}`}
                     rate={rate}
                     weekStart={weekStart}
                     disabled={pending}
@@ -932,13 +934,27 @@ function ExtraRow(props: {
   );
 }
 
+/**
+ * One personal hourly rate, with the hours already saved against it.
+ *
+ * IT OPENS ON WHAT WAS SAVED. This read "0" until 9 October 2026, hours after
+ * 002b12a5 made the row render for the first time. The field had never been
+ * seen, so the fault had never been met: Katie enters 8 hours on Monday, comes
+ * back on Wednesday to a week that still totals $160.00 and a box that says 0,
+ * clicks into it to check and clicks away - and onBlur posts zero, which
+ * deletes the claim and the $160 behind a success message.
+ *
+ * KEYED ON THE SAVED VALUE. The key resets this component's state when the
+ * figure changes underneath it, so a save made in another tab, or the refresh
+ * after her own save, is reflected rather than held off by stale state.
+ */
 function HourlyRow(props: {
   rate: HourlyRate;
   weekStart: string;
   disabled: boolean;
   onRun: (fn: () => Promise<{ success: true } | { error: string }>, ok?: string) => void;
 }) {
-  const [value, setValue] = useState("0");
+  const [value, setValue] = useState(String(props.rate.hours ?? 0));
 
   return (
     <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
