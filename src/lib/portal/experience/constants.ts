@@ -88,5 +88,12 @@ export const PARENT_SUPPORT_LINKS = Object.freeze([
   { href: "/portal/support#tickets", label: "Support tickets" },
   { href: "/portal/conferences", label: "Schedule meeting" },
   { href: "/portal/messages", label: "Contact school" },
-  { href: "/admissions/faqs", label: "Admissions FAQs" },
+  /*
+   * "Admissions FAQs" pointed at /admissions/faqs, part of the marketing
+   * site taken off the public internet on 9 October and now founder-only.
+   * A parent signed into the family portal would have clicked a support
+   * link and been shown a 404. Removed rather than repointed: there is no
+   * approved FAQ page to send her to, and the four links above are all
+   * inside the portal where she already is.
+   */
 ] as const);

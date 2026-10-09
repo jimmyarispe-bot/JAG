@@ -54,9 +54,9 @@ export function ApplyShell({
           </div>
           {showNav && (
           <nav className="flex items-center gap-3 text-sm">
-            <Link href="/admissions" className="text-slate-600 hover:text-slate-900">
-              Admissions
-            </Link>
+            {/* "Admissions" and "Onboarding" linked into the marketing site
+                that is now founder-only. A parent clicking either would have
+                hit a sign-in wall from a page she is allowed to be on. */}
             <Link href="/apply" className="text-slate-600 hover:text-slate-900">
               Inquiry
             </Link>
@@ -65,9 +65,6 @@ export function ApplyShell({
             </Link>
             <Link href="/apply/portal/finance" className="text-slate-600 hover:text-slate-900">
               Billing
-            </Link>
-            <Link href="/admissions/onboarding" className="text-slate-600 hover:text-slate-900">
-              Onboarding
             </Link>
             <Link href="/portal" className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700">
               Family Portal

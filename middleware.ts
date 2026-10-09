@@ -50,7 +50,42 @@ function isProtectedPage(pathname: string): boolean {
     pathname.startsWith("/users") ||
     pathname.startsWith("/settings") ||
     pathname.startsWith("/platform") ||
-    pathname.startsWith("/apply/portal")
+    pathname.startsWith("/apply/portal") ||
+    /*
+     * THE ADMISSIONS MARKETING SITE IS OFF THE PUBLIC INTERNET.
+     *
+     * Jimmy, 9 October 2026, looking at it live for the first time: "is this
+     * supposed to be for parents?" It was - AdmissionsPublicShell,
+     * ADMISSIONS_PUBLIC_NAV, "Public website routes for the Admissions
+     * Experience" - and nobody at The Academy Way wrote a word of it. It
+     * shipped with the original build and had been serving a school's public
+     * website that said "powered by AcademyOS", offered a parent Tuition
+     * copy reading "owned by FinanceEngine", and described the inquiry form
+     * as a way "to enter the admissions CRM pipeline".
+     *
+     * Worse than the wording: /admissions/discovery-call,
+     * /admissions/assessment and /admissions/schedule-tour each render
+     * SchedulingRequestForm, which CREATES A REAL LEAD. Three front doors
+     * into admissions beside /apply, bypassing the gates a school leader is
+     * supposed to open, and offering an assessment at campuses where Jimmy
+     * has ruled there are none. Checked before gating: not one family ever
+     * came through them - every lead in the database carries a referral
+     * source only /apply produces.
+     *
+     * "take off public internet and put it to the side. unaccessible by
+     * anyone except me. may want to come back to this once we get to the
+     * parent portal."
+     *
+     * NOT DELETED. Thirteen pages, intact, behind a door. This line closes
+     * it to the public; the FOUNDER check in app/admissions/layout.tsx is
+     * what makes it his alone, because a session is not the same as being
+     * Jimmy and half the staff have one.
+     *
+     * /apply IS DELIBERATELY NOT HERE. That form he has read, approved and
+     * has three hundred real families behind. It stays exactly as it is.
+     */
+    pathname === "/admissions" ||
+    pathname.startsWith("/admissions/")
   );
 }
 
@@ -221,6 +256,10 @@ export const config = {
     "/platform/:path*",
     "/apply/portal",
     "/apply/portal/:path*",
+    /* Not "/api/admissions" - the matcher is rooted, so these two cover the
+       marketing site and nothing else. */
+    "/admissions",
+    "/admissions/:path*",
     "/api/:path*",
   ],
 };

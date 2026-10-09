@@ -152,9 +152,15 @@ export default async function PortalApplicationPage({ params }: PortalApplicatio
               their application from the invitation link we send them -
               /apply/start/<token> - and never needs an account to do it.
             */}
-            <Link href="/admissions/onboarding" className="text-slate-600 underline">
-              Parent onboarding
-            </Link>
+            {/*
+              "Parent onboarding" pointed at /admissions/onboarding, part of
+              the marketing site taken off the public internet on 9 October
+              and now founder-only. A family signed into her own application
+              would have clicked it and been shown a 404. Removed rather than
+              repointed, because there is no approved parent-onboarding page
+              to send her to yet - that is the parent portal, and it is not
+              built.
+            */}
             <Link href="/apply/portal/finance" className="text-slate-600 underline">
               Tuition setup
             </Link>
