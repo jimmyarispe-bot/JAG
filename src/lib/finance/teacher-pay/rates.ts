@@ -330,6 +330,34 @@ export interface WeekClassEntry {
   /** Recorded, and deliberately not a pay input. */
   readonly absentStudents: number;
   readonly guest: boolean;
+  /**
+   * The catalogue rate, when the caller has it. Present means price from
+   * these and ignore structuredLiteracy entirely - the same rule the line
+   * pricing in week-view.ts already follows.
+   *
+   * WHY THIS HAD TO BE ADDED. week-view priced each LINE from the catalogue
+   * and then built this structure WITHOUT the catalogue, so weekTotals
+   * re-priced the identical class from a boolean. For any course whose name
+   * does not begin "Structured Literacy" but whose catalogue rate is not the
+   * $20 default, the two answers differed and the screen showed both:
+   *
+   *   1:1 Tutoring Structured Literacy   line $35.00   total counted $20.00
+   *   1:1 Tutoring Craig & Ivy           line $30.00   total counted $20.00
+   *
+   * Jessica Price, 9 October 2026, looking at a class worth $35.00 above a
+   * Submit button offering $20.00. Craig Mann and Holly Medlong had already
+   * been APPROVED short, by $50.00 and $30.00.
+   */
+  readonly baseCents?: number;
+  readonly perAdditionalCents?: number;
+  /**
+   * She said she was not there. Pays nothing, and the children stay counted.
+   *
+   * The line pricing has asserted this since 2428941f. This structure did
+   * not carry it, so a class struck through at $0.00 on the line was still
+   * being added to the week total. Nobody had pressed the button yet.
+   */
+  readonly missed?: boolean;
 }
 
 export interface WeekTotals {
@@ -376,7 +404,31 @@ export function weekTotals(input: {
   let studentsAbsent = 0;
 
   for (const entry of input.classes) {
-    const priced = classPay(entry);
+    /*
+     * COUNTED, THEN PAID, AND NEVER THE OTHER WAY ROUND. Who was scheduled
+     * and who was away is a fact about the morning and stays true whether the
+     * class paid or not - a missed class she had six children booked into is
+     * still six children who turned up to nothing.
+     */
+    if (entry.guest) guestCount += 1;
+    studentsScheduled += entry.scheduledStudents;
+    studentsAbsent += Math.max(0, entry.absentStudents);
+
+    /* Zero asserted before the rate is consulted, exactly as the line does. */
+    if (entry.missed === true) continue;
+
+    /* The catalogue rate wins when the caller has it, exactly as the line
+       does. These two branches must stay the same shape as the pair in
+       week-view.ts - they are pricing the same class. */
+    const priced =
+      entry.baseCents !== undefined
+        ? classPayAt({
+            scheduledStudents: entry.scheduledStudents,
+            baseCents: entry.baseCents,
+            perAdditionalCents: entry.perAdditionalCents ?? 0,
+          })
+        : classPay(entry);
+
     if (!priced.ok) {
       refusals.push(priced.reason);
       continue;
@@ -384,9 +436,6 @@ export function weekTotals(input: {
     classCents += priced.cents;
     if (entry.campus === "virtual") virtualCents += priced.cents;
     else hsCents += priced.cents;
-    if (entry.guest) guestCount += 1;
-    studentsScheduled += entry.scheduledStudents;
-    studentsAbsent += Math.max(0, entry.absentStudents);
   }
 
   let extrasCents = 0;

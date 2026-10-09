@@ -237,6 +237,21 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
     });
   }
 
+  /*
+   * THE TOTAL READS THE SAME FACTS THE LINE READ.
+   *
+   * This map used to drop row.baseCents and row.missed, so weekTotals
+   * re-priced each class from the structuredLiteracy boolean alone and
+   * reached a different answer from the line directly above it. Jessica
+   * Price, 9 October 2026: a class reading $35.00 over a Submit button
+   * offering $20.00, because "1:1 Tutoring Structured Literacy" does not
+   * START with "Structured Literacy" and isStructuredLiteracy uses
+   * startsWith. Craig Mann and Holly Medlong were already approved short.
+   *
+   * Every field the pricing depends on is now carried through. The invariant
+   * that keeps it that way is asserted in the tests: the sum of the line
+   * amounts equals classCents, always.
+   */
   const totals = weekTotals({
     classes: input.classes.map((row) => ({
       campus: row.campus,
@@ -244,6 +259,9 @@ export function teacherWeekView(input: WeekInput): TeacherWeekView {
       structuredLiteracy: row.structuredLiteracy,
       absentStudents: row.students.filter((s) => s.absent).length,
       guest: row.isGuest,
+      baseCents: row.baseCents,
+      perAdditionalCents: row.perAdditionalCents,
+      missed: row.missed === true,
     })),
     extras: input.extras,
     hourly: input.hourly,

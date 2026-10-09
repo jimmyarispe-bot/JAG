@@ -1,97 +1,86 @@
-fix(finance): whose rate it is, and a box that remembers her hours
+fix(finance): the line and the week agree
 
-Two faults in 002b12a5, found by review within the hour it shipped. Both
-were dormant for as long as no hourly box rendered anywhere. That commit
-made them render.
+Jessica Price, 9 October 2026, looking at her own screen:
 
-1. ANY TEACHER COULD CLAIM ANY RATE
+    1:1 Tutoring Structured Literacy    9:00am    $35.00
+    1 student - $35.00 for this class
+    Monday October 5                              $35.00
 
-setHourlyClaimAction asked whether the rate EXISTED:
+    This week so far        $20.00
+    [ Submit this week - $20.00 ]
 
-    const rate = RATE_BY_KEY[rateKey];
-    if (!rate) return { error: "That is not an hourly rate this platform knows." };
+Same class. Same screen. Two answers.
 
-and nothing else. Not whose rate it is.
+WHY
 
-CRAIG_MANN_IVY_ASH_TUTORING is $30.00 an hour with weeklyHourCap null. From
-002b12a5 until this commit, any of thirteen teachers could have posted
-craig_mann_ivy_ash_tutoring with four hundred hours and put a well-formed
-$12,000 line on Jimmy's payroll screen, under "1:1 tutoring with Ivy Ash".
+week-view.ts priced each LINE from the catalogue rate, then built the input
+for weekTotals by mapping the same rows into WeekClassEntry - a shape that
+carried neither baseCents nor missed. So weekTotals re-priced every class
+from the structuredLiteracy boolean alone and reached a different number.
 
-The picker would never have offered it. A server action is not a picker: a
-rate key is a string in a form submission.
+isStructuredLiteracy uses startsWith. "1:1 Tutoring Structured Literacy"
+does not START with "Structured Literacy", so the boolean was false and the
+total priced it at the $20.00 default while the line read $35.00 from the
+catalogue, where the rate is correctly recorded.
 
-WHY ROW-LEVEL SECURITY DID NOT CATCH IT. Migration 462's policies let a
-teacher write any row on her own open week. RLS establishes WHICH WEEK is
-hers and has never had an opinion about which RATES she holds. myOpenWeek
-answers the first question. Nothing answered the second, in code or in the
-database, and the check therefore has to live here.
+Two courses are affected, and it is not only Jessica:
 
-A RATE SHE NO LONGER HOLDS BUT HAS ALREADY CLAIMED STAYS EDITABLE. Taking
-somebody off RATE_KEYS_BY_EMPLOYEE must not freeze hours already entered
-under it - that leaves a week carrying a figure its owner cannot correct and
-nobody can reconcile. One extra read, only on the key that is not hers.
+    COURSE                             LINE     TOTAL COUNTED
+    1:1 Tutoring Structured Literacy   $35.00   $20.00
+    1:1 Tutoring Craig & Ivy           $30.00   $20.00
 
-HOW LONG IT WAS EXPLOITABLE. About ninety minutes, and teacher_hourly_claims
-is empty, so nothing was taken. It was never exploitable before, for the
-reason the earlier commit set out at length: the box had never appeared, so
-no teacher had any reason to know a rate key existed.
+    Craig Mann    week of 29 Sept   APPROVED   5 classes   short $50.00
+    Holly Medlong week of 29 Sept   APPROVED   2 classes   short $30.00
+    Jessica Price week of 5 Oct     open       1 class     short $15.00
 
-2. THE BOX OPENED AT ZERO AND DELETED HER HOURS
+Craig's and Holly's weeks were approved and paid at the short figure. That
+is $80.00 owed, and it is Jimmy's call how to settle it - not corrected
+here. The September network total of $6,985.00 reported earlier the same
+evening carries the same $80.00 shortfall, because the frozen figures were
+frozen from the broken total.
 
-HourlyRow held useState("0") and was never given the saved figure. The row
-had never rendered, so this had never been met.
+AND A SECOND ONE, FOUND WHILE READING THE FIRST
 
-    Monday    Katie enters 8 hours. Saved. Week reads $160.00.
-    Wednesday She reopens the week. Total still says $160.00.
-              The box says 0.
-              She clicks into it to check, and clicks away.
-              onBlur posts 0. setHourlyClaimAction DELETES the row.
-              $160.00 gone, behind a success message.
+The same map dropped `missed`. A class marked "I missed this" is struck
+through and shows $0.00 on the line - and was still being added to the week
+total. Shipped in 2428941f yesterday; teacher_hourly_claims-style luck meant
+nobody had pressed the button yet, so it had never been seen. It would have
+been, this Friday.
 
-Or she reads the 0, assumes the field is per-visit, and types Wednesday's 4
-over Monday's 8 - the upsert on (teacher_week_id, rate_key) replaces rather
-than adds, and she is $80 short with nothing to see.
+THE FIX, AND WHY IT IS SHAPED THIS WAY
 
-THE SAVED HOURS NOW COME DOWN WITH THE WEEK. LoadedWeek carries
-hoursByRateKey, built from the hourly rows loadTeacherWeek ALREADY reads -
-no new query. page.tsx puts the figure on each rate and the field opens on
-it.
+WeekClassEntry now carries baseCents, perAdditionalCents and missed, and
+weekTotals applies the same two rules the line already applied:
 
-WHY NOT READ IT OFF THE VIEW. teacherWeekView flattens an hourly claim into
-a display row - a label and the words "8 hours" - which is right for reading
-a week and useless for refilling a field. Parsing a number back out of a
-sentence is how the next one of these gets written.
+    if (entry.missed === true) continue;        // zero before the rate
+    entry.baseCents !== undefined               // catalogue wins
+      ? classPayAt({ ... })
+      : classPay(entry);
 
-KEYED ON THE SAVED VALUE, so a figure that changes underneath - her own save
-and the refresh after it, or a second tab - resets the field instead of
-being held off by stale state.
+Counting moved ABOVE the missed check on purpose. Who was scheduled and who
+was away is a fact about the morning and stays true whether the class paid
+or not - a class she missed with six children booked is still six children
+who turned up to nothing.
 
-ExtraRow has the identical shape and is NOT fixed here. Those boxes have
-rendered for weeks, so it is a standing fault rather than one this pair of
-commits created, and it deserves its own change and its own test rather than
-being swept in at midnight.
+THE REAL FIX IS THE TEST. Two code paths pricing the same class will drift
+again; the next divergence will be a field nobody thought to add to the map.
+So the new tests assert an invariant rather than three examples:
 
-WHAT THIS DOES NOT FIX, and what the same review found:
+    sum of line amounts === classCents
 
-Katie Vetere's admin hour is defined FOUR times.
+across a catalogue rate the name would have priced differently, a flat rate
+with no per-student amount, a missed class, a missed class's children still
+being counted, and a mixed week that also balances by campus.
 
-    work_pay_rates  admin_hourly   $25.00  from 1 Sept   Katie Vetere
-    work_pay_rates  admin_hour     $25.00  from 21 Sept  Katie Vetere
-    weekly-work.ts  admin_hourly   $25     max 10 hours a week
-    rates.ts        katie_vetere_admin  $20.00  cap 20 hours
+47 tests pass, up from 42. Typecheck clean.
 
-Two rows in one table under two codes, a third in the superseded 41-slot
-model, and 002b12a5 added the fourth. work_pay_rates already solves this -
-nullable employee_id, versioned by effective_from, exactly as migration 377
-set out and 379 extended to class rates. PersonalRate has no effective_from,
-so editing the constant silently reprices every period that reads it.
-
-That is the real fix and it is not a midnight change. These two are, because
-one of them is a hole and the other eats a teacher's pay on a Wednesday.
-
-Typecheck clean. No test references LoadedWeek, loadTeacherWeek,
-hourlyRates, setHourlyClaimAction or HourlyRow, so nothing moved with it.
+NOT FIXED HERE. isStructuredLiteracy is now vestigial wherever the catalogue
+rate is present, and it is still consulted when it is absent. A rate decided
+by whether a course NAME begins with two particular words is the same fault
+one layer down - rename a course and somebody's pay changes. The catalogue
+is the answer and classPay's boolean should go. That is a change with a
+screen behind it, and this was found with a teacher already looking at the
+wrong number.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

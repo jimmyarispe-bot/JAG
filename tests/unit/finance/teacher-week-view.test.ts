@@ -30,6 +30,125 @@ function classRow(over: Partial<ClassRow> = {}): ClassRow {
   };
 }
 
+/**
+ * THE INVARIANT. Whatever a teacher reads on a line is what the week counts.
+ *
+ * Jessica Price, 9 October 2026: "1:1 Tutoring Structured Literacy", one
+ * child, the line reading $35.00 and the Submit button directly above it
+ * offering $20.00. The line priced from the catalogue; the total re-priced
+ * the same class from the structuredLiteracy boolean, which was false
+ * because isStructuredLiteracy uses startsWith and the course name begins
+ * "1:1". Craig Mann and Holly Medlong had already been APPROVED short, by
+ * $50.00 and $30.00, on "1:1 Tutoring Craig & Ivy" and the same course.
+ *
+ * The fix carried the catalogue rate and the missed flag into weekTotals.
+ * This is the test that stops the two paths drifting apart again, and it is
+ * written as a SUM rather than as three examples, because the next divergence
+ * will be a field nobody thought to add to the map.
+ */
+describe("the line and the week agree, always", () => {
+  const sumOfLines = (w: ReturnType<typeof teacherWeekView>) =>
+    w.lines.reduce((n, l) => n + l.cents, 0);
+
+  it("agrees on a catalogue rate the name would have priced differently", () => {
+    const week = teacherWeekView({
+      weekStart: monday,
+      status: "open",
+      classes: [
+        classRow({
+          entryId: "tut",
+          courseName: "1:1 Tutoring Structured Literacy",
+          structuredLiteracy: false,
+          baseCents: 3_500,
+          perAdditionalCents: 500,
+          students: [child("A", "virtual")],
+        }),
+      ],
+      extras: [],
+      hourly: [],
+    });
+    expect(week.lines[0].cents).toBe(3_500);
+    expect(week.classCents).toBe(3_500);
+    expect(sumOfLines(week)).toBe(week.classCents);
+  });
+
+  it("agrees on a flat rate with no per-student amount", () => {
+    const week = teacherWeekView({
+      weekStart: monday,
+      status: "open",
+      classes: [
+        classRow({
+          entryId: "craig",
+          courseName: "1:1 Tutoring Craig & Ivy",
+          structuredLiteracy: false,
+          baseCents: 3_000,
+          perAdditionalCents: 0,
+          students: [child("A", "virtual"), child("B", "virtual")],
+        }),
+      ],
+      extras: [],
+      hourly: [],
+    });
+    expect(week.lines[0].cents).toBe(3_000);
+    expect(week.classCents).toBe(3_000);
+  });
+
+  it("agrees that a missed class pays nothing", () => {
+    const week = teacherWeekView({
+      weekStart: monday,
+      status: "open",
+      classes: [
+        classRow({ entryId: "taught" }),
+        classRow({ entryId: "missed", missed: true }),
+      ],
+      extras: [],
+      hourly: [],
+    });
+    expect(week.lines.find((l) => l.entryId === "missed")?.cents).toBe(0);
+    expect(sumOfLines(week)).toBe(week.classCents);
+  });
+
+  it("still counts the children on a class she missed", () => {
+    const week = teacherWeekView({
+      weekStart: monday,
+      status: "open",
+      classes: [classRow({ entryId: "missed", missed: true })],
+      extras: [],
+      hourly: [],
+    });
+    expect(week.classCents).toBe(0);
+    expect(week.studentsScheduled).toBe(3);
+  });
+
+  it("agrees across a mixed week, and balances by campus", () => {
+    const week = teacherWeekView({
+      weekStart: monday,
+      status: "open",
+      classes: [
+        classRow({ entryId: "a" }),
+        classRow({
+          entryId: "b",
+          campus: "hs",
+          baseCents: 3_500,
+          perAdditionalCents: 500,
+          students: [child("A", "hs"), child("B", "hs")],
+        }),
+        classRow({ entryId: "c", missed: true }),
+        classRow({
+          entryId: "d",
+          baseCents: 3_000,
+          perAdditionalCents: 0,
+          students: [child("A", "virtual")],
+        }),
+      ],
+      extras: [{ kind: "teacher_meeting", quantity: 1, month: 9 }],
+      hourly: [],
+    });
+    expect(sumOfLines(week)).toBe(week.classCents);
+    expect(week.virtualCents + week.hsCents + week.unattributedCents).toBe(week.totalCents);
+  });
+});
+
 describe("a child's name says which school they belong to", () => {
   it("labels each of the four", () => {
     /* "AV", not "Virtual" - Jimmy, 2 October: "for school of record,
