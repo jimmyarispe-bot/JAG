@@ -21,7 +21,7 @@ export type ModuleId =
   | "scholarships"
   | "finance"
   | "hr"
-  | "quiet-students";
+  | "teacher-pay";
 
 export interface DashboardModule {
   id: ModuleId;
@@ -32,6 +32,18 @@ export interface DashboardModule {
   placeholderTitle: string;
   placeholderDescription: string;
   placeholderFeatures: string[];
+  /**
+   * Sub-pages that open underneath this one in the sidebar.
+   *
+   * Jimmy, 10 October 2026: "on the left sidebar i want to create/show these
+   * buttons like a website where if you click on the main button it opens up
+   * sub menus/pages."
+   *
+   * A module WITH children does not navigate when clicked - it opens. Its
+   * own href is still the destination of the first child, so nothing is
+   * unreachable, and nothing links to a parent that goes nowhere.
+   */
+  children?: readonly { readonly href: string; readonly label: string }[];
 }
 
 export const DASHBOARD_MODULES: DashboardModule[] = [
@@ -60,38 +72,48 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
       "Application review workflows",
       "Guardian communication history",
     ],
+    /*
+     * TWO PAGES UNDER ONE BUTTON. Quiet Students was a top-level entry for
+     * half a day and does not belong beside Finance and Teacher Studio - it
+     * is the other half of admissions, not a department. Clicking Admissions
+     * now opens both.
+     */
+    children: [
+      { href: "/dashboard/admissions", label: "Current Pipeline" },
+      { href: "/dashboard/quiet-students", label: "Quiet Students" },
+    ],
   },
   /*
-   * QUIET STUDENTS. Added 10 October 2026, at Jimmy's instruction.
+   * TEACHER HRS/PAY. Added 10 October 2026, at Jimmy's instruction: "i need
+   * a button on left sidebar that says teacher hrs/pay that will take me to
+   * these pages."
    *
-   *   "create a new button on left sidebar that says old students"
-   *   "in the old students view/screen the only columns should be Decision
-   *    Needed, Declined, and Alumni"
+   * It points at a page that already lives under Finance. A shortcut rather
+   * than a new place, because the paysheet is the thing he opens most and it
+   * was three clicks deep.
    *
-   * It exists because a third of the cards on the admissions board were
-   * families who had already gone - 83 declined, 13 alumni - and a board you
-   * have to read past is a board nobody reads. They are not deleted and not
-   * hidden; they are somewhere else, with their own screen.
-   *
-   * IT WAS CALLED OLD STUDENTS FOR HALF A DAY. The objection was that a
-   * declined family was never a student and neither is the child in Decision
-   * Needed; Jimmy answered "old students for now" and then, an hour later,
-   * picked the better word himself - "let's change this new page view from
-   * old student to quiet students". Quiet is what they have in common: none
-   * of them is moving, and none of them is being chased.
+   * NO PERMISSION OF ITS OWN. It is mapped to the same finance keys as the
+   * Finance module, which the database already DENIES to SCHOOL_LEADER -
+   * migration 349 wrote those denials when School Leaders were taken off the
+   * money. Nina and Heather never see this entry, and that is enforced by
+   * the same rows that hide Finance itself rather than by anything new.
    */
   {
-    id: "quiet-students",
-    href: "/dashboard/quiet-students",
-    sidebarLabel: "Quiet Students",
-    pageTitle: "Quiet Students",
-    pageSubtitle: "Families who have gone, and the ones still waiting on a decision",
-    placeholderTitle: "Quiet Students",
+    id: "teacher-pay",
+    href: "/dashboard/finance/teacher-pay",
+    sidebarLabel: "Teacher Hrs/Pay",
+    pageTitle: "Teacher Hours and Pay",
+    pageSubtitle: "What each teacher logged, what it pays, and what is still open",
+    placeholderTitle: "Teacher Hours and Pay",
     placeholderDescription:
-      "Children who left the admissions pipeline - declined, alumni, or waiting on a decision nobody has made yet.",
+      "Every teacher's week - classes taught, extras claimed, hours worked - priced, and waiting to be approved.",
     placeholderFeatures: [
-      "Decision Needed, Declined and Alumni",
-      "Your campus only",
+      "The week, by teacher",
+      "Approve and pay",
+    ],
+    children: [
+      { href: "/dashboard/finance/teacher-pay", label: "This week" },
+      { href: "/dashboard/finance/teacher-pay/monthly", label: "Monthly" },
     ],
   },
   {

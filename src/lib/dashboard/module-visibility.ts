@@ -27,9 +27,10 @@ import type { DashboardModule, ModuleId } from "@/lib/dashboard/navigation";
  */
 export const MODULE_REQUIRED_PERMISSIONS: Partial<Record<ModuleId, readonly string[]>> = {
   admissions: ["admissions.view", "admissions.manage", "admissions.accept"],
-  /* Same three as Admissions: whoever may see the pipeline may see who
-     left it. Nina and Heather hold admissions.view. */
-  "quiet-students": ["admissions.view", "admissions.manage", "admissions.accept"],
+  /* The same four keys as Finance. The database already denies all four to
+     SCHOOL_LEADER (migration 349), so this entry hides itself from Nina and
+     Heather without a new permission. */
+  "teacher-pay": ["finance.view", "FINANCE_ACCESS", "finance.billing", "finance.executive"],
   students: ["students.view", "students.edit"],
   scholarships: ["scholarships.view", "scholarships.approve"],
   finance: ["finance.view", "FINANCE_ACCESS", "finance.billing", "finance.executive"],

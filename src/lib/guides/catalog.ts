@@ -742,6 +742,39 @@ export const GUIDE_AREAS: readonly GuideArea[] = [
     blurb: "Tuition, payment schedules and what families owe.",
     guides: [
       {
+        id: "finance.teacher-pay",
+        title: "Check and pay a teacher's week",
+        summary: "What each teacher logged, what it pays, and what is still open.",
+        steps: [
+          {
+            title: "Open Teacher Hrs/Pay",
+            detail:
+              "Every teacher for the week, with what they claimed broken out — classes, extras and hours.",
+            href: "/dashboard/finance/teacher-pay",
+          },
+          {
+            title: "Look for the ones marked still open",
+            detail:
+              "Still open means she has not submitted. Nothing is owed on an open week, and a teacher who forgets is invisible on pay day unless you look for this.",
+          },
+          {
+            title: "Read the line before the number",
+            detail:
+              "Classes, scheduled, absent, and the split across AV, HS and extras. A week with a total but no classes is somebody who logged a meeting or admin hours, not a mistake.",
+          },
+          {
+            title: "Approve the week",
+            detail:
+              "Approving is what makes it payable. Reopen it instead if something is missing — she can add to it and submit again.",
+          },
+          {
+            title: "Check the month when you are paying",
+            detail: "The monthly view totals the approved weeks.",
+            href: "/dashboard/finance/teacher-pay/monthly",
+          },
+        ],
+      },
+      {
         id: "finance.payment-schedule",
         title: "Look at what a family is paying",
         summary: "Their schedule of tuition payments.",

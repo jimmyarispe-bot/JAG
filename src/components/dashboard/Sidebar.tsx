@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   getBrandedDashboardModules,
@@ -64,6 +64,37 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const branding = useBranding();
+
+  /*
+   * WHICH PARENTS ARE OPEN.
+   *
+   * Jimmy, 10 October 2026: "i want to create/show these buttons like a
+   * website where if you click on the main button it opens up sub
+   * menus/pages."
+   *
+   * Only parents the viewer has TOUCHED are recorded here. The one they are
+   * standing in is open whether or not it is in this map — see `expanded`
+   * below — so arriving on Quiet Students never shows a collapsed Admissions
+   * with no sign of where you are.
+   */
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
+
+  /** The child whose route we are on, longest match wins. */
+  function activeChildHref(
+    children: readonly { href: string; label: string }[]
+  ): string | null {
+    /*
+     * LONGEST MATCH, NOT FIRST MATCH. Teacher Hrs/Pay has "This week" at
+     * /dashboard/finance/teacher-pay and "Monthly" one segment below it, so
+     * a plain startsWith lights up both and the sidebar says you are in two
+     * places at once.
+     */
+    const hit = children
+      .filter((c) => pathname === c.href || pathname.startsWith(`${c.href}/`))
+      .sort((a, b) => b.href.length - a.href.length)[0];
+    return hit?.href ?? null;
+  }
+
   const navSections = SIDEBAR_NAV_SECTIONS.map((section) => ({
     ...section,
     items: visibleSectionItems(section, permissions),
@@ -74,6 +105,29 @@ export function Sidebar({
   const modules = visibleModules(getBrandedDashboardModules(branding), permissions).map(
     (module) => moduleForViewer(module, { isFounder, isExecutiveDirector })
   );
+
+  /*
+   * ONE MODULE IS HIGHLIGHTED, NOT TWO.
+   *
+   * isModuleActive is a prefix test, and Teacher Hrs/Pay lives UNDER
+   * /dashboard/finance — so standing on the paysheet lit up Finance as well,
+   * and the sidebar claimed you were in two departments at once. Longest
+   * match wins, which is the same rule activeChildHref uses above.
+   *
+   * MUST STAY BELOW `modules`. The first version of this sat twelve lines
+   * higher and read `modules` before it was declared — a temporal dead zone
+   * throw on the very first render, which parses perfectly and takes the
+   * whole sidebar down.
+   *
+   * Computed over the modules this viewer can actually see, so a module
+   * hidden by permissions can never steal the highlight from one that is
+   * drawn.
+   */
+  const deepestActiveHref =
+    modules
+      .filter((m) => isModuleActive(pathname, m))
+      .map((m) => m.href)
+      .sort((x, y) => y.length - x.length)[0] ?? null;
   // Dark logo first — this mark sits on the navy sidebar. Empty string is the
   // "not configured" value the branding resolver returns, so trim before
   // deciding, or a stray space renders a broken image.
@@ -158,13 +212,71 @@ export function Sidebar({
           </p>
           <ul className="space-y-1">
             {modules.map((module) => {
-              const active = isModuleActive(pathname, module);
+              const children = module.children ?? [];
+              const onChild = children.length ? activeChildHref(children) : null;
+              const active =
+                module.href === deepestActiveHref || Boolean(onChild);
+
+              /* A parent with no children is a link, exactly as before. */
+              if (children.length === 0) {
+                return (
+                  <li key={module.id}>
+                    <Link href={module.href} className={navLinkClass(active)}>
+                      <ModuleIcon moduleId={module.id} />
+                      {module.sidebarLabel}
+                    </Link>
+                  </li>
+                );
+              }
+
+              /* Standing inside it beats anything the viewer clicked. */
+              const expanded = active || (opened[module.id] ?? false);
+
               return (
                 <li key={module.id}>
-                  <Link href={module.href} className={navLinkClass(active)}>
+                  <button
+                    type="button"
+                    aria-expanded={expanded}
+                    onClick={() =>
+                      setOpened((prev) => ({ ...prev, [module.id]: !expanded }))
+                    }
+                    className={cn(navLinkClass(active), "w-full text-left")}
+                  >
                     <ModuleIcon moduleId={module.id} />
-                    {module.sidebarLabel}
-                  </Link>
+                    <span className="flex-1">{module.sidebarLabel}</span>
+                    <svg
+                      viewBox="0 0 20 20"
+                      aria-hidden
+                      className={cn(
+                        "h-4 w-4 shrink-0 transition-transform",
+                        expanded && "rotate-90"
+                      )}
+                    >
+                      <path
+                        d="M7.5 5l5 5-5 5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {expanded && (
+                    <ul className="ml-6 mt-1 space-y-1 border-l border-sidebar-border pl-3">
+                      {children.map((child) => (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            className={navLinkClass(child.href === onChild)}
+                          >
+                            {child.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               );
             })}

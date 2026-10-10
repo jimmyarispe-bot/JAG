@@ -1,51 +1,74 @@
-the tour invitation goes live at GA and FL
+the sidebar opens
 
-Migration 537, run against production at 13:19 on 10 October. Both
-campuses report ON, both links resolve, and the readiness count is 2.
+Jimmy, 10 October 2026:
 
-Jimmy, on the tour step: "do 1 n 2".
+  "on the left sidebar i want to create/show these buttons like a website
+   where if you click on the main button it opens up sub menus/pages.
+   Create an Admissions button. and have Current Pipeline and another
+   Quiet Students"
 
-── 1 ───────────────────────────────────────────────────────────────────────
+and, earlier the same afternoon:
 
-tour_invitation_email switched on at The Academy GA and The Academy FL.
-The letter was written on 5 October in migration 508 and seeded dark,
-which is the rule: words ship switched off and are armed once Jimmy has
-read them. He read them on the chart at T1.
+  "i need a button on left sidebar that says teacher hrs/pay that will
+   take me to these pages"
 
-── 2 ───────────────────────────────────────────────────────────────────────
+── WHAT A PARENT IS NOW ────────────────────────────────────────────────────
 
-ADMISSIONS_TOUR_GATE = on, production. Set by hand in the Vercel
-dashboard — this session's Vercel connection is forbidden the environment
-endpoint, read and write both (403 on the scope, not a retryable error).
+A module may carry `children`. One with children does not navigate when
+clicked - it opens. One without is a link, exactly as before, and every
+other entry in that list is untouched.
 
-THE ORDER WAS THE WHOLE POINT. Gate first and letter second means a GA or
-FL family is moved to Tour Requested and sent nothing: waiting on a link
-that was never posted, while the board says we are waiting on them. The
-migration's last verify row exists only to refuse the gate until both
-campuses can actually write to a family.
+  Admissions          Current Pipeline  /dashboard/admissions
+                      Quiet Students    /dashboard/quiet-students
 
-── WHAT CHANGES FOR A SCHOOL LEADER ────────────────────────────────────────
+  Teacher Hrs/Pay     This week         /dashboard/finance/teacher-pay
+                      Monthly           /dashboard/finance/teacher-pay/monthly
 
-At GA and FL only. The post-call page's third button becomes "Send the
-tour request" instead of "Send the shadow day invite", and the
-invite-to-apply gate stops opening at interest_meeting_held — it opens at
-tour_completed instead, once Nina or Danni has marked the tour conducted.
+QUIET STUDENTS STOPS BEING A TOP-LEVEL MODULE. It was one for half a day
+and never belonged beside Finance and Teacher Studio - it is the other
+half of admissions, not a department.
 
-Virtual and HS are untouched. campusRunsTours() refuses them, neither has
-a tour_booking_url, and neither has a tour_invitation_email row at all.
+THE ONE YOU ARE STANDING IN IS ALWAYS OPEN, whatever the viewer last
+clicked. Arriving on Quiet Students from a link and finding Admissions
+collapsed, with nothing saying where you are, is the failure this has to
+avoid.
 
-── WHAT WAS ALREADY WORKING ────────────────────────────────────────────────
+── TWO WAYS TO BE IN TWO PLACES AT ONCE, BOTH CLOSED ───────────────────────
 
-The rest of the tour chain has been live and proven since 9 October. The
-nightly scan finds a booking on the campus calendar, records it, moves
-the child to School Tour Scheduled, and sends the confirmation with the
-date and the campus address — Candace Martin received hers at 11:21 that
-morning. The 24-hour reminder is on and hers is queued for 18 October.
+Both are the same bug at two scales, and both come from startsWith.
 
-Still unverified in that chain: the confirmation's last line says
-"Calendar invite attached." and nobody has confirmed the platform
-attaches anything. Candace has already read it once and her reminder
-repeats it on the 18th.
+  CHILDREN. "This week" is /dashboard/finance/teacher-pay and "Monthly"
+  is one segment below it, so a plain prefix test lights up both.
+
+  MODULES. Teacher Hrs/Pay lives UNDER /dashboard/finance, so standing on
+  the paysheet lit up Finance as well.
+
+Longest match wins, in both cases, over the modules this viewer can
+actually see - so a module hidden by permissions cannot steal the
+highlight from one that is drawn.
+
+── NO NEW PERMISSION FOR THE PAYSHEET ──────────────────────────────────────
+
+Teacher Hrs/Pay is mapped to the same four finance keys as Finance
+itself, and the database already DENIES all four to SCHOOL_LEADER -
+migration 349 wrote those denials when School Leaders were taken off the
+money. Nina and Heather never see the entry, enforced by the rows that
+already hide Finance rather than by anything written today.
+
+── CAUGHT BEFORE SHIPPING ──────────────────────────────────────────────────
+
+deepestActiveHref read `modules` twelve lines before `modules` was
+declared. A temporal dead zone throw on the very first render, which
+parses perfectly and takes the whole sidebar down with it. Moved below,
+with a comment saying why it must stay there.
+
+The guides test refuses a module with no walkthrough - it caught the
+Quiet Students module this morning. Teacher Hrs/Pay has a five-step one,
+and every module href was checked against the catalogue the same way the
+test does before this was staged.
+
+NOT TESTED HERE. vitest will not run against this checkout from Linux.
+Every file parses clean and nothing more was proved.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
