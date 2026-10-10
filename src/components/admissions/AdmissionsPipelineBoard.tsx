@@ -24,7 +24,11 @@ import {
   type BoardLead,
 } from "@/lib/admissions/board-filters";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
-import { LEAD_STAGES, type LeadStageValue } from "@/lib/constants/admissions";
+import {
+  LEAD_STAGES,
+  PIPELINE_LEAD_STAGES,
+  type LeadStageValue,
+} from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
 import {
   daysInCurrentStage,
@@ -264,9 +268,29 @@ export function AdmissionsPipelineBoard({ leads, decisionGates }: AdmissionsPipe
                       className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
                       aria-busy={action.isBusy || undefined}
                     >
-                      {/* The step number is shown because people say it out
-                          loud - "she's at 4, waiting on a tour". */}
-                      {LEAD_STAGES.map((s) => (
+                      {/*
+                        * The step number is shown because people say it out
+                        * loud - "she's at 4, waiting on a tour".
+                        *
+                        * THIRTEEN STEPS, NOT NINETEEN. Declined, Decision
+                        * Needed and Alumni live in Old Students now; Records
+                        * Requested, Admissions Review and Assessment
+                        * Scheduled are offered nowhere. See LEAD_STAGES.
+                        *
+                        * The card's own stage is appended if it is not one of
+                        * the thirteen, so a lead that somehow holds a closed
+                        * or retired stage shows that stage rather than an
+                        * empty select silently claiming it is at step one.
+                        * September's lesson: a card with nowhere to go does
+                        * not announce itself, it just looks wrong.
+                        */}
+                      {(PIPELINE_LEAD_STAGES.some((s) => s.value === lead.lead_stage)
+                        ? PIPELINE_LEAD_STAGES
+                        : [
+                            ...PIPELINE_LEAD_STAGES,
+                            ...LEAD_STAGES.filter((s) => s.value === lead.lead_stage),
+                          ]
+                      ).map((s) => (
                         <option key={s.value} value={s.value}>
                           {s.step ? `${s.step}. ${s.label}` : s.label}
                         </option>

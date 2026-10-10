@@ -8,7 +8,7 @@ import { StageTimeline } from "@/components/admissions/StageTimeline";
 import { updateCaseStage, updateCasePipelineStage } from "@/lib/admissions/case/actions";
 import { pipelineStageLabel } from "@/lib/admissions/registry";
 import { isAdmissionsCaseProfileEnvelope } from "@/lib/admissions/profile/types";
-import { LEAD_STAGES, type LeadStageValue } from "@/lib/constants/admissions";
+import { SELECTABLE_LEAD_STAGES, type LeadStageValue } from "@/lib/constants/admissions";
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import { missing } from "./shared";
 
@@ -56,7 +56,7 @@ export function PipelineSection(props: ProfileSectionViewProps) {
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:opacity-50"
             aria-busy={stageAction.isBusy || undefined}
           >
-            {LEAD_STAGES.map((s) => (
+            {SELECTABLE_LEAD_STAGES.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
               </option>

@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useId, useMemo, useState } from "react";
 import { useActionFeedback } from "@/components/experience-system/feedback";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
-import { LEAD_STAGES } from "@/lib/constants/admissions";
+import {
+  SELECTABLE_LEAD_STAGES,
+  type LeadStageValue,
+} from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
 import { scheduleAppointmentAndAdvance, updateLeadStage } from "@/lib/admissions/actions";
 import {
@@ -77,7 +80,7 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
     void action.run(async () => {
       const result = await updateLeadStage(
         leadId,
-        stage as (typeof LEAD_STAGES)[number]["value"]
+        stage as LeadStageValue
       );
       // useActionFeedback only treats a THROWN error as a failure, so a returned
       // { error } used to render "✓ Updated" over a stage that never moved.
@@ -112,7 +115,7 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
 
   /** Same rule as the pipeline board: hide empty stages only while searching. */
   const visibleStages = useMemo(() => {
-    const byStage = LEAD_STAGES.map((stage) => ({
+    const byStage = SELECTABLE_LEAD_STAGES.map((stage) => ({
       stage,
       stageLeads: visibleLeads.filter((l) => l.lead_stage === stage.value),
     }));
@@ -225,7 +228,7 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
                       className="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
                       aria-busy={action.isBusy || undefined}
                     >
-                      {LEAD_STAGES.map((s) => (
+                      {SELECTABLE_LEAD_STAGES.map((s) => (
                         <option key={s.value} value={s.value}>
                           {s.label}
                         </option>

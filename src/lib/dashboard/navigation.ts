@@ -20,7 +20,8 @@ export type ModuleId =
   | "school-leader"
   | "scholarships"
   | "finance"
-  | "hr";
+  | "hr"
+  | "old-students";
 
 export interface DashboardModule {
   id: ModuleId;
@@ -48,9 +49,9 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     id: "admissions",
     href: "/dashboard/admissions",
     sidebarLabel: "Admissions",
-    pageTitle: "Admissions CRM",
+    pageTitle: "Current Admissions Pipeline",
     pageSubtitle: "Manage inquiries, tours, and applications",
-    placeholderTitle: "Admissions CRM",
+    placeholderTitle: "Current Admissions Pipeline",
     placeholderDescription:
       "Track prospects through every stage of the enrollment funnel — from first inquiry to accepted enrollment.",
     placeholderFeatures: [
@@ -58,6 +59,36 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
       "Tour scheduling and follow-ups",
       "Application review workflows",
       "Guardian communication history",
+    ],
+  },
+  /*
+   * OLD STUDENTS. Added 10 October 2026, at Jimmy's instruction.
+   *
+   *   "create a new button on left sidebar that says old students"
+   *   "in the old students view/screen the only columns should be Decision
+   *    Needed, Declined, and Alumni"
+   *
+   * It exists because a third of the cards on the admissions board were
+   * families who had already gone - 83 declined, 13 alumni - and a board you
+   * have to read past is a board nobody reads. They are not deleted and not
+   * hidden; they are somewhere else, with their own screen.
+   *
+   * THE NAME IS HIS, AND IT IS NOT QUITE RIGHT. A declined family was never a
+   * student, and neither was the child in Decision Needed. He was told and
+   * answered "old students for now", so it stays until he picks another.
+   */
+  {
+    id: "old-students",
+    href: "/dashboard/old-students",
+    sidebarLabel: "Old Students",
+    pageTitle: "Old Students",
+    pageSubtitle: "Families who have gone, and the ones still waiting on a decision",
+    placeholderTitle: "Old Students",
+    placeholderDescription:
+      "Children who left the admissions pipeline - declined, alumni, or waiting on a decision nobody has made yet.",
+    placeholderFeatures: [
+      "Decision Needed, Declined and Alumni",
+      "Your campus only",
     ],
   },
   {

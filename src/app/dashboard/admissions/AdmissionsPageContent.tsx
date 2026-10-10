@@ -44,6 +44,35 @@ export const ADMISSIONS_TABS = [
 ] as const;
 
 /**
+ * THE PERMISSION THAT DECIDES WHO SEES THE TOOLS.
+ *
+ * Jimmy, 10 October 2026, on the two rows of tabs and buttons above the
+ * board - Executive, Pipeline Board, Legacy Kanban, Lead List, Reporting,
+ * Waiting on us, Not on the roster, Automation, Workflows, Templates, State
+ * Funding, Funding Programs, Reconciliation, Checklist Settings, Parent
+ * Inquiry Form, Add Lead, Bulk Import:
+ *
+ *   "take out all of these highlighted for everyones view except mine"
+ *   ... "me n danni"
+ *
+ * A PERMISSION RATHER THAN A LIST OF NAMES. founder-protection.ts states the
+ * rule this file follows: "Call sites must never check role names - use
+ * authorize()/hasPermission()." Two people hard-coded here would be two
+ * people nobody can change without a deploy, and the next person added would
+ * be added in whichever file somebody found first.
+ *
+ * Granted to FOUNDER and EXECUTIVE_DIRECTOR, which today is Jimmy and Danni
+ * and nobody else. Stacy Kenworthy holds CEO and PLATFORM_OWNER and is
+ * deliberately not included - Jimmy named two people. One row in
+ * platform_role_permissions adds her.
+ *
+ * WHAT A SCHOOL LEADER SEES INSTEAD: the board, and only the board. That is
+ * the whole point - the page is called Current Admissions Pipeline and it is
+ * now one screen, not a screen with fifteen doors off it.
+ */
+export const ADMISSIONS_TOOLS_PERMISSION = "admissions.tools";
+
+/**
  * `anyOf` gates a destination on permission. Omitted means everyone with
  * admissions access sees it.
  *
@@ -118,6 +147,10 @@ function AdmissionsNavigation({
   activeView: string;
   permissions: readonly string[];
 }) {
+  /* One gate, covering both screens that render this. See
+     ADMISSIONS_TOOLS_PERMISSION above. */
+  if (!permissions.includes(ADMISSIONS_TOOLS_PERMISSION)) return null;
+
   return (
     <div className="space-y-2">
       <ViewTabs tabs={[...ADMISSIONS_TABS]} activeView={activeView} />
@@ -172,12 +205,16 @@ async function AdmissionsLegacyView({
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Admissions CRM"
+        title="Current Admissions Pipeline"
         subtitle="Pipeline, applications, and enrollment tools"
         actions={
-          <Link href="/dashboard/admissions?work=today" className="rounded-xl border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50">
-            ← Work queue
-          </Link>
+          /* The way back to the work queue is a door off this screen like any
+             other, so it goes with the rest of them. */
+          ctx?.permissions.includes(ADMISSIONS_TOOLS_PERMISSION) ? (
+            <Link href="/dashboard/admissions?work=today" className="rounded-xl border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50">
+              ← Work queue
+            </Link>
+          ) : null
         }
       />
       <AdmissionsNavigation activeView={view} permissions={ctx?.permissions ?? []} />
@@ -295,9 +332,15 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
         title="Admissions shortcuts"
         actions={[
           { id: "pipeline", label: "Pipeline board", href: "/dashboard/admissions?view=pipeline", variant: "secondary" },
-          { id: "add-lead", label: "Add lead", href: "/dashboard/admissions/leads/new", variant: "primary" },
+          /* Add lead and bulk import are the same rule as the header buttons
+             above - a family gets in by completing the inquiry form. */
+          ...(ctx.permissions.includes(ADMISSIONS_TOOLS_PERMISSION)
+            ? [
+                { id: "add-lead", label: "Add lead", href: "/dashboard/admissions/leads/new", variant: "primary" as const },
+                { id: "bulk-import", label: "Bulk import leads", href: "/dashboard/admissions/import", variant: "secondary" as const },
+              ]
+            : []),
           { id: "enrollment", label: "Ready for enrollment", href: "/dashboard/admissions?work=ready_for_enrollment", variant: "secondary" },
-          { id: "bulk-import", label: "Bulk import leads", href: "/dashboard/admissions/import", variant: "secondary" },
           { id: "people", label: "All people", href: "/dashboard/people", variant: "secondary" },
         ]}
       />
@@ -317,17 +360,27 @@ export async function AdmissionsPageContent({ searchParams }: AdmissionsPageCont
       leftNavFooter={<PublicInquiryLinkPanel links={publicLinks} />}
       subtitle={orgContext?.activeScope.schoolName ?? "Enrollment funnel"}
       headerActions={
-        <>
-          <Link
-            href="/dashboard/admissions/import"
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Bulk Import
-          </Link>
-          <Link href="/dashboard/admissions/leads/new" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            Add Lead
-          </Link>
-        </>
+        /*
+         * A school leader cannot add a lead. Jimmy, 10 October: "school
+         * leaders won't be able to add a lead without the parent going to
+         * the website and completing the inquiry form."
+         *
+         * That is a rule, not a missing feature: every child in The JAG then
+         * arrived the same way, with the parent's own words on the record.
+         */
+        ctx.permissions.includes(ADMISSIONS_TOOLS_PERMISSION) ? (
+          <>
+            <Link
+              href="/dashboard/admissions/import"
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Bulk Import
+            </Link>
+            <Link href="/dashboard/admissions/leads/new" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+              Add Lead
+            </Link>
+          </>
+        ) : null
       }
     >
       {/* The lead list, the pipeline board and every admissions sub-route, on

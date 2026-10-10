@@ -27,6 +27,9 @@ import type { DashboardModule, ModuleId } from "@/lib/dashboard/navigation";
  */
 export const MODULE_REQUIRED_PERMISSIONS: Partial<Record<ModuleId, readonly string[]>> = {
   admissions: ["admissions.view", "admissions.manage", "admissions.accept"],
+  /* Same three as Admissions: whoever may see the pipeline may see who
+     left it. Nina and Heather hold admissions.view. */
+  "old-students": ["admissions.view", "admissions.manage", "admissions.accept"],
   students: ["students.view", "students.edit"],
   scholarships: ["scholarships.view", "scholarships.approve"],
   finance: ["finance.view", "FINANCE_ACCESS", "finance.billing", "finance.executive"],

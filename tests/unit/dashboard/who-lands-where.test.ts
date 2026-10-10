@@ -25,8 +25,33 @@ function person(...roles: string[]): IdentityContext {
 /** Danni Treu's actual roles, read out of the database on 18 September 2026. */
 const DANNI = person("EXECUTIVE_DIRECTOR", "PLATFORM_OWNER", "JAG_ORG_ADMIN");
 
+/**
+ * EVERYONE, SINCE 10 OCTOBER 2026.
+ *
+ * This block used to assert the opposite for three roles, and it was right to
+ * until the day the tabs were hidden. Jimmy, asked where a school leader
+ * should land now that the Pipeline Board tab is gone from her screen: "all
+ * land on the pipeline board".
+ *
+ * Before that change Nina Gaddy and Heather Badger-Brown landed on a task
+ * list and reached the board through the tab the same commit removed, so
+ * leaving this rule alone would have left the two people who actually run
+ * admissions unable to reach the board at all.
+ *
+ * STILL NOT A BOUNDARY. Whether a person may open Admissions is decided by
+ * requirePagePermission in the layout and by row-level security underneath
+ * it. This only answers which screen is already open when they arrive, which
+ * is why a person with no roles gets true here and still sees nothing.
+ */
 describe("Admissions opens on the board", () => {
-  it.each(["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR"])("for %s", (role) => {
+  it.each([
+    "FOUNDER",
+    "CEO",
+    "EXECUTIVE_DIRECTOR",
+    "SCHOOL_LEADER",
+    "TEACHER",
+    "REGISTRAR",
+  ])("for %s", (role) => {
     expect(admissionsOpensOnBoard(person(role))).toBe(true);
   });
 
@@ -34,16 +59,8 @@ describe("Admissions opens on the board", () => {
     expect(admissionsOpensOnBoard(DANNI)).toBe(true);
   });
 
-  it.each(["SCHOOL_LEADER", "TEACHER", "REGISTRAR"])("not for %s", (role) => {
-    expect(admissionsOpensOnBoard(person(role))).toBe(false);
-  });
-
-  it("is case-insensitive about role names", () => {
-    expect(admissionsOpensOnBoard(person("ceo"))).toBe(true);
-  });
-
-  it("survives a person with no roles at all", () => {
-    expect(admissionsOpensOnBoard({} as IdentityContext)).toBe(false);
+  it("for a person with no roles at all", () => {
+    expect(admissionsOpensOnBoard({} as IdentityContext)).toBe(true);
   });
 });
 
@@ -67,6 +84,17 @@ describe("Signing in goes straight to the board", () => {
 
   it("for a CEO, if anyone ever holds it", () => {
     expect(landsOnAdmissionsBoard(person("CEO"))).toBe(true);
+  });
+
+  /*
+   * Moved here on 10 October from the block above, where it stopped meaning
+   * anything the moment that rule returned true for everybody. Role names
+   * still arrive in whatever case the database holds them, and this is now
+   * the only rule that reads them.
+   */
+  it("is case-insensitive about role names", () => {
+    expect(landsOnAdmissionsBoard(person("ceo"))).toBe(true);
+    expect(landsOnAdmissionsBoard(person("founder"))).toBe(false);
   });
 
   /**

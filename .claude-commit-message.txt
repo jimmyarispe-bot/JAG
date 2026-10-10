@@ -1,154 +1,113 @@
-fix: tell the family where to come, number the stages, stop offering
-     a teacher something the button cannot do
+one screen for a school leader, and a place for the families who left
 
-Two things Jimmy asked for on 9 October, both from looking at a real screen.
+Jimmy, 10 October, looking at a board where a third of the cards were
+people who had already gone, and at a dropdown offering nineteen stages
+of which six are not part of the flow:
 
-════════════════════════════════════════════════════════════════════════
-1. "See portal for directions"
-════════════════════════════════════════════════════════════════════════
+  "rename Admission Crm to Current Admissions Pipeline and take out all
+   of these highlighted for everyones view except mine"
+  "create a new button on left sidebar that says old students"
+  "the Declined, waitlisted and not returning should be taken out of the
+   current admissions crm"
+  "all land on the pipeline board"
 
-Candace Martin, 11:21am, in the first letter The JAG ever really sent a
-family - eight minutes after the divert came off:
+336 children were on the board. 97 of them had left.
 
-    Campus: Main Campus
-    Directions: See portal for directions
+THE STAGES NOW HAVE THREE GROUPS. pipeline is the thirteen numbered steps
+of the live flow and is all a card's dropdown offers. closed is the three
+Old Students columns. retired is Records Requested, Admissions Review and
+Assessment Scheduled - offered nowhere, kept so the type and any stored
+value survive, and so assessment can come back when it is built.
 
-She is driving to a tour on Monday 19 October. There is no portal.
+Every stage stays in LEAD_STAGES. A stage removed from that array is a
+stage leadStageLabel cannot name, and the registry's own comment records
+what that costs: Julian Oubre Towa vanished from the board in September
+because one stage was missing from one list.
 
-THREE SEPARATE FAILURES STACKED
+TWO RENAMES, NOT TWO NEW STAGES.
 
-Not one missing address. Three:
+  waitlisted     -> "Decision Needed"
+  not_returning  -> "Alumni"
 
-  1. No campus row holds an address. All six are null.
-  2. No tour booking records a campus. EVERY tour ever booked - Candace
-     Martin, Ian Xavier Matos Ortiz, Jayden Roy - has campus_id null.
-  3. merge-fields.ts filled the resulting nothing with "Main Campus" and
-     "See portal for directions", strings that read like answers.
+Sedona Simeonov has been on waitlisted since 25 August and nobody has
+told her mother anything, because the waitlist letter is switched on and
+no code path reaches it. A rename carries her across with her record and
+her forty-six days; a new stage would have meant moving her by hand.
 
-THE PROJECTION NEVER FETCHED THE ADDRESS EITHER
+Thirteen children were "Not Returning", which is the one thing that never
+said about them: they were students here.
 
-LEAD_MERGE_CONTEXT_COLS selects schools(name, admissions_contact_name,
-admissions_contact_email, admissions_booking_url, admissions_from_email,
-shadow_days_url, tour_booking_url). No address. So even a correct address
-in the database could not have reached the letter. Writing one would have
-looked like a fix and changed nothing.
+A third mismatch fixed in passing - the board said "Declined to Enroll"
+and the dropdown said "Declined". Same thing, two names.
 
-THE CHAIN NOW
+THE TOOLS ARE A PERMISSION, NOT TWO NAMES. admissions.tools, granted to
+FOUNDER and EXECUTIVE_DIRECTOR, which today is Jimmy and Danni and nobody
+else. founder-protection.ts states the rule: "Call sites must never check
+role names - use authorize()/hasPermission()." PLATFORM_OWNER was the
+obvious-looking choice and is wrong - Stacy Kenworthy holds it too.
 
-    the tour's campus address
-      -> the school's address
-        -> "we will confirm this with you — please reply to this email"
+EVERYONE NOW LANDS ON THE BOARD. The old rule sent only FUNNEL_ROLES
+there; Nina and Heather landed on a task list and reached the board
+through a tab - the tab this commit hides from them. Without the landing
+change they would have lost the board entirely.
 
-The last one is honest and gives the parent an action. A portal that does
-not exist gives her nothing and tells nobody.
+A SCHOOL LEADER CANNOT ADD A LEAD, deliberately. "school leaders won't be
+able to add a lead without the parent going to the website and completing
+the inquiry form." That is a rule about how a child enters The JAG, not a
+missing button: every child then arrived the same way, with the parent's
+own words on the record.
 
-BOTH PATHS, AND THE SECOND IS THE ONE THAT MATTERED
+NOT TESTED HERE. vitest will not run against this checkout from the Linux
+side - node_modules carries the Windows rollup binary and
+@rollup/rollup-linux-x64-gnu is absent. Every changed file parses clean
+via ts.createSourceFile and nothing more than that was proved. The
+typecheck and the suite run on the way out.
 
-engine.ts resolves this twice: once per lead, once in the batch the QUEUE
-PROCESSOR runs. Fixing only the single path would have left Candace's
-reminder on 18 October - the morning before she drives to Smyrna - still
-pointing at the portal. Same shape as the line-and-the-week fix earlier
-today: one fact, two code paths, only one of them corrected.
+Caught before shipping: removing the funnel-role check left FUNNEL_ROLES
+read by nothing, which would have failed the build.
 
-clean() is applied to campus name and address so an empty string in the
-database behaves like null rather than rendering a blank line.
+CAUGHT BY THE TYPECHECK, NOT BY ME. KanbanBoard used LEAD_STAGES in
+three places - a type position at line 80, the column list at 115, the
+dropdown at 231 - and the first pass renamed the import while replacing
+only the dropdown. tsc found all three plus five implicit-any errors
+cascading off them. The column list now uses SELECTABLE_LEAD_STAGES like
+the dropdown, and the type position uses the exported LeadStageValue
+instead of indexing the array.
 
-════════════════════════════════════════════════════════════════════════
-2. The stage dropdown was in file order, not flow order
-════════════════════════════════════════════════════════════════════════
+Every file touched was then grepped for the renamed identifier, which is
+the check that would have caught it the first time and did not exist.
 
-    "the drop down on this page to match up to the stages with numbers
-     visable in the dropdown match up to the admissions flow"
+FIVE MIGRATIONS THAT EXISTED ONLY ON ONE LAPTOP, AGAIN. 529 through 533
+were written last night, four of them were run against production, and
+none of them was ever committed - the same fault as the forty-six caught
+on 9 October, four days younger. They go in here. Without this commit the
+only copy of the school-leader BCC, the campus-specific confirmations,
+booked-to-scheduled, the acceptance letter and the staff checklist is a
+working directory.
 
-LEAD_STAGES was in the order lines were added to the file. The comment
-sitting in it said so:
+Also riding along: ScheduleAppointmentDialog's two approved strings from
+the booked-to-scheduled pass - "This schedules the {noun} for" and
+"Schedule the {noun} and move the card". Written and approved on
+9 October, parse-clean, never shipped.
 
-    "Deliberately NOT added to PIPELINE_STAGES below — that list drives
-     the board columns, and adding four columns is a visible change
-     nobody asked for."
+CAUGHT BY THE SUITE. Five failures, both of them fair.
 
-So the four Academy Way stages were appended to the bottom, and the
-control a school leader uses to move a child through admissions offered
-Interest Meeting Held and Tour Requested BELOW Assessment Scheduled.
+who-lands-where.test.ts asserted that Admissions does NOT open on the
+board for SCHOOL_LEADER, TEACHER or REGISTRAR, and that a person with no
+roles gets false. That was the old policy, correctly written down. It is
+now the new one, correctly written down. The case-insensitivity
+assertion moved to landsOnAdmissionsBoard rather than being deleted - it
+stopped meaning anything in a rule that returns true for everybody, and
+that is the only rule left reading role names.
 
-Reordered to the flow, numbered 1 to 18. Shadow days after the
-application - Jimmy ruled on it directly, and it matches
-ADMISSIONS_PIPELINE_STAGES, which has application at 70 and 80 and shadow
-days at 90 and 100.
+guides-exist.test.ts refused a module with no walkthrough, which is the
+test doing exactly its job: "a person clicking the thing that is meant to
+help them, not finding their job in the list, and never opening it
+again." Old Students now has a four-step guide.
 
-THE NUMBER IS A FIELD, NOT THE ARRAY INDEX. An index renumbers everything
-below any stage that is ever filtered, hidden or inserted. These numbers
-are what people will say to each other - "she's at 4, waiting on a tour" -
-so they are written down.
-
-ASSESSMENT SCHEDULED IS LAST AND UNNUMBERED. appointment-stages.ts already
-says "nothing in the codebase writes an assessment appointment anywhere",
-raised there as a question and never answered. No lead has ever been in
-it. Kept in the array so the type and any stored value survive, with no
-step, so it cannot pretend to be part of the flow.
-
-════════════════════════════════════════════════════════════════════════
-3. A button that offered what it could not do
-════════════════════════════════════════════════════════════════════════
-
-Cassandra Manghum, Specialized Teacher at The Academy Virtual, 9 October,
-on the Friday her timesheet was due:
-
-    "I see this: Put these 5 children on the other days of this class
-     but it is not allowing me to do so and it's not letting me edit the
-     other days of the week to add students."
-
-Her Monday had six children. Her Tuesday and Wednesday read "Nothing
-logged."
-
-copyRosterToMyOtherClassesAction copies a roster onto class entries that
-ALREADY EXIST. It has never created them. With one day on the week there
-was nothing to copy onto, so the action returned "There are no other days
-of this class on your week to copy to" - correct, and far too late. She
-had already pressed a button that told her those days existed.
-
-Then she did the sensible next thing and tried to add children straight
-to Tuesday, where there was no class to add them to, and got nowhere.
-
-THE SCREEN NOW KNOWS BEFORE SHE PRESSES. The view carries
-otherDaysOfThisClass per line, counted on COURSE ID - the same field the
-action matches on, so the button and the action cannot disagree about
-what exists. Matching on name would have promised a copy the action then
-refused, which is the fault being fixed, one layer down.
-
-With other days: "Put these 6 children on the other 4 days of this
-class", which also says how many.
-
-With none: no button, and the sentence she needed instead - add the class
-again above and tick every day you taught it, because a class taught on
-four days is four entries. Nothing on that screen had ever said so.
-
-════════════════════════════════════════════════════════════════════════
-WHAT THIS DOES NOT FIX
-════════════════════════════════════════════════════════════════════════
-
-TWO LISTS STILL DESCRIBE ONE FLOW. LEAD_STAGES here and
-ADMISSIONS_PIPELINE_STAGES in the registry. They now agree on order; they
-are still two places holding one fact, and they have different members -
-the registry has documents_pending and committee_review, this has
-records_requested and admissions_review. That is the same fault that
-produced $35 on the line and $20 in the total this morning. The dropdown
-should read the registry. Larger change, not this one.
-
-TOUR BOOKINGS STILL RECORD NO CAMPUS. Migration 523 pins the two upcoming
-GA tours by hand and the fallback covers the rest, but the booking flow
-itself still writes campus_id null. Until that is fixed every tour relies
-on the safety net.
-
-HS AND VIRTUAL SCHEDULE NO TOURS and have no building. The tour letter
-should not be reachable for them at all. No tour has ever been booked at
-either, so it is a guard to add rather than a fire to put out.
-
-"CALENDAR INVITE ATTACHED." Unverified. If no .ics is attached, that line
-tells a parent something untrue.
-
-Migration 523 carries the addresses, the two tour bookings and the
-template. Typecheck clean, 47 pay tests pass.
+RUN MIGRATION 534 FIRST. The code hides the tabs from anyone without
+admissions.tools, and until the migration runs nobody holds it - Jimmy
+and Danni included.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

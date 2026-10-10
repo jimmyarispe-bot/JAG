@@ -202,7 +202,10 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
   },
   {
     key: "waitlisted",
-    label: "Waitlisted",
+    // Renamed 10 Oct 2026. The stage is kept so Sedona Simeonov keeps her
+    // record and her forty-six days; the word is changed because what is
+    // true about her is that a decision has not been made.
+    label: "Decision Needed",
     color: "bg-orange-100 text-orange-800",
     order: 130,
     isTerminal: true,
@@ -211,7 +214,7 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
   },
   {
     key: "declined",
-    label: "Declined to Enroll",
+    label: "Declined",
     color: "bg-rose-100 text-rose-700",
     order: 140,
     isTerminal: true,
@@ -220,7 +223,7 @@ export const ADMISSIONS_PIPELINE_STAGES: PipelineStageDefinition[] = [
   },
   {
     key: "not_returning",
-    label: "Not Returning",
+    label: "Alumni",
     color: "bg-stone-100 text-stone-700",
     order: 150,
     isTerminal: true,

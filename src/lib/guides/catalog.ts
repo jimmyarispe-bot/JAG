@@ -190,23 +190,46 @@ export const GUIDE_AREAS: readonly GuideArea[] = [
         ],
       },
       {
-        id: "admissions.add-a-lead",
-        title: "Add a family who called or walked in",
-        summary: "An inquiry that did not come through the website.",
+        id: "admissions.old-students",
+        title: "Find a family who left, or one still waiting on a decision",
+        summary: "Declined, Alumni, and the children nobody has answered yet.",
         steps: [
-          { title: "Open New lead", href: "/dashboard/admissions/leads/new" },
           {
-            title: "Choose the campus first",
-            detail: "It decides which application and which booking link they get.",
-          },
-          {
-            title: "Put in the parent's email carefully",
+            title: "Open Old Students",
             detail:
-              "It is how every later message reaches them. JAG suggests a correction if it looks like a typo.",
+              "Three columns, your campus only: Decision Needed, Declined and Alumni. They are off the pipeline board so it only shows families still moving.",
+            href: "/dashboard/old-students",
           },
-          { title: "Save, then find them on the board", href: "/dashboard/admissions?view=pipeline" },
+          {
+            title: "Start with Decision Needed",
+            detail:
+              "The only column here waiting on a person. A child in it has not been told anything, and the number beside their name is how many days that has been true.",
+          },
+          {
+            title: "Open the child to see the whole history",
+            detail:
+              "What the family first wrote about them, your notes from the meeting, and every letter that went out.",
+          },
+          {
+            title: "Move them back if they are returning",
+            detail:
+              "Change the stage on the case page and the child rejoins the pipeline at whatever step you choose.",
+          },
         ],
       },
+      /*
+       * "Add a family who called or walked in" was removed on 10 October 2026.
+       *
+       * It walked a school leader to /dashboard/admissions/leads/new, which is
+       * a page she no longer has. Jimmy, the same day: "school leaders won't
+       * be able to add a lead without the parent going to the website and
+       * completing the inquiry form."
+       *
+       * The guide catalogue does not know who is reading it - every
+       * walkthrough is offered to everybody - so a guide for a page most of
+       * its readers cannot open is a guide that teaches them the help is not
+       * for them.
+       */
       {
         id: "admissions.import",
         title: "Bring in a list of leads",

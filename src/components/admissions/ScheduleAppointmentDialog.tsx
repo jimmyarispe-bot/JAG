@@ -231,7 +231,7 @@ export function ScheduleAppointmentDialog({
           >
             {complete && spelled ? (
               <>
-                <span className="font-medium">This books the {spec.noun} for:</span>{" "}
+                <span className="font-medium">This schedules the {spec.noun} for:</span>{" "}
                 {spelled}
               </>
             ) : (
@@ -304,7 +304,7 @@ export function ScheduleAppointmentDialog({
             disabled={busy}
             className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            {busy ? "Booking…" : `Book the ${spec.noun} and move the card`}
+            {busy ? "Scheduling…" : `Schedule the ${spec.noun} and move the card`}
           </button>
         </div>
       </div>

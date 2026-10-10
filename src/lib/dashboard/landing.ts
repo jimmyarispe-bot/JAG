@@ -18,19 +18,6 @@ function roles(ctx: IdentityContext): string[] {
   return (ctx.roles ?? []).map((role) => String(role).toUpperCase());
 }
 
-/**
- * The roles that run the admissions funnel rather than work a queue from it.
- *
- * These are role NAMES out of `roles.name`, which is what ctx.roles carries -
- * not display names, and not the strings used in RLS policies. Migration 289's
- * policy says has_role('CEO'), and CEO is not a role anybody in this network
- * actually holds; assuming it was Danni's cost a deploy. Hers are
- * EXECUTIVE_DIRECTOR, PLATFORM_OWNER and JAG_ORG_ADMIN.
- *
- * CEO stays in the list because the policy implies somebody could hold it, and
- * a name that matches nobody costs nothing.
- */
-const FUNNEL_ROLES = ["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR"];
 
 /**
  * Admissions opens on the Pipeline Board rather than Today's Work.
@@ -39,7 +26,28 @@ const FUNNEL_ROLES = ["FOUNDER", "CEO", "EXECUTIVE_DIRECTOR"];
  * every family", which is the question these people open the page with.
  */
 export function admissionsOpensOnBoard(ctx: IdentityContext): boolean {
-  return roles(ctx).some((role) => FUNNEL_ROLES.includes(role));
+  /*
+   * EVERYONE, SINCE 10 OCTOBER 2026. Jimmy, asked directly where a school
+   * leader should land: "all land on the pipeline board".
+   *
+   * It used to be FUNNEL_ROLES only, which meant Nina and Heather opened a
+   * task list and reached the board through a tab. That tab is now hidden
+   * from them, so the old rule would have left the two people who run
+   * admissions unable to reach the board at all.
+   *
+   * ctx is kept in the signature: the question "where does this person land"
+   * is still a per-person question, and the next change to it will need the
+   * person again.
+   *
+   * FUNNEL_ROLES went with the old rule. It listed FOUNDER, CEO and
+   * EXECUTIVE_DIRECTOR and was read by this function alone; leaving it here
+   * unread would have failed the build, and leaving it here at all would
+   * have left the next reader believing the funnel roles still decide
+   * something on this page. landsOnAdmissionsBoard below names its own roles
+   * inline and always did.
+   */
+  void ctx;
+  return true;
 }
 
 /**
