@@ -608,6 +608,38 @@ async function getTemplatesForTrigger(
   return [...byKey.values()];
 }
 
+/**
+ * THE FOUR LETTERS A SCHOOL LEADER IS NOT BLIND-COPIED ON.
+ *
+ * Every other family letter is - see the note inside deliverCommunication.
+ * These four are money, and Jimmy's rule on money has never moved:
+ *
+ *   "remember only danni n me see anything related to money"
+ *
+ * It came up on 10 October while reviewing the six letters that fire during
+ * the application. He said the two state-funding verifications are always
+ * him, never a school leader - and the blind copy we shipped the night
+ * before was putting all four of these in Nina's and Heather's inboxes,
+ * including the one carrying an Award Amount line. Asked whether to take
+ * them out: "yes".
+ *
+ * NOTHING HAS LEAKED. award_amount renders empty for a family who has not
+ * sent it, which is the only kind of family that letter reaches. The line
+ * exists, the copy was working, and that was enough.
+ *
+ * BY TEMPLATE KEY, NOT BY CATEGORY OR A GUESS AT THE WORDS. A category can
+ * be re-pointed in the editor by somebody who does not know this rule
+ * exists; a key is the letter itself. A new money letter has to be added
+ * here by hand, deliberately - which is the right amount of friction for a
+ * list whose whole job is keeping four addresses out of a mailbox.
+ */
+const NOT_COPIED_TO_THE_SCHOOL_LEADER: ReadonlySet<string> = new Set([
+  "state_funding_needed_email",
+  "funding_approved_email",
+  "funding_rejected_email",
+  "financial_aid_requested_email",
+]);
+
 async function deliverCommunication(
   supabase: AuthClient,
   params: {
@@ -735,7 +767,10 @@ async function deliverCommunication(
      * blind, and a parent must never learn her letter was copied.
      */
     const leaderBcc =
-      channel === "email" ? (params.mergeCtx.schoolLeaderBccEmail ?? "").trim() : "";
+      channel === "email" &&
+      !NOT_COPIED_TO_THE_SCHOOL_LEADER.has(params.template.template_key)
+        ? (params.mergeCtx.schoolLeaderBccEmail ?? "").trim()
+        : "";
 
     const emailResult = await sendTransactionalEmail({
       // The list, not the joined string. See the note above `recipients`.

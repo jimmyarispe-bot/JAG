@@ -1,30 +1,40 @@
-quiet students
+four money letters stop reaching the school leader
 
-Jimmy, an hour after Old Students shipped:
+Jimmy, 10 October, reviewing the six letters that fire while a family is
+filling in the application. On the two state-funding verifications:
 
-  "i like what you said so let's change this new page view from old
-   student to quiet students"
+  "5 n 6 are always me"
 
-What he liked was the objection to his own name. A declined family was
-never a student, and neither is the child sitting in Decision Needed.
-Quiet is what all three columns actually have in common: nothing is
-moving, and nobody is chasing.
+He does the funding verification, not the campus. Which surfaced what
+the blind copy shipped the night before was actually doing: every family
+letter on the email channel is copied to that campus's school leader,
+and four of these six are money -
 
-Renamed end to end rather than relabelled - the module id, the route,
-the sidebar entry, the page title, the icon case and the walkthrough all
-say quiet-students now. A route called /dashboard/old-students with a
-page titled Quiet Students is the same two-names-for-one-thing fault
-this week has been spent removing.
+  state_funding_needed_email        carries an Award Amount line
+  funding_approved_email
+  funding_rejected_email
+  financial_aid_requested_email
 
-THE THREE COLUMNS ARE OUT OF THE MORNING EMAIL BEFORE IT IS BUILT.
-Jimmy, in the same message: "i don't want any of these students we are
-moving to old student view sent in an email to school leaders. just move
-and leave." The 7am list, when it ships, reads only the live pipeline.
+So Nina and Heather were receiving blind copies of funding mail. Against
+a rule that has not moved since September: "remember only danni n me see
+anything related to money." Asked whether to take them out: "yes".
 
-That has one consequence worth naming: Sedona Simeonov, in Decision
-Needed since 25 August, will not be chased by email either. She is
-visible on the screen and nowhere else, and her mother has still not
-been told anything.
+NOTHING LEAKED. award_amount renders empty for a family who has not sent
+it, and that is the only kind of family the letter reaches. The line was
+in the letter and the copy was working, which is enough.
+
+BY TEMPLATE KEY. A category can be re-pointed in the template editor by
+somebody who has never heard of this rule; a key is the letter itself. A
+new money letter has to be added to the set by hand, which is the right
+amount of friction for a list whose only job is keeping four addresses
+out of a mailbox.
+
+The other two of the six - the portal welcome and the missing-documents
+chaser - keep their blind copy. They are not money and the school leader
+should see them.
+
+NOT TESTED HERE. vitest will not run against this checkout from Linux;
+the file parses clean and nothing more was proved.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
