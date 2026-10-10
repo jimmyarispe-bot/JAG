@@ -1,74 +1,67 @@
-the sidebar opens
+the booking scan runs every two minutes
 
-Jimmy, 10 October 2026:
+Jimmy booked an interest call with Danni for 7:00pm at 6:36pm as a test,
+and asked at 7:13 why she had no notes email.
 
-  "on the left sidebar i want to create/show these buttons like a website
-   where if you click on the main button it opens up sub menus/pages.
-   Create an Admissions button. and have Current Pipeline and another
-   Quiet Students"
+── WHAT WAS NOT WRONG ──────────────────────────────────────────────────────
 
-and, earlier the same afternoon:
+A dry run of the discovery pass answered most of it. Google is reachable,
+the token is good, all four calendars are read INCLUDING Danni's,
+calendarProblems empty, campusesWithNoCalendar empty, 210 bookings seen.
+The lead existed with his address on it, created 6:23pm, inside the
+90-day window; 337 leads considered, which is all of them. The queue is
+draining — 13 letters went out at 6:24pm, one minute after the test
+inquiry.
 
-  "i need a button on left sidebar that says teacher hrs/pay that will
-   take me to these pages"
+── WHAT I GOT WRONG, AND CORRECTED BEFORE WRITING ANY CODE ─────────────────
 
-── WHAT A PARENT IS NOW ────────────────────────────────────────────────────
+I told him the letter was being suppressed because the meeting had
+already started, and proposed a grace window. That was wrong. The
+post-call letter is ALREADY queued for a meeting in the past, on purpose,
+and the comment above it says why: the family's confirmation is worthless
+six weeks late, but "what happened and what should happen next" is
+exactly as useful late, because the decision it asks for has not been
+made. `if (alreadyHappened) continue` sits BELOW that block, not above
+it. I would have shipped a fix for a bug that does not exist.
 
-A module may carry `children`. One with children does not navigate when
-clicked - it opens. One without is a link, exactly as before, and every
-other entry in that list is untouched.
+── WHAT IS ACTUALLY UNEXPLAINED ────────────────────────────────────────────
 
-  Admissions          Current Pipeline  /dashboard/admissions
-                      Quiet Students    /dashboard/quiet-students
+The booking was never matched. Every silent exit in that loop was checked
+against the database and none applies: no admissions_interviews row, no
+admissions_tours row, stage is new_inquiry so the tour branch is not
+taken, bookedAt empty. matchBookingToLead reads event.attendees[].email
+and nothing else, so the remaining explanation is that his address is not
+a guest on that event — Google's appointment schedules put the booker in
+the notification body, which the matcher never reads.
 
-  Teacher Hrs/Pay     This week         /dashboard/finance/teacher-pay
-                      Monthly           /dashboard/finance/teacher-pay/monthly
+NOT FIXED HERE. Widening the matcher to read the booker out of the
+description is a real change to how a family is identified, and it waits
+until somebody has looked at the actual guest list on that event.
 
-QUIET STUDENTS STOPS BEING A TOP-LEVEL MODULE. It was one for half a day
-and never belonged beside Finance and Teacher Studio - it is the other
-half of admissions, not a department.
+── WHAT THIS COMMIT DOES ───────────────────────────────────────────────────
 
-THE ONE YOU ARE STANDING IN IS ALWAYS OPEN, whatever the viewer last
-clicked. Arriving on Quiet Students from a link and finding Admissions
-collapsed, with nothing saying where you are, is the failure this has to
-avoid.
+  "2. run every 2 minutes"
 
-── TWO WAYS TO BE IN TWO PLACES AT ONCE, BOTH CLOSED ───────────────────────
+booking-scan moves from hourly to every two minutes. It reads calendars,
+records bookings and queues the notes letter; it writes no chase letters
+and takes no night claim, so the frequency costs little. With the
+five-minute drain behind it the worst case is about seven minutes from
+booking to inbox, against sixty before.
 
-Both are the same bug at two scales, and both come from startsWith.
+The hourly pass was built on 5 October against "usually not before 3
+hours" of notice. Twenty-four minutes defeats it.
 
-  CHILDREN. "This week" is /dashboard/finance/teacher-pay and "Monthly"
-  is one segment below it, so a plain prefix test lights up both.
+── A STALE COMMENT, CORRECTED WHILE I WAS IN THERE ─────────────────────────
 
-  MODULES. Teacher Hrs/Pay lives UNDER /dashboard/finance, so standing on
-  the paysheet lit up Finance as well.
+The note beside the queueing call said process-communications ran hourly
+and called the gap "a Vercel plan question rather than a code one". The
+drain has been on five minutes for some time, and the plan question just
+got an answer.
 
-Longest match wins, in both cases, over the modules this viewer can
-actually see - so a module hidden by permissions cannot steal the
-highlight from one that is drawn.
-
-── NO NEW PERMISSION FOR THE PAYSHEET ──────────────────────────────────────
-
-Teacher Hrs/Pay is mapped to the same four finance keys as Finance
-itself, and the database already DENIES all four to SCHOOL_LEADER -
-migration 349 wrote those denials when School Leaders were taken off the
-money. Nina and Heather never see the entry, enforced by the rows that
-already hide Finance rather than by anything written today.
-
-── CAUGHT BEFORE SHIPPING ──────────────────────────────────────────────────
-
-deepestActiveHref read `modules` twelve lines before `modules` was
-declared. A temporal dead zone throw on the very first render, which
-parses perfectly and takes the whole sidebar down with it. Moved below,
-with a comment saying why it must stay there.
-
-The guides test refuses a module with no walkthrough - it caught the
-Quiet Students module this morning. Teacher Hrs/Pay has a five-step one,
-and every module href was checked against the catalogue the same way the
-test does before this was staged.
-
-NOT TESTED HERE. vitest will not run against this checkout from Linux.
-Every file parses clean and nothing more was proved.
+Its first draft spelled both schedules as real cron expressions inside a
+block comment. The slash-star in them closed the comment three lines
+early and the file stopped parsing. They are written in words now, with a
+note saying why.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

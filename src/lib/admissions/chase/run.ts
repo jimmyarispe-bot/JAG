@@ -744,11 +744,25 @@ export async function runInterestMeetingScan(
      * child.
      *
      * "THE EXACT TIME" IS AS EXACT AS THE SENDER ALLOWS. scheduled_for is set
-     * to the appointment's start, to the second. The queue that delivers it,
-     * /api/admissions/process-communications, runs on `0 * * * *` - so a
-     * meeting at 2:15pm produces a letter at 3:00pm. Closing that gap means a
-     * more frequent cron, which is a Vercel plan question rather than a code
-     * one. The row carries the honest time either way.
+     * to the appointment's start, to the second. Two crons stand between that
+     * and an inbox:
+     *
+     *   booking-scan             every 2 minutes   finds the booking
+     *   process-communications    every 5 minutes   drains the queue
+     *
+     * (Written in words, not cron. The first draft of this comment put the
+     * real expressions here and the slash-star in them closed the comment
+     * block three lines early, which does not parse.)
+     *
+     * So the worst case is about seven minutes from booking to letter, and
+     * the row carries the honest time regardless.
+     *
+     * THIS COMMENT USED TO SAY THE DRAIN RAN HOURLY and called the gap "a
+     * Vercel plan question rather than a code one". Both were stale: the
+     * drain has been on five minutes for some time, and on 10 October Jimmy
+     * answered the plan question - "run every 2 minutes" - after booking a
+     * meeting twenty-four minutes ahead and watching the hourly discovery
+     * pass miss it.
      *
      * IT IS QUEUED EVEN FOR A MEETING THAT HAS ALREADY HAPPENED, deliberately
      * - the one letter here for which the past is not a reason to stay

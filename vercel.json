@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/admissions/booking-scan",
-      "schedule": "0 * * * *"
+      "schedule": "*/2 * * * *"
     },
     {
       "path": "/api/admissions/process-communications",
