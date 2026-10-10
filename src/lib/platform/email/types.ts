@@ -23,6 +23,15 @@ export type SendEmailParams = {
   from?: string;
   fromName?: string;
   replyTo?: string;
+  /**
+   * Blind copy. Added 9 October 2026 for the school leader, who had never
+   * seen the letters going out over her own name.
+   *
+   * BLIND, AND THAT IS THE WHOLE POINT. A parent must not learn that her
+   * letter was copied to anyone - cc would tell her. divert.ts strips this
+   * along with the recipient, so a diverted test never reaches a real leader.
+   */
+  bcc?: string | string[];
   /** Optional classification for logging / templates. */
   kind?: EmailKind;
 };

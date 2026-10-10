@@ -185,7 +185,13 @@ export function divertEmail(params: SendEmailParams): SendEmailParams | null {
       params.replyTo && allowed.includes(params.replyTo.trim().toLowerCase())
         ? params.replyTo
         : undefined;
-    return { ...params, replyTo };
+    /*
+     * THE BLIND COPY IS DROPPED EVEN HERE, where the recipient is allowed.
+     * An excepted address is one person testing their own mail. The school
+     * leader did not ask to be copied on a test, and a BCC she cannot see
+     * coming is the one kind of mail nobody thinks to check.
+     */
+    return { ...params, replyTo, bcc: undefined };
   }
 
   const intended = asList(params.to);
@@ -207,5 +213,14 @@ export function divertEmail(params: SendEmailParams): SendEmailParams | null {
     text: params.text ? banner + params.text : undefined,
     /* See the note above. Not optional. */
     replyTo: undefined,
+    /*
+     * AND THE BLIND COPY GOES WITH IT.
+     *
+     * Divert the message, leave the bcc on, and a test letter addressed to
+     * nobody real still lands silently in Nina's inbox - from a run whose
+     * entire purpose was that no outsider receives anything. She would have
+     * no way to tell it from a real one, because that is what blind means.
+     */
+    bcc: undefined,
   };
 }

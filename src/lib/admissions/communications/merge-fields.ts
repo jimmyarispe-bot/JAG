@@ -54,6 +54,13 @@ export interface MergeContext {
   admissionsContactName?: string | null;
   admissionsContactEmail?: string | null;
   /**
+   * Blind-copied on letters to the family. Carried on the context because it
+   * is resolved from the lead's school exactly like every other campus fact,
+   * and deliberately NOT exposed as a {{merge field}} - nothing a parent can
+   * read may name her.
+   */
+  schoolLeaderBccEmail?: string | null;
+  /**
    * Every address to notify when an inquiry arrives. Distinct from
    * `admissionsContactEmail`, which is the one person who signs parent mail and
    * whose calendar is booked — see migration 327.

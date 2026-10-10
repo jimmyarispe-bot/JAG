@@ -59,6 +59,18 @@ export function createResendEmailProvider(apiKey: string): EmailProvider {
         };
       }
 
+      /*
+       * THE BCC GETS THE SAME GUARD AS THE RECIPIENTS, for the same reason:
+       * one joined string is a 422 nobody watches for. A malformed blind copy
+       * must not take the family's letter down with it, though - so a bad
+       * address here is DROPPED and the letter still goes. The school leader
+       * missing one copy is a smaller harm than a parent missing her letter.
+       */
+      const blindCopies = (Array.isArray(params.bcc) ? params.bcc : params.bcc ? [params.bcc] : [])
+        .map((e) => e.trim())
+        .filter(Boolean)
+        .filter((e) => e.includes("@") && !e.includes(",") && !/\s/.test(e));
+
       const fromEmail = resolveEmailFrom(params.from);
       const fromName = resolveEmailFromName(params.fromName);
 
@@ -70,6 +82,7 @@ export function createResendEmailProvider(apiKey: string): EmailProvider {
           html: asHtml(params.body),
           ...(params.text?.trim() ? { text: params.text } : {}),
           ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+          ...(blindCopies.length ? { bcc: blindCopies } : {}),
         });
 
         if (error) {

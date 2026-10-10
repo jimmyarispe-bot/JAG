@@ -73,6 +73,13 @@ type SchoolContact = {
   admissions_from_email?: string | null;
   shadow_days_url?: string | null;
   tour_booking_url?: string | null;
+  /**
+   * Added 9 October 2026, migration 529. The school leader blind-copied on
+   * every letter this school sends a family. NOT admissions_contact_email -
+   * that is who a parent replies to, this is who is accountable for what the
+   * school says. Null means nobody is copied, and never a fallback.
+   */
+  school_leader_bcc_email?: string | null;
 };
 
 type LeadStaffHint = {
@@ -250,6 +257,7 @@ function buildMergeContextFromParts(
     schoolName: schoolNameFromLead(lead),
     admissionsContactName: clean(schoolOf(lead)?.admissions_contact_name),
     admissionsContactEmail: clean(schoolOf(lead)?.admissions_contact_email),
+    schoolLeaderBccEmail: clean(schoolOf(lead)?.school_leader_bcc_email),
     schedulingUrl: clean(schoolOf(lead)?.admissions_booking_url),
     shadowDaysUrl: clean(schoolOf(lead)?.shadow_days_url),
     /*
@@ -706,6 +714,29 @@ async function deliverCommunication(
      */
     const from = params.mergeCtx.fromEmail?.trim() || undefined;
 
+    /*
+     * THE SCHOOL LEADER SEES WHAT WENT OUT IN HER NAME.
+     *
+     * Heather Badger-Brown, 9 October, forwarding a letter sent FROM her own
+     * address, signed "The Academy Virtual Admissions", that she had never
+     * seen: "I wasn't invited to this interview. Jag wants my job."
+     *
+     * Jimmy: "anything that is sent from/on behalf of the school to a parent
+     * needs to have the school leader blind copied in." Every family letter,
+     * the strict reading of that sentence, confirmed on the 9th.
+     *
+     * FAMILY LETTERS ONLY. A staff_email already goes TO her; copying her on
+     * her own mail is noise. channel === "email" is the family's post.
+     *
+     * NO FALLBACK. An empty column copies nobody. Guessing would mean a
+     * person reading a family's mail because a field was blank.
+     *
+     * Not a merge field, so no template can print it: blind has to stay
+     * blind, and a parent must never learn her letter was copied.
+     */
+    const leaderBcc =
+      channel === "email" ? (params.mergeCtx.schoolLeaderBccEmail ?? "").trim() : "";
+
     const emailResult = await sendTransactionalEmail({
       // The list, not the joined string. See the note above `recipients`.
       to: recipients.filter(Boolean),
@@ -714,6 +745,7 @@ async function deliverCommunication(
       ...(from ? { from } : {}),
       ...(fromName ? { fromName } : {}),
       ...(replyTo ? { replyTo } : {}),
+      ...(leaderBcc ? { bcc: leaderBcc } : {}),
     });
     deliveryStatus = emailResult.success ? "sent" : "failed";
     deliveryError = emailResult.error ?? null;
