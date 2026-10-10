@@ -1,6 +1,12 @@
 /**
- * OLD STUDENTS — the families who left the pipeline, and the ones still
+ * QUIET STUDENTS — the families who left the pipeline, and the ones still
  * waiting on a decision nobody has made.
+ *
+ * RENAMED FROM OLD STUDENTS the same day it was built. A declined family was
+ * never a student and neither is the child in Decision Needed; what all three
+ * columns have in common is that nothing is moving and nobody is chasing.
+ * Jimmy: "let's change this new page view from old student to quiet
+ * students".
  *
  * Jimmy, 10 October 2026:
  *
@@ -72,7 +78,7 @@ export default async function OldStudentsPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Old Students"
+        title="Quiet Students"
         subtitle="Families who have gone, and the ones still waiting on a decision"
         actions={
           <Link

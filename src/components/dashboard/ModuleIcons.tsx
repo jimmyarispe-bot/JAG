@@ -152,7 +152,7 @@ export function ModuleIcon({
           />
         </svg>
       );
-    case "old-students":
+    case "quiet-students":
       return (
         <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
           <rect x="3" y="4" width="18" height="4" rx="1" stroke="currentColor" strokeWidth="1.75" />

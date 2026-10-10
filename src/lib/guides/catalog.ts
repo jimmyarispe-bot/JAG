@@ -190,15 +190,15 @@ export const GUIDE_AREAS: readonly GuideArea[] = [
         ],
       },
       {
-        id: "admissions.old-students",
+        id: "admissions.quiet-students",
         title: "Find a family who left, or one still waiting on a decision",
         summary: "Declined, Alumni, and the children nobody has answered yet.",
         steps: [
           {
-            title: "Open Old Students",
+            title: "Open Quiet Students",
             detail:
               "Three columns, your campus only: Decision Needed, Declined and Alumni. They are off the pipeline board so it only shows families still moving.",
-            href: "/dashboard/old-students",
+            href: "/dashboard/quiet-students",
           },
           {
             title: "Start with Decision Needed",

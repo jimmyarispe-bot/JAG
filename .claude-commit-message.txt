@@ -1,113 +1,30 @@
-one screen for a school leader, and a place for the families who left
+quiet students
 
-Jimmy, 10 October, looking at a board where a third of the cards were
-people who had already gone, and at a dropdown offering nineteen stages
-of which six are not part of the flow:
+Jimmy, an hour after Old Students shipped:
 
-  "rename Admission Crm to Current Admissions Pipeline and take out all
-   of these highlighted for everyones view except mine"
-  "create a new button on left sidebar that says old students"
-  "the Declined, waitlisted and not returning should be taken out of the
-   current admissions crm"
-  "all land on the pipeline board"
+  "i like what you said so let's change this new page view from old
+   student to quiet students"
 
-336 children were on the board. 97 of them had left.
+What he liked was the objection to his own name. A declined family was
+never a student, and neither is the child sitting in Decision Needed.
+Quiet is what all three columns actually have in common: nothing is
+moving, and nobody is chasing.
 
-THE STAGES NOW HAVE THREE GROUPS. pipeline is the thirteen numbered steps
-of the live flow and is all a card's dropdown offers. closed is the three
-Old Students columns. retired is Records Requested, Admissions Review and
-Assessment Scheduled - offered nowhere, kept so the type and any stored
-value survive, and so assessment can come back when it is built.
+Renamed end to end rather than relabelled - the module id, the route,
+the sidebar entry, the page title, the icon case and the walkthrough all
+say quiet-students now. A route called /dashboard/old-students with a
+page titled Quiet Students is the same two-names-for-one-thing fault
+this week has been spent removing.
 
-Every stage stays in LEAD_STAGES. A stage removed from that array is a
-stage leadStageLabel cannot name, and the registry's own comment records
-what that costs: Julian Oubre Towa vanished from the board in September
-because one stage was missing from one list.
+THE THREE COLUMNS ARE OUT OF THE MORNING EMAIL BEFORE IT IS BUILT.
+Jimmy, in the same message: "i don't want any of these students we are
+moving to old student view sent in an email to school leaders. just move
+and leave." The 7am list, when it ships, reads only the live pipeline.
 
-TWO RENAMES, NOT TWO NEW STAGES.
-
-  waitlisted     -> "Decision Needed"
-  not_returning  -> "Alumni"
-
-Sedona Simeonov has been on waitlisted since 25 August and nobody has
-told her mother anything, because the waitlist letter is switched on and
-no code path reaches it. A rename carries her across with her record and
-her forty-six days; a new stage would have meant moving her by hand.
-
-Thirteen children were "Not Returning", which is the one thing that never
-said about them: they were students here.
-
-A third mismatch fixed in passing - the board said "Declined to Enroll"
-and the dropdown said "Declined". Same thing, two names.
-
-THE TOOLS ARE A PERMISSION, NOT TWO NAMES. admissions.tools, granted to
-FOUNDER and EXECUTIVE_DIRECTOR, which today is Jimmy and Danni and nobody
-else. founder-protection.ts states the rule: "Call sites must never check
-role names - use authorize()/hasPermission()." PLATFORM_OWNER was the
-obvious-looking choice and is wrong - Stacy Kenworthy holds it too.
-
-EVERYONE NOW LANDS ON THE BOARD. The old rule sent only FUNNEL_ROLES
-there; Nina and Heather landed on a task list and reached the board
-through a tab - the tab this commit hides from them. Without the landing
-change they would have lost the board entirely.
-
-A SCHOOL LEADER CANNOT ADD A LEAD, deliberately. "school leaders won't be
-able to add a lead without the parent going to the website and completing
-the inquiry form." That is a rule about how a child enters The JAG, not a
-missing button: every child then arrived the same way, with the parent's
-own words on the record.
-
-NOT TESTED HERE. vitest will not run against this checkout from the Linux
-side - node_modules carries the Windows rollup binary and
-@rollup/rollup-linux-x64-gnu is absent. Every changed file parses clean
-via ts.createSourceFile and nothing more than that was proved. The
-typecheck and the suite run on the way out.
-
-Caught before shipping: removing the funnel-role check left FUNNEL_ROLES
-read by nothing, which would have failed the build.
-
-CAUGHT BY THE TYPECHECK, NOT BY ME. KanbanBoard used LEAD_STAGES in
-three places - a type position at line 80, the column list at 115, the
-dropdown at 231 - and the first pass renamed the import while replacing
-only the dropdown. tsc found all three plus five implicit-any errors
-cascading off them. The column list now uses SELECTABLE_LEAD_STAGES like
-the dropdown, and the type position uses the exported LeadStageValue
-instead of indexing the array.
-
-Every file touched was then grepped for the renamed identifier, which is
-the check that would have caught it the first time and did not exist.
-
-FIVE MIGRATIONS THAT EXISTED ONLY ON ONE LAPTOP, AGAIN. 529 through 533
-were written last night, four of them were run against production, and
-none of them was ever committed - the same fault as the forty-six caught
-on 9 October, four days younger. They go in here. Without this commit the
-only copy of the school-leader BCC, the campus-specific confirmations,
-booked-to-scheduled, the acceptance letter and the staff checklist is a
-working directory.
-
-Also riding along: ScheduleAppointmentDialog's two approved strings from
-the booked-to-scheduled pass - "This schedules the {noun} for" and
-"Schedule the {noun} and move the card". Written and approved on
-9 October, parse-clean, never shipped.
-
-CAUGHT BY THE SUITE. Five failures, both of them fair.
-
-who-lands-where.test.ts asserted that Admissions does NOT open on the
-board for SCHOOL_LEADER, TEACHER or REGISTRAR, and that a person with no
-roles gets false. That was the old policy, correctly written down. It is
-now the new one, correctly written down. The case-insensitivity
-assertion moved to landsOnAdmissionsBoard rather than being deleted - it
-stopped meaning anything in a rule that returns true for everybody, and
-that is the only rule left reading role names.
-
-guides-exist.test.ts refused a module with no walkthrough, which is the
-test doing exactly its job: "a person clicking the thing that is meant to
-help them, not finding their job in the list, and never opening it
-again." Old Students now has a four-step guide.
-
-RUN MIGRATION 534 FIRST. The code hides the tabs from anyone without
-admissions.tools, and until the migration runs nobody holds it - Jimmy
-and Danni included.
+That has one consequence worth naming: Sedona Simeonov, in Decision
+Needed since 25 August, will not be chased by email either. She is
+visible on the screen and nowhere else, and her mother has still not
+been told anything.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

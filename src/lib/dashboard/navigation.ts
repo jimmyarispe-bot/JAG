@@ -21,7 +21,7 @@ export type ModuleId =
   | "scholarships"
   | "finance"
   | "hr"
-  | "old-students";
+  | "quiet-students";
 
 export interface DashboardModule {
   id: ModuleId;
@@ -62,7 +62,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     ],
   },
   /*
-   * OLD STUDENTS. Added 10 October 2026, at Jimmy's instruction.
+   * QUIET STUDENTS. Added 10 October 2026, at Jimmy's instruction.
    *
    *   "create a new button on left sidebar that says old students"
    *   "in the old students view/screen the only columns should be Decision
@@ -73,17 +73,20 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
    * have to read past is a board nobody reads. They are not deleted and not
    * hidden; they are somewhere else, with their own screen.
    *
-   * THE NAME IS HIS, AND IT IS NOT QUITE RIGHT. A declined family was never a
-   * student, and neither was the child in Decision Needed. He was told and
-   * answered "old students for now", so it stays until he picks another.
+   * IT WAS CALLED OLD STUDENTS FOR HALF A DAY. The objection was that a
+   * declined family was never a student and neither is the child in Decision
+   * Needed; Jimmy answered "old students for now" and then, an hour later,
+   * picked the better word himself - "let's change this new page view from
+   * old student to quiet students". Quiet is what they have in common: none
+   * of them is moving, and none of them is being chased.
    */
   {
-    id: "old-students",
-    href: "/dashboard/old-students",
-    sidebarLabel: "Old Students",
-    pageTitle: "Old Students",
+    id: "quiet-students",
+    href: "/dashboard/quiet-students",
+    sidebarLabel: "Quiet Students",
+    pageTitle: "Quiet Students",
     pageSubtitle: "Families who have gone, and the ones still waiting on a decision",
-    placeholderTitle: "Old Students",
+    placeholderTitle: "Quiet Students",
     placeholderDescription:
       "Children who left the admissions pipeline - declined, alumni, or waiting on a decision nobody has made yet.",
     placeholderFeatures: [
