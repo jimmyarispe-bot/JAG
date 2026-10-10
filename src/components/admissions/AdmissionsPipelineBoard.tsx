@@ -25,8 +25,8 @@ import {
 } from "@/lib/admissions/board-filters";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
 import {
+  BOARD_STAGE_OPTIONS,
   LEAD_STAGES,
-  PIPELINE_LEAD_STAGES,
   type LeadStageValue,
 } from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
@@ -284,10 +284,10 @@ export function AdmissionsPipelineBoard({ leads, decisionGates }: AdmissionsPipe
                         * September's lesson: a card with nowhere to go does
                         * not announce itself, it just looks wrong.
                         */}
-                      {(PIPELINE_LEAD_STAGES.some((s) => s.value === lead.lead_stage)
-                        ? PIPELINE_LEAD_STAGES
+                      {(BOARD_STAGE_OPTIONS.some((s) => s.value === lead.lead_stage)
+                        ? BOARD_STAGE_OPTIONS
                         : [
-                            ...PIPELINE_LEAD_STAGES,
+                            ...BOARD_STAGE_OPTIONS,
                             ...LEAD_STAGES.filter((s) => s.value === lead.lead_stage),
                           ]
                       ).map((s) => (

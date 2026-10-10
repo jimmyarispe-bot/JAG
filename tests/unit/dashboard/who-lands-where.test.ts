@@ -112,8 +112,22 @@ describe("Signing in goes straight to the board", () => {
     expect(landsOnAdmissionsBoard(person(role))).toBe(false);
   });
 
-  it("not for a School Leader", () => {
-    expect(landsOnAdmissionsBoard(person("SCHOOL_LEADER"))).toBe(false);
+  /**
+   * CHANGED 10 OCTOBER 2026, and this test was right until that morning.
+   *
+   * A school leader used to land on Home and reach the board through a
+   * Quick Launch tile. Then the tabs came off her Admissions page, leaving
+   * the board as the only screen there - and she was still being shown a
+   * menu first. Jimmy, looking at Nina's screen: "why isnt it current
+   * students pipeline".
+   */
+  it("for a School Leader — Nina and Heather", () => {
+    expect(landsOnAdmissionsBoard(person("SCHOOL_LEADER"))).toBe(true);
+  });
+
+  /** A teacher's morning is her roster, not a funnel. */
+  it.each(["TEACHER", "TEAM_MEMBER", "REGISTRAR"])("not for %s", (role) => {
+    expect(landsOnAdmissionsBoard(person(role))).toBe(false);
   });
 });
 

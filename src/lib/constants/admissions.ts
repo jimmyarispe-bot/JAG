@@ -118,6 +118,36 @@ export type LeadStageValue = (typeof LEAD_STAGES)[number]["value"];
 export const PIPELINE_LEAD_STAGES = LEAD_STAGES.filter((s) => s.group === "pipeline");
 
 /**
+ * What the dropdown on a card offers: the thirteen steps, then one way off
+ * the board.
+ *
+ * "MOVE TO QUIET" IS A VERB. The thirteen above it are states - where a
+ * child is. This one is an instruction: take this family off the pipeline.
+ * They land in Decision Needed, the first Quiet Students column, because
+ * that is what is true about them the moment a leader parks them - nothing
+ * is moving and somebody still has to decide. Declined and Alumni are
+ * judgements, and they are made on the Quiet Students page once the child is
+ * out of the way of the families still in play.
+ *
+ * SO ONE STAGE CARRIES TWO WORDS, DELIBERATELY. The card says "Move to
+ * Quiet" because the leader is doing something; the column says "Decision
+ * Needed" because that is where they have arrived. Everywhere else in this
+ * build two names for one thing has been a fault - this is the exception,
+ * and it is written down so the next person does not quietly "fix" it.
+ *
+ * Added 10 October 2026, because taking Declined, Decision Needed and Alumni
+ * out of this dropdown that morning left a board with no exit at all.
+ */
+export const BOARD_STAGE_OPTIONS: readonly {
+  value: LeadStageValue;
+  step: number | null;
+  label: string;
+}[] = [
+  ...PIPELINE_LEAD_STAGES.map((s) => ({ value: s.value, step: s.step, label: s.label })),
+  { value: "waitlisted", step: null, label: "Move to Quiet" },
+];
+
+/**
  * The three Old Students columns, in the order Jimmy named them:
  * "Decision Needed, Declined, and Alumni".
  */

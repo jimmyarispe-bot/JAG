@@ -29,36 +29,52 @@ export {
  * into a column nobody can see. The keys remain valid so an existing lead
  * carrying one still resolves; they are simply no longer a destination.
  */
+/*
+ * WAITLISTED IS REACHABLE FROM EVERYWHERE, SINCE 10 OCTOBER 2026.
+ *
+ * It is the stage behind Decision Needed, the first of the three Quiet
+ * Students columns, and the board's new "Move to Quiet" option sets it. The
+ * other two Quiet columns - declined and not_returning - have always been
+ * reachable from every stage; this one was reachable only from
+ * shadow_day_completed, which left Quiet Students with three columns and two
+ * ways in.
+ *
+ * Nothing here is enforced. transitionCaseStage does not consult this table;
+ * it is read to render the suggested-next-step list on the case page. Adding
+ * waitlisted keeps that suggestion honest rather than unlocking anything.
+ */
 const ALLOWED_TRANSITIONS: Partial<
   Record<AdmissionsPipelineStageKey, AdmissionsPipelineStageKey[]>
 > = {
-  inquiry: ["interest_meeting_requested", "declined", "not_returning"],
+  inquiry: ["interest_meeting_requested", "waitlisted", "declined", "not_returning"],
   interest_meeting_requested: [
     "interest_call_scheduled",
     "interest_meeting_held",
     "tour_requested",
+    "waitlisted",
     "declined",
     "not_returning",
   ],
-  interest_call_scheduled: ["interest_meeting_held", "declined", "not_returning"],
+  interest_call_scheduled: ["interest_meeting_held", "waitlisted", "declined", "not_returning"],
   // Gate 1 (invite_to_apply) opens here and at tour_conducted.
   interest_meeting_held: [
     "tour_requested",
     "application_started",
+    "waitlisted",
     "declined",
     "not_returning",
   ],
-  tour_requested: ["tour_scheduled", "declined", "not_returning"],
-  tour_scheduled: ["tour_conducted", "declined", "not_returning"],
-  tour_conducted: ["application_started", "declined", "not_returning"],
-  application_started: ["application_submitted", "declined", "not_returning"],
+  tour_requested: ["tour_scheduled", "waitlisted", "declined", "not_returning"],
+  tour_scheduled: ["tour_conducted", "waitlisted", "declined", "not_returning"],
+  tour_conducted: ["application_started", "waitlisted", "declined", "not_returning"],
+  application_started: ["application_submitted", "waitlisted", "declined", "not_returning"],
   // Gate 2 (invite_to_shadow_days) opens here.
-  application_submitted: ["shadow_day_scheduled", "declined", "not_returning"],
-  shadow_day_scheduled: ["shadow_day_completed", "declined", "not_returning"],
+  application_submitted: ["shadow_day_scheduled", "waitlisted", "declined", "not_returning"],
+  shadow_day_scheduled: ["shadow_day_completed", "waitlisted", "declined", "not_returning"],
   // Gate 3 (accept_or_deny) opens here. This is the Decision column on the
   // board, and answering it is what moves the family on.
   shadow_day_completed: ["accepted", "waitlisted", "declined", "not_returning"],
-  accepted: ["enrollment_complete", "declined", "not_returning"],
+  accepted: ["enrollment_complete", "waitlisted", "declined", "not_returning"],
   waitlisted: ["accepted", "declined", "enrollment_complete"],
 };
 

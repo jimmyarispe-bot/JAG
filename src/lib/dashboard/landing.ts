@@ -69,7 +69,30 @@ export function admissionsOpensOnBoard(ctx: IdentityContext): boolean {
 export function landsOnAdmissionsBoard(ctx: IdentityContext): boolean {
   const held = roles(ctx);
   if (held.includes("FOUNDER")) return false;
-  return held.includes("EXECUTIVE_DIRECTOR") || held.includes("CEO");
+  return (
+    held.includes("EXECUTIVE_DIRECTOR") ||
+    held.includes("CEO") ||
+    /*
+     * SCHOOL_LEADER, ADDED 10 OCTOBER 2026.
+     *
+     * Jimmy, looking at Nina Gaddy's actual screen: "this is what nina is
+     * seeing right now when she signs into the jag. why isnt it current
+     * students pipeline".
+     *
+     * She was seeing Home - a welcome card and a Quick Launch grid - with
+     * the board one click behind a tile. That was already odd and became
+     * indefensible the same morning, when the tabs came off her Admissions
+     * page: the board is now the ONLY screen she has there, and she was
+     * still being shown a menu first.
+     *
+     * admissionsOpensOnBoard, four functions up, decides what the Admissions
+     * page opens on and was changed earlier today to "everyone". This is the
+     * other half of the same question and was missed: that one runs once she
+     * reaches Admissions, this one decides whether signing in takes her
+     * there at all.
+     */
+    held.includes("SCHOOL_LEADER")
+  );
 }
 
 /** The board, as a URL, in one place so the two callers cannot drift. */
