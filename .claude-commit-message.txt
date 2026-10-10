@@ -1,76 +1,51 @@
-nina signs in onto the board, and the board gets an exit
+the tour invitation goes live at GA and FL
 
-THREE THINGS, ALL FROM JIMMY LOOKING AT A REAL SCREEN.
+Migration 537, run against production at 13:19 on 10 October. Both
+campuses report ON, both links resolve, and the readiness count is 2.
 
-── 1. SIGNING IN ───────────────────────────────────────────────────────────
+Jimmy, on the tour step: "do 1 n 2".
 
-  "this is what nina is seeing right now when she signs into the jag.
-   why isnt it current students pipeline"
+── 1 ───────────────────────────────────────────────────────────────────────
 
-She was seeing Home — a welcome card and a Quick Launch grid, with the
-board one click behind a tile.
+tour_invitation_email switched on at The Academy GA and The Academy FL.
+The letter was written on 5 October in migration 508 and seeded dark,
+which is the rule: words ship switched off and are armed once Jimmy has
+read them. He read them on the chart at T1.
 
-TWO RULES, AND THIS MORNING ONLY ONE OF THEM MOVED. admissionsOpensOnBoard
-decides what the Admissions PAGE opens on and was changed to "everyone"
-in 947ed734. landsOnAdmissionsBoard decides whether signing in takes you
-there at all, and still named EXECUTIVE_DIRECTOR and CEO. Both live in
-landing.ts, eight lines apart, and I changed one.
+── 2 ───────────────────────────────────────────────────────────────────────
 
-It became indefensible the same morning rather than merely odd: the tabs
-came off her Admissions page in that commit, so the board is now the ONLY
-screen she has there — and she was still being shown a menu first.
+ADMISSIONS_TOUR_GATE = on, production. Set by hand in the Vercel
+dashboard — this session's Vercel connection is forbidden the environment
+endpoint, read and write both (403 on the scope, not a retryable error).
 
-FOUNDER stays excluded. The founder dashboard leads with the numbers on
-purpose. Teachers, team members and registrars stay excluded too, and are
-now asserted rather than assumed.
+THE ORDER WAS THE WHOLE POINT. Gate first and letter second means a GA or
+FL family is moved to Tour Requested and sent nothing: waiting on a link
+that was never posted, while the board says we are waiting on them. The
+migration's last verify row exists only to refuse the gate until both
+campuses can actually write to a family.
 
-── 2. THE BOARD HAD NO EXIT ────────────────────────────────────────────────
+── WHAT CHANGES FOR A SCHOOL LEADER ────────────────────────────────────────
 
-  "also add in the dropdown under the last step - Move to Quiet and
-   whenever that is selected move student to Quiet Students page"
+At GA and FL only. The post-call page's third button becomes "Send the
+tour request" instead of "Send the shadow day invite", and the
+invite-to-apply gate stops opening at interest_meeting_held — it opens at
+tour_completed instead, once Nina or Danni has marked the tour conducted.
 
-Taking Declined, Decision Needed and Alumni out of the card dropdown that
-morning left a board a child could enter and never leave. One option now
-sits under the thirteenth step.
+Virtual and HS are untouched. campusRunsTours() refuses them, neither has
+a tour_booking_url, and neither has a tour_invitation_email row at all.
 
-"MOVE TO QUIET" IS A VERB; the thirteen above it are states. It sets
-waitlisted, so they land in Decision Needed — because that is what is
-true the moment a leader parks a family: nothing is moving and somebody
-still has to decide. Declined and Alumni are judgements, made on the
-Quiet Students page once the child is out of the way of the families
-still in play.
+── WHAT WAS ALREADY WORKING ────────────────────────────────────────────────
 
-ONE STAGE, TWO WORDS, DELIBERATELY — the card says what she is doing, the
-column says where they arrived. Two names for one thing has been a fault
-all week; this is the exception and it is written down so nobody quietly
-"fixes" it.
+The rest of the tour chain has been live and proven since 9 October. The
+nightly scan finds a booking on the campus calendar, records it, moves
+the child to School Tour Scheduled, and sends the confirmation with the
+date and the campus address — Candace Martin received hers at 11:21 that
+morning. The 24-hour reminder is on and hers is queued for 18 October.
 
-ALLOWED_TRANSITIONS now lets every stage reach waitlisted. Declined and
-not_returning always could; waitlisted could only be reached from
-shadow_day_completed, which left Quiet Students with three columns and
-two ways in. Nothing is enforced by that table — transitionCaseStage never
-consults it — so this makes the case page's suggestions honest rather
-than unlocking anything.
-
-── 3. MIGRATION 536 — THE LAST FOUR LETTERS ────────────────────────────────
-
-  "change funding to scholarship/voucher"
-
-The last four of the seven placeholder letters from migration 068. In
-Georgia it is a GOAL scholarship, in Florida a voucher; "state funding"
-and "financial aid" were the platform's words, not a family's.
-
-financial_aid_requested_email fired when a family UPLOADED their
-paperwork and told them paperwork was needed. It becomes an
-acknowledgement. It still fires once per file.
-
-NO PROMISE ABOUT THE CHILD'S PLACE. The rejection letter wants "this does
-not affect your child's place" and does not get it, because nobody has
-confirmed it is true. "Usually something small and fixable" is about the
-paperwork, which this build can stand behind.
-
-NOT TESTED HERE. vitest will not run against this checkout from Linux.
-Every file parses clean and nothing more was proved.
+Still unverified in that chain: the confirmation's last line says
+"Calendar invite attached." and nobody has confirmed the platform
+attaches anything. Candace has already read it once and her reminder
+repeats it on the 18th.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
