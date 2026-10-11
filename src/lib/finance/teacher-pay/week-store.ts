@@ -20,8 +20,10 @@
 
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 import {
+  ADMIN_WORK,
   CRAIG_MANN_IVY_ASH_TUTORING,
   KATIE_VETERE_ADMIN,
+  rateForWeek,
   /* Campus lives in rates.ts, not week-view.ts - the campus split is a pay
      concept before it is a display one, and week-view re-uses it. */
   type Campus,
@@ -50,6 +52,10 @@ export const START_HOURS: readonly string[] = Array.from({ length: 17 }, (_, i) 
 export const RATE_BY_KEY: Readonly<Record<string, PersonalRate>> = {
   craig_mann_ivy_ash_tutoring: CRAIG_MANN_IVY_ASH_TUTORING,
   katie_vetere_admin: KATIE_VETERE_ADMIN,
+  /* Nobody holds this yet. Jimmy, 11 October: "anyone else who we assign
+     admin hrs at $20 per hour" - a rule for the next person. Assigning it is
+     one line in RATE_KEYS_BY_EMPLOYEE below. */
+  admin_work: ADMIN_WORK,
 };
 
 /**
@@ -654,7 +660,18 @@ export async function loadTeacherWeek(
   const hourly = ((hourlyRes.data ?? []) as unknown as Record<string, unknown>[])
     .map((r) => {
       const rate = RATE_BY_KEY[String(r.rate_key)];
-      return rate ? { rate, hours: Number(r.hours ?? 0) } : null;
+      /*
+       * PRICED AT THE RATE THAT WEEK PAID, not at today's.
+       *
+       * This is the one place a claim meets a rate while the week it belongs
+       * to is still in scope, which is why the resolution happens here and
+       * hourlyPay, priceWeek and the view are all untouched. Without it,
+       * raising Katie's rate on 11 October would have silently restated the
+       * ten hours she logged on 9 October - see KATIE_VETERE_ADMIN.
+       */
+      return rate
+        ? { rate: rateForWeek(rate, weekStart), hours: Number(r.hours ?? 0) }
+        : null;
     })
     .filter((v): v is { rate: PersonalRate; hours: number } => v !== null);
 

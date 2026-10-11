@@ -73,6 +73,10 @@ interface Mutation extends Answer<null> {
 interface Query {
   select: (columns: string) => Query;
   eq: (column: string, value: string) => Query;
+  /* Added 11 October for the duplicate-invitation guard, which asks whether a
+     letter was sent AFTER the child landed on this step. This interface is
+     hand-written and only ever grows a method when something needs one. */
+  gte: (column: string, value: string) => Query;
   order: (column: string, options: { ascending: boolean }) => Query;
   limit: (count: number) => Query & Answer<Row[] | null>;
   maybeSingle: () => Answer<Row | null>;
@@ -289,13 +293,18 @@ export async function recordPostCallDecision(params: {
 
   const { data: lead } = await db
     .from("admissions_leads")
-    .select("id, schools(name, tour_booking_url)")
+    .select("id, lead_stage, stage_entered_at, schools(name, tour_booking_url)")
     .eq("post_call_token", params.token)
     .maybeSingle();
 
   const leadRow = lead as Row | null;
   const leadId = leadRow ? String(leadRow.id ?? "") : "";
   if (!leadId) return { error: "That link is not valid." };
+
+  /* Where the child stood BEFORE this submission moved anything. Read here
+     because the guard below has to compare against it after the move. */
+  const stageBefore = text(leadRow?.lead_stage) ?? "";
+  const stageEnteredBefore = text(leadRow?.stage_entered_at) ?? null;
 
   const embedded = leadRow?.schools as Row | Row[] | null;
   const school = (Array.isArray(embedded) ? embedded[0] : embedded) ?? null;
@@ -379,6 +388,66 @@ export async function recordPostCallDecision(params: {
     }
   }
 
+  /**
+   * HAS THIS FAMILY ALREADY BEEN SENT THIS INVITATION, SINCE THEY LANDED ON
+   * THIS STEP?
+   *
+   * ── WHAT HAPPENED ON 11 OCTOBER ─────────────────────────────────────────
+   *
+   * Six note submissions against one family, five of them between 14:10:54
+   * and 14:10:59 UTC - one second apart, a double-click or an impatient
+   * retry - and every one of them mailed the parent another tour invitation.
+   * Five identical "come and tour our school" letters in five seconds, and a
+   * sixth twenty-four minutes later.
+   *
+   * Nothing checked. The letter fired on every submission because the only
+   * thing between a click and a family's inbox was the click.
+   *
+   * ── THE RULE: ONE PER STAGE ENTRY ───────────────────────────────────────
+   *
+   * Not "one ever". A child who goes back to an earlier step and returns to
+   * Tour Requested is a family who needs the link again, and stage_entered_at
+   * moves when they do, so a genuine second invitation still goes.
+   *
+   * The comparison is against the stage as it stood BEFORE this submission.
+   * After the move, stage_entered_at is a second old and every send looks
+   * recent - which would guard nothing on the first press and everything on
+   * the second.
+   *
+   * ── IT GUARDS THE LETTER, NOT THE NOTES ─────────────────────────────────
+   *
+   * The notes are already written by the time this runs, deliberately: a
+   * school leader pressing twice has two things to say and both are worth
+   * keeping. It is only the email that must not repeat, because an email
+   * cannot be un-sent.
+   *
+   * ── AND IT FAILS OPEN ───────────────────────────────────────────────────
+   *
+   * If the lookup errors, the letter goes. A family who gets two invitations
+   * has been annoyed; a family who gets none is waiting for a link that is
+   * never coming, with nothing on the board to say so. Of the two, the
+   * duplicate is the one you can apologise for.
+   */
+  async function alreadySentSinceThisStep(
+    event: CommunicationTriggerEvent,
+    targetStage: string
+  ): Promise<boolean> {
+    if (stageBefore !== targetStage || !stageEnteredBefore) return false;
+    const { data, error } = await db
+      .from("admissions_communications")
+      .select("id")
+      .eq("lead_id", leadId)
+      .eq("trigger_event", event)
+      .eq("delivery_status", "sent")
+      .gte("sent_at", stageEnteredBefore)
+      .limit(1);
+    if (error) {
+      console.error("[post-call] duplicate check failed, sending anyway:", error.message);
+      return false;
+    }
+    return (data ?? []).length > 0;
+  }
+
   /* ---- Not yet. The notes are the point; the child is marked held. ------- */
   if (params.action === "post_call_follow_up") {
     const problem = await moveTo("interest_meeting_held");
@@ -436,6 +505,18 @@ export async function recordPostCallDecision(params: {
 
   const event: CommunicationTriggerEvent =
     params.action === "tour_requested" ? "tour_invitation_sent" : "shadow_days_invited";
+
+  /*
+   * BOTH FORKS, not only the tour. Jimmy asked about the tour invitation
+   * because that is the one that reached a family six times, but the shadow
+   * day invitation is the same letter to the same parent down the other
+   * branch of the same button, and leaving it unguarded would be waiting for
+   * it to happen again at HS and Virtual.
+   */
+  if (await alreadySentSinceThisStep(event, stage)) {
+    console.log("[post-call] invitation already sent this step, not repeating:", leadId);
+    return { ok: true, action: params.action };
+  }
 
   const mail = await tell(event);
   if (mail) {

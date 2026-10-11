@@ -123,9 +123,20 @@ describe("the two personal rates", () => {
     expect(p.ok && p.cents).toBe(9_000);
   });
 
-  it("pays Katie Vetere $20 an hour for Approved Admin Work", () => {
+  /**
+   * $25 SINCE 11 OCTOBER 2026, when Jimmy said "make katies admin hours $25
+   * per hour". It was $20 and this test said so, correctly, until that day.
+   *
+   * The $20 has not disappeared - it still applies to every week before
+   * Monday 12 October, which is what kept the ten hours she had already
+   * logged at $200.00 rather than restating them at $250.00. That is
+   * rateForWeek's job and it has its own tests in
+   * admin-hours-rate-moves.test.ts. This one asserts the rate as it stands
+   * today, which is what a caller with no week in hand is given.
+   */
+  it("pays Katie Vetere $25 an hour for Approved Admin Work", () => {
     const p = hourlyPay(KATIE_VETERE_ADMIN, 20);
-    expect(p.ok && p.cents).toBe(40_000);
+    expect(p.ok && p.cents).toBe(50_000);
   });
 
   it("accepts a zero-hour week from Katie rather than refusing it", () => {
@@ -165,10 +176,12 @@ describe("a whole week", () => {
 
   /** Extras and hourly work are taught at neither campus. Reporting them
    *  separately is what makes the two campus figures add up to the week. */
+  /* Two hours of Katie's admin work: $40.00 until 11 October 2026, $50.00
+     since. The meeting extra is unchanged at $15.00. */
   it("keeps extras and hourly work out of the campus split, and still balances", () => {
-    expect(week.unattributedCents).toBe(1_500 + 4_000);
+    expect(week.unattributedCents).toBe(1_500 + 5_000);
     expect(week.virtualCents + week.hsCents + week.unattributedCents).toBe(week.totalCents);
-    expect(week.totalCents).toBe(16_000);
+    expect(week.totalCents).toBe(17_000);
   });
 
   it("counts what Jimmy's view needs, per item 22", () => {

@@ -218,7 +218,9 @@ describe("a teacher's week", () => {
     });
     expect(week.virtualCents).toBe(3_000);
     expect(week.hsCents).toBe(4_500);
-    expect(week.unattributedCents).toBe(1_500 + 4_000);
+    /* $15.00 meeting + two hours of Katie's admin work. Her rate went from
+       $20 to $25 an hour on 11 October 2026, so the two hours are $50.00. */
+    expect(week.unattributedCents).toBe(1_500 + 5_000);
     expect(week.virtualCents + week.hsCents + week.unattributedCents).toBe(week.totalCents);
   });
 

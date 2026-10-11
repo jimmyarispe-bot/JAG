@@ -251,11 +251,69 @@ function monthNames(months: readonly number[]): string {
  * find by reading the maths. Both came from Jimmy on 29 September.
  */
 export interface PersonalRate {
+  /**
+   * What an hour pays TODAY. Callers with no week in hand get this; callers
+   * that know which week they are pricing should resolve through
+   * rateForWeek first.
+   */
   readonly cents: number;
   readonly per: "hour";
   readonly label: string;
   /** Hours claimable in one week, when the person is capped. */
   readonly weeklyHourCap: number | null;
+  /**
+   * What an hour paid in earlier weeks, when the rate has moved. Absent on a
+   * rate that has always been one number.
+   */
+  readonly bands?: readonly RateBand[];
+}
+
+/**
+ * A rate, and the Monday from which it applies.
+ *
+ * WHY DATED BANDS AND NOT A COLUMN ON THE CLAIM. Pay here is computed from
+ * the constant at the moment a sheet is rendered, not stored when the hours
+ * were entered. That is fine while a rate never moves and silently rewrites
+ * history the moment one does - see KATIE_VETERE_ADMIN for the fifty dollars
+ * this was built to protect.
+ *
+ * Storing the price on the claim row would also work and is the heavier
+ * answer: a migration, a backfill, and a number in the database that can
+ * disagree with the number in the code. Bands keep every rate this network
+ * has ever paid in one readable list, in the file where the rates already
+ * live, and make an old week reproducible from the code alone.
+ *
+ * THE BOUNDARY IS A MONDAY because the unit of pay here is a week. A rate
+ * that changed on a Wednesday would split a sheet somebody had already half
+ * filled in.
+ */
+export interface RateBand {
+  /** The Monday this rate starts applying, or null for "from the beginning". */
+  readonly fromWeekStart: string | null;
+  readonly cents: number;
+}
+
+/**
+ * The rate as it stood in a given week.
+ *
+ * Takes the LATEST band whose Monday is on or before the week being priced,
+ * so bands may be written in any order and a week before every band falls
+ * back to the rate's own cents.
+ */
+export function rateForWeek(rate: PersonalRate, weekStartIso: string): PersonalRate {
+  if (!rate.bands?.length) return rate;
+  let chosen: RateBand | null = null;
+  for (const band of rate.bands) {
+    if (band.fromWeekStart !== null && band.fromWeekStart > weekStartIso) continue;
+    if (
+      chosen === null ||
+      (chosen.fromWeekStart ?? "") < (band.fromWeekStart ?? "")
+    ) {
+      chosen = band;
+    }
+  }
+  if (!chosen || chosen.cents === rate.cents) return rate;
+  return { ...rate, cents: chosen.cents };
 }
 
 export const CRAIG_MANN_IVY_ASH_TUTORING: PersonalRate = {
@@ -270,22 +328,75 @@ export const CRAIG_MANN_IVY_ASH_TUTORING: PersonalRate = {
  *
  * Jimmy, 8 October 2026: "only on katie veters timesheet - include a box with
  * similar dropdown that is for \"Approved Admin Work\" @ $20 per hour".
+ * Then, 11 October: "make katies admin hours $25 per hour".
  *
  * RENAMED AND REPRICED, NOT ADDED BESIDE. This rate already existed as "Admin
  * work" at $25.00 an hour. Jimmy ruled it a replacement rather than a second
  * claim, so there is one box on her sheet and not two.
  *
- * NO PAST PAY MOVES. teacher_hourly_claims was empty across the whole platform
- * on the day this changed - not one claim, by anybody, ever - because the box
- * had never once appeared on a screen. See RATE_KEYS_BY_EMPLOYEE in
- * week-store.ts for why, and for the fix.
+ * ── AND NO PAST PAY MOVES. THIS TIME IT WOULD HAVE. ────────────────────────
+ *
+ * On 8 October that sentence was free: teacher_hourly_claims was empty across
+ * the whole platform, not one claim by anybody ever, because the box had
+ * never once appeared on a screen.
+ *
+ * On 11 October it was not. The table held ONE row - Katie, 10.00 hours,
+ * entered 9 October, showing $200.00. Pay is computed from this constant when
+ * a sheet is rendered rather than stored when the hours were logged, so
+ * moving the number to 2_500 would have turned that week into $250.00. Same
+ * row, same hours, fifty dollars more, with nothing anywhere recording that
+ * the rate had changed.
+ *
+ * Asked which he wanted, Jimmy: "from now on".
+ *
+ * THE BOUNDARY IS MONDAY 12 OCTOBER 2026, and it is the next Monday rather
+ * than today on purpose. He said this on Sunday 11 October - the last day of
+ * a week that began Monday 5 October and already holds her claim. Starting
+ * the new rate in the current week would restate exactly the pay he had just
+ * said not to touch.
+ *
+ * THE FIRST DRAFT OF THIS LINE SAID THE 13TH, which is a Tuesday and a week
+ * late. A rate boundary that is not a Monday splits a sheet; a rate boundary
+ * a week out quietly underpays her for seven days. Checked against a
+ * calendar before it shipped, which is the only way this kind of thing is
+ * ever caught.
  *
  * THE 20-HOUR CAP IS UNCHANGED, and deliberately so. Jimmy said a different
- * number and did not say which. Twenty is the figure already approved, so it
- * stands until he names another - changing it to a number he did not give
- * would be inventing a pay rule.
+ * number on 8 October and did not say which. Twenty is the figure already
+ * approved, so it stands until he names another - changing it to a number he
+ * did not give would be inventing a pay rule.
  */
 export const KATIE_VETERE_ADMIN: PersonalRate = {
+  cents: 2_500,
+  per: "hour",
+  label: "Approved Admin Work",
+  weeklyHourCap: 20,
+  bands: [
+    { fromWeekStart: null, cents: 2_000 },
+    { fromWeekStart: "2026-10-12", cents: 2_500 },
+  ],
+};
+
+/**
+ * Approved admin work for anybody else.
+ *
+ * Jimmy, 11 October 2026: "anyone else who we assign admin hrs at $20 per
+ * hour". Katie is the exception at $25; this is the rate for everyone else.
+ *
+ * NOBODY HOLDS IT YET, and that is correct rather than unfinished - "anyone
+ * else who we assign" is a rule for the next person, not a change to a
+ * current one. Assigning it is one line in RATE_KEYS_BY_EMPLOYEE in
+ * week-store.ts, beside the person's employee id.
+ *
+ * NO BANDS. It has never paid anything else, so there is no history to
+ * protect. The first time it moves it gets them, the same way Katie's did.
+ *
+ * THE CAP MATCHES KATIE'S, at twenty hours a week. Jimmy named a rate and not
+ * a cap, and twenty is the only weekly cap this network has approved; an
+ * uncapped hourly box is the one shape of this that can quietly pay somebody
+ * a full-time week. It changes the moment he names a different number.
+ */
+export const ADMIN_WORK: PersonalRate = {
   cents: 2_000,
   per: "hour",
   label: "Approved Admin Work",

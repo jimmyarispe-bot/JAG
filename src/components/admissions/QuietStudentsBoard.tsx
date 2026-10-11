@@ -44,6 +44,23 @@ import { OLD_STUDENT_LEAD_STAGES } from "@/lib/constants/admissions";
  * here widens what that is.
  */
 
+/**
+ * The lead as a bag of columns.
+ *
+ * BoardLead is a typed row and the fields read here - lead_stage, created_at,
+ * the joined school name - are not all on it, which is how the page that used
+ * to live here read them too. Written once, as a function, because `as
+ * Record<string, unknown>` on its own does not compile: TypeScript refuses a
+ * direct conversion between two types that do not overlap (TS2352, "Index
+ * signature for type 'string' is missing in type 'BoardLead'"), and the cast
+ * has to go through unknown. Doing that inline at five call sites is five
+ * chances to write the short version and fail the build - which is exactly
+ * what happened on 11 October.
+ */
+function row(lead: BoardLead): Record<string, unknown> {
+  return lead as unknown as Record<string, unknown>;
+}
+
 /** Whole days between a date and now, floored. Null when there is no date. */
 function daysSince(value: unknown): number | null {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -89,15 +106,15 @@ export function QuietStudentsBoard({ leads }: QuietStudentsBoardProps) {
     const map = new Map<string, BoardLead[]>();
     for (const stage of OLD_STUDENT_LEAD_STAGES) map.set(stage.value, []);
     for (const lead of visible) {
-      const bucket = map.get(String((lead as Record<string, unknown>).lead_stage ?? ""));
+      const bucket = map.get(String(row(lead).lead_stage ?? ""));
       if (bucket) bucket.push(lead);
     }
     /* Longest wait first, within every column. A family nobody has answered
        belongs at the top of the list, not wherever the query put them. */
     for (const rows of map.values()) {
       rows.sort((a, b) => {
-        const aAt = daysSince((a as Record<string, unknown>).created_at) ?? -1;
-        const bAt = daysSince((b as Record<string, unknown>).created_at) ?? -1;
+        const aAt = daysSince(row(a).created_at) ?? -1;
+        const bAt = daysSince(row(b).created_at) ?? -1;
         return bAt - aAt;
       });
     }
@@ -168,17 +185,17 @@ export function QuietStudentsBoard({ leads }: QuietStudentsBoardProps) {
                 )}
 
                 {rows.map((lead) => {
-                  const row = lead as unknown as Record<string, unknown>;
-                  const days = daysSince(row.created_at);
-                  const guardian = guardianName(row);
+                  const r = row(lead);
+                  const days = daysSince(r.created_at);
+                  const guardian = guardianName(r);
                   return (
                     <Link
-                      key={String(row.id)}
-                      href={`/dashboard/admissions/cases/${String(row.id)}`}
+                      key={String(r.id)}
+                      href={`/dashboard/admissions/cases/${String(r.id)}`}
                       className="block rounded-xl border border-slate-200 bg-white p-3 hover:border-slate-400"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-slate-900">{fullName(row)}</p>
+                        <p className="text-sm font-medium text-slate-900">{fullName(r)}</p>
                         {days !== null && (
                           <span
                             className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
@@ -192,7 +209,7 @@ export function QuietStudentsBoard({ leads }: QuietStudentsBoardProps) {
                         )}
                       </div>
                       <p className="mt-1 text-xs text-slate-500">
-                        {String((row.schools as { name?: string } | null)?.name ?? "—")}
+                        {String((r.schools as { name?: string } | null)?.name ?? "—")}
                       </p>
                       {guardian && <p className="mt-1 text-xs text-slate-400">{guardian}</p>}
                     </Link>

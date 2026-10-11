@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { recordPostCallAction } from "@/app/post-call/[token]/actions";
+import { SaveButton } from "@/app/post-call/[token]/SaveButton";
 import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
 import {
   POST_CALL_ACTIONS,
@@ -256,12 +257,7 @@ export default async function PostCallPage({
           </div>
         </fieldset>
 
-        <button
-          type="submit"
-          className="mt-6 w-full rounded-md bg-slate-900 px-4 py-3 font-medium text-white"
-        >
-          Save
-        </button>
+        <SaveButton />
       </form>
     </main>
   );
