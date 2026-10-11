@@ -44,7 +44,7 @@ import {
 } from "@/lib/admissions/chase/calendar";
 import { decideChase, type ChaseDecision } from "@/lib/admissions/chase/clock";
 import { easternDateKey, easternHour } from "@/lib/platform/time/eastern";
-import { getPrimaryOrganizationId } from "@/lib/configuration/context";
+import { resolveOrganizationIdForUser } from "@/lib/platform/identity/org-membership";
 import { ensureGoogleWorkspaceAccessToken } from "@/lib/platform/integrations/google-workspace/sync/token-bridge";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
@@ -66,6 +66,28 @@ type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
  * That also means a retry, a manual press, or a second cron cannot double-send.
  */
 export const EARLIEST_SCAN_HOUR_EASTERN = 22;
+
+/**
+ * How late a meeting may be before the "RECORD your notes" letter is dropped.
+ *
+ * Jimmy, 10 October, asked for one day and asked why the proposal had said
+ * seven: there was no reason, and one day is the better line. A meeting from
+ * yesterday is still in a school leader's head. One from six weeks ago is a
+ * letter asking her to write up a conversation she may not remember having.
+ *
+ * THIS EXISTS BECAUSE OF ONE NIGHT. On 10 October `admissions_interviews`
+ * held no row this scan had ever written - not one, since the job was built -
+ * so the first real run meets twenty-six bookings at once, fifteen of them
+ * between 27 August and 7 October. Without this line fifteen "happening now,
+ * TAKE notes" letters land on Nina, Danni and Heather in the same minute,
+ * about meetings that are weeks behind them.
+ *
+ * AFTERWARDS IT SHOULD NEVER FIRE AGAIN. The scan runs every two minutes and
+ * the queue drains every five, so nothing honest reaches this line more than
+ * about seven minutes late. If it starts skipping letters on an ordinary day,
+ * something upstream has stopped and this is the place that will say so.
+ */
+export const NOTES_LETTER_CUTOFF_HOURS = 24;
 
 export const REMINDER_1_EVENT = "parent_interest_meeting_not_booked_1";
 export const REMINDER_2_EVENT = "parent_interest_meeting_not_booked_2";
@@ -285,7 +307,42 @@ export async function runInterestMeetingScan(
     }
   }
 
-  const organizationId = await getPrimaryOrganizationId(supabase);
+  /*
+   * THE ORGANIZATION IS RESOLVED FROM THE CLIENT THIS RUN WAS HANDED, and
+   * never from a cookie. This single line is why neither scan has ever done
+   * anything on a cron.
+   *
+   * WHAT WAS HERE: getPrimaryOrganizationId(supabase). It takes a client and
+   * ignores it. Inside, it calls getAuthUser() - the cookie-bound session -
+   * and then resolves the organization through a second client it builds
+   * itself from those same cookies. A cron request carries no cookies, so the
+   * user is undefined, the fallback lookup on org_organizations runs as `anon`
+   * against two policies that are both `to authenticated`, and RLS returns
+   * zero rows. Null organization, `return empty(false, "No organization.")`,
+   * and a 200 response saying the run succeeded at doing nothing.
+   *
+   * It only ever worked when a HUMAN opened the URL in a browser, because then
+   * there is a session - which is exactly why the dry run looked healthy for a
+   * week while the real thing had never once written a row. On 10 October:
+   * admissions_interviews held four rows, newest 1 October, all typed in by
+   * hand, and interest_meeting_scan_runs - which the nightly scan inserts into
+   * before it does anything else - was empty. Not one night, ever.
+   *
+   * The route comment above POST already says the service-role client exists
+   * because "a cookie-bound Supabase client therefore has no user ... and the
+   * route answers {success: true} having done nothing." That was right, and
+   * this call sat four lines below it still reading cookies.
+   *
+   * resolveOrganizationIdForUser honours the client passed as its third
+   * argument. Passed null for the user deliberately: a cron is nobody, and the
+   * seed fallback finds the one organization there is - the same id a signed-in
+   * run resolves to, so the human dry run and the cron now agree.
+   */
+  const organizationId = await resolveOrganizationIdForUser(
+    null,
+    { allowSeedFallback: true },
+    supabase
+  );
   if (!organizationId) return empty(false, "No organization.");
 
   const tokens = await ensureGoogleWorkspaceAccessToken(supabase, organizationId);
@@ -764,52 +821,66 @@ export async function runInterestMeetingScan(
      * meeting twenty-four minutes ahead and watching the hourly discovery
      * pass miss it.
      *
-     * IT IS QUEUED EVEN FOR A MEETING THAT HAS ALREADY HAPPENED, deliberately
-     * - the one letter here for which the past is not a reason to stay
+     * IT IS QUEUED FOR A MEETING THAT HAS ALREADY HAPPENED, deliberately -
+     * the one letter here for which the recent past is not a reason to stay
      * silent. The family's confirmation is worthless six weeks late; "what
-     * happened, and what should happen next" is exactly as useful late,
+     * happened, and what should happen next" keeps its value for a while,
      * because the decision it asks for has not been made. The queue sends
      * anything whose scheduled_for has passed on its next run.
+     *
+     * "FOR A WHILE" IS ONE DAY, and NOTES_LETTER_CUTOFF_HOURS says why.
      */
-    const notesToken = dryRun ? "dry-run" : await mintPostCallToken(supabase, leadId);
-    if (!notesToken) {
-      errors.push(`Could not mint a notes token for ${leadId}.`);
-    } else if (!dryRun) {
-      const problem = await queueLetter(supabase, {
-        leadId,
-        schoolId: leadById.get(leadId)?.school_id ?? null,
-        triggerEvent: POST_CALL_EVENT,
-        sendAt: startsAt,
-        /*
-         * The token rides on the queue row because the row is rendered later
-         * by a worker with no idea which occasion this was. Same reasoning as
-         * the escalation's three dates: what the moment of queueing knows and
-         * the moment of sending cannot find out.
-         */
-        mergeOverrides: {
-          postCallToken: notesToken,
+    const notesLetterIsTooLate =
+      startsAt.getTime() < now.getTime() - NOTES_LETTER_CUTOFF_HOURS * 3_600_000;
+
+    /* REPORTED, NOT DROPPED IN SILENCE. postCallSkipped is read by a person
+       looking at a run, and a family who got no notes letter is exactly the
+       kind of fact this platform has hidden before. */
+    if (notesLetterIsTooLate) {
+      postCallSkipped.push(
+        `${leadId} - no notes letter: ${when} is more than a day past.`
+      );
+    } else {
+      const notesToken = dryRun ? "dry-run" : await mintPostCallToken(supabase, leadId);
+      if (!notesToken) {
+        errors.push(`Could not mint a notes token for ${leadId}.`);
+      } else if (!dryRun) {
+        const problem = await queueLetter(supabase, {
+          leadId,
+          schoolId: leadById.get(leadId)?.school_id ?? null,
+          triggerEvent: POST_CALL_EVENT,
+          sendAt: startsAt,
           /*
-           * ALREADY RENDERED FOR A READER, not an ISO string.
-           * interview_datetime is a passthrough - whatever a caller hands it
-           * is exactly what a human reads - which is how three families were
-           * told the wrong hour on 1 October. appointmentTextForFamily is the
-           * one place that knows the Eastern rule.
-           *
-           * Passed as an override because loadMergeContextsForQueue has no
-           * way to know WHICH appointment a queued letter is about. It would
-           * otherwise render as nothing, and the letter would open "is
-           * scheduled for ." in a school leader's inbox.
+           * The token rides on the queue row because the row is rendered later
+           * by a worker with no idea which occasion this was. Same reasoning as
+           * the escalation's three dates: what the moment of queueing knows and
+           * the moment of sending cannot find out.
            */
-          interviewDatetime: appointmentTextForFamily(booking.startsAt),
-          /*
-           * Null at GA and FL - a telephone call has no conference - and the
-           * letter is written to cover both: "Call them or go to the google
-           * meets link to start your meeting".
-           */
-          meetingLink: booking.meetingLink,
-        },
-      });
-      if (problem) postCallSkipped.push(problem);
+          mergeOverrides: {
+            postCallToken: notesToken,
+            /*
+             * ALREADY RENDERED FOR A READER, not an ISO string.
+             * interview_datetime is a passthrough - whatever a caller hands it
+             * is exactly what a human reads - which is how three families were
+             * told the wrong hour on 1 October. appointmentTextForFamily is the
+             * one place that knows the Eastern rule.
+             *
+             * Passed as an override because loadMergeContextsForQueue has no
+             * way to know WHICH appointment a queued letter is about. It would
+             * otherwise render as nothing, and the letter would open "is
+             * scheduled for ." in a school leader's inbox.
+             */
+            interviewDatetime: appointmentTextForFamily(booking.startsAt),
+            /*
+             * Null at GA and FL - a telephone call has no conference - and the
+             * letter is written to cover both: "Call them or go to the google
+             * meets link to start your meeting".
+             */
+            meetingLink: booking.meetingLink,
+          },
+        });
+        if (problem) postCallSkipped.push(problem);
+      }
     }
 
     /* The row is written. The letters are only for a meeting still to come. */
