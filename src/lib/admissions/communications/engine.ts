@@ -3,6 +3,7 @@ import { fetchLeadFundingCodesByLeadIds } from "@/lib/funding/sync";
 import { resolveSchoolAdmissionsContacts } from "@/lib/admissions/communications/staff-recipients";
 import { withNetworkOffice } from "@/lib/admissions/communications/network-office";
 import { renderTemplate, type MergeContext } from "@/lib/admissions/communications/merge-fields";
+import { renderLetterHtml } from "@/lib/admissions/communications/letter-html";
 import {
   appointmentTextForFamily,
   appointmentTimeForFamily,
@@ -657,7 +658,8 @@ async function deliverCommunication(
     params.customSubject ?? params.template.subject,
     params.mergeCtx
   );
-  const body = renderTemplate(params.customBody ?? params.template.body, params.mergeCtx);
+  const rawBody = params.customBody ?? params.template.body;
+  const body = renderTemplate(rawBody, params.mergeCtx);
   const channel = params.template.channel as CommunicationChannel;
   const isStaff = channel === "internal_note" || params.template.trigger_event.startsWith("staff_");
 
@@ -772,11 +774,37 @@ async function deliverCommunication(
         ? (params.mergeCtx.schoolLeaderBccEmail ?? "").trim()
         : "";
 
+    /*
+     * THE LETTER GOES AS HTML, WITH ITS LINK AS A BUTTON, AND AS PLAIN TEXT.
+     *
+     * Jimmy, 10 October: "can you create an actual button that will go into
+     * these emails with the links tied to them". renderLetterHtml reads the
+     * SAME approved template body and changes not one word of it - see the
+     * file for why it re-does the merge rather than taking `body` above, and
+     * for the Resend asHtml() trap that makes a half-HTML letter collapse
+     * into one paragraph.
+     *
+     * `body` - the plain letter, exactly as it has always read - still goes
+     * as the multipart text part and is still what is written to the record.
+     * A client that refuses HTML sees yesterday's letter, URL and all.
+     */
+    const schoolNameForHeader = renderTemplate("{{school_name}}", params.mergeCtx);
+    const emailHtml = renderLetterHtml({
+      rawBody,
+      subject,
+      ctx: params.mergeCtx,
+      /* renderTemplate returns the placeholder itself when it cannot resolve
+         one, and "{{school_name}}" across the top of a letter is worse than
+         no header at all. */
+      schoolName: schoolNameForHeader === "{{school_name}}" ? null : schoolNameForHeader,
+    });
+
     const emailResult = await sendTransactionalEmail({
       // The list, not the joined string. See the note above `recipients`.
       to: recipients.filter(Boolean),
       subject,
-      body,
+      body: emailHtml,
+      text: body,
       ...(from ? { from } : {}),
       ...(fromName ? { fromName } : {}),
       ...(replyTo ? { replyTo } : {}),
