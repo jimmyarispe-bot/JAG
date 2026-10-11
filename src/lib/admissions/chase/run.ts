@@ -89,6 +89,38 @@ export const EARLIEST_SCAN_HOUR_EASTERN = 22;
  */
 export const NOTES_LETTER_CUTOFF_HOURS = 24;
 
+/**
+ * HOLD THE CONFIRMATION LETTERS UNTIL JIMMY SAYS GO.
+ *
+ * Jimmy, 10 October, told what the first real run would do: "hold those till
+ * i say go."
+ *
+ * WHAT "THOSE" ARE. The scan has never once recorded a booking, so its first
+ * run meets twenty-six at once. Fifteen are in the past and are recorded in
+ * silence already - that is the alreadyHappened branch and it is unaffected
+ * by this. The three still ahead - 12, 19 and 22 October - would get the
+ * family's confirmation and their school leader the staff notice, out of the
+ * blue, about meetings booked weeks ago. Those are the letters being held.
+ *
+ * WHAT IS NOT HELD. Everything that makes the pipeline true still happens:
+ * the admissions_interviews row is written, the stage moves, and the family
+ * is marked as booked. That last one matters most - a family recorded as
+ * booked is a family the nightly chase will not email asking why they have
+ * not booked. Holding the ROW instead of the LETTER would have been the
+ * dangerous half of this, and it is not what this does.
+ *
+ * REPORTED BY NAME. Every held letter is listed in confirmationsHeld on the
+ * run report, because a family who got no letter is exactly the kind of fact
+ * this platform has hidden before.
+ *
+ * WHEN HE SAYS GO. Flip this to false and ship. The scan will NOT resend
+ * them by itself - the booking is recorded by then, so the next run sees it
+ * is already known and moves on. The three letters are sent deliberately,
+ * against the list this run printed. That is the whole reason the list
+ * exists.
+ */
+export const HOLD_BOOKING_CONFIRMATIONS = true;
+
 export const REMINDER_1_EVENT = "parent_interest_meeting_not_booked_1";
 export const REMINDER_2_EVENT = "parent_interest_meeting_not_booked_2";
 export const ESCALATION_EVENT = "staff_interest_meeting_no_response";
@@ -197,6 +229,12 @@ export interface ScanReport {
   /** New, but already in the past: the row is written and nobody is told. */
   readonly bookingsNotNotified: readonly string[];
   /**
+   * Recorded, still to come, and the letter deliberately withheld - see
+   * HOLD_BOOKING_CONFIRMATIONS. This is the list the letters get sent against
+   * when Jimmy says go.
+   */
+  readonly confirmationsHeld: readonly string[];
+  /**
    * A GA or FL booking whose post-call letter could not be queued, and why.
    *
    * Almost always one thing: staff_inquiry_call_held is seeded switched off,
@@ -257,6 +295,7 @@ export async function runInterestMeetingScan(
     bookingsAmbiguous: [],
     bookingsRecorded: [],
     bookingsNotNotified: [],
+    confirmationsHeld: [],
     postCallSkipped: [],
     toursRecorded: [],
     leadsConsidered: 0,
@@ -523,6 +562,7 @@ export async function runInterestMeetingScan(
   const bookingsAmbiguous: string[] = [];
   const bookingsRecorded: string[] = [];
   const bookingsNotNotified: string[] = [];
+  const confirmationsHeld: string[] = [];
   const postCallSkipped: string[] = [];
   const toursRecorded: string[] = [];
 
@@ -886,6 +926,16 @@ export async function runInterestMeetingScan(
     /* The row is written. The letters are only for a meeting still to come. */
     if (alreadyHappened) continue;
 
+    /*
+     * HELD AT JIMMY'S WORD, 10 October. See HOLD_BOOKING_CONFIRMATIONS above.
+     * The row, the stage and the booked mark are already written by the time
+     * this line is reached; only the two letters stop here.
+     */
+    if (HOLD_BOOKING_CONFIRMATIONS) {
+      confirmationsHeld.push(`${leadId} <- ${when} (confirmation held; awaiting go)`);
+      continue;
+    }
+
     try {
       /*
        * The existing path, deliberately. It renders the time through
@@ -925,6 +975,7 @@ export async function runInterestMeetingScan(
       bookingsAmbiguous,
       bookingsRecorded,
       bookingsNotNotified,
+      confirmationsHeld,
       postCallSkipped,
       toursRecorded,
       leadsConsidered: leads.length,
@@ -1051,6 +1102,7 @@ export async function runInterestMeetingScan(
     bookingsAmbiguous,
     bookingsRecorded,
     bookingsNotNotified,
+    confirmationsHeld,
     postCallSkipped,
     toursRecorded,
     leadsConsidered: leads.length,

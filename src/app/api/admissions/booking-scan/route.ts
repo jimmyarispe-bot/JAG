@@ -98,7 +98,11 @@ export async function POST(request: NextRequest) {
     const found =
       report.bookingsRecorded.length +
       report.toursRecorded.length +
-      report.bookingsNotNotified.length;
+      report.bookingsNotNotified.length +
+      /* A held confirmation is the most interesting thing a run can produce
+         while HOLD_BOOKING_CONFIRMATIONS is on, and it must not be the one
+         thing that lets a run count as quiet and print nothing. */
+      report.confirmationsHeld.length;
     if (found || report.postCallSkipped.length) {
       console.log(
         "[booking-scan] recorded",
@@ -106,6 +110,7 @@ export async function POST(request: NextRequest) {
           bookings: report.bookingsRecorded,
           tours: report.toursRecorded,
           alreadyPast: report.bookingsNotNotified,
+          confirmationsHeld: report.confirmationsHeld,
           notesLetterSkipped: report.postCallSkipped,
         })
       );
