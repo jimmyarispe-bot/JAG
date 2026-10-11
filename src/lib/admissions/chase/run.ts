@@ -490,6 +490,35 @@ export async function runInterestMeetingScan(
 
   /** An interest meeting already on the books. A shadow day is not one. */
   const bookedAt = new Map<string, Date>();
+  /**
+   * THE APPOINTMENTS ALREADY RECORDED, one key per family PER MEETING.
+   *
+   * bookedAt above answers "has this family got a meeting on the books",
+   * which is the question the CHASE asks and the right one for it. It is the
+   * wrong question for recording, and on 11 October that cost a morning.
+   *
+   * Jimmy booked a 7am interest call with Danni as a second test. The scan
+   * read it off the calendar, matched it to his lead, and skipped it - because
+   * the night before, the catch-up run had matched a DIFFERENT event to the
+   * same address (a shadow day on 7 October) and written a row for it. From
+   * that moment the family counted as "already known about" and every later
+   * booking they made was silently dropped. No row, no notes letter, nothing
+   * in the log, because the skip is a bare `continue`.
+   *
+   * A family books more than once. They reschedule, they come back months
+   * later, a second child goes through, a leader books a follow-up. Every one
+   * of those is a new appointment and none of them is a duplicate.
+   *
+   * So the guard is keyed on the APPOINTMENT - lead and start time - and the
+   * start time is compared as an instant, never as a string. Google hands
+   * back "2026-10-11T07:00:00-04:00" and Postgres hands back
+   * "2026-10-11 11:00:00+00"; those are the same moment and no string
+   * comparison will ever say so.
+   */
+  const recordedAppointments = new Set<string>();
+  const appointmentKey = (leadId: string, startsAt: string | Date): string =>
+    `${leadId}|${new Date(startsAt).getTime()}`;
+
   for (const row of (interviews.data ?? []) as {
     lead_id: string;
     scheduled_at: string;
@@ -499,6 +528,7 @@ export async function runInterestMeetingScan(
     const at = new Date(row.scheduled_at);
     const held = bookedAt.get(row.lead_id);
     if (!held || at < held) bookedAt.set(row.lead_id, at);
+    recordedAppointments.add(appointmentKey(row.lead_id, row.scheduled_at));
   }
 
   type CommRow = {
@@ -701,8 +731,18 @@ export async function runInterestMeetingScan(
       continue;
     }
 
-    /* Already known about. Nothing to do, and nothing to tell anyone twice. */
-    if (bookedAt.has(leadId)) continue;
+    /*
+     * THIS APPOINTMENT is already known about - not this family. See
+     * recordedAppointments above for the morning that distinction cost.
+     *
+     * Added to the set as well as checked, so two calendar entries for the
+     * same meeting - the same event visible on two shared calendars - still
+     * produce one row and one letter, which is what the old guard was really
+     * there to prevent.
+     */
+    const thisAppointment = appointmentKey(leadId, booking.startsAt);
+    if (recordedAppointments.has(thisAppointment)) continue;
+    recordedAppointments.add(thisAppointment);
 
     /*
      * A MEETING THAT HAS ALREADY HAPPENED IS RECORDED, AND NOBODY IS TOLD.
