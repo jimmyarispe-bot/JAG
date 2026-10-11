@@ -240,6 +240,102 @@ function renderBlock(
  * `rawBody` is the template body BEFORE merging - the merging happens here so
  * the escaping can tell the template's words apart from a family's data.
  */
+/**
+ * The document every letter arrives in.
+ *
+ * ONE SHELL FOR BOTH PATHS - the plain-text templates this file lays out, and
+ * the one that was already written in HTML and is passed through. Two shells
+ * would be two sets of colours, two widths and two chances for a letter to
+ * look like it came from somewhere else.
+ */
+function shell(input: {
+  subject: string;
+  schoolName?: string | null;
+  inner: string;
+}): string {
+  const header = input.schoolName?.trim()
+    ? `<p style="margin:0 0 20px;font-size:12px;font-weight:600;letter-spacing:0.04em;` +
+      `text-transform:uppercase;color:${FAINT};">${escapeHtml(input.schoolName.trim())}</p>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(input.subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:${PAGE};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAGE};padding:32px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${RULE};">
+<tr><td style="height:6px;background:${PRIMARY};font-size:0;line-height:0;">&nbsp;</td></tr>
+<tr><td style="padding:32px 28px 28px;">
+${header}${input.inner}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+/**
+ * A template that is ALREADY HTML, which one of them is.
+ *
+ * ── THE LETTER THIS BROKE ───────────────────────────────────────────────────
+ *
+ * 11 October 2026. Jimmy submitted a real inquiry at The Academy FL to test
+ * the chain end to end, and the first email Danni received read:
+ *
+ *   <p><strong>2:27 test on 10.11</strong> - new inquiry at The Academy
+ *   FL.</p><p>Program: In-Person</p>...
+ *
+ * Every tag, as text, in her inbox.
+ *
+ * Eighty-four of the eighty-five active templates are plain text, and those
+ * are the ones this file was built and checked against. inquiry_staff_alert
+ * is the eighty-fifth. It was written in HTML, and escaping its own markup
+ * turned a letter into a view-source.
+ *
+ * WORSE, QUIETLY: it carries its own anchor, `<a href="{{interest_link_action}}">`,
+ * and the link-to-button rule pulled that merge field out of the sentence to
+ * make a button - leaving `href=""` behind. The letter lost its link as well
+ * as its formatting.
+ *
+ * ── WHAT THIS DOES INSTEAD ──────────────────────────────────────────────────
+ *
+ * Passes the markup through untouched and substitutes the merge values,
+ * ESCAPED, because a guardian called "Smith & Jones" is still data inside an
+ * HTML template and escaping an & inside an href is correct there too.
+ *
+ * NO PARAGRAPH WRAPPING and NO BUTTON. The author already wrote both. A link
+ * this file turns into a button is a link that was a bare URL on its own
+ * line; a link somebody wrote an anchor around is a decision already taken.
+ *
+ * ── WHY A HEURISTIC, AND THE SAME ONE ───────────────────────────────────────
+ *
+ * `/<[a-z][\s\S]*>/i` is exactly the test the Resend provider's asHtml uses
+ * to decide the same question one layer down. Two different answers to "is
+ * this HTML" in one send path is the shape of bug that takes a day to find,
+ * so there is one answer and this is it.
+ */
+function looksLikeHtml(body: string): boolean {
+  return /<[a-z][\s\S]*>/i.test(body);
+}
+
+/** Merge values filled in, markup left exactly as the author wrote it. */
+function renderHtmlTemplate(raw: string, ctx: MergeContext): string {
+  return raw.replace(/\{\{(\w+)\}\}/g, (whole, key: string) => {
+    const value = renderTemplate(whole, ctx);
+    /* renderTemplate hands back "{{key}}" for a field it does not know. That
+       must survive looking exactly as wrong as it is. */
+    if (value === whole) return escapeHtml(whole);
+    void key;
+    return escapeHtml(value);
+  });
+}
+
 export function renderLetterHtml(params: {
   rawBody: string;
   subject: string;
@@ -257,6 +353,18 @@ export function renderLetterHtml(params: {
    */
   const normalised = params.rawBody.replace(/\r\n?/g, "\n");
 
+  /*
+   * ALREADY HTML? Hand it back as it was written. See looksLikeHtml above for
+   * the letter that taught this file the difference.
+   */
+  if (looksLikeHtml(params.rawBody)) {
+    return shell({
+      subject: params.subject,
+      schoolName: params.schoolName,
+      inner: renderHtmlTemplate(params.rawBody, params.ctx),
+    });
+  }
+
   const blocks = normalised
     .split(/\n[ \t]*\n/)
     .map((b) => b.replace(/\s+$/u, ""))
@@ -272,29 +380,9 @@ export function renderLetterHtml(params: {
     })
     .join("");
 
-  const header = params.schoolName?.trim()
-    ? `<p style="margin:0 0 20px;font-size:12px;font-weight:600;letter-spacing:0.04em;` +
-      `text-transform:uppercase;color:${FAINT};">${escapeHtml(params.schoolName.trim())}</p>`
-    : "";
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${escapeHtml(params.subject)}</title>
-</head>
-<body style="margin:0;padding:0;background:${PAGE};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAGE};padding:32px 12px;">
-<tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${RULE};">
-<tr><td style="height:6px;background:${PRIMARY};font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:32px 28px 28px;">
-${header}${rendered}
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+  return shell({
+    subject: params.subject,
+    schoolName: params.schoolName,
+    inner: rendered,
+  });
 }
