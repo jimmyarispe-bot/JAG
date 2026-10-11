@@ -232,36 +232,70 @@ export function Sidebar({
               /* Standing inside it beats anything the viewer clicked. */
               const expanded = active || (opened[module.id] ?? false);
 
+              /*
+               * THE PARENT IS A LINK, AND THE CHEVRON IS ITS OWN BUTTON.
+               *
+               * It was one button that only toggled. That works for
+               * Admissions, whose first child IS the page the parent would
+               * have gone to, and breaks the moment a parent has a home of
+               * its own - Jimmy, 11 October, adding the paysheets under
+               * Finance: "leave the main finance to the current home page it
+               * takes it to but include a sub menu".
+               *
+               * One control cannot do both honestly. A link that also
+               * toggles would collapse the menu you just navigated into, and
+               * a button that also navigates gives a viewer no way to look
+               * inside Finance without leaving the page they are on. So the
+               * label navigates and the chevron opens, which is what every
+               * sidebar with a home page at the top of a section does.
+               *
+               * NAVIGATING STILL OPENS IT: `expanded` is true whenever the
+               * module is active, so clicking Finance lands on Finance with
+               * the paysheets already showing underneath. The chevron is for
+               * looking without going.
+               *
+               * The chevron carries aria-expanded and a label naming the
+               * module, because "button" on its own tells a screen reader
+               * nothing about which menu it opens.
+               */
               return (
                 <li key={module.id}>
-                  <button
-                    type="button"
-                    aria-expanded={expanded}
-                    onClick={() =>
-                      setOpened((prev) => ({ ...prev, [module.id]: !expanded }))
-                    }
-                    className={cn(navLinkClass(active), "w-full text-left")}
-                  >
-                    <ModuleIcon moduleId={module.id} />
-                    <span className="flex-1">{module.sidebarLabel}</span>
-                    <svg
-                      viewBox="0 0 20 20"
-                      aria-hidden
-                      className={cn(
-                        "h-4 w-4 shrink-0 transition-transform",
-                        expanded && "rotate-90"
-                      )}
+                  <div className={cn(navLinkClass(active), "w-full gap-0 pr-1")}>
+                    <Link
+                      href={module.href}
+                      className="flex flex-1 items-center gap-3 truncate"
                     >
-                      <path
-                        d="M7.5 5l5 5-5 5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.75"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+                      <ModuleIcon moduleId={module.id} />
+                      <span className="flex-1 truncate">{module.sidebarLabel}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-label={`${expanded ? "Hide" : "Show"} ${module.sidebarLabel} pages`}
+                      onClick={() =>
+                        setOpened((prev) => ({ ...prev, [module.id]: !expanded }))
+                      }
+                      className="shrink-0 rounded-md p-1 hover:bg-sidebar-accent/60"
+                    >
+                      <svg
+                        viewBox="0 0 20 20"
+                        aria-hidden
+                        className={cn(
+                          "h-4 w-4 shrink-0 transition-transform",
+                          expanded && "rotate-90"
+                        )}
+                      >
+                        <path
+                          d="M7.5 5l5 5-5 5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
 
                   {expanded && (
                     <ul className="ml-6 mt-1 space-y-1 border-l border-sidebar-border pl-3">

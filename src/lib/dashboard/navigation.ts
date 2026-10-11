@@ -20,8 +20,7 @@ export type ModuleId =
   | "school-leader"
   | "scholarships"
   | "finance"
-  | "hr"
-  | "teacher-pay";
+  | "hr";
 
 export interface DashboardModule {
   id: ModuleId;
@@ -81,39 +80,6 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     children: [
       { href: "/dashboard/admissions", label: "Current Pipeline" },
       { href: "/dashboard/quiet-students", label: "Quiet Students" },
-    ],
-  },
-  /*
-   * TEACHER HRS/PAY. Added 10 October 2026, at Jimmy's instruction: "i need
-   * a button on left sidebar that says teacher hrs/pay that will take me to
-   * these pages."
-   *
-   * It points at a page that already lives under Finance. A shortcut rather
-   * than a new place, because the paysheet is the thing he opens most and it
-   * was three clicks deep.
-   *
-   * NO PERMISSION OF ITS OWN. It is mapped to the same finance keys as the
-   * Finance module, which the database already DENIES to SCHOOL_LEADER -
-   * migration 349 wrote those denials when School Leaders were taken off the
-   * money. Nina and Heather never see this entry, and that is enforced by
-   * the same rows that hide Finance itself rather than by anything new.
-   */
-  {
-    id: "teacher-pay",
-    href: "/dashboard/finance/teacher-pay",
-    sidebarLabel: "Teacher Hrs/Pay",
-    pageTitle: "Teacher Hours and Pay",
-    pageSubtitle: "What each teacher logged, what it pays, and what is still open",
-    placeholderTitle: "Teacher Hours and Pay",
-    placeholderDescription:
-      "Every teacher's week - classes taught, extras claimed, hours worked - priced, and waiting to be approved.",
-    placeholderFeatures: [
-      "The week, by teacher",
-      "Approve and pay",
-    ],
-    children: [
-      { href: "/dashboard/finance/teacher-pay", label: "This week" },
-      { href: "/dashboard/finance/teacher-pay/monthly", label: "Monthly" },
     ],
   },
   {
@@ -276,12 +242,44 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
       "Financial aid reporting",
     ],
   },
+  /**
+   * FINANCE, WITH THE PAYSHEETS UNDER IT.
+   *
+   * Jimmy, 11 October 2026: "also need finance menu similar to admissions.
+   * leave the main finance to the current home page it takes it to but
+   * include a sub menu with teacher pay - this week, teacher pay - this
+   * month".
+   *
+   * "LEAVE THE MAIN FINANCE TO THE CURRENT HOME PAGE" is the half of that
+   * instruction which changed Sidebar.tsx rather than this file. Until today
+   * a module with children rendered as a toggle button and navigated
+   * nowhere - fine for Admissions, whose first child IS its page, and wrong
+   * here, because Finance has a home of its own. The parent is a link again,
+   * with the chevron as a separate control beside it.
+   *
+   * THIS REPLACES THE TOP-LEVEL "Teacher Hrs/Pay" ENTRY added on 10 October.
+   * The same two pages, one level in, where he has now asked for them. Both
+   * hrefs are unchanged, so every link and bookmark still works.
+   *
+   * THE LABELS SAY "Teacher Pay", which the standalone entry did not need to
+   * because its parent already said it. Under Finance, "This week" alone
+   * would be a week of what.
+   *
+   * NO PERMISSION OF ITS OWN, deliberately - a child inherits whatever hides
+   * its parent. Finance is DENIED to SCHOOL_LEADER by migration 349, so Nina
+   * and Heather see neither Finance nor these two pages, enforced by the rows
+   * that already hide the money rather than by anything new.
+   */
   {
     id: "finance",
     href: "/dashboard/finance",
     sidebarLabel: "Finance",
     pageTitle: "Finance",
     pageSubtitle: "Tuition, billing, and revenue reporting",
+    children: [
+      { href: "/dashboard/finance/teacher-pay", label: "Teacher Pay - This Week" },
+      { href: "/dashboard/finance/teacher-pay/monthly", label: "Teacher Pay - This Month" },
+    ],
     placeholderTitle: "Finance & Billing",
     placeholderDescription:
       "Monitor tuition revenue, billing cycles, and financial performance across your organization.",

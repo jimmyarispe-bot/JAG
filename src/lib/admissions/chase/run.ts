@@ -42,6 +42,7 @@ import {
   readSharedCalendarBookings,
   type CalendarBooking,
 } from "@/lib/admissions/chase/calendar";
+import { bookingKindFromTitle } from "@/lib/admissions/chase/booking-kind";
 import { decideChase, type ChaseDecision } from "@/lib/admissions/chase/clock";
 import { easternDateKey, easternHour } from "@/lib/platform/time/eastern";
 import { resolveOrganizationIdForUser } from "@/lib/platform/identity/org-membership";
@@ -70,10 +71,19 @@ export const EARLIEST_SCAN_HOUR_EASTERN = 22;
 /**
  * How late a meeting may be before the "RECORD your notes" letter is dropped.
  *
- * Jimmy, 10 October, asked for one day and asked why the proposal had said
- * seven: there was no reason, and one day is the better line. A meeting from
- * yesterday is still in a school leader's head. One from six weeks ago is a
- * letter asking her to write up a conversation she may not remember having.
+ * TWO HOURS, since 11 October. Jimmy asked for one day on 10 October, when a
+ * backlog of twenty-six was the problem this had to survive. It did that job.
+ * Then on 11 October a fix unblocked three of his own test bookings at once
+ * and the day-long window let two of them - 7pm the previous evening and 7am
+ * that morning - land on Danni in the same second. Nothing was wrong with
+ * either letter; there were simply two, and that is what a long window does
+ * when a backlog clears.
+ *
+ * The window exists to survive an outage, not to carry a backlog. The scan
+ * runs every two minutes and the queue drains every five, so an honest letter
+ * is never more than about seven minutes late. Two hours is generous against
+ * that and still short enough that a stale pile cannot arrive as a pile.
+ * Jimmy, 11 October: "catch up - 2hrs is fine".
  *
  * THIS EXISTS BECAUSE OF ONE NIGHT. On 10 October `admissions_interviews`
  * held no row this scan had ever written - not one, since the job was built -
@@ -87,7 +97,7 @@ export const EARLIEST_SCAN_HOUR_EASTERN = 22;
  * about seven minutes late. If it starts skipping letters on an ordinary day,
  * something upstream has stopped and this is the place that will say so.
  */
-export const NOTES_LETTER_CUTOFF_HOURS = 24;
+export const NOTES_LETTER_CUTOFF_HOURS = 2;
 
 /**
  * HOLD THE CONFIRMATION LETTERS UNTIL JIMMY SAYS GO.
@@ -235,6 +245,26 @@ export interface ScanReport {
    */
   readonly confirmationsHeld: readonly string[];
   /**
+   * A booking the title identified as a SHADOW DAY or an ASSESSMENT. Recognised, recorded nowhere, and nobody told: there is no
+   * shadow-day table - only admissions_tours - the assessment step is not
+   * built yet ("we will add assessment related later", 29 September), and
+   * there is no branch or approved letter for either kind. On 10 October a shadow day went into BOTH the
+   * tours table and the interviews table, which is two wrong answers rather
+   * than none, and on 11 October that kind of mis-filing put a tour in
+   * Danni's inbox dressed as an interest conversation.
+   *
+   * Listed by name so the decision is visible and waiting, rather than
+   * invented by the code. Awaiting Jimmy's word on what each should do.
+   */
+  readonly recognisedNotRecorded: readonly string[];
+  /**
+   * A matched booking whose title said nothing - almost always a meeting a
+   * leader typed into her own calendar. The kind was guessed from the child's
+   * stage, exactly as it always was. Listed so a booking page nobody told us
+   * about is found by reading a run rather than by a wrong letter.
+   */
+  readonly titlesUnrecognised: readonly string[];
+  /**
    * A GA or FL booking whose post-call letter could not be queued, and why.
    *
    * Almost always one thing: staff_inquiry_call_held is seeded switched off,
@@ -296,6 +326,8 @@ export async function runInterestMeetingScan(
     bookingsRecorded: [],
     bookingsNotNotified: [],
     confirmationsHeld: [],
+    recognisedNotRecorded: [],
+    titlesUnrecognised: [],
     postCallSkipped: [],
     toursRecorded: [],
     leadsConsidered: 0,
@@ -593,6 +625,8 @@ export async function runInterestMeetingScan(
   const bookingsRecorded: string[] = [];
   const bookingsNotNotified: string[] = [];
   const confirmationsHeld: string[] = [];
+  const recognisedNotRecorded: string[] = [];
+  const titlesUnrecognised: string[] = [];
   const postCallSkipped: string[] = [];
   const toursRecorded: string[] = [];
 
@@ -609,11 +643,18 @@ export async function runInterestMeetingScan(
    */
   const { data: existingTours } = await supabase
     .from("admissions_tours")
-    .select("lead_id")
+    .select("lead_id, scheduled_at")
     .in("lead_id", leadIds.length ? leadIds : ["00000000-0000-0000-0000-000000000000"]);
 
+  /*
+   * KEYED ON THE APPOINTMENT, for the same reason recordedAppointments is -
+   * see the note there. A family touring twice is two tours, and the old
+   * lead-level set swallowed the second one silently.
+   */
   const alreadyRecordedTour = new Set<string>(
-    ((existingTours ?? []) as { lead_id: string }[]).map((t) => t.lead_id)
+    ((existingTours ?? []) as { lead_id: string; scheduled_at: string }[]).map((t) =>
+      appointmentKey(t.lead_id, t.scheduled_at)
+    )
   );
   let bookingsMatched = 0;
 
@@ -679,9 +720,57 @@ export async function runInterestMeetingScan(
      * had one. Until today a booked tour hit that guard and told nobody.
      */
     const tourLead = leadById.get(leadId) ?? null;
-    if (tourLead && tourLead.lead_stage === "tour_requested") {
-      if (alreadyRecordedTour.has(leadId)) continue;
-      alreadyRecordedTour.add(leadId);
+
+    /*
+     * ── WHAT KIND OF APPOINTMENT IS THIS? ───────────────────────────────
+     *
+     * THE TITLE ANSWERS IT WHEN IT CAN, and the child's stage answers it
+     * only when the title cannot. That order is the fix; the comment below
+     * describing the stage as "the discriminator" was true until 11 October
+     * and is kept because it still explains the fallback.
+     *
+     * Jimmy, 11 October: "isn't the title telling us what it is". It was.
+     * Five tours and a shadow day had been filed as interest meetings, and
+     * that morning one of them reached Danni as a letter asking her to write
+     * up an interest conversation about a school tour.
+     *
+     * bookingKindFromTitle refuses rather than guesses, so an unrecognised
+     * title - a meeting a leader typed herself - behaves exactly as it does
+     * today and is reported by name.
+     */
+    const titleKind = bookingKindFromTitle(booking.summary);
+    if (!titleKind) {
+      titlesUnrecognised.push(
+        `${leadId} <- "${booking.summary ?? "(no title)"}" - kind guessed from the stage`
+      );
+    }
+
+    /*
+     * A SHADOW DAY IS NEITHER, AND THERE IS NOWHERE TO PUT IT.
+     *
+     * There is no shadow-day table - only admissions_tours - and no approved
+     * letter for one. On 10 October a shadow day went into BOTH the tours
+     * table and the interviews table, which is two wrong answers rather than
+     * none. So it is recognised, recorded nowhere, nobody is told, and it is
+     * named in the report. Awaiting Jimmy's word on what it should do.
+     */
+    if (titleKind === "shadow_day" || titleKind === "assessment") {
+      const kindRead = titleKind === "shadow_day" ? "shadow day" : "assessment";
+      recognisedNotRecorded.push(
+        `${leadId} <- ${kindRead} ${appointmentTextForFamily(booking.startsAt)} ` +
+          `("${booking.summary ?? ""}") - recognised, nothing recorded, nobody told`
+      );
+      continue;
+    }
+
+    const isTour =
+      titleKind === "tour" ||
+      (titleKind === null && tourLead?.lead_stage === "tour_requested");
+
+    if (tourLead && isTour) {
+      const thisTour = appointmentKey(leadId, booking.startsAt);
+      if (alreadyRecordedTour.has(thisTour)) continue;
+      alreadyRecordedTour.add(thisTour);
       toursRecorded.push(`${leadId} <- tour ${appointmentTextForFamily(booking.startsAt)}`);
       if (dryRun) continue;
 
@@ -703,10 +792,21 @@ export async function runInterestMeetingScan(
         continue;
       }
 
+      /*
+       * ONLY FORWARD, AND ONLY FROM Tour Requested.
+       *
+       * Now that a tour is recognised by its title, this branch is reached by
+       * children who are already PAST tour_requested - Candace Martin and Ian
+       * Matos Ortiz were both at Tour Scheduled when their tours were read off
+       * the calendar on 10 October. Writing the stage unconditionally would
+       * drag a child backwards to say something a school leader had already
+       * said by hand. The row above is the fact; this is only the label.
+       */
       const { error: tourStageError } = await supabase
         .from("admissions_leads")
         .update({ lead_stage: "tour_scheduled", updated_at: new Date().toISOString() })
-        .eq("id", leadId);
+        .eq("id", leadId)
+        .eq("lead_stage", "tour_requested");
 
       if (tourStageError) {
         errors.push(
@@ -1016,6 +1116,8 @@ export async function runInterestMeetingScan(
       bookingsRecorded,
       bookingsNotNotified,
       confirmationsHeld,
+      recognisedNotRecorded,
+      titlesUnrecognised,
       postCallSkipped,
       toursRecorded,
       leadsConsidered: leads.length,
@@ -1143,6 +1245,8 @@ export async function runInterestMeetingScan(
     bookingsRecorded,
     bookingsNotNotified,
     confirmationsHeld,
+    recognisedNotRecorded,
+    titlesUnrecognised,
     postCallSkipped,
     toursRecorded,
     leadsConsidered: leads.length,

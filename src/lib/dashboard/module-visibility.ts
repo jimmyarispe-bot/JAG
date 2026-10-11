@@ -30,7 +30,6 @@ export const MODULE_REQUIRED_PERMISSIONS: Partial<Record<ModuleId, readonly stri
   /* The same four keys as Finance. The database already denies all four to
      SCHOOL_LEADER (migration 349), so this entry hides itself from Nina and
      Heather without a new permission. */
-  "teacher-pay": ["finance.view", "FINANCE_ACCESS", "finance.billing", "finance.executive"],
   students: ["students.view", "students.edit"],
   scholarships: ["scholarships.view", "scholarships.approve"],
   finance: ["finance.view", "FINANCE_ACCESS", "finance.billing", "finance.executive"],

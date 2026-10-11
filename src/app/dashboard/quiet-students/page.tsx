@@ -31,49 +31,28 @@
  * about who may see a child is how a child ends up visible to the wrong
  * campus.
  *
+ * THE SEARCH AND FILTERS ARE THE BOARD'S OWN. Jimmy, 11 October: "also need
+ * the quiet student page to have the same filter, sorting and search ability
+ * as the current pipeline". The columns moved into QuietStudentsBoard, a
+ * client component that imports the SAME PipelineFilters and the SAME
+ * applyFilters the pipeline uses - not a second set that looks alike, which
+ * is how one page stops finding a child the other page finds. This file does
+ * the read and nothing else.
+ *
  * DECISION NEEDED IS FIRST, and it is first on purpose. It is the only column
  * here that is waiting on a person. Declined and Alumni are finished;
  * Decision Needed is a child whose family has not been told anything.
  */
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { QuietStudentsBoard } from "@/components/admissions/QuietStudentsBoard";
 import { getLeads } from "@/lib/admissions/queries";
-import { OLD_STUDENT_LEAD_STAGES } from "@/lib/constants/admissions";
+import type { BoardLead } from "@/lib/admissions/board-filters";
 
 export const dynamic = "force-dynamic";
 
-/** Whole days between a date and now, floored. Null when there is no date. */
-function daysSince(value: unknown): number | null {
-  if (typeof value !== "string" || !value.trim()) return null;
-  const then = new Date(value);
-  if (Number.isNaN(then.getTime())) return null;
-  const days = Math.floor((Date.now() - then.getTime()) / 86_400_000);
-  return days < 0 ? 0 : days;
-}
-
-function fullName(lead: Record<string, unknown>): string {
-  const first = String(lead.first_name ?? "").trim();
-  const last = String(lead.last_name ?? "").trim();
-  return `${first} ${last}`.trim() || "Unnamed child";
-}
-
-function guardianName(lead: Record<string, unknown>): string {
-  const first = String(lead.guardian_first_name ?? "").trim();
-  const last = String(lead.guardian_last_name ?? "").trim();
-  return `${first} ${last}`.trim();
-}
-
-export default async function OldStudentsPage() {
-  const leads = await getLeads();
-
-  const byStage = new Map<string, Record<string, unknown>[]>();
-  for (const stage of OLD_STUDENT_LEAD_STAGES) byStage.set(stage.value, []);
-  for (const lead of leads as unknown as Record<string, unknown>[]) {
-    const bucket = byStage.get(String(lead.lead_stage ?? ""));
-    if (bucket) bucket.push(lead);
-  }
-
-  const total = [...byStage.values()].reduce((n, rows) => n + rows.length, 0);
+export default async function QuietStudentsPage() {
+  const leads = (await getLeads()) as unknown as readonly BoardLead[];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -90,103 +69,7 @@ export default async function OldStudentsPage() {
         }
       />
 
-      <p className="text-sm text-slate-500">
-        {total === 0
-          ? "Nobody here."
-          : `${total} ${total === 1 ? "family" : "families"}, at your campus.`}
-      </p>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {OLD_STUDENT_LEAD_STAGES.map((stage) => {
-          const rows = byStage.get(stage.value) ?? [];
-          /* Decision Needed is the only column anybody has to act on, so it is
-             the only one that carries a colour. */
-          const waiting = stage.value === "waitlisted";
-
-          return (
-            <section
-              key={stage.value}
-              className={`rounded-2xl border p-4 ${
-                waiting
-                  ? "border-orange-300 bg-orange-50/60"
-                  : "border-slate-200 bg-white"
-              }`}
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <h2
-                  className={`text-sm font-semibold ${
-                    waiting ? "text-orange-900" : "text-slate-900"
-                  }`}
-                >
-                  {stage.label}
-                </h2>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    waiting
-                      ? "bg-orange-200 text-orange-900"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {rows.length}
-                </span>
-              </div>
-
-              {waiting && rows.length > 0 && (
-                <p className="mt-2 text-xs text-orange-900">
-                  {rows.length === 1
-                    ? "This family has not been told anything."
-                    : "These families have not been told anything."}
-                </p>
-              )}
-
-              <div className="mt-3 space-y-2">
-                {rows.length === 0 && (
-                  <p className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-xs text-slate-400">
-                    Nobody
-                  </p>
-                )}
-
-                {rows.map((lead) => {
-                  const days = daysSince(lead.created_at);
-                  const guardian = guardianName(lead);
-                  return (
-                    <Link
-                      key={String(lead.id)}
-                      href={`/dashboard/admissions/cases/${String(lead.id)}`}
-                      className="block rounded-xl border border-slate-200 bg-white p-3 hover:border-slate-400"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-slate-900">
-                          {fullName(lead)}
-                        </p>
-                        {days !== null && (
-                          <span
-                            className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
-                              waiting
-                                ? "bg-orange-100 text-orange-900"
-                                : "bg-slate-100 text-slate-500"
-                            }`}
-                          >
-                            {days}d
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {String(
-                          (lead.schools as { name?: string } | null)?.name ?? "—"
-                        )}
-                      </p>
-                      {guardian && (
-                        <p className="mt-1 text-xs text-slate-400">{guardian}</p>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+      <QuietStudentsBoard leads={leads} />
     </div>
   );
 }

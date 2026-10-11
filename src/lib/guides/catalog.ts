@@ -747,7 +747,7 @@ export const GUIDE_AREAS: readonly GuideArea[] = [
         summary: "What each teacher logged, what it pays, and what is still open.",
         steps: [
           {
-            title: "Open Teacher Hrs/Pay",
+            title: "Open Finance, then Teacher Pay - This Week",
             detail:
               "Every teacher for the week, with what they claimed broken out — classes, extras and hours.",
             href: "/dashboard/finance/teacher-pay",

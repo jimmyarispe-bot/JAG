@@ -102,7 +102,11 @@ export async function POST(request: NextRequest) {
       /* A held confirmation is the most interesting thing a run can produce
          while HOLD_BOOKING_CONFIRMATIONS is on, and it must not be the one
          thing that lets a run count as quiet and print nothing. */
-      report.confirmationsHeld.length;
+      report.confirmationsHeld.length +
+      /* A booking recognised and deliberately not recorded - a shadow day,
+         an application conversation - is a fact somebody has to decide
+         about, so it must not let a run count as quiet and print nothing. */
+      report.recognisedNotRecorded.length;
     if (found || report.postCallSkipped.length) {
       console.log(
         "[booking-scan] recorded",
@@ -111,6 +115,8 @@ export async function POST(request: NextRequest) {
           tours: report.toursRecorded,
           alreadyPast: report.bookingsNotNotified,
           confirmationsHeld: report.confirmationsHeld,
+          recognisedNotRecorded: report.recognisedNotRecorded,
+          titlesUnrecognised: report.titlesUnrecognised,
           notesLetterSkipped: report.postCallSkipped,
         })
       );
