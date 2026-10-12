@@ -31,12 +31,27 @@ afterEach(() => {
 });
 
 describe("which campuses run tours", () => {
-  it("is GA and FL, and only those two", () => {
+  it("is GA, FL and the test campus, and only those three", () => {
+    /* WHY THIS WAS TWO UNTIL 12 OCTOBER 2026, AND IS NOW THREE.
+
+       The two real campuses with a building, plus XXXXXXXX Test Campus - the
+       fifth campus built on 12 October so Jimmy can walk a child through the
+       whole admissions path himself instead of borrowing Danni's inbox and a
+       real family's pipeline for every test. Migration 538 makes it a copy of
+       The Academy FL, and FL's path has a tour in it; leave the test campus
+       off this list and the test routes straight past the tour - the longest
+       step in the FL sequence - and proves nothing about the road a GA or FL
+       family actually walks.
+
+       The length assertion stays. It is the thing that makes adding a campus
+       to this list a deliberate act with a reason written beside it, which is
+       exactly how this change was caught. */
     expect(campusRunsTours("The Academy GA")).toBe(true);
     expect(campusRunsTours("The Academy FL")).toBe(true);
+    expect(campusRunsTours("XXXXXXXX Test Campus")).toBe(true);
     expect(campusRunsTours("The Academy HS")).toBe(false);
     expect(campusRunsTours("The Academy Virtual")).toBe(false);
-    expect(TOUR_CAMPUS_NAMES).toHaveLength(2);
+    expect(TOUR_CAMPUS_NAMES).toHaveLength(3);
   });
 
   it("survives a stray space or a different case in the JAG", () => {

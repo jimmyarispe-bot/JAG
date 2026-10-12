@@ -1,67 +1,74 @@
-the booking scan runs every two minutes
+a campus only jimmy can see
 
-Jimmy booked an interest call with Danni for 7:00pm at 6:36pm as a test,
-and asked at 7:13 why she had no notes email.
+Jimmy, 11 October: "i want to create a universal account/login/system that i
+can use to test everything a school leader sees, receives, does, etc. waiting
+on them and having to work with them to workout the kinks in the jag is not
+practical and very timeconsuming. i want to be able to do this myself."
 
-── WHAT WAS NOT WRONG ──────────────────────────────────────────────────────
+Every end-to-end test this month has been run through a real campus, which
+means a real school leader's inbox and a real family's pipeline, and three of
+them ended with Danni reading letters about children who do not exist.
 
-A dry run of the discovery pass answered most of it. Google is reachable,
-the token is good, all four calendars are read INCLUDING Danni's,
-calendarProblems empty, campusesWithNoCalendar empty, 210 bookings seen.
-The lead existed with his address on it, created 6:23pm, inside the
-90-day window; 337 leads considered, which is all of them. The queue is
-draining — 13 letters went out at 6:24pm, one minute after the test
-inquiry.
+This adds a fifth campus - XXXXXXXX Test Campus - that exists only to be
+tested through. Migration 538, already applied and verified, builds it as a
+faithful copy of The Academy FL:
+the same sixteen school-specific letters byte for byte, the same six programs,
+the same fourteen checklist items, the same admissions settings, tours
+switched on. One difference matters: every email it sends is addressed to
+test.leader@theacademyway.org, which is Jimmy's own account.
 
-── WHAT I GOT WRONG, AND CORRECTED BEFORE WRITING ANY CODE ─────────────────
+The code change is one line of data. TOUR_CAMPUS_NAMES decides whether a tour
+sits between the interest conversation and the application, and it is keyed on
+the campus NAME because schools has no column that says what kind of school it
+is. Without the new name on that list the test campus would route straight
+past the tour - the longest step in the FL sequence, and the one the last two
+weeks of work was about - and the test would prove nothing about the road a GA
+or FL family actually walks.
 
-I told him the letter was being suppressed because the meeting had
-already started, and proposed a grace window. That was wrong. The
-post-call letter is ALREADY queued for a meeting in the past, on purpose,
-and the comment above it says why: the family's confirmation is worthless
-six weeks late, but "what happened and what should happen next" is
-exactly as useful late, because the decision it asks for has not been
-made. `if (alreadyHappened) continue` sits BELOW that block, not above
-it. I would have shipped a fix for a bug that does not exist.
+One test refused the ship, and it was right to.
 
-── WHAT IS ACTUALLY UNEXPLAINED ────────────────────────────────────────────
+tests/unit/admissions/tour-step.test.ts asserts TOUR_CAMPUS_NAMES has length
+2 - "is GA and FL, and only those two" - which is exactly the guard that
+should exist on a list where adding a name silently changes which families are
+asked to tour. It now asserts three, with the reason written beside it, and
+adds the test campus to the campuses that run tours.
 
-The booking was never matched. Every silent exit in that loop was checked
-against the database and none applies: no admissions_interviews row, no
-admissions_tours row, stage is new_inquiry so the tour branch is not
-taken, bookedAt empty. matchBookingToLead reads event.attendees[].email
-and nothing else, so the remaining explanation is that his address is not
-a guest on that event — Google's appointment schedules put the booker in
-the notification body, which the matcher never reads.
+I had told Jimmy no test referenced that list. The grep that said so was run
+under a timeout and was killed before it finished; I read its empty output as
+an answer. Same class of mistake as reading an exit code through a pipe. The
+sweep was run again to completion with the return code checked: that one test
+file is the only place in tests/ that touches TOUR_CAMPUS_NAMES,
+campusRunsTours or requireTourLink.
 
-NOT FIXED HERE. Widening the matcher to read the booker out of the
-description is a real change to how a family is identified, and it waits
-until somebody has looked at the actual guest list on that event.
+Checked, not assumed:
 
-── WHAT THIS COMMIT DOES ───────────────────────────────────────────────────
+  - scoped typecheck of tour.ts, exit code read straight off tsc: clean
+  - scoped typecheck of the test file against tsconfig.test.json: clean
+  - every assertion the updated test makes, run against the built module:
+    length is 3, the new name matches trimmed and in any case, HS, Virtual,
+    "The Academy Mars", null and undefined all still read as no-tours,
+    requireTourLink returns the tour link for the new campus and still
+    refuses when the link is blank
+  - all 16 FL templates read first: not one writes "The Academy FL",
+    "Florida" or an address into its subject or body. Every campus-specific
+    word in them is a merge field, so the copy needed no rewording.
+  - templates resolve school-specific over org-level (engine.ts sorts null
+    first, school last), so the copy is what the test campus will actually
+    send - without it the campus would have inherited the generic org wording
+    and the test would have read the wrong letters.
 
-  "2. run every 2 minutes"
+Two things this does NOT do, both deliberate:
 
-booking-scan moves from hourly to every two minutes. It reads calendars,
-records bookings and queues the notes letter; it writes no chase letters
-and takes no night claim, so the frequency costs little. With the
-five-minute drain behind it the worst case is about seven minutes from
-booking to inbox, against sixty before.
-
-The hourly pass was built on 5 October against "usually not before 3
-hours" of notice. Twenty-four minutes defeats it.
-
-── A STALE COMMENT, CORRECTED WHILE I WAS IN THERE ─────────────────────────
-
-The note beside the queueing call said process-communications ran hourly
-and called the gap "a Vercel plan question rather than a code one". The
-drain has been on five minutes for some time, and the plan question just
-got an answer.
-
-Its first draft spelled both schedules as real cron expressions inside a
-block comment. The slash-star in them closed the comment three lines
-early and the file stopped parsing. They are written in words now, with a
-note saying why.
+  1. It does not touch the published interest form, version 39. That form's
+     inquiry Program question filters its options by school id, so on /apply
+     the test campus will offer only "Only Virtual" and the FL-specific
+     application sections will not appear for it. Editing a form 146 real
+     families have used is a separate change, for Jimmy to say yes to.
+  2. It does not share test.leader@'s calendar with
+     jimmy.arispe@theacademyway.org. The booking scan reads only the calendars
+     in that account's calendarList, so until the share is accepted the scan
+     reports this campus under campusesWithNoCalendar. That is a Google
+     setting, not a database one.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

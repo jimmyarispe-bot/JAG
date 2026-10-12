@@ -46,12 +46,19 @@
 /**
  * The campuses where a tour sits between the inquiry call and the application.
  *
- * Exactly the two with a physical building. Virtual and HS are absent on
- * purpose, not by omission.
+ * The two with a physical building, plus the test campus that copies FL.
+ * Virtual and HS are absent on purpose, not by omission.
  */
 export const TOUR_CAMPUS_NAMES: readonly string[] = [
   "The Academy GA",
   "The Academy FL",
+  // The fifth campus, added 12 October 2026. It is a copy of The Academy FL
+  // that exists only so Jimmy can walk a child through the whole admissions
+  // path himself without a real school leader's inbox and a real family's
+  // pipeline being used as the test rig. It has to be on this list or the test
+  // would skip the tour step - the one step the FL sequence is longest for -
+  // and prove nothing about the road a GA or FL family actually walks.
+  "XXXXXXXX Test Campus",
 ];
 
 /** Trimmed, case-insensitive: a stray space in the JAG must not change a path. */
