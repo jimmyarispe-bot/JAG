@@ -159,19 +159,90 @@ function safeHref(value: string): string | null {
   return trimmed;
 }
 
-function buttonBlock(href: string, label: string): string {
+/**
+ * The button, built from pieces that are ALREADY HTML-SAFE.
+ *
+ * Both callers arrive with their values escaped at different moments - the
+ * plain-text path escapes here, the already-HTML path escaped when it
+ * substituted the merge field - so escaping lives in the callers and this
+ * function does not touch what it is handed. Escaping twice is how a URL
+ * with an &amp; in it turns into a dead link, and that is not a failure
+ * anybody notices before a parent clicks.
+ */
+function buttonBlockRaw(hrefAttr: string, labelHtml: string): string {
   return (
     `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 8px;">` +
     `<tr><td style="border-radius:8px;background:${BUTTON};">` +
-    `<a href="${escapeHtml(href)}" style="display:inline-block;padding:13px 24px;font-size:15px;` +
-    `font-weight:600;color:${BUTTON_INK};text-decoration:none;">${escapeHtml(label)}</a>` +
+    `<a href="${hrefAttr}" style="display:inline-block;padding:13px 24px;font-size:15px;` +
+    `font-weight:600;color:${BUTTON_INK};text-decoration:none;">${labelHtml}</a>` +
     `</td></tr></table>` +
     /* The naked URL stays, smaller, underneath. A button is not a link to
        somebody whose client strips tables, and a letter that becomes
        unusable in Outlook is worse than an ugly one. */
     `<p style="margin:6px 0 18px;font-size:12px;line-height:1.5;color:${MUTED};word-break:break-all;">` +
     `Or paste this into your browser:<br />` +
-    `<a href="${escapeHtml(href)}" style="color:${LINK_INK};">${escapeHtml(href)}</a></p>`
+    `<a href="${hrefAttr}" style="color:${LINK_INK};">${hrefAttr}</a></p>`
+  );
+}
+
+function buttonBlock(href: string, label: string): string {
+  return buttonBlockRaw(escapeHtml(href), escapeHtml(label));
+}
+
+/**
+ * A PARAGRAPH THAT IS NOTHING BUT ONE LINK IS A BUTTON TOO.
+ *
+ * Jimmy, 10 October: "can you create an actual button that will go into these
+ * emails with the links tied to them." The commit that answered him was called
+ * "every link in every letter is a button now", and it was not true. It
+ * covered the eighty-four plain-text templates and left the eighty-fifth -
+ * inquiry_staff_alert, the one written in HTML - with its call to action as a
+ * bare underlined link, which is exactly how it arrived in the test campus's
+ * first staff alert on 12 October.
+ *
+ * MY REASONING FOR SKIPPING IT WAS WRONG, and the comment above looksHtml
+ * still carried it: "a link somebody wrote an anchor around is a decision
+ * already taken." That is a reasonable rule about MARKUP and the wrong answer
+ * to what Jimmy asked. He did not ask for buttons where the author forgot to
+ * write one. He asked for buttons.
+ *
+ * ── WHY THIS SHAPE, AND NOT "EVERY ANCHOR" ──────────────────────────────────
+ *
+ * An anchor ALONE IN ITS OWN PARAGRAPH is a call to action - the same thing a
+ * bare URL alone on its line is in a plain-text letter, which is the rule
+ * renderBlock already applies. An anchor with words around it is part of a
+ * sentence, and a button in the middle of a sentence is not a button.
+ *
+ * inquiry_staff_alert shows both in one letter, which is why the distinction
+ * has to hold:
+ *
+ *   <p>Email: <a href="mailto:...">...</a><br>Phone: <a href="tel:...">...</a></p>
+ *   <p><a href="{{interest_link_action}}">Send them the interest meeting link</a></p>
+ *
+ * The first paragraph has text before each anchor and stays as it is. The
+ * second becomes the button. The mailto: and tel: links would be refused by
+ * the scheme check below in any case - a second reason for the same answer,
+ * which is what should be true of a rule worth keeping.
+ */
+const SOLE_ANCHOR_PARAGRAPH =
+  /<p[^>]*>\s*<a\s+href="([^"]*)"[^>]*>([\s\S]*?)<\/a>\s*<\/p>/gi;
+
+function buttonsForSoleAnchorParagraphs(html: string): string {
+  return html.replace(
+    SOLE_ANCHOR_PARAGRAPH,
+    (whole: string, hrefAttr: string, inner: string) => {
+      /* http and https ONLY, the same refusal safeHref makes and for the same
+         reason: a merge value is data. mailto: and tel: are left as links,
+         which is what they should look like anyway. */
+      if (!/^https?:\/\//i.test(hrefAttr)) return whole;
+      if (/[\s<>]/.test(hrefAttr)) return whole;
+      /* The label is the anchor's own words. Any nested markup - a <strong>
+         somebody wrapped it in - is dropped, because a button's label is text
+         and keeping it would put tags inside the <a> this builds. */
+      const labelHtml = inner.replace(/<[^>]*>/g, "").trim();
+      if (!labelHtml) return whole;
+      return buttonBlockRaw(hrefAttr, labelHtml);
+    }
   );
 }
 
@@ -309,9 +380,13 @@ ${header}${input.inner}
  * ESCAPED, because a guardian called "Smith & Jones" is still data inside an
  * HTML template and escaping an & inside an href is correct there too.
  *
- * NO PARAGRAPH WRAPPING and NO BUTTON. The author already wrote both. A link
- * this file turns into a button is a link that was a bare URL on its own
- * line; a link somebody wrote an anchor around is a decision already taken.
+ * NO PARAGRAPH WRAPPING. The author already wrote the paragraphs.
+ *
+ * It said NO BUTTON too, until 12 October, on the reasoning that an anchor
+ * the author wrote is a decision already taken. That was wrong - see
+ * buttonsForSoleAnchorParagraphs below. An anchor alone in its own paragraph
+ * now becomes a button here as well, which is what Jimmy asked for in the
+ * first place.
  *
  * ── WHY A HEURISTIC, AND THE SAME ONE ───────────────────────────────────────
  *
@@ -361,7 +436,9 @@ export function renderLetterHtml(params: {
     return shell({
       subject: params.subject,
       schoolName: params.schoolName,
-      inner: renderHtmlTemplate(params.rawBody, params.ctx),
+      inner: buttonsForSoleAnchorParagraphs(
+        renderHtmlTemplate(params.rawBody, params.ctx)
+      ),
     });
   }
 

@@ -1,74 +1,78 @@
-a campus only jimmy can see
+the one letter that never got its button
 
-Jimmy, 11 October: "i want to create a universal account/login/system that i
-can use to test everything a school leader sees, receives, does, etc. waiting
-on them and having to work with them to workout the kinks in the jag is not
-practical and very timeconsuming. i want to be able to do this myself."
+Jimmy, 12 October, on the test campus's first staff alert: "bad news: no
+button in the email."
 
-Every end-to-end test this month has been run through a real campus, which
-means a real school leader's inbox and a real family's pipeline, and three of
-them ended with Danni reading letters about children who do not exist.
+He was right, and this is the second time the same template has been the
+exception. On 10 October he asked for "an actual button that will go into
+these emails with the links tied to them", and the commit that answered him
+was titled "every link in every letter is a button now". It was not true.
 
-This adds a fifth campus - XXXXXXXX Test Campus - that exists only to be
-tested through. Migration 538, already applied and verified, builds it as a
-faithful copy of The Academy FL:
-the same sixteen school-specific letters byte for byte, the same six programs,
-the same fourteen checklist items, the same admissions settings, tours
-switched on. One difference matters: every email it sends is addressed to
-test.leader@theacademyway.org, which is Jimmy's own account.
+Eighty-four of the eighty-five active templates are plain text, and those got
+buttons. inquiry_staff_alert is the eighty-fifth, written in HTML. On 10
+October its markup was escaped and reached Danni's inbox as view-source. The
+fix for that passed the markup through untouched - and DELIBERATELY SKIPPED
+THE BUTTON, on my reasoning that "a link somebody wrote an anchor around is a
+decision already taken."
 
-The code change is one line of data. TOUR_CAMPUS_NAMES decides whether a tour
-sits between the interest conversation and the application, and it is keyed on
-the campus NAME because schools has no column that says what kind of school it
-is. Without the new name on that list the test campus would route straight
-past the tour - the longest step in the FL sequence, and the one the last two
-weeks of work was about - and the test would prove nothing about the road a GA
-or FL family actually walks.
+That is a reasonable rule about markup and the wrong answer to what Jimmy
+asked. He did not ask for buttons only where the author forgot to write one.
+He asked for buttons. So the call to action in that letter arrived as a bare
+underlined link, two days later, in a test built to catch exactly this.
 
-One test refused the ship, and it was right to.
+WHAT CHANGES
 
-tests/unit/admissions/tour-step.test.ts asserts TOUR_CAMPUS_NAMES has length
-2 - "is GA and FL, and only those two" - which is exactly the guard that
-should exist on a list where adding a name silently changes which families are
-asked to tour. It now asserts three, with the reason written beside it, and
-adds the test campus to the campuses that run tours.
+An anchor ALONE IN ITS OWN PARAGRAPH now becomes a button in the already-HTML
+path too - the same decision renderBlock already makes for a bare URL alone on
+its line. An anchor with words around it stays a link, because a button in the
+middle of a sentence is not a button. inquiry_staff_alert shows both shapes in
+one letter, which is why the distinction has to hold:
 
-I had told Jimmy no test referenced that list. The grep that said so was run
-under a timeout and was killed before it finished; I read its empty output as
-an answer. Same class of mistake as reading an exit code through a pipe. The
-sweep was run again to completion with the return code checked: that one test
-file is the only place in tests/ that touches TOUR_CAMPUS_NAMES,
-campusRunsTours or requireTourLink.
+  <p>Email: <a href="mailto:...">...</a><br>Phone: <a href="tel:...">...</a></p>
+  <p><a href="{{interest_link_action}}">Send them the interest meeting link</a></p>
+
+The first stays. The second becomes the button. The mailto: and tel: links are
+refused by the http/https check as well, which is what should be true of a
+rule worth keeping.
+
+buttonBlock is split into buttonBlockRaw, which touches nothing it is handed,
+because the two callers escape at different moments - the plain-text path
+escapes at the button, the HTML path escaped when it substituted the merge
+field. Escaping twice is how a URL with an & in it becomes a dead link, and
+nobody notices that before a parent clicks.
+
+THE REAL REASON ONE TEMPLATE WAS WRONG TWICE
+
+letter-html.ts had NO TESTS AT ALL. Eighty-four letters were right and the
+eighty-fifth was broken twice, in two different ways, with nothing watching.
+
+tests/unit/communications/letter-html-buttons.test.ts now exists: 16
+assertions built from that template's stored body and the exact values from
+the letter Jimmy screenshotted, including both old failures as regressions -
+no escaped markup in view-source, and no empty href left behind.
 
 Checked, not assumed:
 
-  - scoped typecheck of tour.ts, exit code read straight off tsc: clean
-  - scoped typecheck of the test file against tsconfig.test.json: clean
-  - every assertion the updated test makes, run against the built module:
-    length is 3, the new name matches trimmed and in any case, HS, Virtual,
-    "The Academy Mars", null and undefined all still read as no-tours,
-    requireTourLink returns the tour link for the new campus and still
-    refuses when the link is blank
-  - all 16 FL templates read first: not one writes "The Academy FL",
-    "Florida" or an address into its subject or body. Every campus-specific
-    word in them is a merge field, so the copy needed no rewording.
-  - templates resolve school-specific over org-level (engine.ts sorts null
-    first, school last), so the copy is what the test campus will actually
-    send - without it the campus would have inherited the generic org wording
-    and the test would have read the wrong letters.
+  - scoped typecheck of the module and the new test, exit code read straight
+    off tsc with no pipe: clean
+  - all 16 assertions executed against the built module: one purple button
+    with white lettering, label taken from the anchor's own words, href is
+    the send-interest-link address, naked URL still printed underneath,
+    EXACTLY ONE button from three anchors, mailto: and tel: untouched,
+    javascript: refused, an anchor with no words gets no button, the plain
+    text path still produces "Choose your time", and an &amp; is not escaped
+    twice
+  - one query over all 101 template rows - `where body ~* '<[a-z][^>]*>'` -
+    confirms inquiry_staff_alert is still the only one written in HTML, so
+    this covers the whole estate rather than the one letter I happened to
+    look at. That is the query I should have run on 10 October instead of
+    generalising from three plain-text templates.
 
-Two things this does NOT do, both deliberate:
-
-  1. It does not touch the published interest form, version 39. That form's
-     inquiry Program question filters its options by school id, so on /apply
-     the test campus will offer only "Only Virtual" and the FL-specific
-     application sections will not appear for it. Editing a form 146 real
-     families have used is a separate change, for Jimmy to say yes to.
-  2. It does not share test.leader@'s calendar with
-     jimmy.arispe@theacademyway.org. The booking scan reads only the calendars
-     in that account's calendarList, so until the share is accepted the scan
-     reports this campus under campusesWithNoCalendar. That is a Google
-     setting, not a database one.
+ALSO, NOT CODE: the test campus's admissions contact name was "Taylor Reed",
+which I invented and mentioned only in passing. It turned up in a From line
+and Jimmy asked who that was - a fair question about a name nobody chose. It
+is "Jimmy Arispe" now, in schools.admissions_contact_name and in
+school_admissions_contacts, on the test campus only.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
