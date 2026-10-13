@@ -59,6 +59,7 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { campusRunsTours, requireTourLink, tourGateArmed } from "@/lib/admissions/tour";
+import { prepareApplicationForInvite } from "@/lib/admissions/application-for-invited-lead";
 import { gradeLabel } from "@/lib/constants/grades";
 import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/types";
 
@@ -756,6 +757,31 @@ export async function recordPostCallDecision(params: {
     if (await alreadySentSinceThisStep("application_invited", "tour_completed")) {
       console.log("[post-call] application already sent this step, not repeating:", leadId);
       return { ok: true, action: params.action };
+    }
+
+    /*
+     * THE TOKEN AND THE APPLICATION, BEFORE THE FAMILY IS TOLD ABOUT THEM.
+     *
+     * Missing on 13 October: the first real tour test emailed a family an
+     * invitation whose link read /apply/portal, a sign-in box with no
+     * application behind it. The gate had always done this; this door did not,
+     * because it was wired to the event and the preparation lived in the
+     * gate's file. It is one shared function now.
+     *
+     * The notes are saved and the tour is marked held by this point, both on
+     * purpose. Only the letter stops here.
+     */
+    const prepared = await prepareApplicationForInvite(
+      createServiceRoleClient() as never,
+      { leadId }
+    );
+    if (!prepared.ok) {
+      console.error("[post-call] could not prepare the application:", prepared.reason);
+      return {
+        error:
+          `Your notes were saved and the tour is marked held, but the family was ` +
+          `not emailed: ${prepared.reason} Nothing was sent, so nobody has a broken link.`,
+      };
     }
 
     const applicationMail = await tell("application_invited");

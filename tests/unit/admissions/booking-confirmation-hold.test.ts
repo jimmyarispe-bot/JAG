@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 
-import { HOLD_BOOKING_CONFIRMATIONS, holdBookingConfirmations } from "@/lib/admissions/chase/run";
+import {
+  CONFIRMATIONS_LIVE_SCHOOL_IDS,
+  HOLD_BOOKING_CONFIRMATIONS,
+  holdBookingConfirmations,
+} from "@/lib/admissions/chase/run";
 import { TEST_CAMPUS_SCHOOL_ID, isTestCampus } from "@/lib/admissions/test-campus";
 
 /* WHY THIS FILE EXISTS.
@@ -18,12 +22,13 @@ import { TEST_CAMPUS_SCHOOL_ID, isTestCampus } from "@/lib/admissions/test-campu
    These assertions are what makes the exemption a decision rather than a line
    somebody can quietly flip back. */
 
-const REAL_CAMPUSES = [
-  "a1000000-0000-4000-8000-000000000001",
-  "a1000000-0000-4000-8000-000000000002",
-  "a1000000-0000-4000-8000-000000000003",
-  "a1000000-0000-4000-8000-000000000004",
-];
+const FL = "a1000000-0000-4000-8000-000000000001"; // Danni Treu - live
+const GA = "a1000000-0000-4000-8000-000000000002"; // Nina Gaddy - held
+const HS = "a1000000-0000-4000-8000-000000000003"; // Heather Badger-Brown - held
+const VIRTUAL = "a1000000-0000-4000-8000-000000000004"; // Heather Badger-Brown - held
+
+const REAL_CAMPUSES = [FL, GA, HS, VIRTUAL];
+const STILL_HELD = [GA, HS, VIRTUAL];
 
 describe("isTestCampus", () => {
   it("is the test campus and nothing else", () => {
@@ -53,10 +58,25 @@ describe("holdBookingConfirmations", () => {
     expect(holdBookingConfirmations(TEST_CAMPUS_SCHOOL_ID)).toBe(false);
   });
 
-  it("holds at the four real campuses while the switch is on", () => {
-    for (const schoolId of REAL_CAMPUSES) {
+  it("does NOT hold at The Academy FL - Danni's flow is live", () => {
+    /* 13 October 2026: "Let only dannis admissions flow to start". FL is the
+       first real campus whose families receive the booking confirmation. If
+       this ever goes true again, Danni's families have gone quiet. */
+    expect(holdBookingConfirmations(FL)).toBe(false);
+    expect(CONFIRMATIONS_LIVE_SCHOOL_IDS.has(FL)).toBe(true);
+  });
+
+  it("still holds at GA, HS and Virtual while the switch is on", () => {
+    /* ONLY Danni's. The word in his instruction was "only", and this is what
+       holds the other three until he says otherwise. */
+    for (const schoolId of STILL_HELD) {
       expect(holdBookingConfirmations(schoolId)).toBe(HOLD_BOOKING_CONFIRMATIONS);
+      expect(CONFIRMATIONS_LIVE_SCHOOL_IDS.has(schoolId)).toBe(false);
     }
+  });
+
+  it("is one campus live, not four", () => {
+    expect(CONFIRMATIONS_LIVE_SCHOOL_IDS.size).toBe(1);
   });
 
   it("holds when the campus cannot be read", () => {

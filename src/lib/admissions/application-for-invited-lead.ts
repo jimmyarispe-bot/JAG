@@ -230,3 +230,65 @@ export async function ensureApplicationForInvitedLead(
 
   return { ok: true, applicationId, created: true };
 }
+
+/**
+ * EVERYTHING THAT MUST EXIST BEFORE A FAMILY IS TOLD TO APPLY.
+ *
+ * ── WHY THIS IS ONE FUNCTION AND NOT TWO LINES IN TWO PLACES ───────────────
+ *
+ * There are two doors onto the same decision. The invite_to_apply gate on the
+ * decisions board is one. The "Send the application" button on the post-tour
+ * notes page, built 13 October 2026, is the other. Both end at the same
+ * letter, application_invite_email.
+ *
+ * The gate did this preparation. The button did not, because it was wired to
+ * the EVENT and the preparation lived in the gate's own file. So the first
+ * real tour test ended with a family emailed an invitation whose link read
+ * https://apply.theacademyway.org/apply/portal - a sign-in box with no
+ * application behind it. Jimmy clicked it and got "We can't find an
+ * application for this email."
+ *
+ * The comment above the gate's version had predicted that exact failure, word
+ * for word, and the button still shipped without it. The lesson is not "be
+ * more careful": it is that a step two callers must take belongs in one place
+ * they both call.
+ *
+ * ── THE TWO STEPS, AND WHY NEITHER IS OPTIONAL ─────────────────────────────
+ *
+ * 1. mint_application_access_token - without it applicationLink() falls back
+ *    to /apply/portal, which is the password box above. Idempotent: a family
+ *    re-invited gets back the token already in their inbox rather than having
+ *    the link they hold quietly broken.
+ *
+ * 2. the admissions_applications row - the $100 lives on it, and Jimmy's rule
+ *    of 28 September is that the fee is paid at the end of the application
+ *    and before it can be submitted. A link to a page that cannot take their
+ *    money is worse than not being invited yet.
+ *
+ * ── IT RETURNS A REASON RATHER THAN THROWING ───────────────────────────────
+ *
+ * Both callers have a decision to record either way. What they must not do is
+ * send the letter. Nothing is sent on a failure, so nobody holds a broken
+ * link, and the caller says so in its own words.
+ */
+export async function prepareApplicationForInvite(
+  supabase: AuthClient,
+  input: { readonly leadId: string }
+): Promise<{ readonly ok: true } | { readonly ok: false; readonly reason: string }> {
+  const { error: mintError } = await supabase.rpc("mint_application_access_token", {
+    p_lead_id: input.leadId,
+  });
+  if (mintError) {
+    return {
+      ok: false,
+      reason: `their application link could not be created (${mintError.message}).`,
+    };
+  }
+
+  const application = await ensureApplicationForInvitedLead(supabase, {
+    leadId: input.leadId,
+  });
+  if (!application.ok) return { ok: false, reason: application.reason };
+
+  return { ok: true };
+}

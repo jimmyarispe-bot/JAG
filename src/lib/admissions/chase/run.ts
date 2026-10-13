@@ -158,8 +158,32 @@ export const HOLD_BOOKING_CONFIRMATIONS = true;
  * purpose: an unknown campus might be a real one, and the failure that costs
  * nothing is the one where a letter waits.
  */
+/**
+ * THE CAMPUSES WHOSE ADMISSIONS FLOW IS LIVE.
+ *
+ * Jimmy, 13 October 2026: "Let only dannis admissions flow to start".
+ *
+ * Danni Treu is The Academy FL - read off schools.admissions_contact_name
+ * rather than assumed, because Nina Gaddy is GA and Heather Badger-Brown is
+ * both HS and Virtual, and guessing which leader runs which campus is exactly
+ * the kind of thing that puts a letter in the wrong inbox.
+ *
+ * A campus in this set is a campus where REAL FAMILIES now receive the
+ * booking confirmation. One campus at a time, deliberately: FL goes first,
+ * Jimmy watches what actually lands in a parent's inbox, and GA, HS and
+ * Virtual follow when he says so and not before.
+ *
+ * Adding a campus here is the whole act of going live for it. There is no
+ * second switch.
+ */
+export const CONFIRMATIONS_LIVE_SCHOOL_IDS: ReadonlySet<string> = new Set([
+  /* The Academy FL - Danni Treu. Live from 13 October 2026. */
+  "a1000000-0000-4000-8000-000000000001",
+]);
+
 export function holdBookingConfirmations(schoolId: string | null): boolean {
   if (isTestCampus(schoolId)) return false;
+  if (schoolId && CONFIRMATIONS_LIVE_SCHOOL_IDS.has(schoolId)) return false;
   return HOLD_BOOKING_CONFIRMATIONS;
 }
 
