@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { TOUR_NOTES_EVENT } from "@/lib/admissions/chase/run";
 import {
+  POST_CALL_ACTIONS,
   actionsForPage,
   occasionForStage,
 } from "@/lib/admissions/automation/post-call";
@@ -128,5 +129,36 @@ describe("actionsForPage", () => {
     expect(byValue.post_call_follow_up).not.toContain("Interest Meeting Held");
     expect(byValue.application_invited).toContain("Application for Admissions");
     expect(byValue.application_invited).toContain("Tour Completed");
+  });
+});
+
+describe("every button's value is one the database will accept", () => {
+  it("matches lead_call_outcomes_outcome_check exactly", () => {
+    /* THE TRIPWIRE THIS IS.
+       13 October 2026. The first live tour test got as far as "Good tour" in
+       the notes box and then: "That did not save. Tell Jimmy before you forget
+       what you decided."
+
+       recordPostCallDecision writes the notes FIRST, before any stage move or
+       letter, on purpose. That write goes into lead_call_outcomes, whose
+       `outcome` column has a CHECK constraint listing every value it accepts.
+       The tour step added an eleventh button, application_invited, and nobody
+       added it to the constraint - so the very first statement was refused and
+       the page correctly reported that nothing saved.
+
+       Migration 547 adds it. This assertion is what makes the NEXT new button
+       fail here, in a second, rather than in a school leader's hands.
+
+       ADDING A VALUE TO THIS LIST MEANS A MIGRATION. The constraint is in the
+       database and nothing in TypeScript can see it. */
+    expect([...POST_CALL_ACTIONS].map((a) => a.value).sort()).toEqual(
+      [
+        "application_invited",
+        "post_call_follow_up",
+        "post_call_not_the_right_school",
+        "shadow_days_invited",
+        "tour_requested",
+      ].sort()
+    );
   });
 });

@@ -59,6 +59,7 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { campusRunsTours, requireTourLink, tourGateArmed } from "@/lib/admissions/tour";
+import { gradeLabel } from "@/lib/constants/grades";
 import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/types";
 
 const TOKEN_PATTERN = /^[0-9a-f]{64}$/;
@@ -161,6 +162,9 @@ export interface PostCallSubject {
    * in its order: grade, age, phone. The page carries the letter's words,
    * so it carries the letter's facts in the letter's order.
    */
+  /** The child's first name alone. The approved page says "Send Konnor's
+   *  family...", which is the CHILD, not the guardian. */
+  readonly studentFirstName: string;
   readonly studentGrade: string | null;
   readonly studentAge: number | null;
   /**
@@ -269,7 +273,16 @@ export async function leadForPostCallToken(
     inquiryNotes: text(lead.notes),
     fork,
     occasion: occasionForStage(text(lead.lead_stage)),
-    studentGrade: text(lead.applying_for_grade) || text(lead.current_grade),
+    studentFirstName:
+      text(lead.preferred_name) || text(lead.first_name) || studentName,
+    /*
+     * gradeLabel, NOT the raw column. On the first live tour test the page
+     * showed a school leader "5th_grade". The same mistake is noted in
+     * PendingDecisionsPanel, where it once rendered "11th_grade".
+     */
+    studentGrade: gradeLabel(
+      text(lead.applying_for_grade) || text(lead.current_grade)
+    ) || null,
     studentAge: ageFromDateOfBirth(text(lead.date_of_birth)),
     canRequestTour: tour?.ok ?? false,
     tourBlockedReason: tour && !tour.ok ? tour.error : null,

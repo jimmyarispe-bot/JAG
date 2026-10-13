@@ -185,7 +185,11 @@ export default async function PostCallPage({
         <div className="mt-5 text-lg font-semibold leading-relaxed text-slate-900">
           <div>{subject.studentName}</div>
           {subject.studentGrade ? <div>{subject.studentGrade}</div> : null}
-          {subject.studentAge !== null ? <div>{subject.studentAge}</div> : null}
+          {/* "Put - yrs old - beside age" - Jimmy, 13 October, reading the
+              first live tour page. The letter still stacks the bare number. */}
+          {subject.studentAge !== null ? (
+            <div>{subject.studentAge} yrs old</div>
+          ) : null}
           {subject.guardianPhone ? (
             <div>
               <a
@@ -227,9 +231,15 @@ export default async function PostCallPage({
           </label>
 
           <div className="mt-8 border-t border-slate-200 pt-6">
+            {/*
+              HIS LINE, AND IT IS THE CHILD'S NAME, NOT THE GUARDIAN'S. The
+              approved page reads "Send Konnor's family the Application for
+              Admissions?". The first live test rendered "Send Jimmy Arispe
+              the Application for Admissions?" because this read guardianName.
+            */}
             <p className="text-base text-slate-800">
-              Send {subject.guardianName ?? "this family"}
-              {subject.guardianName ? "" : ""} the Application for Admissions?
+              Send {subject.studentFirstName}&rsquo;s family the Application for
+              Admissions?
             </p>
             <div className="mt-4 space-y-2">
               {options.map((option) => (
