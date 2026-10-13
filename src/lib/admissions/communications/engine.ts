@@ -9,6 +9,7 @@ import {
   appointmentTimeForFamily,
 } from "@/lib/admissions/appointment-text";
 import { adjustManyScheduledForBusinessHours } from "@/lib/platform/automation/business-hours";
+import { isTestCampus } from "@/lib/admissions/test-campus";
 import { sendTransactionalEmail } from "@/lib/platform/email";
 import {
   COMMUNICATION_QUEUE_PROCESS_COLS,
@@ -976,7 +977,17 @@ export async function triggerCommunications(
     const targets = delayed.map(
       (template) => new Date(Date.now() + template.delay_hours * 60 * 60 * 1000)
     );
-    const adjusted = await adjustManyScheduledForBusinessHours(supabase, schoolId, targets);
+    /*
+     * NOT AT THE TEST CAMPUS. Outside business hours this pushes a queued
+     * letter to 9am on the next open day, which would mean a test booked
+     * at 9pm proves nothing until the following morning. There are no
+     * platform_business_hours rows for any school today, so this changes
+     * nothing now - it stops the trap closing the first time somebody
+     * adds them. See isTestCampus.
+     */
+    const adjusted = isTestCampus(schoolId)
+      ? targets
+      : await adjustManyScheduledForBusinessHours(supabase, schoolId, targets);
     const queueRows = delayed.map((template, index) => ({
       lead_id: options.leadId,
       application_id: options.applicationId ?? null,
@@ -1252,11 +1263,11 @@ export async function scheduleTourReminders(
 
   if (!pending.length) return;
 
-  const adjusted = await adjustManyScheduledForBusinessHours(
-    supabase,
-    lead.school_id,
-    pending.map((p) => p.target)
-  );
+  /* NOT AT THE TEST CAMPUS - see the note on the other call site. */
+  const targets = pending.map((p) => p.target);
+  const adjusted = isTestCampus(lead.school_id)
+    ? targets
+    : await adjustManyScheduledForBusinessHours(supabase, lead.school_id, targets);
 
   await supabase.from("admissions_communication_queue").insert(
     pending.map((row, index) => ({

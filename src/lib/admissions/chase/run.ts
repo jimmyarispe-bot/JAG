@@ -36,6 +36,7 @@ import "server-only";
  */
 
 import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
+import { isTestCampus } from "@/lib/admissions/test-campus";
 import { onInterviewScheduled } from "@/lib/admissions/communications/triggers";
 import {
   matchBookingToLead,
@@ -123,13 +124,44 @@ export const NOTES_LETTER_CUTOFF_HOURS = 2;
  * run report, because a family who got no letter is exactly the kind of fact
  * this platform has hidden before.
  *
- * WHEN HE SAYS GO. Flip this to false and ship. The scan will NOT resend
- * them by itself - the booking is recorded by then, so the next run sees it
- * is already known and moves on. The three letters are sent deliberately,
- * against the list this run printed. That is the whole reason the list
- * exists.
+ * ── HE SAID GO, 11 OCTOBER ──────────────────────────────────────────────
+ *
+ * Off since. It did the job it was built for: the catch-up run met
+ * twenty-six bookings at once and not one family heard about a meeting
+ * booked six weeks earlier.
+ *
+ * WHAT TURNING IT OFF WAS ACTUALLY FOR. By the evening it had stopped being
+ * a guard and started being a fault. Jimmy booked a live interest call to
+ * test the chain end to end, the scan recorded it correctly, and Danni was
+ * told nothing - because this switch suppresses the staff notice as well as
+ * the family's confirmation, and nobody had said go. A guard nobody
+ * remembers is indistinguishable from a bug.
+ *
+ * THE THREE HELD LETTERS WERE NEVER SENT and will not be sent by flipping
+ * this. Those bookings are recorded, so every later run sees them as already
+ * known and moves on. They are listed in confirmationsHeld on the runs of
+ * 10 and 11 October; sending them now would be a deliberate act against that
+ * list, and nobody has asked for it.
+ *
+ * IF A BACKLOG EVER NEEDS HOLDING AGAIN, this is still the switch. Set it
+ * true, ship, let the catch-up run, then set it false and ship again - and
+ * read confirmationsHeld before you do, because that is the list of families
+ * who were deliberately not written to.
  */
 export const HOLD_BOOKING_CONFIRMATIONS = true;
+
+
+/**
+ * Whether to hold the booking confirmation letters for this child's campus.
+ *
+ * A null school_id means the lead's campus could not be read. That holds, on
+ * purpose: an unknown campus might be a real one, and the failure that costs
+ * nothing is the one where a letter waits.
+ */
+export function holdBookingConfirmations(schoolId: string | null): boolean {
+  if (isTestCampus(schoolId)) return false;
+  return HOLD_BOOKING_CONFIRMATIONS;
+}
 
 export const REMINDER_1_EVENT = "parent_interest_meeting_not_booked_1";
 export const REMINDER_2_EVENT = "parent_interest_meeting_not_booked_2";
@@ -1063,16 +1095,26 @@ export async function runInterestMeetingScan(
       }
     }
 
-    /* The row is written. The letters are only for a meeting still to come. */
-    if (alreadyHappened) continue;
+    /*
+     * The row is written. The letters are only for a meeting still to come -
+     * except at the test campus, where a booking made for a time already
+     * past is somebody testing, not a family who missed their meeting. This
+     * is the line that made Konnor Broyld's three-week-old tour produce
+     * nothing at all. See isTestCampus for the rule.
+     */
+    const schoolIdForLead = leadById.get(leadId)?.school_id ?? null;
+    if (alreadyHappened && !isTestCampus(schoolIdForLead)) continue;
 
     /*
-     * HELD AT JIMMY'S WORD, 10 October. See HOLD_BOOKING_CONFIRMATIONS above.
+     * HELD AT JIMMY'S WORD, 10 October - AT THE FOUR REAL CAMPUSES ONLY.
+     * See holdBookingConfirmations above for why the test campus is exempt.
      * The row, the stage and the booked mark are already written by the time
      * this line is reached; only the two letters stop here.
      */
-    if (HOLD_BOOKING_CONFIRMATIONS) {
-      confirmationsHeld.push(`${leadId} <- ${when} (confirmation held; awaiting go)`);
+    if (holdBookingConfirmations(schoolIdForLead)) {
+      confirmationsHeld.push(
+        `${leadId} <- ${when} (confirmation held; awaiting go; school ${schoolIdForLead ?? "unknown"})`
+      );
       continue;
     }
 
