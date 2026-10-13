@@ -72,7 +72,14 @@ export const BUTTON_LABELS: Readonly<Record<string, string>> = {
   scheduling_link: "Choose your time",
   tour_link: "Choose your tour time",
   shadow_days_link: "Choose your shadow days",
-  application_link: "Open the application",
+  // "Complete the application", not "Open the application", at Jimmy's
+  // instruction of 13 October 2026, reviewing application_invite_email and
+  // parent_reminder_application_not_started. THIS MAP IS KEYED BY MERGE FIELD,
+  // NOT BY LETTER, so the three letters that carry {{application_link}} all
+  // change together: those two plus parent_reminder_application_not_submitted.
+  // He was told that before this line was changed. A per-letter override would
+  // be a different design; this is one word on one button in three places.
+  application_link: "Complete the application",
   application_call_link: "Record this conversation",
   post_call_link: "Record your notes",
   meeting_link: "Join the meeting",
