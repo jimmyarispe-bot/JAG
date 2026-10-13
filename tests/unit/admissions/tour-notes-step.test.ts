@@ -37,21 +37,28 @@ describe("the tour's notes letter can be emitted", () => {
 });
 
 describe("occasionForStage", () => {
-  it("is the tour only at Tour Scheduled", () => {
+  it("is the tour at Tour Scheduled and at Tour Completed", () => {
+    /* BOTH, AND THE SECOND IS THE RETRY PATH. Pressing Send the application
+       moves the child to tour_completed BEFORE the letter is attempted, so a
+       refused send leaves her at tour_completed with the letter unsent. If
+       only tour_scheduled counted she would be handed the interest-meeting
+       page offering "Send the tour request" for a tour she had just given -
+       which is exactly what happened on 13 October when the test campus had
+       no school year and the send was refused. */
     expect(occasionForStage("tour_scheduled")).toBe("tour");
+    expect(occasionForStage("tour_completed")).toBe("tour");
   });
 
   it("is the interest meeting everywhere else", () => {
-    /* INCLUDING tour_requested AND tour_completed. Requested means the family
-       has the link and has not booked - there is no tour to write up. Completed
-       means this page has already done its work; a second visit must not offer
-       to send the application again as though the first had not happened. */
+    /* INCLUDING tour_requested, which is NOT the tour: it means the family
+       has the link and has not booked, so there is no tour to write up.
+       tour_completed is deliberately absent from this list - see the retry
+       path above. */
     for (const stage of [
       "inquiry",
       "interest_meeting_scheduled",
       "interest_meeting_held",
       "tour_requested",
-      "tour_completed",
       "declined",
       null,
       undefined,

@@ -143,8 +143,32 @@ export type MeetingFork = "tour" | "shadow_day";
  */
 export type PostCallOccasion = "interest_meeting" | "tour";
 
+/**
+ * TOUR COMPLETED COUNTS AS THE TOUR, AND THAT IS THE RETRY PATH.
+ *
+ * Corrected 13 October 2026, the same evening it shipped. The first version
+ * read only `tour_scheduled`, with a note arguing that a child already at
+ * tour_completed should not be offered the application again.
+ *
+ * That argument is wrong, and the live test showed how. Pressing Send the
+ * application saves the notes, marks the tour held and moves the child to
+ * tour_completed BEFORE the letter is attempted - deliberately, so a failed
+ * send never loses what a school leader wrote. So when a send is refused -
+ * as it was, because the test campus had no school year - the child is
+ * already at tour_completed, and on reload she was handed the
+ * INTEREST-MEETING page offering "Send the tour request" for a child whose
+ * tour she had just given. No way back to the tour page, and no way to try
+ * again.
+ *
+ * Re-offering is safe: alreadySentSinceThisStep refuses a second
+ * application_invited once one has actually gone, and after a refusal none
+ * has. So the button works exactly once per step whether the first press
+ * succeeded or not.
+ */
 export function occasionForStage(stage: string | null | undefined): PostCallOccasion {
-  return stage === "tour_scheduled" ? "tour" : "interest_meeting";
+  return stage === "tour_scheduled" || stage === "tour_completed"
+    ? "tour"
+    : "interest_meeting";
 }
 
 export interface PostCallSubject {
