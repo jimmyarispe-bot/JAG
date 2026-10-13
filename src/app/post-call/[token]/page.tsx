@@ -5,7 +5,7 @@ import { SaveButton } from "@/app/post-call/[token]/SaveButton";
 import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
 import {
   POST_CALL_ACTIONS,
-  actionsForFork,
+  actionsForPage,
   leadForPostCallToken,
 } from "@/lib/admissions/automation/post-call";
 import { telHref } from "@/lib/format/contact";
@@ -74,6 +74,26 @@ export default async function PostCallPage({
     );
   }
 
+  if (done === "application_invited") {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-16">
+        <h1 className="text-2xl font-semibold text-slate-900">
+          The Application for Admissions is on its way.
+        </h1>
+        <p className="mt-4 text-slate-700">
+          {subject.guardianName ?? "The family"} has the application and can
+          start it whenever they are ready. {subject.studentName}&rsquo;s tour is
+          marked held and the child has moved to Tour Completed.
+        </p>
+        <p className="mt-4 text-slate-700">
+          Your notes are on {subject.studentName}&rsquo;s record. Nothing else is
+          needed from you until the application comes through.
+        </p>
+        <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
+      </main>
+    );
+  }
+
   if (done === "shadow_days_invited") {
     return (
       <main className="mx-auto max-w-xl px-6 py-16">
@@ -127,9 +147,115 @@ export default async function PostCallPage({
    * POST_CALL_ACTIONS stays imported because the label map above reads every
    * action, including the one this campus never sees.
    */
-  const options = actionsForFork(subject.fork).filter(
+  const options = actionsForPage(subject.fork, subject.occasion).filter(
     (option) => option.value !== "tour_requested" || subject.canRequestTour
   );
+
+  /*
+   * ───────────────────── AFTER A TOUR ─────────────────────
+   *
+   * THE PAGE CARRIES THE LETTER'S WORDS. Jimmy, 13 October, on the first
+   * version of this: "i told you to use this letter as the standard but you
+   * deviated. Why?" Every line below is lifted from migration 539's body or
+   * from the page he approved afterwards. Newly written prose here is a
+   * deviation, not a design decision.
+   *
+   *   the four facts, stacked bare, in the letter's order
+   *   "RECORD YOUR NOTES"
+   *   "Document important information revealed in your conversation with them."
+   *   "Send <name>'s family the Application for Admissions?"
+   *   his three buttons, unchanged
+   *
+   * The only thing here that is not his: the telephone number is a tel: link
+   * rather than plain text, which is presentation of the letter's own fourth
+   * fact and the same choice the interest-meeting page already makes.
+   *
+   * THREE SUBMIT BUTTONS, NOT RADIOS AND A SAVE. That is what he approved -
+   * the question, then three answers. Each posts its own action. The
+   * interest-meeting page below keeps radios and SaveButton, which is what is
+   * approved and in use there.
+   */
+  if (subject.occasion === "tour") {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-10">
+        <p className="text-sm uppercase tracking-wide text-slate-500">
+          {subject.schoolName ?? "The Academy"}
+        </p>
+
+        <div className="mt-5 text-lg font-semibold leading-relaxed text-slate-900">
+          <div>{subject.studentName}</div>
+          {subject.studentGrade ? <div>{subject.studentGrade}</div> : null}
+          {subject.studentAge !== null ? <div>{subject.studentAge}</div> : null}
+          {subject.guardianPhone ? (
+            <div>
+              <a
+                href={dial ?? undefined}
+                className="underline decoration-slate-300 underline-offset-4"
+              >
+                {subject.guardianPhone}
+              </a>
+            </div>
+          ) : null}
+        </div>
+
+        {problem ? (
+          <p className="mt-6 rounded-md bg-red-50 p-4 text-sm text-red-800">
+            {problem === "choose"
+              ? "Choose what should happen next before saving."
+              : why?.trim()
+                ? why
+                : "That did not save. Tell Jimmy before you forget what you decided."}
+          </p>
+        ) : null}
+
+        <form action={recordPostCallAction} className="mt-8">
+          <input type="hidden" name="token" value={token} />
+
+          <label className="block">
+            <span className="block text-sm font-bold uppercase tracking-wide text-slate-900">
+              Record your notes
+            </span>
+            <span className="mt-1 block text-sm text-slate-600">
+              Document important information revealed in your conversation with
+              them.
+            </span>
+            <textarea
+              name="notes"
+              rows={6}
+              className="mt-3 w-full rounded-md border border-slate-300 p-3"
+            />
+          </label>
+
+          <div className="mt-8 border-t border-slate-200 pt-6">
+            <p className="text-base text-slate-800">
+              Send {subject.guardianName ?? "this family"}
+              {subject.guardianName ? "" : ""} the Application for Admissions?
+            </p>
+            <div className="mt-4 space-y-2">
+              {options.map((option) => (
+                <button
+                  key={option.value}
+                  type="submit"
+                  name="action"
+                  value={option.value}
+                  title={option.consequence}
+                  className={
+                    option.value === "application_invited"
+                      ? "w-full rounded-lg bg-violet-600 px-4 py-3.5 font-semibold text-white"
+                      : option.value === "post_call_not_the_right_school"
+                        ? "w-full rounded-lg border border-red-200 bg-white px-4 py-3.5 font-semibold text-red-700"
+                        : "w-full rounded-lg border border-slate-300 bg-white px-4 py-3.5 font-semibold text-slate-900"
+                  }
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </form>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-xl px-6 py-10">

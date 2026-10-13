@@ -178,6 +178,21 @@ export const ESCALATION_EVENT = "staff_interest_meeting_no_response";
  */
 export const POST_CALL_EVENT = "staff_inquiry_call_held";
 
+/**
+ * The tour's notes letter - migration 539, trigger staff_tour_held.
+ *
+ * The interest meeting has had a letter at its start time since 5 October.
+ * The tour never did. The identical argument applies and nobody made it:
+ * invite_to_apply opens at tour_completed, and until this shipped NOTHING
+ * in the JAG wrote that stage - twelve places read it, only a bulk import
+ * ever set it. So after a tour there was no prompt, no decision and no
+ * application, and seven children sat at Tour Scheduled.
+ *
+ * Jimmy, 13 October, having tested exactly this: "Just had a test tour and
+ * did not receive any followup email to send application".
+ */
+export const TOUR_NOTES_EVENT = "staff_tour_held";
+
 /*
  * THE TEN-MINUTE DELAY IS GONE, and the constants with it. Until 5 October
  * this letter went ten minutes after the appointment ENDED. Jimmy moved it to
@@ -856,10 +871,64 @@ export async function runInterestMeetingScan(
        *
        * THE STAGE DOES NOT ADVANCE PAST tour_scheduled HERE EITHER. A tour
        * that has been BOOKED is a fact about a calendar; a tour that was HELD
-       * is a judgement about whether a family turned up, and nothing in this
-       * codebase makes that judgement for the interest meeting either - a
-       * school leader moves the card. The same hand moves this one.
+       * is a judgement about whether a family turned up. A BOOKING IS A FACT.
+       * HOLDING IT IS A JUDGEMENT. So this branch records the fact and the
+       * letter below asks the school leader for the judgement.
        */
+
+      /*
+       * THE TOUR'S NOTES LETTER, AT THE TOUR'S START TIME.
+       *
+       * Until this existed, the tour branch ended at `continue` and the notes
+       * letter queued further down was never reached - which is the whole
+       * reason a tour produced nothing at all. Queued here rather than there
+       * because the two letters are different letters: staff_tour_held says
+       * "meet them at the school", staff_inquiry_call_held says "call them or
+       * go to the google meets link", and a tour has no conference.
+       *
+       * Same cutoff as the interest meeting. A tour more than a day past is
+       * reported rather than written up, because by then the decision it asks
+       * for has usually been taken by hand - which is how Konnor Broyld's
+       * three-week-old tour came to be read off the calendar at all.
+       */
+      /* This branch sits above the loop's own startsAt and when, so it reads
+         the same two values off the same booking rather than hoisting a
+         declaration the code below depends on being where it is. */
+      const tourStartsAt = new Date(booking.startsAt);
+      const tourWhen = appointmentTextForFamily(booking.startsAt);
+
+      const tourNotesTooLate =
+        tourStartsAt.getTime() < now.getTime() - NOTES_LETTER_CUTOFF_HOURS * 3_600_000;
+
+      if (tourNotesTooLate) {
+        postCallSkipped.push(
+          `${leadId} - no tour notes letter: ${tourWhen} is more than a day past.`
+        );
+        continue;
+      }
+
+      const tourToken = await mintPostCallToken(supabase, leadId);
+      if (!tourToken) {
+        errors.push(`Could not mint a notes token for the tour of ${leadId}.`);
+        continue;
+      }
+
+      const tourProblem = await queueLetter(supabase, {
+        leadId,
+        schoolId: leadById.get(leadId)?.school_id ?? null,
+        triggerEvent: TOUR_NOTES_EVENT,
+        sendAt: tourStartsAt,
+        mergeOverrides: {
+          postCallToken: tourToken,
+          /* Rendered for a reader, not an ISO string - the Eastern rule lives
+             in appointmentTextForFamily and nowhere else. */
+          interviewDatetime: appointmentTextForFamily(booking.startsAt),
+          /* Null on purpose. A tour is in person and Google creates no
+             conference for one, which is why 539 drops {{meeting_link}}. */
+          meetingLink: null,
+        },
+      });
+      if (tourProblem) postCallSkipped.push(tourProblem);
       continue;
     }
 

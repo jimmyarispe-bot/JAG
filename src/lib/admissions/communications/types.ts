@@ -38,6 +38,10 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   // Decision gates (247). A gate asks a school leader a question; these are the
   // branches it can send.
   "decision_gate_opened",
+  // The tour's own notes letter, 13 October 2026. The interest meeting has
+  // had one since 5 October; the tour never did, and nothing in the JAG
+  // moved a child from Tour Scheduled to Tour Completed as a result.
+  "staff_tour_held",
   "application_invited",
   "application_not_invited",
   "shadow_days_invited",
@@ -376,6 +380,7 @@ export type MergeField = (typeof MERGE_FIELDS)[number];
 export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   inquiry_submitted: "Inquiry Submitted",
   decision_gate_opened: "Decision Waiting (staff)",
+  staff_tour_held: "Tour Happening Now (staff)",
   application_invited: "Invited to Apply",
   application_not_invited: "Inquiry Closed With Thanks",
   shadow_days_invited: "Invited to Shadow Days",

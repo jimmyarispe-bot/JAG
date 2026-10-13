@@ -92,6 +92,26 @@ function admin(): UntypedAdmin {
   return createServiceRoleClient() as unknown as UntypedAdmin;
 }
 
+/**
+ * Whole years, Eastern, or null.
+ *
+ * Not "the letter's age field" - that is rendered by merge-fields from the
+ * same column. This is the page's own copy of the same question, because the
+ * page is not rendered from the letter's merge context.
+ */
+function ageFromDateOfBirth(dob: string | null): number | null {
+  if (!dob) return null;
+  const born = new Date(dob);
+  if (Number.isNaN(born.getTime())) return null;
+  const now = new Date();
+  let years = now.getUTCFullYear() - born.getUTCFullYear();
+  const beforeBirthday =
+    now.getUTCMonth() < born.getUTCMonth() ||
+    (now.getUTCMonth() === born.getUTCMonth() && now.getUTCDate() < born.getUTCDate());
+  if (beforeBirthday) years -= 1;
+  return years >= 0 && years < 130 ? years : null;
+}
+
 function text(value: unknown): string | null {
   const out = typeof value === "string" ? value.trim() : "";
   return out ? out : null;
@@ -99,6 +119,31 @@ function text(value: unknown): string | null {
 
 /** Which of the two forks this child's campus is on. See tour.ts. */
 export type MeetingFork = "tour" | "shadow_day";
+
+/**
+ * WHICH APPOINTMENT THIS PAGE IS RECORDING. NOT THE CAMPUS FORK.
+ *
+ * These two have been confused once already and the names are deliberately
+ * unalike. `MeetingFork` is a fact about the CAMPUS - does a tour come after
+ * the interest meeting here, or a shadow day. `PostCallOccasion` is a fact
+ * about the APPOINTMENT the leader has just walked out of.
+ *
+ * GA runs tours, so its fork is "tour" at every appointment - including the
+ * interest call, where the tour has not happened yet. Reading the fork to
+ * decide which letter's words to show would put "Send the application" on the
+ * interest-call page at GA and ask a leader to invite a family who has not
+ * seen the building.
+ *
+ * It is derived from the child's stage, because the stage is what the booking
+ * scan wrote when it recorded the booking this letter is about. A child at
+ * Tour Scheduled got here from the tour's letter; anyone else got here from
+ * the interest meeting's.
+ */
+export type PostCallOccasion = "interest_meeting" | "tour";
+
+export function occasionForStage(stage: string | null | undefined): PostCallOccasion {
+  return stage === "tour_scheduled" ? "tour" : "interest_meeting";
+}
 
 export interface PostCallSubject {
   readonly leadId: string;
@@ -109,6 +154,15 @@ export interface PostCallSubject {
   readonly guardianEmail: string | null;
   readonly inquiryNotes: string | null;
   readonly fork: MeetingFork;
+  /** Which appointment this is. See PostCallOccasion - not the fork. */
+  readonly occasion: PostCallOccasion;
+  /**
+   * The three facts the approved letter stacks under the child's name,
+   * in its order: grade, age, phone. The page carries the letter's words,
+   * so it carries the letter's facts in the letter's order.
+   */
+  readonly studentGrade: string | null;
+  readonly studentAge: number | null;
   /**
    * Whether the tour request can actually be sent right now - the campus runs
    * tours AND has a link set. Only meaningful on the tour fork.
@@ -141,6 +195,7 @@ export async function leadForPostCallToken(
     .select(
       "id, first_name, last_name, preferred_name, guardian_first_name, " +
         "guardian_last_name, guardian_email, guardian_phone, notes, " +
+        "lead_stage, applying_for_grade, current_grade, date_of_birth, " +
         "schools(name, tour_booking_url)"
     )
     .eq("post_call_token", token)
@@ -213,6 +268,9 @@ export async function leadForPostCallToken(
     guardianEmail: text(lead.guardian_email),
     inquiryNotes: text(lead.notes),
     fork,
+    occasion: occasionForStage(text(lead.lead_stage)),
+    studentGrade: text(lead.applying_for_grade) || text(lead.current_grade),
+    studentAge: ageFromDateOfBirth(text(lead.date_of_birth)),
     canRequestTour: tour?.ok ?? false,
     tourBlockedReason: tour && !tour.ok ? tour.error : null,
     previousCalls: ((calls ?? []) as Row[]).map((call) => ({
@@ -233,9 +291,29 @@ export async function leadForPostCallToken(
  */
 export const POST_CALL_ACTIONS = [
   {
+    /*
+     * THE TOUR'S BUTTON. His words, 13 October, from the approved page: the
+     * letter's third paragraph promises "Saving your notes will ask you
+     * whether to send {{student_first_name}}'s family the Application for
+     * Admissions", and this is that question answered yes.
+     *
+     * The value is the trigger event it fires, which is the same event the
+     * invite_to_apply gate's yes branch fires. One letter, one wording, two
+     * doors into it - the gate on the decisions board, and this button.
+     */
+    value: "application_invited",
+    label: "Send the application",
+    fork: null,
+    occasion: "tour" as PostCallOccasion,
+    consequence:
+      "The family is emailed the Application for Admissions. The tour is " +
+      "marked held and the child moves to Tour Completed.",
+  },
+  {
     value: "tour_requested",
     label: "Send the tour request",
     fork: "tour" as MeetingFork,
+    occasion: "interest_meeting" as PostCallOccasion,
     consequence:
       "The family is emailed the campus tour calendar and asked to book. " +
       "The child moves to Tour Requested.",
@@ -244,6 +322,7 @@ export const POST_CALL_ACTIONS = [
     value: "shadow_days_invited",
     label: "Send the shadow day invite",
     fork: "shadow_day" as MeetingFork,
+    occasion: "interest_meeting" as PostCallOccasion,
     consequence:
       "The family is emailed the shadow-days booking link. The child is " +
       "marked Interest Meeting Held.",
@@ -252,17 +331,33 @@ export const POST_CALL_ACTIONS = [
     value: "post_call_not_the_right_school",
     label: "Not the right school, close them out",
     fork: null,
+    occasion: null,
     consequence:
       "The family gets the short thank-you and best wishes. The lead is " +
       "marked declined.",
+    /* HIS WORDS ON THE TOUR PAGE ARE SHORTER. The approved page reads "Not
+       the right school", and the page carries the letter's words. */
+    tour: {
+      label: "Not the right school",
+      consequence:
+        "The family gets the short thank-you and best wishes. The tour is " +
+        "marked held and the lead is marked declined.",
+    },
   },
   {
     value: "post_call_follow_up",
     label: "Not yet, I will follow up",
     fork: null,
+    occasion: null,
     consequence:
       "Your notes are saved and the child is marked Interest Meeting Held. " +
       "Nothing is sent to the family.",
+    tour: {
+      label: "Not yet, I will follow up",
+      consequence:
+        "Your notes are saved, the tour is marked held and the child moves " +
+        "to Tour Completed. Nothing is sent to the family.",
+    },
   },
 ] as const;
 
@@ -272,9 +367,58 @@ export function isPostCallAction(value: unknown): value is PostCallAction {
   return POST_CALL_ACTIONS.some((option) => option.value === value);
 }
 
-/** The buttons this campus should see: its own fork's, plus the two shared. */
-export function actionsForFork(fork: MeetingFork) {
-  return POST_CALL_ACTIONS.filter((a) => a.fork === null || a.fork === fork);
+/**
+ * The buttons for THIS appointment at THIS campus, with the wording resolved.
+ *
+ * Two filters, and they are not the same question. The occasion decides which
+ * decision is being made - invite them to tour, or invite them to apply. The
+ * fork decides which of the two interest-meeting buttons this campus offers.
+ * A tour page is the same at GA as at FL, so the tour's button carries no
+ * fork at all.
+ *
+ * Replaces actionsForFork, which read only the campus and would therefore have
+ * offered "Send the tour request" to a leader walking out of a tour.
+ */
+export function actionsForPage(
+  fork: MeetingFork,
+  occasion: PostCallOccasion
+): readonly { value: PostCallAction; label: string; consequence: string }[] {
+  return POST_CALL_ACTIONS.filter(
+    (a) => (a.occasion === null || a.occasion === occasion) && (a.fork === null || a.fork === fork)
+  )
+    .map((a) => {
+      const override = occasion === "tour" && "tour" in a ? a.tour : null;
+      return {
+        value: a.value,
+        label: override?.label ?? a.label,
+        consequence: override?.consequence ?? a.consequence,
+      };
+    })
+    .sort((a, b) => orderFor(occasion, a.value) - orderFor(occasion, b.value));
+}
+
+/*
+ * THE ORDER ON THE TOUR PAGE IS HIS, AND IT IS NOT THE LIST'S ORDER.
+ *
+ * The approved page reads: Send the application, then "Not yet, I will follow
+ * up", then "Not the right school". POST_CALL_ACTIONS has declined above
+ * follow-up because that is the order the interest-meeting page has used since
+ * 5 October, and that page is approved and in use - reordering the list would
+ * silently change a screen nobody asked me to change.
+ *
+ * So the tour page gets its own order here and the interest page keeps the
+ * list's.
+ */
+const TOUR_BUTTON_ORDER: readonly PostCallAction[] = [
+  "application_invited",
+  "post_call_follow_up",
+  "post_call_not_the_right_school",
+];
+
+function orderFor(occasion: PostCallOccasion, value: PostCallAction): number {
+  if (occasion !== "tour") return 0;
+  const at = TOUR_BUTTON_ORDER.indexOf(value);
+  return at === -1 ? TOUR_BUTTON_ORDER.length : at;
 }
 
 export async function recordPostCallDecision(params: {
@@ -314,6 +458,13 @@ export async function recordPostCallDecision(params: {
   const fork: MeetingFork =
     tourGateArmed() && campusRunsTours(schoolName) ? "tour" : "shadow_day";
 
+  /*
+   * WHICH APPOINTMENT THIS IS, read from where the child stood BEFORE the
+   * submission - the same reason stageBefore exists for the duplicate guard.
+   * After a move the stage is the answer rather than the question.
+   */
+  const occasion = occasionForStage(stageBefore);
+
   /* A button from the other campus's fork is not a valid answer here. */
   const chosen = POST_CALL_ACTIONS.find((a) => a.value === params.action);
   if (chosen?.fork && chosen.fork !== fork) {
@@ -321,6 +472,24 @@ export async function recordPostCallDecision(params: {
       error:
         `That is not an option at ${schoolName ?? "this campus"}. ` +
         `Reload this page and choose again.`,
+    };
+  }
+
+  /*
+   * NOR A BUTTON FROM THE OTHER OCCASION.
+   *
+   * A page rendered after the tour and submitted after the child has been
+   * moved by hand is two different moments, and only the second one counts -
+   * the same reason the tour-link check runs twice. Without this, "Send the
+   * application" posted from a stale tour page could fire the application
+   * invitation at a child who is back at Interest Meeting Scheduled.
+   */
+  if (chosen?.occasion && chosen.occasion !== occasion) {
+    return {
+      error:
+        occasion === "tour"
+          ? "That page is out of date - this child is at the tour step now. Reload and choose again."
+          : "That page is out of date - this child is not at the tour step. Reload and choose again.",
     };
   }
 
@@ -365,6 +534,50 @@ export async function recordPostCallDecision(params: {
       .update({ lead_stage: stage, updated_at: new Date().toISOString() })
       .eq("id", leadId);
     return error ? error.message : null;
+  }
+
+  /**
+   * THE TOUR ITSELF IS MARKED HELD, SEPARATELY FROM THE CHILD'S STAGE.
+   *
+   * A lead has one stage, so "Not the right school" has to write `declined`
+   * and cannot also write `tour_completed`. But the tour still happened, and
+   * losing that fact is how twenty-eight families came to sit in Tour
+   * Scheduled with no tour behind them.
+   *
+   * So the row in admissions_tours carries the fact and the lead stage
+   * carries the judgement. All three tour buttons mark the row held; only two
+   * of them move the child to Tour Completed.
+   *
+   * The newest scheduled tour, not all of them - a family who rebooked has
+   * two rows and only one of them is the tour she just walked out of. Read
+   * then written, because PostgREST cannot order an update.
+   *
+   * IT FAILS SOFT. If this does not land, the notes are still saved, the
+   * stage still moves and the letter still goes. A tour row that still says
+   * scheduled is a reporting problem; a decision that did not happen because
+   * of one is a family left waiting.
+   */
+  async function markTourHeld(): Promise<void> {
+    const { data, error } = await db
+      .from("admissions_tours")
+      .select("id")
+      .eq("lead_id", leadId)
+      .eq("tour_status", "scheduled")
+      .order("scheduled_at", { ascending: false })
+      .limit(1);
+    if (error || !(data ?? []).length) {
+      if (error) console.error("[post-call] could not read the tour row:", error.message);
+      return;
+    }
+    const tourId = String(((data ?? [])[0] as Row).id ?? "");
+    if (!tourId) return;
+    const { error: updateError } = await db
+      .from("admissions_tours")
+      .update({ tour_status: "completed", updated_at: new Date().toISOString() })
+      .eq("id", tourId);
+    if (updateError) {
+      console.error("[post-call] could not mark the tour held:", updateError.message);
+    }
   }
 
   /*
@@ -448,9 +661,18 @@ export async function recordPostCallDecision(params: {
     return (data ?? []).length > 0;
   }
 
-  /* ---- Not yet. The notes are the point; the child is marked held. ------- */
+  /* ---- Not yet. The notes are the point; the child is marked held. -------
+   *
+   * WHICH held depends on which appointment. After the interest meeting this
+   * writes interest_meeting_held, as it always has. After a tour it writes
+   * tour_completed - the stage twelve places in this codebase READ and, until
+   * 13 October, nothing ever WROTE.
+   */
   if (params.action === "post_call_follow_up") {
-    const problem = await moveTo("interest_meeting_held");
+    if (occasion === "tour") await markTourHeld();
+    const problem = await moveTo(
+      occasion === "tour" ? "tour_completed" : "interest_meeting_held"
+    );
     if (problem) {
       console.error("[post-call] could not mark held:", problem);
       return {
@@ -463,6 +685,8 @@ export async function recordPostCallDecision(params: {
 
   /* ---- Not the right school. Warm close, same as the gate's no branch. --- */
   if (params.action === "post_call_not_the_right_school") {
+    /* The tour happened even though the answer is no. See markTourHeld. */
+    if (occasion === "tour") await markTourHeld();
     const problem = await moveTo("declined");
     if (problem) {
       console.error("[post-call] could not decline:", problem);
@@ -479,6 +703,58 @@ export async function recordPostCallDecision(params: {
           "The lead is closed and your notes are saved, but the thank-you did not go out. Send it from the case page in JAG.",
       };
     }
+    return { ok: true, action: params.action };
+  }
+
+  /*
+   * ---- The tour's answer: send the family the application. ---------------
+   *
+   * THE ORDER IS THE SAME AS THE FORKS BELOW and for the same reason: the
+   * tour is marked held, then the stage moves, then the letter goes. A letter
+   * that went out while the board still showed the child waiting cannot be
+   * un-sent; a stage that moved with no letter behind it is recoverable,
+   * because she presses the button again.
+   *
+   * THE DUPLICATE GUARD IS THE SAME ONE, against the same table, for the same
+   * reason it was written on 11 October: six note submissions against one
+   * family sent one parent five identical tour invitations in five seconds.
+   * The application invitation is the same letter down the next step of the
+   * same button and would do the same thing unguarded.
+   *
+   * NO GATE IS OPENED HERE. moveTo writes lead_stage directly rather than
+   * going through transitionCaseStage, so invite_to_apply does not open and
+   * decision_gate_staff_email does not chase her for a decision she has just
+   * made on this page. That is exactly how the interest meeting's forks
+   * already behave.
+   */
+  if (params.action === "application_invited") {
+    await markTourHeld();
+
+    const tourStageProblem = await moveTo("tour_completed");
+    if (tourStageProblem) {
+      console.error("[post-call] could not complete the tour:", tourStageProblem);
+      return {
+        error:
+          "Your notes were saved, but the child did not move and nothing was " +
+          "sent. Try again, or send the application from the case page in JAG.",
+      };
+    }
+
+    if (await alreadySentSinceThisStep("application_invited", "tour_completed")) {
+      console.log("[post-call] application already sent this step, not repeating:", leadId);
+      return { ok: true, action: params.action };
+    }
+
+    const applicationMail = await tell("application_invited");
+    if (applicationMail) {
+      console.error("[post-call] application invitation failed:", applicationMail);
+      return {
+        error:
+          "Your notes were saved and the tour is marked held, but the " +
+          "application did not go out. Send it from the family's case page in JAG.",
+      };
+    }
+
     return { ok: true, action: params.action };
   }
 
