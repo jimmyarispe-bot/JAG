@@ -44,10 +44,15 @@ export default async function PostCallPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ done?: string; problem?: string; why?: string }>;
+  searchParams: Promise<{
+    done?: string;
+    problem?: string;
+    why?: string;
+    warning?: string;
+  }>;
 }) {
   const { token } = await params;
-  const { done, problem, why } = await searchParams;
+  const { done, problem, why, warning } = await searchParams;
 
   const subject = await leadForPostCallToken(token);
   if (!subject) notFound();
@@ -95,20 +100,46 @@ export default async function PostCallPage({
   }
 
   if (done === "shadow_day_accepted") {
+    /*
+     * THE PACKET SENTENCE IS CONDITIONAL, AND THAT IS THE WHOLE POINT.
+     *
+     * 14 October 2026. This screen used to say "the enrollment packet has been
+     * built for them to sign" on every acceptance. applyAdmissionsDecision
+     * sets a warning when there was no application row to build one from, or
+     * when the generator failed - and in both cases that sentence is false in
+     * front of the one person who could do something about it.
+     *
+     * The acceptance is still real and the family has still been told, so this
+     * is not an error screen. It says what happened, then what did not.
+     */
+    const packetMissing = Boolean(warning?.trim());
     return (
       <main className="mx-auto max-w-xl px-6 py-16">
         <h1 className="text-2xl font-semibold text-slate-900">
           {subject.studentName} is accepted.
         </h1>
         <p className="mt-4 text-slate-700">
-          {subject.guardianName ?? "The family"} has been emailed the decision,
-          and the enrollment packet has been built for them to sign.
+          {subject.guardianName ?? "The family"} has been emailed the decision
+          {packetMissing ? "." : ", and the enrollment packet has been built for them to sign."}
         </p>
         <p className="mt-4 text-slate-700">
           The shadow day is marked held and your notes are on{" "}
-          {subject.studentName}&rsquo;s record. The business department picks
-          this up from here.
+          {subject.studentName}&rsquo;s record.
+          {packetMissing ? "" : " The business department picks this up from here."}
         </p>
+        {packetMissing ? (
+          <div className="mt-6 rounded-md bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">There is no enrollment packet yet.</p>
+            {/* The reason in the words applyAdmissionsDecision wrote, not a
+                paraphrase of them. */}
+            <p className="mt-1">{warning}</p>
+            <p className="mt-2">
+              {subject.studentName} is accepted and the family has been told, so
+              nothing needs undoing &mdash; but there is nothing for them to sign
+              yet. Tell Jimmy before you close this.
+            </p>
+          </div>
+        ) : null}
         <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
       </main>
     );
@@ -125,15 +156,16 @@ export default async function PostCallPage({
           {subject.studentName}&rsquo;s record.
         </p>
         {/*
-          IT SAYS WHAT DID NOT HAPPEN. There is no approved decline letter for
-          a denial after a shadow day, so nothing went to the family - and a
-          page that said "the family has been told" would be the kind of lie
-          this build exists to stop. See migration 553.
+          THIS SCREEN SAID THE OPPOSITE FOR HALF A DAY, AND IT WAS TRUE THEN.
+          Until migration 554 there was no approved decline letter for a
+          decision at this step, so it said nothing had been emailed and told
+          the leader it had to come from her. Jimmy gave the words; the letter
+          sends; the screen says so.
         */}
         <p className="mt-4 text-slate-700">
-          Nothing has been emailed to the family. The letter for a decision at
-          this step is not written yet, so if they should hear something today,
-          it has to come from you.
+          {subject.guardianName ?? "The family"} has been emailed the decision
+          &mdash; the letter that says the limitation is ours and not{" "}
+          {subject.studentFirstName}&rsquo;s.
         </p>
         <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
       </main>

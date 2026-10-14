@@ -96,14 +96,56 @@ describe("a letter that does not exist is never recorded as sent", () => {
    * possible lie, because the decision record is the only evidence anyone
    * would ever look at.
    */
-  it("gates the timestamp on an approved letter existing, not on the request", () => {
+  it("gates the timestamp on a letter existing, not on the request", () => {
+    /*
+     * THIS ASSERTION GOT ONE TERM WIDER ON 14 OCTOBER, AND NO WEAKER.
+     *
+     * It read `sendEmail && hasApprovedLetter`. A denial after shadow days now
+     * has a letter - migration 554, Jimmy's own words - so the condition is
+     * `sendEmail && (hasApprovedLetter || denialLetterIsTrue)`.
+     *
+     * The rule it protects is unchanged and is the only thing that matters:
+     * email_sent_at is stamped when a letter EXISTS, never because a caller
+     * asked for one. Before this guard was written the timestamp came off
+     * `sendEmail` alone - the intention, not the outcome - which on a decline
+     * is the most expensive possible lie, because the decision record is the
+     * only evidence anybody would ever check.
+     */
     expect(code).toContain("const hasApprovedLetter = email !== null");
-    expect(code).toContain("const willEmailFamily = sendEmail && hasApprovedLetter");
+    expect(code).toContain(
+      "const willEmailFamily = sendEmail && (hasApprovedLetter || denialLetterIsTrue)"
+    );
     expect(code).toMatch(/email_sent_at:\s*willEmailFamily\s*\?/);
   });
 
   it("does not dispatch to the family either", () => {
     expect(code).toMatch(/if \(willEmailFamily\) \{[\s\S]{0,120}onDecisionSubmitted/);
+  });
+
+  it("only calls a denial's letter true when a shadow day was actually held", () => {
+    /*
+     * THE SENTENCE THAT COULD BE FALSE, AND WHAT STOPS IT.
+     *
+     * 554's letter opens "Thank you for spending the last two days with us."
+     * LEGACY_EVENT_MAP sends every `declined` to `student_declined`, and three
+     * things produce a `declined`: the shadow day letter's Deny button, the
+     * accept_or_deny gate's deny branch, and the DecisionWizard on the
+     * decisions board. The first two only ever happen at shadow_day_completed.
+     * The Wizard can be used at any stage.
+     *
+     * So the dispatch is gated on a COMPLETED row in admissions_shadow_days,
+     * read fresh - not inferred from the lead stage, which by that point in the
+     * function is about to become `declined` and answers the wrong question.
+     *
+     * Remove this and a family who never visited gets thanked for two days they
+     * never spent. That is the failure this whole file exists to prevent, one
+     * letter further down the chain.
+     */
+    expect(code).toContain("admissions_shadow_days");
+    expect(code).toMatch(/shadow_day_status[\s\S]{0,40}completed/);
+    expect(code).toMatch(/decisionType === "deny"/);
+    /* And it fails CLOSED: a failed read sends nothing. */
+    expect(code).toContain("let denialLetterIsTrue = false");
   });
 
   it("writes the gap into the audit trail instead of leaving it to be inferred", () => {

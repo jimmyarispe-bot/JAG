@@ -1,70 +1,99 @@
-one line in an action file broke 252 routes
+the application is submitted before anyone is invited
 
-a11d0072 failed to build. Production never moved off 55590c25, so the shadow
-day step shipped nowhere. One line of mine, in
-src/lib/admissions/decisions.ts:
+Three things Jimmy asked for in one message, and the third is the one that
+mattered.
 
-    export type { DecisionType };
+── 1. THE APPLICATION IS ACTUALLY SUBMITTED ────────────────────────────────
 
-    Export DecisionType doesn't exist in target module
-    The export DecisionType was not found in module
-      [project]/src/lib/admissions/decisions.ts [app-rsc] (ecmascript)
+submitInvitedApplicationAction - /apply/start/<token>, the door every invited
+family actually uses - saved the answers, wrote lead_stage =
+application_submitted with a RAW UPDATE, and mailed the family the shadow-days
+invitation itself. It never touched admissions_applications, never checked the
+fee, never set submitted_at, and never opened a gate.
 
-252 of them, one per route in the JAG, plus the comment I had written beside
-the line: "It is a type, so it erases and does not become a server action."
+That was deliberate. Jimmy, 23 September: "once the parent completes the
+application they are sent a followup email with schedule your shadow days."
+Automatic, no second question - and the file said so, including the
+consequence in plain words: "nobody reviews a family between application and
+shadow days."
 
-WHY THAT SENTENCE IS FALSE
+What it allowed: last night's test child read application_submitted while the
+application row read in_progress with no submitted_at, and the shadow-days
+invitation had already gone. A family could be invited to shadow days on an
+application nobody completed and nobody paid for. Live at all five campuses.
 
-Next's server-actions transform reads the EXPORT NAMES of a "use server"
-module and writes one action binding per name into every route's generated
-actions.js - BEFORE TypeScript erases the types:
+HE REVERSED IT, 14 October: "it needs to be this way then - So the intended
+order is: application completed -> the gate puts the question in front of her
+-> she reads it -> she answers yes -> the family gets the booking link."
 
-    export {DecisionType as '7fc922871dc64090...'} from 'ACTIONS_MODULE2'
+So this door now does what the portal has done since 28 September: find the
+application row, run applicationFeeGate, save the answers, mark the row
+submitted with submitted_at, and move the stage through transitionCaseStage -
+which opens invite_to_shadow_days, whose yes branch sends the booking link.
 
-The type then vanished, as types do, and 252 routes held a reference to an
-export that was not there.
+It no longer mails shadow_days_invited itself. Sending it here would put the
+link in front of a family before anybody read their application, and then send
+it again when she answered yes. It sends onApplicationSubmitted instead: the
+family's receipt and the leader's "an application came in".
 
-`export type Foo = ...` is fine, and twelve other "use server" files in the
-JAG use it - a type DECLARATION is stripped whole before the transform runs.
-It is the re-export SPECIFIER LIST, `export { X }` or `export type { X }`,
-that the transform picks up by name. I did not know that distinction. I do
-now, and so does the repository.
+The 23 September decision is quoted in the file above the new one, because a
+diff that silently deletes "nobody reviews a family between application and
+shadow days" reads like an accident. It was a decision. So is this.
 
-HOW IT GOT PAST EVERYTHING
+── 2. THE ACCEPTANCE SCREEN STOPS PROMISING A PACKET NOBODY BUILT ──────────
 
-The scoped typecheck was green. claude-ship.ps1's own typecheck was green.
-Two hundred tests passed. tsc erases the type and is satisfied - there is
-nothing for it to object to. A GREEN TYPECHECK IS NOT EVIDENCE OF A BUILD,
-which is written down in this repository from 3 October and was learned again
-here at the cost of one failed deploy and an hour.
+applyAdmissionsDecision has always returned a warning when an acceptance
+resolved no application row, or when generateEnrollmentPacket failed. Nothing
+carried it anywhere: recordPostCallDecision returned {ok, action}, so the done
+screen said "the enrollment packet has been built for them to sign" either way,
+to the one person who could do something about it.
 
-HOW IT WAS FOUND
+The warning now travels - through the action, through the redirect, onto the
+page. When there is no packet the screen drops that sentence, prints the reason
+in the words applyAdmissionsDecision wrote, and says the acceptance is real and
+nothing needs undoing but there is nothing to sign yet.
 
-Not by guessing. The Vercel connector returns 403 on this project's build
-logs, the CLI on the machine has no credentials, and `next build` cannot run
-in the device shell - it wants a Linux SWC binary and has no npm access. So
-the source was packaged, carried into a container with network, installed and
-BUILT: 497 errors, 252 of them this one. Removing the line took it to 245, and
-all 245 are `Can't resolve '@academyos'`-class aliases pointing at the root
-packages/ folder the package deliberately left out. Which is to say: this line
-was the only fault in the change.
+── 3. THE DENIAL AFTER A SHADOW DAY HAS A LETTER ───────────────────────────
 
-THE GUARD
+Deny recorded the decision and sent nothing, because buildDecisionEmail returns
+null for deny - correctly, there is no inline decline letter in code and must
+not be - so willEmailFamily was false and onDecisionSubmitted was never reached.
 
-tests/unit/admissions/no-type-reexport-from-an-action.test.ts walks every
-"use server" file in src/ and fails on any export specifier list, naming the
-file and the line. It was checked both ways - it passes now, and with the line
-put back it fails on decisions.ts:52.
+Jimmy gave the words. Asked about the one sentence that could not transfer from
+his own application_declined_email - "thank you for submitting the application"
+is wrong for a family who just spent two days in the building - he answered
+"yes good" to "Thank you for spending the last two days with us". Asked whether
+it should read "day(s)" in one row or naturally in five, he answered "read
+naturally".
 
-It also asserts that the walker found more than five action files, because a
-file walker that silently finds nothing passes every other assertion and
-guards nothing; and that more than five of those files still use
-`export type Foo = ...`, so the rule cannot quietly get greedy and send
-somebody hunting a problem that is not there.
+Migration 554: five campus rows. GA, FL and the test campus read "the last two
+days"; HS and Virtual read "the day". His three remaining paragraphs are
+verbatim, guarded word for word in the migration.
 
-The reason is written into decisions.ts itself, above the imports, because the
-next person will have the same good reason to re-export a type from that exact
-file and the error they would get names a route they never touched.
+IT IS GATED ON A SHADOW DAY ACTUALLY HAVING HAPPENED. LEGACY_EVENT_MAP sends
+every `declined` to `student_declined`, and three things produce one: this
+page's Deny, the accept_or_deny gate's deny branch, and the DecisionWizard on
+the decisions board. The first two only ever happen at shadow_day_completed;
+the Wizard can be used at any stage. So applyAdmissionsDecision reads
+admissions_shadow_days for a completed row before dispatching a denial, and
+fails CLOSED - a failed read sends nothing. A letter thanking a family for two
+days they never spent is exactly the failure this build exists to prevent.
+
+The button's consequence line and the done screen both said "nothing is
+emailed", which was true this morning and is not now. Both changed in this same
+commit, because a consequence line that lags the behaviour by one deploy is the
+same fault as item 2.
+
+── VERIFIED, AND NOT BY A TYPECHECK ────────────────────────────────────────
+
+88 tests across 7 files, all passing, including 15 new ones on the submit order
+and the fee gate's boundary.
+
+And the real `next build`, because this morning proved a green typecheck is not
+evidence of one: source carried into a container, installed, built. 497 errors
+this morning, 2 now - both `next/font` failing to reach fonts.googleapis.com
+from a sandbox with no route to it, which Vercel's builders have reached on
+every successful deploy of this repo. Zero code errors.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

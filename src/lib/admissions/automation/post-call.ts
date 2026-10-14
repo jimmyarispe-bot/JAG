@@ -386,20 +386,28 @@ export const POST_CALL_ACTIONS = [
     fork: null,
     occasion: "shadow_day" as PostCallOccasion,
     /*
-     * IT SAYS WHAT IT ACTUALLY DOES, WHICH TODAY IS NOT WHAT THE LABEL
-     * PROMISES. There is one approved decline letter in the JAG -
-     * application_declined_email - and it is keyed to shadow_days_not_invited,
-     * a different decision at a different step. Firing it from here would tell
-     * the record a family was refused shadow days they had just attended.
+     * IT SENDS, AS OF 14 OCTOBER 2026 - AND FOR HALF A DAY IT DID NOT.
      *
-     * So the decision is recorded, the lead is declined, and the family is
-     * sent nothing until Jimmy says which words a denial after a shadow day
-     * should carry. Inventing them is the one thing this build does not do.
+     * This line read "Nothing is emailed to the family yet - the decline letter
+     * after a shadow day is not written", which was true and said so rather
+     * than promising a letter that did not exist. Jimmy then gave the words,
+     * and migration 554 is the letter: three paragraphs of his own approved
+     * application_declined_email verbatim, with only the opening changed
+     * because "thank you for submitting the application" is the wrong thing to
+     * say to a family who just spent two days in the building.
+     *
+     * "read naturally" - his answer on the day count - so it is five campus
+     * rows: GA, FL and the test campus read "the last two days", HS and Virtual
+     * read "the day".
+     *
+     * This sentence changed in the same commit as the letter, because a
+     * consequence line that lags the behaviour by one deploy is the same fault
+     * as the acceptance screen promising an enrollment packet nobody built.
      */
     consequence:
-      "The decision is recorded and the shadow day is marked held. The child " +
-      "moves to Declined. Nothing is emailed to the family yet - the decline " +
-      "letter after a shadow day is not written.",
+      "The family is emailed the decision - the letter that says the " +
+      "limitation is ours and not their child's. The shadow day is marked " +
+      "held and the child moves to Declined.",
   },
   {
     value: "tour_requested",
@@ -542,7 +550,26 @@ export async function recordPostCallDecision(params: {
   token: string;
   action: PostCallAction;
   notes: string | null;
-}): Promise<{ ok: true; action: PostCallAction } | { error: string }> {
+}): Promise<
+  | {
+      ok: true;
+      action: PostCallAction;
+      /**
+       * SOMETHING WORKED, AND SOMETHING DID NOT - IN THE LEADER'S WORDS.
+       *
+       * Added 14 October 2026. An acceptance that resolved no application, or
+       * one whose enrollment packet failed to generate, is still an acceptance:
+       * the decision is recorded, the stage moves, the family is emailed. But
+       * there is no packet, and until now the page said "the enrollment packet
+       * has been built" anyway, because this function returned nothing but ok.
+       *
+       * applyAdmissionsDecision has always returned that warning. Nothing
+       * carried it to the one person who could act on it.
+       */
+      warning?: string;
+    }
+  | { error: string }
+> {
   if (!TOKEN_PATTERN.test(params.token)) {
     return { error: "That link is not valid." };
   }
@@ -1071,7 +1098,23 @@ export async function recordPostCallDecision(params: {
       };
     }
 
-    return { ok: true, action: params.action };
+    /*
+     * THE PACKET IS NOT GUARANTEED, SO THE PAGE MUST NOT GUARANTEE IT.
+     *
+     * applyAdmissionsDecision sets `warning` when an acceptance resolved no
+     * application row, or when generateEnrollmentPacket itself failed. Both
+     * leave a child accepted and emailed with nothing to sign. It is carried
+     * here so the done screen can say so instead of printing a sentence that
+     * happens to be false.
+     */
+    const warning =
+      outcome && "warning" in outcome && typeof outcome.warning === "string"
+        ? outcome.warning
+        : null;
+
+    return warning
+      ? { ok: true, action: params.action, warning }
+      : { ok: true, action: params.action };
   }
 
   /*

@@ -136,7 +136,64 @@ export async function applyAdmissionsDecision(
    * anybody would ever check.
    */
   const hasApprovedLetter = email !== null;
-  const willEmailFamily = sendEmail && hasApprovedLetter;
+
+  /**
+   * A DENY AFTER SHADOW DAYS NOW HAS A LETTER. EVERY OTHER DENY STILL DOES NOT.
+   *
+   * ── 14 OCTOBER 2026 ──────────────────────────────────────────────────────
+   *
+   * buildDecisionEmail returns null for `deny` on purpose and still does -
+   * there is no inline decline letter in code and there must not be. So
+   * hasApprovedLetter is false for a denial, willEmailFamily was false, and
+   * onDecisionSubmitted was never reached: the family heard nothing.
+   *
+   * Jimmy asked for the denial after shadow days to send, and gave the words -
+   * three paragraphs of his own approved application_declined_email, with only
+   * the opening changed because "thank you for submitting the application" is
+   * the wrong thing to say to a family who just spent two days in the building.
+   * Migration 554 seeds it as shadow_day_declined_email on `student_declined`,
+   * five campus rows so GA, FL and the test campus read "the last two days" and
+   * HS and Virtual read "the day" - his answer when asked: "read naturally".
+   *
+   * ── WHY IT IS GATED ON A COMPLETED SHADOW DAY AND NOT ON `deny` ───────────
+   *
+   * LEGACY_EVENT_MAP sends every `declined` to `student_declined`, and three
+   * different things produce a `declined`: this page's Deny button, the
+   * accept_or_deny gate's deny branch, and the DecisionWizard on the decisions
+   * board. The first two only ever happen at shadow_day_completed, so the words
+   * are true. The Wizard can be used at any stage, and telling a family who
+   * never visited "thank you for spending the last two days with us" is exactly
+   * the kind of sentence this build exists to prevent.
+   *
+   * So the letter goes when the child HAS a completed shadow day on the record,
+   * and otherwise the denial behaves as it always has: recorded, visible, and
+   * no letter. Read from admissions_shadow_days rather than inferred from the
+   * stage, because by this point in this function the stage is about to become
+   * `declined` and would answer the wrong question.
+   */
+  let denialLetterIsTrue = false;
+  if (decisionType === "deny") {
+    const { data: heldDays, error: heldError } = await supabase
+      .from("admissions_shadow_days")
+      .select("id")
+      .eq("lead_id", leadId)
+      .eq("shadow_day_status", "completed")
+      .limit(1);
+    if (heldError) {
+      /* FAILS CLOSED, unlike the duplicate guard elsewhere which fails open.
+         The two are not the same bet: a duplicate letter is an apology, and a
+         letter whose first sentence may be false is a lie to a family about
+         their child. Silence is recoverable; this is not. */
+      console.error(
+        "[decision] could not check for a completed shadow day, sending no decline letter:",
+        heldError.message
+      );
+    } else {
+      denialLetterIsTrue = (heldDays ?? []).length > 0;
+    }
+  }
+
+  const willEmailFamily = sendEmail && (hasApprovedLetter || denialLetterIsTrue);
 
   const { data: decision, error: decisionError } = await supabase
     .from("admissions_decisions")

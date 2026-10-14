@@ -173,8 +173,21 @@ describe("the shadow day's two buttons", () => {
        So the consequence line says nothing is sent, the done screen says it
        again, and this assertion is what stops somebody quietly "fixing" the
        wording before the letter exists. */
-    expect(byValue.shadow_day_denied).toContain("Nothing is emailed");
+    /* THE DENIAL NOW SENDS, AND THIS ASSERTION FLIPPED WITH IT.
+
+       For half a day it read toContain("Nothing is emailed"), because there was
+       no approved decline letter for a decision at this step and the button
+       said so rather than promising one. Jimmy gave the words on 14 October -
+       "yes good" to the opening, "read naturally" to the day count - and
+       migration 554 is the letter, five campus rows.
+
+       What this guards either way: the consequence line and the behaviour must
+       change in the SAME commit. A button that promises a letter the code does
+       not send, or stays silent about one it does, is the same fault as the
+       acceptance screen promising a packet nobody built. */
+    expect(byValue.shadow_day_denied).toContain("emailed the decision");
     expect(byValue.shadow_day_denied).toContain("Declined");
+    expect(byValue.shadow_day_denied).not.toContain("Nothing is emailed");
   });
 });
 
