@@ -1,89 +1,70 @@
-the last gate can finally be answered
+one line in an action file broke 252 routes
 
-Jimmy, the night of 13 October, having booked shadow days for 1:30am and
-waited: "i didn't receive any followup email with decision to accept or send
-denial letter."
+a11d0072 failed to build. Production never moved off 55590c25, so the shadow
+day step shipped nowhere. One line of mine, in
+src/lib/admissions/decisions.ts:
 
-He was right, and it was worse than a missing email. The booking scan had
-recognised a shadow day by its title since 11 October and recorded NOTHING -
-there was nowhere to put it, deliberately, because on 10 October one had gone
-into both admissions_tours AND the interviews table, which is two wrong answers
-rather than none. So nothing ever wrote shadow_day_completed, and accept_or_deny
-- the gate that opens behind that stage - had never opened once in the life of
-this platform. Eight children sat at Shadow Day Scheduled with nothing behind
-them.
+    export type { DecisionType };
 
-WHAT NOW EXISTS, END TO END
+    Export DecisionType doesn't exist in target module
+    The export DecisionType was not found in module
+      [project]/src/lib/admissions/decisions.ts [app-rsc] (ecmascript)
 
-  the family books              already worked - same calendar, same scan
-  the JAG records it            NEW - admissions_shadow_days, migration 550
-  the letter at the END         NEW - staff_shadow_day_held, migration 552
-  she presses Accept or Deny    NEW - the post-call page's third occasion
-  shadow_day_completed written  NEW - by something other than a bulk import
-  the decision runs             the SAME code the gate runs
+252 of them, one per route in the JAG, plus the comment I had written beside
+the line: "It is a type, so it erases and does not become a server action."
 
-THE LETTER FIRES AT ends_at, NOT AT THE START
+WHY THAT SENTENCE IS FALSE
 
-Jimmy, 14 October: "receipt/delivery of the shadow day letter doesn't need to
-fire until the end of the calendar appt time/day. not the beginning like with
-the others". Every other notes letter in this platform is timed to an
-appointment's start. This one is not, because it opens "Shadow Days completed
-for ..." and asks her to accept or deny, and neither is answerable while the
-child is still in the building. So ends_at is a column on the row rather than
-something recomputed, and the queue row's sendAt is that column.
+Next's server-actions transform reads the EXPORT NAMES of a "use server"
+module and writes one action binding per name into every route's generated
+actions.js - BEFORE TypeScript erases the types:
 
-THE TWO BUTTONS ARE HIS WORDS
+    export {DecisionType as '7fc922871dc64090...'} from 'ACTIONS_MODULE2'
 
-"let's make the buttons this - accept-send email, deny-send email". Used
-literally, hyphen included. Accept first, as the mockup reads.
+The type then vanished, as types do, and 252 routes held a reference to an
+export that was not there.
 
-Both run applyAdmissionsDecision - which is submitAdmissionsDecision's body,
-moved to decisions-core.ts word for word. TWO DOORS ONTO ONE DECISION MUST NOT
-DO TWO DIFFERENT THINGS: an acceptance made on a phone at the school gate and
-one made on the decisions board are the same event, same decision row, same
-approved acceptance letter, same enrollment packet, same audit. The move was
-needed because the page behind a letter has no signed-in session for
-assertAnyPermission to read. decisions.ts keeps the permission check and the
-FormData and delegates; nothing about an acceptance changed.
+`export type Foo = ...` is fine, and twelve other "use server" files in the
+JAG use it - a type DECLARATION is stripped whole before the transform runs.
+It is the re-export SPECIFIER LIST, `export { X }` or `export type { X }`,
+that the transform picks up by name. I did not know that distinction. I do
+now, and so does the repository.
 
-THE DENY BUTTON DOES NOT SEND, AND SAYS SO
+HOW IT GOT PAST EVERYTHING
 
-There is one approved decline letter in the JAG - application_declined_email -
-and it is keyed to shadow_days_not_invited, a refusal to invite rather than a
-refusal after the days happened. Firing it here would tell a family, and the
-record, that they were refused shadow days they had just attended.
+The scoped typecheck was green. claude-ship.ps1's own typecheck was green.
+Two hundred tests passed. tsc erases the type and is satisfied - there is
+nothing for it to object to. A GREEN TYPECHECK IS NOT EVIDENCE OF A BUILD,
+which is written down in this repository from 3 October and was learned again
+here at the cost of one failed deploy and an hour.
 
-So the denial records the decision, marks the days held, moves the child to
-Declined, and sends nothing. The button's own consequence line says that, the
-page afterwards says it again, and a test asserts both so nobody quietly
-rewords it before the letter exists. Jimmy's call, not mine.
+HOW IT WAS FOUND
 
-THE TRIPWIRE FIRED AGAIN, AS DESIGNED
+Not by guessing. The Vercel connector returns 403 on this project's build
+logs, the CLI on the machine has no credentials, and `next build` cannot run
+in the device shell - it wants a Linux SWC binary and has no npm access. So
+the source was packaged, carried into a container with network, installed and
+BUILT: 497 errors, 252 of them this one. Removing the line took it to 245, and
+all 245 are `Can't resolve '@academyos'`-class aliases pointing at the root
+packages/ folder the package deliberately left out. Which is to say: this line
+was the only fault in the change.
 
-tour-notes-step.test.ts asserts the complete list of button values, because
-recordPostCallDecision writes the school leader's notes FIRST and that write
-meets lead_call_outcomes' CHECK constraint before anything else. On 13 October
-the tour's eleventh button was missing from that constraint and the first live
-test died on the first statement. This time the test failed in one second,
-before any test, and migration 553 is the constraint catching up.
+THE GUARD
 
-WHAT THE SCAN NOW DOES WITH A SHADOW DAY
+tests/unit/admissions/no-type-reexport-from-an-action.test.ts walks every
+"use server" file in src/ and fails on any export specifier list, naming the
+file and the line. It was checked both ways - it passes now, and with the line
+put back it fails on decisions.ts:52.
 
-  dedupes by (lead, start time) - the tours table learned that one the hard way
-  writes ends_at, day_count (2 at GA/FL, 1 at HS/Virtual) and the type
-  moves the stage ONLY from interest_meeting_held or application_submitted,
-    because "shadow day for virtual n hs happen before the application" - so a
-    child arrives here from two different places and must never be dragged back
-  queues the notes letter at ends_at, same one-day cutoff as the tour
+It also asserts that the walker found more than five action files, because a
+file walker that silently finds nothing passes every other assertion and
+guards nothing; and that more than five of those files still use
+`export type Foo = ...`, so the rule cannot quietly get greedy and send
+somebody hunting a problem that is not there.
 
-NO BACKFILL. The eight children waiting have bookings nobody recorded, and
-writing rows for them now would invent eight appointments nobody can vouch for.
-They stay held.
-
-Tested: 200 assertions across eleven files, all passing - 15 new in
-shadow-day-step.test.ts, 6 in shadow-day-campus.test.ts, and the decline-letter
-guard repointed at the moved code with two new assertions that stop it being
-hollowed out by the next move.
+The reason is written into decisions.ts itself, above the imports, because the
+next person will have the same good reason to re-export a type from that exact
+file and the error they would get names a route they never touched.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

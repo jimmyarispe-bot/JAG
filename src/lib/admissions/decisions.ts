@@ -16,9 +16,31 @@
  * the shadow day's notes letter has a button in it, and the page behind that
  * button has no session to check.
  *
- * DecisionType is re-exported so every existing importer of
- * "@/lib/admissions/decisions" keeps working. It is a type, so it erases and
- * does not become a server action.
+ * ── DO NOT RE-EXPORT ANYTHING FROM THIS FILE, NOT EVEN A TYPE ───────────────
+ *
+ * This file carried `export type { DecisionType };` for exactly one deploy, on
+ * 14 October 2026, and that deploy failed with 252 errors - one for every route
+ * in the JAG:
+ *
+ *   Export DecisionType doesn't exist in target module
+ *   The export DecisionType was not found in module .../decisions.ts [app-rsc]
+ *
+ * WHY, and it is not obvious: Next's server-actions transform reads the export
+ * NAMES of a "use server" module and registers one action id for each, BEFORE
+ * TypeScript erases the types. So it wrote an action binding for DecisionType,
+ * the type then vanished as types do, and every route's generated actions.js
+ * pointed at an export that was not there.
+ *
+ * A green typecheck cannot see this. tsc erases the type and is satisfied; the
+ * ship script's typecheck and all 200 tests passed and it still would not
+ * build. tests/unit/admissions/no-type-reexport-from-an-action.test.ts is the
+ * guard, because the next person to do this will have the same good reason.
+ *
+ * `export type Foo = ...` - a type DECLARATION - is fine and twelve other
+ * "use server" files in the JAG use it. It is the re-export SPECIFIER LIST,
+ * `export { X }` or `export type { X }`, that the transform picks up.
+ *
+ * So DecisionType is imported from decisions-core.ts by anything that needs it.
  */
 
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
@@ -26,8 +48,6 @@ import {
   applyAdmissionsDecision,
   type DecisionType,
 } from "@/lib/admissions/decisions-core";
-
-export type { DecisionType };
 
 export async function submitAdmissionsDecision(formData: FormData) {
   const auth = await assertAnyPermission("admissions.manage", "admissions.accept");
