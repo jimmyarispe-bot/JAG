@@ -157,12 +157,24 @@ describe("every button's value is one the database will accept", () => {
        fail here, in a second, rather than in a school leader's hands.
 
        ADDING A VALUE TO THIS LIST MEANS A MIGRATION. The constraint is in the
-       database and nothing in TypeScript can see it. */
+       database and nothing in TypeScript can see it.
+
+       AND IT FIRED AGAIN, 14 OCTOBER, AS INTENDED. The shadow day step added
+       shadow_day_accepted and shadow_day_denied, this assertion failed in a
+       second, and migration 553 is the constraint catching up - written BEFORE
+       the live test rather than during it. That is the whole point of this
+       test, and it is the second time it has earned its place in a day.
+
+       The same assertion is in shadow-day-step.test.ts. Two copies on purpose:
+       whichever file somebody is working in, the tripwire is in front of
+       them. */
     expect([...POST_CALL_ACTIONS].map((a) => a.value).sort()).toEqual(
       [
         "application_invited",
         "post_call_follow_up",
         "post_call_not_the_right_school",
+        "shadow_day_accepted",
+        "shadow_day_denied",
         "shadow_days_invited",
         "tour_requested",
       ].sort()

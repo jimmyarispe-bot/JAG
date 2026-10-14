@@ -1,52 +1,33 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { createAuthClient } from "@/lib/supabase/server-auth";
-import { writePlatformAudit } from "@/lib/platform/automation/audit";
-import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
-import type { LeadStageValue } from "@/lib/constants/admissions";
-import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
-import { generateEnrollmentPacket } from "@/lib/admissions/enrollment-packets";
-import { ensureApplicationForAcceptedLead } from "@/lib/admissions/application-for-accepted-lead";
-import { onDecisionSubmitted } from "@/lib/admissions/communications/triggers";
-import { loadOrganizationBranding, buildAdmissionsDecisionEmail } from "@/lib/branding";
-
-export type DecisionType = "accept" | "waitlist" | "deny" | "request_info";
-
-const DECISION_STAGE: Record<DecisionType, LeadStageValue> = {
-  accept: "accepted",
-  waitlist: "waitlisted",
-  deny: "declined",
-  request_info: "records_requested",
-};
-
-const DECISION_APP_STATUS: Partial<Record<DecisionType, string>> = {
-  accept: "accepted",
-  waitlist: "waitlisted",
-  deny: "denied",
-};
-
 /**
- * Null for `deny`, and that is the point.
+ * The decisions board's door onto an admissions decision.
  *
- * There is no approved decline letter in code. The one that used to be here was
- * never approved, nor was student_declined_email in the database (both removed
- * 15 September 2026). The letter Jimmy wrote — application_declined_email,
- * migration 247 — belongs to gate 2, and whether it should also speak for
- * gate 3 is his decision, not this function's.
+ * ── WHAT MOVED ON 14 OCTOBER 2026, AND WHAT DID NOT ─────────────────────
  *
- * Until he makes it, a deny records the decision and sends the family nothing,
- * visibly. See the email_sent_at handling below: it refuses to stamp a
- * timestamp for a letter that does not exist.
+ * The work is now in decisions-core.ts, word for word. This file keeps the
+ * three things that belong to a form submitted by a signed-in person: the
+ * permission check, reading the fields out of the FormData, and knowing who
+ * pressed the button.
+ *
+ * NOTHING ABOUT THE DECISION ITSELF CHANGED. Same decision row, same letter,
+ * same stage move, same enrollment packet, same audit, same revalidations, in
+ * the same order. The reason for the move is written at the top of the core:
+ * the shadow day's notes letter has a button in it, and the page behind that
+ * button has no session to check.
+ *
+ * DecisionType is re-exported so every existing importer of
+ * "@/lib/admissions/decisions" keeps working. It is a type, so it erases and
+ * does not become a server action.
  */
-function buildDecisionEmail(
-  decision: DecisionType,
-  studentName: string,
-  branding: Awaited<ReturnType<typeof loadOrganizationBranding>>,
-  customNotes?: string
-): { subject: string; body: string } | null {
-  return buildAdmissionsDecisionEmail(decision, studentName, branding, customNotes);
-}
+
+import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
+import {
+  applyAdmissionsDecision,
+  type DecisionType,
+} from "@/lib/admissions/decisions-core";
+
+export type { DecisionType };
 
 export async function submitAdmissionsDecision(formData: FormData) {
   const auth = await assertAnyPermission("admissions.manage", "admissions.accept");
@@ -57,162 +38,12 @@ export async function submitAdmissionsDecision(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const leadId = formData.get("lead_id") as string;
-  let applicationId = (formData.get("application_id") as string) || null;
-  const decisionType = formData.get("decision_type") as DecisionType;
-  const customNotes = (formData.get("decision_notes") as string) || "";
-  const sendEmail = formData.get("send_email") === "true";
-
-  const { data: lead } = await supabase
-    .from("admissions_leads")
-    .select("first_name, last_name, guardian_email")
-    .eq("id", leadId)
-    .single();
-
-  if (!lead) return { error: "Lead not found" };
-
-  const studentName = `${lead.first_name} ${lead.last_name}`;
-
-  /**
-   * AN ACCEPTANCE HAS TO PRODUCE THE THING THE FAMILY SIGNS.
-   *
-   * applicationId arrives from a hidden form field and is null for every lead
-   * with no row in admissions_applications - which is all but one of them.
-   * Everything below that is guarded by it then skipped in silence: the
-   * application status, and the enrollment packet itself. Resolved here, before
-   * the decision is written, so the decision row carries it too.
-   */
-  const ensured = await ensureApplicationForAcceptedLead(supabase, {
-    leadId,
-    decisionType,
-    applicationId,
-  });
-  applicationId = ensured.applicationId;
-  let warning: string | null = ensured.warning;
-
-  const branding = await loadOrganizationBranding(supabase);
-  const email = buildDecisionEmail(decisionType, studentName, branding, customNotes);
-
-  /**
-   * No approved letter means no letter, and no claim that one was sent.
-   *
-   * Before this, email_sent_at was stamped whenever the caller asked to send,
-   * regardless of whether anything reached the family — the house pattern at
-   * its most expensive, because the record of a decline is the only evidence
-   * anybody would ever check.
-   */
-  const hasApprovedLetter = email !== null;
-  const willEmailFamily = sendEmail && hasApprovedLetter;
-
-  const { data: decision, error: decisionError } = await supabase
-    .from("admissions_decisions")
-    .insert({
-      lead_id: leadId,
-      application_id: applicationId,
-      decision_type: decisionType,
-      decision_notes: customNotes || null,
-      email_subject: email?.subject ?? null,
-      email_body: email?.body ?? null,
-      email_sent_at: willEmailFamily ? new Date().toISOString() : null,
-      decided_by: user?.id ?? null,
-    })
-    .select("id")
-    .single();
-
-  if (decisionError) return { error: decisionError.message };
-
-  if (willEmailFamily) {
-    await onDecisionSubmitted(
-      supabase,
-      leadId,
-      applicationId,
-      decisionType,
-      customNotes,
-      user?.id ?? null
-    );
-  }
-
-  const stage = DECISION_STAGE[decisionType];
-  const stageResult = await transitionCaseStage(supabase, leadId, stage, user?.id ?? null);
-  if (stageResult.error) return { error: stageResult.error };
-
-  if (applicationId && DECISION_APP_STATUS[decisionType]) {
-    await supabase
-      .from("admissions_applications")
-      .update({
-        application_status: DECISION_APP_STATUS[decisionType],
-        admissions_decision_date: new Date().toISOString().split("T")[0],
-        accepted_by_user_id: decisionType === "accept" ? user?.id ?? null : null,
-      })
-      .eq("id", applicationId);
-  }
-
-  const taskNames: Record<DecisionType, string> = {
-    accept: "Enrollment follow-up — accepted student",
-    waitlist: "Waitlist monitoring follow-up",
-    deny: "Archive declined application",
-    request_info: "Follow up on requested information",
-  };
-
-  await supabase.from("admissions_tasks").insert({
-    lead_id: leadId,
-    task_name: taskNames[decisionType],
-    due_date: new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0],
-    task_status: "open",
-    assigned_to_user_id: user?.id ?? null,
-  });
-
-  if (decisionType === "accept" && applicationId) {
-    // The result was discarded before. A packet that failed to generate looked
-    // exactly like one that had.
-    const packet = await generateEnrollmentPacket(applicationId, leadId);
-    if ("error" in packet) {
-      warning =
-        `${studentName} is accepted, but the enrollment packet could not be generated ` +
-        `(${packet.error}). Nothing has been sent for signature.`;
-      console.error("[accept] enrollment packet not generated", {
-        leadId,
-        applicationId,
-        error: packet.error,
-      });
-    }
-  } else if (decisionType === "accept" && !warning) {
-    warning =
-      `${studentName} is accepted, but no application could be resolved, so no ` +
-      `enrollment packet was generated.`;
-  }
-
-  const { data: leadSchool } = await supabase
-    .from("admissions_leads")
-    .select("school_id")
-    .eq("id", leadId)
-    .maybeSingle();
-
-  await writePlatformAudit(supabase, {
-    schoolId: leadSchool?.school_id,
-    module: "admissions",
-    entityType: "admissions_leads",
-    entityId: leadId,
-    actionType: "admissions_decision",
-    summary: `Decision recorded: ${decisionType}`,
+  return applyAdmissionsDecision(supabase, {
+    leadId: formData.get("lead_id") as string,
+    applicationId: (formData.get("application_id") as string) || null,
+    decisionType: formData.get("decision_type") as DecisionType,
+    customNotes: (formData.get("decision_notes") as string) || "",
+    sendEmail: formData.get("send_email") === "true",
     actorUserId: user?.id ?? null,
-    metadata: {
-      decisionId: decision.id,
-      decisionType,
-      applicationId,
-      sendEmail,
-      // What was actually asked for vs what actually happened. A deny with
-      // sendEmail true and emailedFamily false is the deliberate gap, and the
-      // audit trail should say so rather than leaving it to be inferred.
-      emailedFamily: willEmailFamily,
-      noApprovedLetter: sendEmail && !hasApprovedLetter ? decisionType : null,
-    },
   });
-
-  revalidatePath(`/dashboard/admissions/leads/${leadId}`);
-  revalidatePath("/dashboard/admissions");
-  revalidatePath("/dashboard/ceo");
-  revalidatePath("/dashboard/students");
-
-  return { success: true, decisionId: decision.id, warning };
 }

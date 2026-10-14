@@ -36,6 +36,7 @@ import "server-only";
  */
 
 import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
+import { shadowDayCount, shadowDayType } from "@/lib/admissions/shadow-day";
 import { isTestCampus } from "@/lib/admissions/test-campus";
 import { onInterviewScheduled } from "@/lib/admissions/communications/triggers";
 import {
@@ -217,6 +218,21 @@ export const POST_CALL_EVENT = "staff_inquiry_call_held";
  */
 export const TOUR_NOTES_EVENT = "staff_tour_held";
 
+/**
+ * The shadow day's notes letter - migration 552, trigger staff_shadow_day_held.
+ *
+ * THE ONLY LETTER IN THIS PLATFORM TIMED TO AN APPOINTMENT'S END. Jimmy,
+ * 14 October 2026: "receipt/delivery of the shadow day letter doesn't need to
+ * fire until the end of the calendar appt time/day. not the beginning like
+ * with the others".
+ *
+ * Which is right, and the reason is in the letter itself: it opens "Shadow
+ * Days completed for {{student_full_name}}." and asks her to accept or deny.
+ * Neither is a question anybody can answer while the child is still in the
+ * building.
+ */
+export const SHADOW_DAY_NOTES_EVENT = "staff_shadow_day_held";
+
 /*
  * THE TEN-MINUTE DELAY IS GONE, and the constants with it. Until 5 October
  * this letter went ten minutes after the appointment ENDED. Jimmy moved it to
@@ -350,6 +366,7 @@ export interface ScanReport {
    * appointment" guard and told nobody at all.
    */
   readonly toursRecorded: readonly string[];
+  readonly shadowDaysRecorded: readonly string[];
   readonly leadsConsidered: number;
   readonly letters: readonly {
     readonly leadId: string;
@@ -401,6 +418,7 @@ export async function runInterestMeetingScan(
     titlesUnrecognised: [],
     postCallSkipped: [],
     toursRecorded: [],
+    shadowDaysRecorded: [],
     leadsConsidered: 0,
     letters: [],
     errors,
@@ -700,6 +718,7 @@ export async function runInterestMeetingScan(
   const titlesUnrecognised: string[] = [];
   const postCallSkipped: string[] = [];
   const toursRecorded: string[] = [];
+  const shadowDaysRecorded: string[] = [];
 
   /*
    * Families who already have a tour row.
@@ -725,6 +744,20 @@ export async function runInterestMeetingScan(
   const alreadyRecordedTour = new Set<string>(
     ((existingTours ?? []) as { lead_id: string; scheduled_at: string }[]).map((t) =>
       appointmentKey(t.lead_id, t.scheduled_at)
+    )
+  );
+
+  /* The same, for shadow days. Same reasoning, same key: a child who shadows
+     twice has two shadow days, and the insert and the stage write are two
+     statements with no transaction between them. */
+  const { data: existingShadowDays } = await supabase
+    .from("admissions_shadow_days")
+    .select("lead_id, scheduled_at")
+    .in("lead_id", leadIds.length ? leadIds : ["00000000-0000-0000-0000-000000000000"]);
+
+  const alreadyRecordedShadowDay = new Set<string>(
+    ((existingShadowDays ?? []) as { lead_id: string; scheduled_at: string }[]).map((s) =>
+      appointmentKey(s.lead_id, s.scheduled_at)
     )
   );
   let bookingsMatched = 0;
@@ -825,12 +858,159 @@ export async function runInterestMeetingScan(
      * none. So it is recognised, recorded nowhere, nobody is told, and it is
      * named in the report. Awaiting Jimmy's word on what it should do.
      */
-    if (titleKind === "shadow_day" || titleKind === "assessment") {
-      const kindRead = titleKind === "shadow_day" ? "shadow day" : "assessment";
+    /*
+     * AN ASSESSMENT IS STILL RECOGNISED AND STILL RECORDED NOWHERE.
+     *
+     * Jimmy, 14 October 2026, asked what an assessment should lead to: "no
+     * assessment right now". So it keeps exactly the behaviour it has had
+     * since 11 October - read, named in the report, nothing written and
+     * nobody told. Unchanged on purpose, not overlooked.
+     */
+    if (titleKind === "assessment") {
       recognisedNotRecorded.push(
-        `${leadId} <- ${kindRead} ${appointmentTextForFamily(booking.startsAt)} ` +
+        `${leadId} <- assessment ${appointmentTextForFamily(booking.startsAt)} ` +
           `("${booking.summary ?? ""}") - recognised, nothing recorded, nobody told`
       );
+      continue;
+    }
+
+    /*
+     * ── THE SHADOW DAY ──────────────────────────────────────────────────────
+     *
+     * Until 14 October this branch was the assessment's twin: recognised,
+     * recorded nowhere, nobody told. The comment said why, and it was right at
+     * the time - on 10 October a shadow day went into BOTH the tours table and
+     * the interviews table, which is two wrong answers rather than none, so it
+     * was switched to recording nothing until a real home existed.
+     *
+     * Migration 550 is that home.
+     *
+     * Jimmy tested the gap himself on the night of the 13th: application
+     * submitted, shadow days invited, booked for 1:30am, and "i didn't receive
+     * any followup email with decision to accept or send denial letter" -
+     * because nothing recorded the booking, so nothing could later write
+     * shadow_day_completed, which is the stage accept_or_deny opens behind.
+     */
+    if (titleKind === "shadow_day") {
+      const shadowLead = leadById.get(leadId) ?? null;
+      const shadowCampus = shadowLead ? schoolNameOf(shadowLead) : null;
+
+      const thisShadowDay = appointmentKey(leadId, booking.startsAt);
+      if (alreadyRecordedShadowDay.has(thisShadowDay)) continue;
+      alreadyRecordedShadowDay.add(thisShadowDay);
+
+      shadowDaysRecorded.push(
+        `${leadId} <- shadow day ${appointmentTextForFamily(booking.startsAt)}` +
+          ` (${shadowDayCount(shadowCampus)} day, ${shadowDayType(shadowCampus)})`
+      );
+      if (dryRun) continue;
+
+      /*
+       * ends_at IS THE POINT OF THIS ROW, so a booking Google gave no end time
+       * for falls back to the duration the row carries. Without it the letter
+       * would be due at an unknown moment and silently never queue.
+       */
+      const shadowStartsAt = new Date(booking.startsAt);
+      const shadowMinutes = tourDurationMinutes(booking);
+      const shadowEndsAt = booking.endsAt
+        ? new Date(booking.endsAt)
+        : new Date(shadowStartsAt.getTime() + shadowMinutes * 60_000);
+
+      const { error: shadowError } = await supabase
+        .from("admissions_shadow_days")
+        .insert({
+          lead_id: leadId,
+          scheduled_at: booking.startsAt,
+          ends_at: shadowEndsAt.toISOString(),
+          duration_minutes: shadowMinutes,
+          day_count: shadowDayCount(shadowCampus),
+          shadow_day_type: shadowDayType(shadowCampus),
+          shadow_day_status: "scheduled",
+          notes: `Booked by the family. ${booking.summary ?? "Google Calendar"}.`,
+          host_user_id: null,
+        });
+
+      if (shadowError) {
+        /* CHECKED, not awaited and discarded. A refused insert that moved the
+           stage anyway is how 28 families came to sit in Tour Scheduled with
+           no tour behind them. */
+        errors.push(
+          `Could not record the shadow day for ${leadId}: ${shadowError.message}`
+        );
+        continue;
+      }
+
+      /*
+       * ONLY FORWARD, AND ONLY FROM THE TWO STAGES A SHADOW DAY CAN FOLLOW.
+       *
+       * The shadow day sits in a different place in the two paths, which Jimmy
+       * confirmed on 14 October: "shadow day for virtual n hs happen before the
+       * application for admission". So at HS and Virtual a child arrives here
+       * from interest_meeting_held, and at GA and FL from application_submitted.
+       *
+       * Writing the stage unconditionally would drag a child backwards to say
+       * something a school leader had already said by hand. The row above is
+       * the fact; this is only the label.
+       */
+      const { error: shadowStageError } = await supabase
+        .from("admissions_leads")
+        .update({ lead_stage: "shadow_day_scheduled", updated_at: new Date().toISOString() })
+        .eq("id", leadId)
+        .in("lead_stage", ["interest_meeting_held", "application_submitted"]);
+
+      if (shadowStageError) {
+        errors.push(
+          `Shadow day recorded for ${leadId} but the stage did not move: ${shadowStageError.message}`
+        );
+      }
+
+      /*
+       * THE NOTES LETTER, AT THE END OF THE APPOINTMENT.
+       *
+       * sendAt is shadowEndsAt, not the start. Every other notes letter in this
+       * platform is timed to a start; this one is not, because it opens "Shadow
+       * Days completed for ..." and asks her to accept or deny, and neither is
+       * answerable while the child is still there.
+       *
+       * The same one-day cutoff as the tour and the interest meeting. A shadow
+       * day that ended more than a day ago is reported rather than written up.
+       */
+      const shadowNotesTooLate =
+        shadowEndsAt.getTime() < now.getTime() - NOTES_LETTER_CUTOFF_HOURS * 3_600_000;
+
+      if (shadowNotesTooLate) {
+        postCallSkipped.push(
+          `${leadId} - no shadow day notes letter: ` +
+            `${appointmentTextForFamily(shadowEndsAt.toISOString())} is more than a day past.`
+        );
+        continue;
+      }
+
+      const shadowToken = await mintPostCallToken(supabase, leadId);
+      if (!shadowToken) {
+        errors.push(`Could not mint a notes token for the shadow day of ${leadId}.`);
+        continue;
+      }
+
+      const shadowProblem = await queueLetter(supabase, {
+        leadId,
+        schoolId: shadowLead?.school_id ?? null,
+        triggerEvent: SHADOW_DAY_NOTES_EVENT,
+        sendAt: shadowEndsAt,
+        mergeOverrides: {
+          postCallToken: shadowToken,
+          /* Rendered for a reader, not an ISO string. The letter does not use
+             it today, but every other notes letter passes it and a queue row
+             that carries less than its siblings is a thing somebody debugs
+             later for no reason. */
+          interviewDatetime: appointmentTextForFamily(booking.startsAt),
+          /* Null even at Virtual. Virtual's shadow day is online, but it is
+             the FAMILY's own booking link that carries the room - Google
+             creates no conference for this scan to read. */
+          meetingLink: null,
+        },
+      });
+      if (shadowProblem) postCallSkipped.push(shadowProblem);
       continue;
     }
 
@@ -1255,6 +1435,7 @@ export async function runInterestMeetingScan(
       titlesUnrecognised,
       postCallSkipped,
       toursRecorded,
+      shadowDaysRecorded,
       leadsConsidered: leads.length,
       letters: [],
       errors,
@@ -1384,6 +1565,7 @@ export async function runInterestMeetingScan(
     titlesUnrecognised,
     postCallSkipped,
     toursRecorded,
+    shadowDaysRecorded,
     leadsConsidered: leads.length,
     letters,
     errors,

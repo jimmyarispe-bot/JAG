@@ -141,7 +141,7 @@ export type MeetingFork = "tour" | "shadow_day";
  * Tour Scheduled got here from the tour's letter; anyone else got here from
  * the interest meeting's.
  */
-export type PostCallOccasion = "interest_meeting" | "tour";
+export type PostCallOccasion = "interest_meeting" | "tour" | "shadow_day";
 
 /**
  * TOUR COMPLETED COUNTS AS THE TOUR, AND THAT IS THE RETRY PATH.
@@ -166,6 +166,20 @@ export type PostCallOccasion = "interest_meeting" | "tour";
  * succeeded or not.
  */
 export function occasionForStage(stage: string | null | undefined): PostCallOccasion {
+  /*
+   * THE SHADOW DAY, ADDED 14 OCTOBER 2026, AND BOTH ITS STAGES FOR THE SAME
+   * REASON THE TOUR HAS BOTH.
+   *
+   * shadow_day_scheduled is where the booking scan leaves a child. Pressing
+   * Accept marks the days held and moves the child to shadow_day_completed
+   * BEFORE the decision is attempted, so a refused decision - a packet that
+   * will not build, a letter that will not go - must still render the shadow
+   * day's page on reload rather than the interest meeting's. That exact
+   * failure happened to the tour on 13 October and cost an evening.
+   */
+  if (stage === "shadow_day_scheduled" || stage === "shadow_day_completed") {
+    return "shadow_day";
+  }
   return stage === "tour_scheduled" || stage === "tour_completed"
     ? "tour"
     : "interest_meeting";
@@ -348,6 +362,46 @@ export const POST_CALL_ACTIONS = [
       "marked held and the child moves to Tour Completed.",
   },
   {
+    /*
+     * THE SHADOW DAY'S TWO ANSWERS. Jimmy, 14 October 2026, answering the
+     * mockup's question about whether these should be single words or
+     * sentences: "let's make the buttons this - accept-send email, deny-send
+     * email". His words, used literally - the hyphen included.
+     *
+     * Both run the SAME decision the accept_or_deny gate runs, through
+     * applyAdmissionsDecision. Two doors onto one decision must not do two
+     * different things.
+     */
+    value: "shadow_day_accepted",
+    label: "Accept - send email",
+    fork: null,
+    occasion: "shadow_day" as PostCallOccasion,
+    consequence:
+      "The family is emailed the acceptance and the enrollment packet is " +
+      "built. The shadow day is marked held and the child moves to Accepted.",
+  },
+  {
+    value: "shadow_day_denied",
+    label: "Deny - send email",
+    fork: null,
+    occasion: "shadow_day" as PostCallOccasion,
+    /*
+     * IT SAYS WHAT IT ACTUALLY DOES, WHICH TODAY IS NOT WHAT THE LABEL
+     * PROMISES. There is one approved decline letter in the JAG -
+     * application_declined_email - and it is keyed to shadow_days_not_invited,
+     * a different decision at a different step. Firing it from here would tell
+     * the record a family was refused shadow days they had just attended.
+     *
+     * So the decision is recorded, the lead is declined, and the family is
+     * sent nothing until Jimmy says which words a denial after a shadow day
+     * should carry. Inventing them is the one thing this build does not do.
+     */
+    consequence:
+      "The decision is recorded and the shadow day is marked held. The child " +
+      "moves to Declined. Nothing is emailed to the family yet - the decline " +
+      "letter after a shadow day is not written.",
+  },
+  {
     value: "tour_requested",
     label: "Send the tour request",
     fork: "tour" as MeetingFork,
@@ -421,8 +475,21 @@ export function actionsForPage(
   fork: MeetingFork,
   occasion: PostCallOccasion
 ): readonly { value: PostCallAction; label: string; consequence: string }[] {
-  return POST_CALL_ACTIONS.filter(
-    (a) => (a.occasion === null || a.occasion === occasion) && (a.fork === null || a.fork === fork)
+  return POST_CALL_ACTIONS.filter((a) =>
+    /*
+     * THE SHADOW DAY TAKES ONLY ITS OWN TWO BUTTONS, and the two shared ones
+     * are deliberately excluded rather than rewritten.
+     *
+     * Jimmy gave two: "accept-send email, deny-send email". "Not the right
+     * school" is the same answer as Deny by another name, and "Not yet, I will
+     * follow up" would move a child to interest_meeting_held - backwards past
+     * an application and a shadow day. Both read occasion === null, meaning
+     * every occasion, which was true while there were only two.
+     */
+    occasion === "shadow_day"
+      ? a.occasion === "shadow_day"
+      : (a.occasion === null || a.occasion === occasion) &&
+        (a.fork === null || a.fork === fork)
   )
     .map((a) => {
       const override = occasion === "tour" && "tour" in a ? a.tour : null;
@@ -453,10 +520,22 @@ const TOUR_BUTTON_ORDER: readonly PostCallAction[] = [
   "post_call_not_the_right_school",
 ];
 
+/* Accept above Deny, the order the approved mockup reads top to bottom. */
+const SHADOW_DAY_BUTTON_ORDER: readonly PostCallAction[] = [
+  "shadow_day_accepted",
+  "shadow_day_denied",
+];
+
 function orderFor(occasion: PostCallOccasion, value: PostCallAction): number {
-  if (occasion !== "tour") return 0;
-  const at = TOUR_BUTTON_ORDER.indexOf(value);
-  return at === -1 ? TOUR_BUTTON_ORDER.length : at;
+  const order =
+    occasion === "tour"
+      ? TOUR_BUTTON_ORDER
+      : occasion === "shadow_day"
+        ? SHADOW_DAY_BUTTON_ORDER
+        : null;
+  if (!order) return 0;
+  const at = order.indexOf(value);
+  return at === -1 ? order.length : at;
 }
 
 export async function recordPostCallDecision(params: {
@@ -525,9 +604,11 @@ export async function recordPostCallDecision(params: {
   if (chosen?.occasion && chosen.occasion !== occasion) {
     return {
       error:
-        occasion === "tour"
-          ? "That page is out of date - this child is at the tour step now. Reload and choose again."
-          : "That page is out of date - this child is not at the tour step. Reload and choose again.",
+        occasion === "shadow_day"
+          ? "That page is out of date - this child is at the shadow day step now. Reload and choose again."
+          : occasion === "tour"
+            ? "That page is out of date - this child is at the tour step now. Reload and choose again."
+            : "That page is out of date - this child is not at the tour step. Reload and choose again.",
     };
   }
 
@@ -615,6 +696,54 @@ export async function recordPostCallDecision(params: {
       .eq("id", tourId);
     if (updateError) {
       console.error("[post-call] could not mark the tour held:", updateError.message);
+    }
+  }
+
+  /**
+   * THE SHADOW DAYS ARE MARKED HELD, SEPARATELY FROM THE CHILD'S STAGE.
+   *
+   * markTourHeld's twin, for markTourHeld's reason: a lead has ONE stage, so a
+   * denial writes `declined` and cannot also write `shadow_day_completed`. The
+   * days still happened. Losing that is how twenty-eight families came to sit
+   * in Tour Scheduled with no tour behind them, and the eight children at
+   * Shadow Day Scheduled this morning have nothing behind them either.
+   *
+   * The row in admissions_shadow_days carries the fact; the lead stage carries
+   * the judgement. Both buttons mark the row held.
+   *
+   * The NEWEST scheduled row, not all of them - a family who rebooked has two
+   * and only one is the appointment she has just walked out of. Read then
+   * written, because PostgREST cannot order an update.
+   *
+   * IT FAILS SOFT, like its twin. A row still reading scheduled is a reporting
+   * problem; a decision that did not happen because of one is a family waiting.
+   */
+  async function markShadowDayHeld(): Promise<void> {
+    const { data, error } = await db
+      .from("admissions_shadow_days")
+      .select("id")
+      .eq("lead_id", leadId)
+      .eq("shadow_day_status", "scheduled")
+      .order("scheduled_at", { ascending: false })
+      .limit(1);
+    if (error || !(data ?? []).length) {
+      if (error) {
+        console.error("[post-call] could not read the shadow day row:", error.message);
+      }
+      return;
+    }
+    const shadowDayId = String(((data ?? [])[0] as Row).id ?? "");
+    if (!shadowDayId) return;
+    const { error: updateError } = await db
+      .from("admissions_shadow_days")
+      .update({
+        shadow_day_status: "completed",
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", shadowDayId);
+    if (updateError) {
+      console.error("[post-call] could not mark the shadow day held:", updateError.message);
     }
   }
 
@@ -815,6 +944,130 @@ export async function recordPostCallDecision(params: {
         error:
           "Your notes were saved and the tour is marked held, but the " +
           "application did not go out. Send it from the family's case page in JAG.",
+      };
+    }
+
+    return { ok: true, action: params.action };
+  }
+
+  /*
+   * ---- The shadow day's answer: accept, or deny. --------------------------
+   *
+   * THE LAST GATE, ANSWERED FROM A LETTER.
+   *
+   * Jimmy, the night of 13 October, having booked shadow days for 1:30am:
+   * "i didn't receive any followup email with decision to accept or send
+   * denial letter." Nothing recorded the booking, so nothing wrote
+   * shadow_day_completed, so accept_or_deny - which opens behind that stage -
+   * had never opened once in the life of this platform.
+   *
+   * Migration 550 gave the booking a home, 552 gave the appointment a letter,
+   * and this is the button in it.
+   *
+   * ── THE ORDER, AND WHY IT IS THIS ORDER ─────────────────────────────────
+   *
+   * Notes (already written, above) -> the days marked held -> the stage ->
+   * the decision. The same order the tour uses, for the same reason: an email
+   * cannot be un-sent, and everything before the decision is recoverable by
+   * pressing the button again. applyAdmissionsDecision is what the gate's own
+   * branches run, so an acceptance from this letter and an acceptance from the
+   * decisions board are the same event - same decision row, same acceptance
+   * letter, same enrollment packet, same audit.
+   *
+   * ── WHY THE STAGE MOVES TO shadow_day_completed FIRST ────────────────────
+   *
+   * applyAdmissionsDecision moves it again, to accepted or declined, through
+   * transitionCaseStage. Writing shadow_day_completed first is not redundant:
+   * it is the fact the gate's question is built on, it is what twelve readers
+   * in this codebase look for, and if the decision then fails it is what makes
+   * this page render the shadow day again on reload instead of the interest
+   * meeting - the exact failure the tour hit on 13 October.
+   *
+   * ── IT DOES NOT OPEN THE GATE ───────────────────────────────────────────
+   *
+   * moveTo writes lead_stage directly rather than through transitionCaseStage,
+   * so accept_or_deny does not open and decision_gate_staff_email does not
+   * chase her for a decision she has just made here. Exactly as the tour's
+   * button and both interest-meeting forks already behave.
+   */
+  if (
+    params.action === "shadow_day_accepted" ||
+    params.action === "shadow_day_denied"
+  ) {
+    const accepting = params.action === "shadow_day_accepted";
+
+    await markShadowDayHeld();
+
+    const shadowStageProblem = await moveTo("shadow_day_completed");
+    if (shadowStageProblem) {
+      console.error("[post-call] could not complete the shadow day:", shadowStageProblem);
+      return {
+        error:
+          "Your notes were saved, but the child did not move and no decision " +
+          "was recorded. Try again, or record the decision in JAG.",
+      };
+    }
+
+    /*
+     * THE SAME GUARD AS THE OTHER BUTTONS, against the same table. An
+     * acceptance sent twice is a second welcome letter and a second enrollment
+     * packet, which is worse than a second tour invitation - and six
+     * submissions against one family in five seconds is a thing that has
+     * already happened here once.
+     *
+     * Only the acceptance is guarded, because only the acceptance sends. The
+     * denial's duplicate protection is the stage check: a child already
+     * declined is no longer at shadow_day_completed, so the page will not
+     * offer this button again.
+     */
+    if (
+      accepting &&
+      (await alreadySentSinceThisStep("student_accepted", "shadow_day_completed"))
+    ) {
+      console.log("[post-call] acceptance already sent this step, not repeating:", leadId);
+      return { ok: true, action: params.action };
+    }
+
+    /*
+     * THE APPLICATION COMES WITH THE ANSWER - the same read the gate makes,
+     * and for the reason written there: submitAdmissionsDecision only builds
+     * the enrollment packet when it is handed an application id, and a path
+     * that never passed one accepted students while telling them to go and
+     * complete a packet that did not exist. Newest first; a family who started
+     * twice means the later attempt.
+     */
+    const { data: applicationRow } = await db
+      .from("admissions_applications")
+      .select("id")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const applicationId =
+      String(((applicationRow ?? [])[0] as Row | undefined)?.id ?? "") || null;
+
+    const { applyAdmissionsDecision } = await import(
+      "@/lib/admissions/decisions-core"
+    );
+
+    const outcome = await applyAdmissionsDecision(
+      createServiceRoleClient() as never,
+      {
+        leadId,
+        applicationId,
+        decisionType: accepting ? "accept" : "deny",
+        customNotes: params.notes?.trim() || "",
+        sendEmail: true,
+        /* Nobody is signed in. A letter is not a session. */
+        actorUserId: null,
+      }
+    );
+
+    if (outcome && "error" in outcome && outcome.error) {
+      console.error("[post-call] the decision failed:", outcome.error);
+      return {
+        error:
+          `Your notes were saved and the shadow day is marked held, but the ` +
+          `decision did not complete: ${outcome.error} Record it in JAG.`,
       };
     }
 

@@ -94,6 +94,52 @@ export default async function PostCallPage({
     );
   }
 
+  if (done === "shadow_day_accepted") {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-16">
+        <h1 className="text-2xl font-semibold text-slate-900">
+          {subject.studentName} is accepted.
+        </h1>
+        <p className="mt-4 text-slate-700">
+          {subject.guardianName ?? "The family"} has been emailed the decision,
+          and the enrollment packet has been built for them to sign.
+        </p>
+        <p className="mt-4 text-slate-700">
+          The shadow day is marked held and your notes are on{" "}
+          {subject.studentName}&rsquo;s record. The business department picks
+          this up from here.
+        </p>
+        <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
+      </main>
+    );
+  }
+
+  if (done === "shadow_day_denied") {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-16">
+        <h1 className="text-2xl font-semibold text-slate-900">
+          Recorded. {subject.studentName} is marked declined.
+        </h1>
+        <p className="mt-4 text-slate-700">
+          The shadow day is marked held and your notes are on{" "}
+          {subject.studentName}&rsquo;s record.
+        </p>
+        {/*
+          IT SAYS WHAT DID NOT HAPPEN. There is no approved decline letter for
+          a denial after a shadow day, so nothing went to the family - and a
+          page that said "the family has been told" would be the kind of lie
+          this build exists to stop. See migration 553.
+        */}
+        <p className="mt-4 text-slate-700">
+          Nothing has been emailed to the family. The letter for a decision at
+          this step is not written yet, so if they should hear something today,
+          it has to come from you.
+        </p>
+        <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
+      </main>
+    );
+  }
+
   if (done === "shadow_days_invited") {
     return (
       <main className="mx-auto max-w-xl px-6 py-16">
@@ -175,6 +221,118 @@ export default async function PostCallPage({
    * interest-meeting page below keeps radios and SaveButton, which is what is
    * approved and in use there.
    */
+  /*
+   * ───────────────────── AFTER A SHADOW DAY ─────────────────────
+   *
+   * THE PAGE CARRIES THE LETTER'S WORDS - migration 552's body, which Jimmy
+   * corrected twice on 14 October. Every line below is from that letter or
+   * from the mockup he approved:
+   *
+   *   the four facts, stacked bare, in the letter's order
+   *   "RECORD YOUR NOTES"
+   *   "Document important information revealed in your time with them."
+   *   "Accept <name>?"
+   *   his two buttons: "Accept - send email", "Deny - send email"
+   *
+   * It is the tour page's shape on purpose. A school leader who has used one
+   * has used both, and the only difference is the question at the bottom.
+   *
+   * THIS IS THE LAST GATE, and the first time anything in the JAG has ever
+   * been able to answer it: accept_or_deny opens behind shadow_day_completed,
+   * a stage nothing had ever written until this shipped.
+   */
+  if (subject.occasion === "shadow_day") {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-10">
+        <p className="text-sm uppercase tracking-wide text-slate-500">
+          {subject.schoolName ?? "The Academy"}
+        </p>
+
+        <div className="mt-5 text-lg font-semibold leading-relaxed text-slate-900">
+          <div>{subject.studentName}</div>
+          {subject.studentGrade ? <div>{subject.studentGrade}</div> : null}
+          {subject.studentAge !== null ? (
+            <div>{subject.studentAge} yrs old</div>
+          ) : null}
+          {subject.guardianPhone ? (
+            <div>
+              <a
+                href={dial ?? undefined}
+                className="underline decoration-slate-300 underline-offset-4"
+              >
+                {subject.guardianPhone}
+              </a>
+            </div>
+          ) : null}
+        </div>
+
+        {problem ? (
+          <p className="mt-6 rounded-md bg-red-50 p-4 text-sm text-red-800">
+            {problem === "choose"
+              ? "Choose what should happen next before saving."
+              : why?.trim()
+                ? why
+                : "That did not save. Tell Jimmy before you forget what you decided."}
+          </p>
+        ) : null}
+
+        <form action={recordPostCallAction} className="mt-8">
+          <input type="hidden" name="token" value={token} />
+
+          <label className="block">
+            <span className="block text-sm font-bold uppercase tracking-wide text-slate-900">
+              Record your notes
+            </span>
+            <span className="mt-1 block text-sm text-slate-600">
+              Document important information revealed in your time with them.
+            </span>
+            <textarea
+              name="notes"
+              rows={6}
+              className="mt-3 w-full rounded-md border border-slate-300 p-3"
+            />
+          </label>
+
+          <div className="mt-8 border-t border-slate-200 pt-6">
+            {/* The child's first name, not the guardian's - the same mistake
+                the tour page made on its first live test. */}
+            <p className="text-base text-slate-800">
+              Accept {subject.studentFirstName}?
+            </p>
+            {/*
+              THE CONSEQUENCE IS PRINTED, NOT HIDDEN IN A title=. These two do
+              more than any other button on any of these pages - one of them
+              emails an acceptance and builds an enrollment packet - and a
+              leader pressing it on her phone at the school gate is entitled to
+              read what it will do without hovering, which a phone cannot do.
+            */}
+            <div className="mt-4 space-y-3">
+              {options.map((option) => (
+                <div key={option.value}>
+                  <button
+                    type="submit"
+                    name="action"
+                    value={option.value}
+                    className={
+                      option.value === "shadow_day_accepted"
+                        ? "w-full rounded-lg bg-violet-600 px-4 py-3.5 font-semibold text-white"
+                        : "w-full rounded-lg border border-red-200 bg-white px-4 py-3.5 font-semibold text-red-700"
+                    }
+                  >
+                    {option.label}
+                  </button>
+                  <p className="mt-1.5 px-1 text-xs text-slate-600">
+                    {option.consequence}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </form>
+      </main>
+    );
+  }
+
   if (subject.occasion === "tour") {
     return (
       <main className="mx-auto max-w-xl px-6 py-10">

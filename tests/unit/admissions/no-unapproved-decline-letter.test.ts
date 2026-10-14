@@ -72,7 +72,21 @@ describe("there is no decline letter in code", () => {
 });
 
 describe("a letter that does not exist is never recorded as sent", () => {
-  const code = read("src/lib/admissions/decisions.ts")
+  /*
+   * THE FILE MOVED ON 14 OCTOBER 2026 AND THIS TEST MOVED WITH IT.
+   *
+   * submitAdmissionsDecision's body is now applyAdmissionsDecision in
+   * decisions-core.ts, word for word, so that the shadow day's notes letter -
+   * a page with no signed-in session - can run the same decision the gate
+   * runs. decisions.ts keeps the permission check and the FormData.
+   *
+   * These five assertions read source text, so a move silently empties them.
+   * They did not go quiet: reading decisions.ts for "hasApprovedLetter" after
+   * the move FAILED, loudly, which is why they are repointed here rather than
+   * found hollow in a month. The delegation test below is what stops the same
+   * thing happening the next time somebody moves it.
+   */
+  const code = read("src/lib/admissions/decisions-core.ts")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "");
 
@@ -101,6 +115,39 @@ describe("a letter that does not exist is never recorded as sent", () => {
   it("still records the decision and moves the stage", () => {
     expect(code).toContain("admissions_decisions");
     expect(code).toContain("transitionCaseStage");
+  });
+
+  /**
+   * THE DOOR STILL LEADS TO THE SAME ROOM.
+   *
+   * Everything above checks the core. This checks that the thing the
+   * decisions board actually calls still runs it, and does not grow a second
+   * copy of an acceptance with its own ideas about letters. If someone
+   * reinstates the body in decisions.ts, the assertions above start reading a
+   * file nobody calls - and this one is what notices.
+   */
+  it("is what the signed-in action and the gate both run", () => {
+    const action = read("src/lib/admissions/decisions.ts");
+    expect(action).toContain("applyAdmissionsDecision");
+    expect(action).toContain("assertAnyPermission");
+    /* The work is delegated, not duplicated: the action keeps no decision
+       logic of its own. */
+    expect(action).not.toContain("admissions_decisions");
+    expect(action).not.toContain("hasApprovedLetter");
+  });
+
+  /**
+   * AND THE BUTTON IN THE LETTER RUNS IT TOO.
+   *
+   * Jimmy, 14 October: "let's make the buttons this - accept-send email,
+   * deny-send email". Two doors onto one decision must not do two different
+   * things, so the shadow day page delegates here rather than sending its own
+   * acceptance - which would be a second place a letter is decided.
+   */
+  it("is also what the shadow day's Accept button runs", () => {
+    const page = read("src/lib/admissions/automation/post-call.ts");
+    expect(page).toContain("applyAdmissionsDecision");
+    expect(page).not.toContain("buildAdmissionsDecisionEmail");
   });
 });
 

@@ -42,6 +42,12 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   // had one since 5 October; the tour never did, and nothing in the JAG
   // moved a child from Tour Scheduled to Tour Completed as a result.
   "staff_tour_held",
+  // The shadow day's notes letter, 14 October 2026. Unlike every other
+  // notes letter in this platform it is due at the END of the appointment:
+  // "receipt/delivery of the shadow day letter doesn't need to fire until
+  // the end of the calendar appt time/day. not the beginning like with the
+  // others".
+  "staff_shadow_day_held",
   "application_invited",
   "application_not_invited",
   "shadow_days_invited",
@@ -381,6 +387,7 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   inquiry_submitted: "Inquiry Submitted",
   decision_gate_opened: "Decision Waiting (staff)",
   staff_tour_held: "Tour Happening Now (staff)",
+  staff_shadow_day_held: "Shadow Day Completed (staff)",
   application_invited: "Invited to Apply",
   application_not_invited: "Inquiry Closed With Thanks",
   shadow_days_invited: "Invited to Shadow Days",

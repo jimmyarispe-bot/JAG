@@ -36,6 +36,7 @@
  */
 
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import { isTestCampus } from "@/lib/admissions/test-campus";
 import { carryForwardInquiryAnswers } from "@/lib/admissions/interest-form/carry-forward";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -179,6 +180,29 @@ export async function ensureApplicationForInvitedLead(
        * and naming it here would be a second place the $100 is written down.
        */
       application_status: "in_progress",
+      /*
+       * FREE AT THE TEST CAMPUS, $100 EVERYWHERE ELSE.
+       *
+       * 13 October 2026. Jimmy: "i can't submit application cuz it's not
+       * connected to square as a dummy school. can you do something to get it
+       * through so we can see if the shadow days and acceptance works?"
+       *
+       * The test campus has no square_location_id - 538 left it null on
+       * purpose, because a test campus must never be able to take a real
+       * payment. So the fee gate stopped every test application before it
+       * could be submitted, and everything past submission - shadow days,
+       * the decision, acceptance - could not be reached at all.
+       *
+       * This is not a faked payment. applicationFeeGate's own first rule is
+       * "a campus that charges nothing has nothing to collect", and a campus
+       * with no Square account charges nothing. Zero is the true answer here,
+       * and it is the one the gate already understands.
+       *
+       * THE REAL CAMPUSES ARE UNTOUCHED: undefined leaves migration 291's
+       * default of 10000 in place, which is why the $100 is still written
+       * down in exactly one place.
+       */
+      ...(isTestCampus(schoolId) ? { application_fee_cents: 0 } : {}),
     })
     .select("id")
     .single();
