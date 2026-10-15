@@ -80,7 +80,25 @@ export const BUTTON_LABELS: Readonly<Record<string, string>> = {
   // He was told that before this line was changed. A per-letter override would
   // be a different design; this is one word on one button in three places.
   application_link: "Complete the application",
-  application_call_link: "Record this conversation",
+  /*
+   * ONE WORDING FOR RECORDING NOTES, AT JIMMY'S INSTRUCTION OF 15 OCTOBER
+   * 2026, reading the letter mockups: "change record this call here to record
+   * your notes", then "and here. and where ever else this appears."
+   *
+   * Three buttons asked a leader to write down what happened and each asked
+   * differently - "Record this conversation" on the application call, "Record
+   * this call" on the three-attempts letter, "Record your notes" on the
+   * post-call page. One job, one label.
+   *
+   * THIS MAP IS KEYED BY MERGE FIELD, so every letter carrying
+   * {{application_call_link}} or {{call_link}} changes together. Read back
+   * from the templates table before this line was changed, those are exactly
+   * two letters and both go to a school leader, never to a family:
+   *
+   *   {{application_call_link}}  staff_application_call_parent        5 rows
+   *   {{call_link}}              staff_interest_meeting_no_response   6 rows
+   */
+  application_call_link: "Record your notes",
   post_call_link: "Record your notes",
   meeting_link: "Join the meeting",
   upload_link: "Upload your documents",
@@ -89,7 +107,7 @@ export const BUTTON_LABELS: Readonly<Record<string, string>> = {
   handbook_link: "Open the handbook",
   lead_link: "Open this child's record",
   decisions_link: "Open the decision",
-  call_link: "Record this call",
+  call_link: "Record your notes",
   interest_link_action: "Send the link",
 };
 
