@@ -69,9 +69,22 @@ function isLinkField(key: string): boolean {
  * plain rather than clever.
  */
 export const BUTTON_LABELS: Readonly<Record<string, string>> = {
-  scheduling_link: "Choose your time",
-  tour_link: "Choose your tour time",
-  shadow_days_link: "Choose your shadow days",
+  /*
+   * "SCHEDULE", NOT "CHOOSE", ACROSS ALL FOUR BOOKING BUTTONS. Jimmy,
+   * 15 October: "not choose - schedule your shadow days, choose your tour
+   * time to - schedule your tour, choose your time to - schedule your time,
+   * send the link to - send schedule interest meeting/conversation link".
+   *
+   * HE GAVE scheduling_link TWO LABELS AND I HAD TO PICK ONE. On the Word
+   * mockup he wrote SCHEDULE YOUR INTEREST MEETING directly on this button;
+   * in the list above he wrote "schedule your time". The first is written in
+   * place on the button itself, it says what the parent is booking, and it
+   * matches the other three. One merge field, three letters, 17 rows - it
+   * cannot be both. Changing it back is this one line.
+   */
+  scheduling_link: "Schedule your interest meeting",
+  tour_link: "Schedule your tour",
+  shadow_days_link: "Schedule your shadow days",
   // "Complete the application", not "Open the application", at Jimmy's
   // instruction of 13 October 2026, reviewing application_invite_email and
   // parent_reminder_application_not_started. THIS MAP IS KEYED BY MERGE FIELD,
@@ -108,7 +121,9 @@ export const BUTTON_LABELS: Readonly<Record<string, string>> = {
   lead_link: "Open this child's record",
   decisions_link: "Open the decision",
   call_link: "Record your notes",
-  interest_link_action: "Send the link",
+  /* His exact wording, kept rather than shortened - 49 characters, and it
+     wraps to three lines in a purple block on a phone. He was told that. */
+  interest_link_action: "Send schedule interest meeting/conversation link",
 };
 
 const FALLBACK_LABEL = "Open this link";

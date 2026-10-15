@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderLetterHtml } from "@/lib/admissions/communications/letter-html";
+import { BUTTON_LABELS, renderLetterHtml } from "@/lib/admissions/communications/letter-html";
 import type { MergeContext } from "@/lib/admissions/communications/merge-fields";
 
 /**
@@ -145,7 +145,18 @@ describe("the eighty-four plain text letters still work the way they did", () =>
       schoolName: "XXXXXXXX Test Campus",
     });
     expect(html).toContain("background:#7c3aed");
-    expect(html).toContain("Choose your time");
+    /*
+     * THE LABEL COMES FROM THE MAP, NOT FROM A COPY OF IT HERE.
+     *
+     * This read "Choose your time" and failed the ship on 15 October 2026
+     * when Jimmy renamed all four booking buttons - "not choose - schedule
+     * your shadow days...". The test exists to prove a link on its own line
+     * becomes a BUTTON; the wording on it is the renderer's business and
+     * his to change. Pinning the words here made a label rename look like a
+     * regression, and a guard that fails a ship on its own weight teaches
+     * people to delete guards.
+     */
+    expect(html).toContain(BUTTON_LABELS.scheduling_link);
   });
 
   it("does not double-escape an ampersand in a link", () => {
