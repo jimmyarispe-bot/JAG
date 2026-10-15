@@ -1,117 +1,53 @@
-skip next stage
+the button reaches her inbox
 
-Jimmy, 15 October 2026:
+A test file, and one finding that is not about the skip button.
 
-  "beginning with the inquiry email and each time a school leader receives an
-   email there always needs to be a button that says 'skip next stage' - this
-   is in addition to whatever button/decision is already there."
+── WHY THE SENT ROW PROVES NOTHING ─────────────────────────────────────────
 
-and, asked what he was actually trying to achieve:
+Skip next stage was pressed twice against a real child this evening and both
+presses did exactly what they should. Reading the sent letter back out of
+admissions_communications afterwards showed the URL and NO LABEL, which looks
+like a fault and is not one: the row keeps the TEXT body with merge fields
+resolved - a bare link. The label is applied by renderLetterHtml when the HTML
+is built, so the only way to answer "does the button say the right thing" is
+to render it. That is what this file does, against both bodies exactly as
+migration 557 left them.
 
-  "a parent has complete the inquiry form, and then goes through the other
-   stages but the school leader doesn't do the shadow days and just move to
-   acceptance. this is just an example but can happen at any stage except the
-   inquiry"
+Four tests: the skip button renders on the decision gate letter, its own href
+is the real token and not the case-page fallback, it is a button and not a
+bare underlined link, and on the inquiry notice it is ADDED - "this is in
+addition to whatever button/decision is already there" - with the existing
+button untouched.
 
-── NO NEW LETTER ───────────────────────────────────────────────────────────
+── THE FINDING, AND IT IS FROM THIS MORNING'S SHIP ─────────────────────────
 
-Not one, and for an hour I was sure there had to be three. occasionForStage()
-in automation/post-call.ts already decides which buttons a school leader is
-shown FROM THE CHILD'S STAGE, and all three "Record your notes" letters point
-at that one page with that one token. So the leader's question is a function
-of where the child is:
+Jimmy asked on 15 October for "send the link to - send schedule interest
+meeting/conversation link". BUTTON_LABELS.interest_link_action was shipped
+saying exactly that, in 3c908c8e. IT DOES NOT REACH HIM.
 
-  New Inquiry .. Interest Meeting Held   Send the tour request      (GA, FL)
-                                         Send the shadow day invite (HS, V)
-  Tour Scheduled / Completed             Send the application
-  Shadow Days Scheduled / Completed      Accept - send email
-                                         Deny - send email
+inquiry_staff_alert wraps the merge field in its own anchor:
 
-Moving a child one rung up that ladder and re-sending the letter for the rung
-she lands on is the whole feature. Every letter it needs is written, approved
-and live, and between them they have sent 93 times.
+    <p><a href="{{interest_link_action}}">Send them the interest meeting link</a></p>
 
-── THE LADDER READS THE STEP NUMBER, NOT THE OCCASION ──────────────────────
+and letter-html deliberately keeps an author's anchor text - "a link somebody
+wrote an anchor around is a decision". So the button in that letter still
+reads the old words, and three of the four labels he asked for landed while
+the fourth did not.
 
-occasionForStage('application_submitted') returns 'interest_meeting' - it
-names only the tour and shadow-day stages and everything else falls through.
-An occasion-driven skip would have taken a child who has toured AND applied
-and landed her back at the tour, which is Jimmy's own example arriving at the
-wrong end of the flow. So skipTargetForStage reads LEAD_STAGES.step, which is
-written down rather than computed and whose own comment says it is written
-down for this kind of reason.
+It is recorded here as a PASSING test of what is true, not a failing test of
+what should be. Fixing it means editing an approved letter body, which is his
+call and not something to slip in beside another feature. When he says the
+word, one migration changes the anchor text and this expectation inverts.
 
-  child at steps 1-2    skips the Interest Meeting  -> Interest Meeting Held
-  steps 3-4, GA and FL  skips the Tour              -> Tour Completed
-  steps 3-4, HS and V   skips the Shadow Days       -> Shadow Days Completed
-  steps 5-7             skips the Application       -> Application Submitted
-  steps 8-9             skips the Shadow Days       -> Shadow Days Completed
-  steps 10-13           nothing. "no skip button here"
+── A WRONG ASSERTION, CAUGHT BY RUNNING IT ─────────────────────────────────
 
-A first version landed on the START of the stage after the skipped one, which
-quietly skipped TWO stages a press: from New Inquiry it reached Tour Completed
-and offered "Send the application" to a family who had seen nothing. Landing
-on the COMPLETION of the stage being skipped is what makes one press one
-stage. Both faults are in the test by name, because neither shows up as a
-failure - only as a school leader being asked the wrong thing.
-
-── THE CARD SAYS THE STAGE WAS SKIPPED ─────────────────────────────────────
-
-admissions_lead_stage_history already records every move and who made it, so
-the jump was always auditable. Offered that alone, Jimmy chose otherwise:
-"The card says the stage was skipped".
-
-He is right. The stage the Accept/Deny page reads is shadow_day_completed,
-which the board labels "Shadow Days Completed" - so a child whose shadow days
-were skipped would carry a card claiming days nobody attended, read by people
-who were not in the room. 557 adds skipped_stages and both the list and the
-record now say so beside the badge rather than instead of it, because the
-stage is still where the child is and every gate and filter still reads it.
-
-── NOTHING REACHES THE FAMILY ──────────────────────────────────────────────
-
-Asked what a press should send a parent, Jimmy chose: nothing yet, and the
-leader gets the next letter with its own skip button on it. Every letter this
-queues is a staff letter. No family hears anything until she presses the
-button that was always there.
-
-── A PAGE, NOT ONE CLICK ───────────────────────────────────────────────────
-
-Outlook and Gmail fire requests at the buttons in an email to check them for
-safety. A one-click skip is a child moved by software nobody pressed, so
-/skip-stage/<token> names the child and the stage and waits, exactly as
-/post-call, /call, /application-call and /send-interest-link all do.
-
-It reads the LIVE stage, which is what makes an old email safe to press: a
-leader opening a three-week-old inquiry notice is shown where the child is
-today. Konnor Broyld's tour was read off a calendar three weeks after the
-fact on 13 October. Letters outlive the state they describe.
-
-── THE LETTER IS SENT, NOT JUST QUEUED ─────────────────────────────────────
-
-Queueing is not sending. Nothing leaves admissions_communication_queue until
-processCommunicationQueue runs, and the only things that run it on a schedule
-are the queue crons, which exist to cover 7am and 8am Eastern rather than to
-answer a button somebody is standing in front of. A letter that arrives at the
-next cron is not "should then receive the next email", so the queue is drained
-on the press with the same service-role client
-/api/admissions/process-communications already uses on its cron path.
-
-── WHAT WAS RUN ────────────────────────────────────────────────────────────
-
-Migration 557 applied and read back from the database: five letters carry
-{{skip_stage_link}}, the two Jimmy kept it off do not, 358 leads each hold a
-distinct token and all 358 match ^[0-9a-f]{64}$ - the shape TOKEN_PATTERN
-insists on before it touches the database.
-
-Every token in every live template audited against MERGE_FIELDS: 49 tokens,
-none unregistered. That is migration 294's failure - literal braces mailed to
-a human - and the repository's own audit for it cannot run in the cloud copy,
-which holds 1 of 557 migration files.
-
-45 ladder tests, typecheck clean. A GREEN TYPECHECK IS NOT EVIDENCE OF A
-BUILD, and the press itself has not been exercised against a real child yet -
-the code is not deployed. That is the next thing, at the test campus.
+The first version asserted the letter contained no /dashboard/admissions/cases/
+URL, meaning to check the skip link had not fallen back to the case page. It
+failed, correctly: {{decisions_link}} resolves to
+/dashboard/admissions/cases/<id>?section=decisions, so that string is in a
+letter where nothing is wrong. The check now reads the skip button's OWN href.
+The sent letter showing that exact URL had already been read an hour earlier
+and the assertion was written anyway.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
