@@ -1,53 +1,57 @@
-the button reaches her inbox
+the label he asked for reaches the letter
 
-A test file, and one finding that is not about the skip button.
+Jimmy, 15 October, listing four button labels:
 
-── WHY THE SENT ROW PROVES NOTHING ─────────────────────────────────────────
+  "not choose - schedule your shadow days, choose your tour time to -
+   schedule your tour, choose your time to - schedule your time, send the
+   link to - send schedule interest meeting/conversation link"
 
-Skip next stage was pressed twice against a real child this evening and both
-presses did exactly what they should. Reading the sent letter back out of
-admissions_communications afterwards showed the URL and NO LABEL, which looks
-like a fault and is not one: the row keeps the TEXT body with merge fields
-resolved - a bare link. The label is applied by renderLetterHtml when the HTML
-is built, so the only way to answer "does the button say the right thing" is
-to render it. That is what this file does, against both bodies exactly as
-migration 557 left them.
+Three landed in 3c908c8e. The fourth did not, and only a render found it.
 
-Four tests: the skip button renders on the decision gate letter, its own href
-is the real token and not the case-page fallback, it is a button and not a
-bare underlined link, and on the inquiry notice it is ADDED - "this is in
-addition to whatever button/decision is already there" - with the existing
-button untouched.
+BUTTON_LABELS.interest_link_action was set to his words and shipped. It never
+reached him: inquiry_staff_alert wraps the merge field in its own anchor, and
+letter-html keeps an author's anchor text on purpose - "a link somebody wrote
+an anchor around is a decision", argued out on 10 October when the opposite
+rule turned a deliberately plain link into a button. The label was right in
+the code and wrong in the inbox, and ONLY THE LETTER COULD FIX THE LETTER.
 
-── THE FINDING, AND IT IS FROM THIS MORNING'S SHIP ─────────────────────────
+Migration 558 changes the anchor text. Applied and read back: the letter now
+says his words, 557's skip button survived the edit, 556's phone line survived
+it, and the subject did not move - all four checked in the migration's own
+guards, because two changes to one letter in one evening is exactly when a
+careless replace() eats the other one.
 
-Jimmy asked on 15 October for "send the link to - send schedule interest
-meeting/conversation link". BUTTON_LABELS.interest_link_action was shipped
-saying exactly that, in 3c908c8e. IT DOES NOT REACH HIM.
+DELETING THE ANCHOR TO LET THE LABEL APPLY WAS THE FIRST IDEA AND THE WRONG
+ONE. For an HTML body the buttons are made by buttonsForSoleAnchorParagraphs,
+which promotes a paragraph whose only content is an ANCHOR. A bare merge field
+is not one, so that route would have produced a naked URL where a button has
+been since September.
 
-inquiry_staff_alert wraps the merge field in its own anchor:
+The test shipped three hours ago recorded the fault as a passing expectation,
+with a note saying it would invert when Jimmy said the word. He said the word.
+It is inverted, and now asserts that the letter and BUTTON_LABELS agree.
 
-    <p><a href="{{interest_link_action}}">Send them the interest meeting link</a></p>
+── AND A CORRECTION I OWE HIM ──────────────────────────────────────────────
 
-and letter-html deliberately keeps an author's anchor text - "a link somebody
-wrote an anchor around is a decision". So the button in that letter still
-reads the old words, and three of the four labels he asked for landed while
-the fourth did not.
+I told him out-of-office was blocked because "no school leader has connected a
+Google account". That was wrong, and he said so: "they are already connected.
+i don't understand."
 
-It is recorded here as a PASSING test of what is true, not a failing test of
-what should be. Fixing it means editing an approved letter body, which is his
-call and not something to slip in beside another feature. When he says the
-word, one migration changes the anchor text and this expectation inverts.
+I had read user_google_connections - a per-user OAuth table only he has ever
+used, one row, 7 September, expired. That is not how the JAG reads calendars.
+It reads them through one shared Google Workspace account in
+integration_connections, and last night's scan read five calendars with no
+problems:
 
-── A WRONG ASSERTION, CAUGHT BY RUNNING IT ─────────────────────────────────
+  thejagcalendar@theacademyway.org
+  nina.gaddy@theacademyga.org
+  heather.brown@theacademyway.org
+  danni.treu@theacademyway.org
+  test.leader@theacademyway.org
 
-The first version asserted the letter contained no /dashboard/admissions/cases/
-URL, meaning to check the skip link had not fallen back to the case page. It
-failed, correctly: {{decisions_link}} resolves to
-/dashboard/admissions/cases/<id>?section=decisions, so that string is in a
-letter where nothing is wrong. The check now reads the skip button's OWN href.
-The sent letter showing that exact URL had already been read an hour earlier
-and the assertion was written anyway.
+I compounded it by repeating a comment in chase/calendar.ts from 2 October
+saying Danni's calendar is not shared. It is, and has been. Out-of-office is
+not blocked on anybody.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

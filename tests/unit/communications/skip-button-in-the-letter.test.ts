@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderLetterHtml } from "@/lib/admissions/communications/letter-html";
+import { BUTTON_LABELS, renderLetterHtml } from "@/lib/admissions/communications/letter-html";
 
 /**
  * WHAT A SCHOOL LEADER ACTUALLY SEES after migration 557.
@@ -15,7 +15,7 @@ import { renderLetterHtml } from "@/lib/admissions/communications/letter-html";
  * HTML is built, which is the only place the question can be answered.
  */
 
-/* Both bodies exactly as 557 left them, read back from
+/* Both bodies exactly as 557 and 558 left them, read back from
    admissions_communication_templates on 15 October, \r\n and all. */
 const DECISION_GATE =
   "{{student_name}} is waiting on your decision.\r\n\r\n" +
@@ -25,7 +25,7 @@ const DECISION_GATE =
 const INQUIRY_ALERT =
   '<p><strong>{{student_name}}</strong> — new inquiry at {{school_name}}.</p>' +
   '<p>Parent: {{parent_name}}</p>' +
-  '<p><a href="{{interest_link_action}}">Send them the interest meeting link</a></p>' +
+  '<p><a href="{{interest_link_action}}">Send schedule interest meeting/conversation link</a></p>' +
   '<p><a href="{{skip_stage_link}}">Skip next stage</a></p>';
 
 const ctx = {
@@ -70,7 +70,7 @@ describe("the skip button in the letter", () => {
     /* Jimmy: "this is in addition to whatever button/decision is already
        there." Two buttons, and the first one untouched. */
     const html = renderLetterHtml({ rawBody: INQUIRY_ALERT, subject: "New inquiry", ctx });
-    expect(html).toContain("Send them the interest meeting link");
+    expect(html).toContain("Send schedule interest meeting/conversation link");
     expect(html).toContain("Skip next stage");
     expect(html).toContain("/send-interest-link/");
     expect(html).toContain("/skip-stage/");
@@ -78,23 +78,33 @@ describe("the skip button in the letter", () => {
   });
 
   /*
-   * FOUND BY THIS FILE ON 15 OCTOBER, AND IT IS NOT ABOUT THE SKIP BUTTON.
+   * FOUND BY THIS FILE ON 15 OCTOBER, AND FIXED THE SAME EVENING.
    *
    * Jimmy asked that morning for "send the link to - send schedule interest
-   * meeting/conversation link". BUTTON_LABELS.interest_link_action was
-   * shipped saying exactly that, in 3c908c8e. IT DOES NOT REACH HIM: the
-   * letter wraps the merge field in its own anchor, and letter-html
-   * deliberately keeps an author's anchor text - "a link somebody wrote an
-   * anchor around is a decision" - so the button still reads the old words.
+   * meeting/conversation link". BUTTON_LABELS.interest_link_action was set to
+   * exactly that and shipped in 3c908c8e, AND IT NEVER REACHED HIM: this
+   * letter wraps the merge field in its own anchor, and letter-html keeps an
+   * author's anchor text on purpose - "a link somebody wrote an anchor around
+   * is a decision".
    *
-   * Written as a PASSING test of what is true rather than a failing test of
-   * what should be. Changing it means editing an approved letter body, which
-   * is Jimmy's call and not something to slip in beside another feature. When
-   * he says the word, 557's sibling migration changes the anchor text and
-   * this expectation inverts.
+   * The label was right in the code and wrong in the inbox, and only the
+   * letter could fix the letter. Migration 558 changed the anchor text. This
+   * expectation is the one that was inverted when it did, and it stays as the
+   * guard: the words a school leader reads and the words in BUTTON_LABELS now
+   * agree, and must keep agreeing.
+   *
+   * Deleting the anchor instead, to let the label apply, was the first idea
+   * and the wrong one. For an HTML body the buttons are made by
+   * buttonsForSoleAnchorParagraphs, which promotes a paragraph whose only
+   * content is an ANCHOR - a bare merge field would have produced a naked URL
+   * where a button has been since September.
    */
-  it("records that interest_link_action's shipped label never reaches the letter", () => {
+  it("reads the words Jimmy asked for, in the letter and in BUTTON_LABELS", () => {
     const html = renderLetterHtml({ rawBody: INQUIRY_ALERT, subject: "New inquiry", ctx });
-    expect(html).not.toContain("Send schedule interest meeting/conversation link");
+    expect(html).toContain("Send schedule interest meeting/conversation link");
+    expect(html).not.toContain("Send them the interest meeting link");
+    expect(BUTTON_LABELS.interest_link_action).toBe(
+      "Send schedule interest meeting/conversation link"
+    );
   });
 });
