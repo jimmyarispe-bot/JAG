@@ -284,6 +284,14 @@ export const MERGE_FIELDS = [
    */
   "post_call_link",
   /**
+   * Skip next stage, /skip-stage/<token>. Registered here as well as in the
+   * merge map for the reason the three above record: this list is what
+   * migration 296's audit compares live template bodies against, and a
+   * token in a body with no entry here is the 294 failure - it mails
+   * literal braces to a human. Five bodies gained this token in 557.
+   */
+  "skip_stage_link",
+  /**
    * What the family ticked on the interest form, comma separated. Registered
    * here as well as in the merge map because this list is what migration
    * 296's audit compares live template bodies against - a token in a body

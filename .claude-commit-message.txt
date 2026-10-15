@@ -1,99 +1,117 @@
-the application is submitted before anyone is invited
+skip next stage
 
-Three things Jimmy asked for in one message, and the third is the one that
-mattered.
+Jimmy, 15 October 2026:
 
-── 1. THE APPLICATION IS ACTUALLY SUBMITTED ────────────────────────────────
+  "beginning with the inquiry email and each time a school leader receives an
+   email there always needs to be a button that says 'skip next stage' - this
+   is in addition to whatever button/decision is already there."
 
-submitInvitedApplicationAction - /apply/start/<token>, the door every invited
-family actually uses - saved the answers, wrote lead_stage =
-application_submitted with a RAW UPDATE, and mailed the family the shadow-days
-invitation itself. It never touched admissions_applications, never checked the
-fee, never set submitted_at, and never opened a gate.
+and, asked what he was actually trying to achieve:
 
-That was deliberate. Jimmy, 23 September: "once the parent completes the
-application they are sent a followup email with schedule your shadow days."
-Automatic, no second question - and the file said so, including the
-consequence in plain words: "nobody reviews a family between application and
-shadow days."
+  "a parent has complete the inquiry form, and then goes through the other
+   stages but the school leader doesn't do the shadow days and just move to
+   acceptance. this is just an example but can happen at any stage except the
+   inquiry"
 
-What it allowed: last night's test child read application_submitted while the
-application row read in_progress with no submitted_at, and the shadow-days
-invitation had already gone. A family could be invited to shadow days on an
-application nobody completed and nobody paid for. Live at all five campuses.
+── NO NEW LETTER ───────────────────────────────────────────────────────────
 
-HE REVERSED IT, 14 October: "it needs to be this way then - So the intended
-order is: application completed -> the gate puts the question in front of her
--> she reads it -> she answers yes -> the family gets the booking link."
+Not one, and for an hour I was sure there had to be three. occasionForStage()
+in automation/post-call.ts already decides which buttons a school leader is
+shown FROM THE CHILD'S STAGE, and all three "Record your notes" letters point
+at that one page with that one token. So the leader's question is a function
+of where the child is:
 
-So this door now does what the portal has done since 28 September: find the
-application row, run applicationFeeGate, save the answers, mark the row
-submitted with submitted_at, and move the stage through transitionCaseStage -
-which opens invite_to_shadow_days, whose yes branch sends the booking link.
+  New Inquiry .. Interest Meeting Held   Send the tour request      (GA, FL)
+                                         Send the shadow day invite (HS, V)
+  Tour Scheduled / Completed             Send the application
+  Shadow Days Scheduled / Completed      Accept - send email
+                                         Deny - send email
 
-It no longer mails shadow_days_invited itself. Sending it here would put the
-link in front of a family before anybody read their application, and then send
-it again when she answered yes. It sends onApplicationSubmitted instead: the
-family's receipt and the leader's "an application came in".
+Moving a child one rung up that ladder and re-sending the letter for the rung
+she lands on is the whole feature. Every letter it needs is written, approved
+and live, and between them they have sent 93 times.
 
-The 23 September decision is quoted in the file above the new one, because a
-diff that silently deletes "nobody reviews a family between application and
-shadow days" reads like an accident. It was a decision. So is this.
+── THE LADDER READS THE STEP NUMBER, NOT THE OCCASION ──────────────────────
 
-── 2. THE ACCEPTANCE SCREEN STOPS PROMISING A PACKET NOBODY BUILT ──────────
+occasionForStage('application_submitted') returns 'interest_meeting' - it
+names only the tour and shadow-day stages and everything else falls through.
+An occasion-driven skip would have taken a child who has toured AND applied
+and landed her back at the tour, which is Jimmy's own example arriving at the
+wrong end of the flow. So skipTargetForStage reads LEAD_STAGES.step, which is
+written down rather than computed and whose own comment says it is written
+down for this kind of reason.
 
-applyAdmissionsDecision has always returned a warning when an acceptance
-resolved no application row, or when generateEnrollmentPacket failed. Nothing
-carried it anywhere: recordPostCallDecision returned {ok, action}, so the done
-screen said "the enrollment packet has been built for them to sign" either way,
-to the one person who could do something about it.
+  child at steps 1-2    skips the Interest Meeting  -> Interest Meeting Held
+  steps 3-4, GA and FL  skips the Tour              -> Tour Completed
+  steps 3-4, HS and V   skips the Shadow Days       -> Shadow Days Completed
+  steps 5-7             skips the Application       -> Application Submitted
+  steps 8-9             skips the Shadow Days       -> Shadow Days Completed
+  steps 10-13           nothing. "no skip button here"
 
-The warning now travels - through the action, through the redirect, onto the
-page. When there is no packet the screen drops that sentence, prints the reason
-in the words applyAdmissionsDecision wrote, and says the acceptance is real and
-nothing needs undoing but there is nothing to sign yet.
+A first version landed on the START of the stage after the skipped one, which
+quietly skipped TWO stages a press: from New Inquiry it reached Tour Completed
+and offered "Send the application" to a family who had seen nothing. Landing
+on the COMPLETION of the stage being skipped is what makes one press one
+stage. Both faults are in the test by name, because neither shows up as a
+failure - only as a school leader being asked the wrong thing.
 
-── 3. THE DENIAL AFTER A SHADOW DAY HAS A LETTER ───────────────────────────
+── THE CARD SAYS THE STAGE WAS SKIPPED ─────────────────────────────────────
 
-Deny recorded the decision and sent nothing, because buildDecisionEmail returns
-null for deny - correctly, there is no inline decline letter in code and must
-not be - so willEmailFamily was false and onDecisionSubmitted was never reached.
+admissions_lead_stage_history already records every move and who made it, so
+the jump was always auditable. Offered that alone, Jimmy chose otherwise:
+"The card says the stage was skipped".
 
-Jimmy gave the words. Asked about the one sentence that could not transfer from
-his own application_declined_email - "thank you for submitting the application"
-is wrong for a family who just spent two days in the building - he answered
-"yes good" to "Thank you for spending the last two days with us". Asked whether
-it should read "day(s)" in one row or naturally in five, he answered "read
-naturally".
+He is right. The stage the Accept/Deny page reads is shadow_day_completed,
+which the board labels "Shadow Days Completed" - so a child whose shadow days
+were skipped would carry a card claiming days nobody attended, read by people
+who were not in the room. 557 adds skipped_stages and both the list and the
+record now say so beside the badge rather than instead of it, because the
+stage is still where the child is and every gate and filter still reads it.
 
-Migration 554: five campus rows. GA, FL and the test campus read "the last two
-days"; HS and Virtual read "the day". His three remaining paragraphs are
-verbatim, guarded word for word in the migration.
+── NOTHING REACHES THE FAMILY ──────────────────────────────────────────────
 
-IT IS GATED ON A SHADOW DAY ACTUALLY HAVING HAPPENED. LEGACY_EVENT_MAP sends
-every `declined` to `student_declined`, and three things produce one: this
-page's Deny, the accept_or_deny gate's deny branch, and the DecisionWizard on
-the decisions board. The first two only ever happen at shadow_day_completed;
-the Wizard can be used at any stage. So applyAdmissionsDecision reads
-admissions_shadow_days for a completed row before dispatching a denial, and
-fails CLOSED - a failed read sends nothing. A letter thanking a family for two
-days they never spent is exactly the failure this build exists to prevent.
+Asked what a press should send a parent, Jimmy chose: nothing yet, and the
+leader gets the next letter with its own skip button on it. Every letter this
+queues is a staff letter. No family hears anything until she presses the
+button that was always there.
 
-The button's consequence line and the done screen both said "nothing is
-emailed", which was true this morning and is not now. Both changed in this same
-commit, because a consequence line that lags the behaviour by one deploy is the
-same fault as item 2.
+── A PAGE, NOT ONE CLICK ───────────────────────────────────────────────────
 
-── VERIFIED, AND NOT BY A TYPECHECK ────────────────────────────────────────
+Outlook and Gmail fire requests at the buttons in an email to check them for
+safety. A one-click skip is a child moved by software nobody pressed, so
+/skip-stage/<token> names the child and the stage and waits, exactly as
+/post-call, /call, /application-call and /send-interest-link all do.
 
-88 tests across 7 files, all passing, including 15 new ones on the submit order
-and the fee gate's boundary.
+It reads the LIVE stage, which is what makes an old email safe to press: a
+leader opening a three-week-old inquiry notice is shown where the child is
+today. Konnor Broyld's tour was read off a calendar three weeks after the
+fact on 13 October. Letters outlive the state they describe.
 
-And the real `next build`, because this morning proved a green typecheck is not
-evidence of one: source carried into a container, installed, built. 497 errors
-this morning, 2 now - both `next/font` failing to reach fonts.googleapis.com
-from a sandbox with no route to it, which Vercel's builders have reached on
-every successful deploy of this repo. Zero code errors.
+── THE LETTER IS SENT, NOT JUST QUEUED ─────────────────────────────────────
+
+Queueing is not sending. Nothing leaves admissions_communication_queue until
+processCommunicationQueue runs, and the only things that run it on a schedule
+are the queue crons, which exist to cover 7am and 8am Eastern rather than to
+answer a button somebody is standing in front of. A letter that arrives at the
+next cron is not "should then receive the next email", so the queue is drained
+on the press with the same service-role client
+/api/admissions/process-communications already uses on its cron path.
+
+── WHAT WAS RUN ────────────────────────────────────────────────────────────
+
+Migration 557 applied and read back from the database: five letters carry
+{{skip_stage_link}}, the two Jimmy kept it off do not, 358 leads each hold a
+distinct token and all 358 match ^[0-9a-f]{64}$ - the shape TOKEN_PATTERN
+insists on before it touches the database.
+
+Every token in every live template audited against MERGE_FIELDS: 49 tokens,
+none unregistered. That is migration 294's failure - literal braces mailed to
+a human - and the repository's own audit for it cannot run in the cloud copy,
+which holds 1 of 557 migration files.
+
+45 ladder tests, typecheck clean. A GREEN TYPECHECK IS NOT EVIDENCE OF A
+BUILD, and the press itself has not been exercised against a real child yet -
+the code is not deployed. That is the next thing, at the test campus.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

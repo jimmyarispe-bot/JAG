@@ -62,6 +62,7 @@ type LeadMergeRow = {
   interest_call_token: string | null;
   application_call_token: string | null;
   post_call_token: string | null;
+  skip_stage_token: string | null;
   schools: SchoolContact | SchoolContact[] | null;
 };
 
@@ -281,6 +282,7 @@ function buildMergeContextFromParts(
     interestCallToken: clean(lead.interest_call_token),
     applicationCallToken: clean(lead.application_call_token),
     postCallToken: clean(lead.post_call_token),
+    skipStageToken: clean(lead.skip_stage_token),
     fromEmail: clean(schoolOf(lead)?.admissions_from_email),
     program: lead.program,
     /* What they are applying FOR first; what they are in now is the fallback. */

@@ -141,6 +141,12 @@ export interface MergeContext {
    */
   interestLinkToken?: string | null;
   /**
+   * DEFAULTED ON THE ROW BY MIGRATION 557, not minted. The skip button is on
+   * the inquiry notice - the first letter of all - and post_call_token shows
+   * what lazy minting costs there: 13 of 358 leads held one.
+   */
+  skipStageToken?: string | null;
+  /**
    * Minted when the post-call letter is queued, ten minutes after the inquiry
    * call. Opens /post-call/<token>, which is a THIRD button page and a third
    * column, for the same reason the application one is not the interest one:
@@ -463,6 +469,18 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
        - wrong for a parent, perfectly fine for the school leader who is the
        only person this ever reaches.
     */
+    /*
+       THE FALLBACK IS THE CASE PAGE, as it is for the four links around it.
+       557 defaults the token on every row, so a letter should never render
+       this branch - but "should never" is how {{interest_link_action}} came
+       to render its fallback on every staff letter for a fortnight, which is
+       what engine.ts line 50 is about.
+    */
+    skip_stage_link: ctx.skipStageToken?.trim()
+      ? `${resolvePublicAppOrigin()}/skip-stage/${ctx.skipStageToken.trim()}`
+      : ctx.leadId
+        ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}`
+        : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
     interest_link_action: ctx.interestLinkToken?.trim()
       ? `${resolvePublicAppOrigin()}/send-interest-link/${ctx.interestLinkToken.trim()}`
       : ctx.leadId

@@ -124,6 +124,15 @@ export const BUTTON_LABELS: Readonly<Record<string, string>> = {
   /* His exact wording, kept rather than shortened - 49 characters, and it
      wraps to three lines in a purple block on a phone. He was told that. */
   interest_link_action: "Send schedule interest meeting/conversation link",
+  /*
+   * JIMMY'S OWN WORDS FOR THIS BUTTON, 15 October 2026: "there always needs
+   * to be a button that says 'skip next stage'". Five letters carry it
+   * (migration 557) and all five change together, because THIS MAP IS KEYED
+   * BY MERGE FIELD. That is the point: the button must read the same on the
+   * inquiry notice as it does on the decision gate, or a leader learns two
+   * names for one move.
+   */
+  skip_stage_link: "Skip next stage",
 };
 
 const FALLBACK_LABEL = "Open this link";

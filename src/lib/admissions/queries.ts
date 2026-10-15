@@ -21,6 +21,19 @@ export interface AdmissionLead {
   referral_source: string | null;
   inquiry_date: string;
   lead_stage: string;
+  /**
+   * The stages this child was moved PAST rather than THROUGH, by Skip next
+   * stage. Migration 557, at Jimmy's instruction of 15 October 2026 when he
+   * was offered the history table alone and chose: "The card says the stage
+   * was skipped".
+   *
+   * Why it has to be on the card and not only in the history: the stage the
+   * Accept/Deny page reads is shadow_day_completed, which the board labels
+   * "Shadow Days Completed". A child whose shadow days were skipped would
+   * otherwise have a card claiming days nobody attended, read by people who
+   * were not in the room.
+   */
+  skipped_stages?: string[] | null;
   stage_entered_at: string | null;
   guardian_first_name: string | null;
   guardian_last_name: string | null;

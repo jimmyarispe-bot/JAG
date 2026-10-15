@@ -84,6 +84,17 @@ export function LeadList({ leads, showFunding = false }: LeadListProps) {
                   >
                     {leadStageLabel(lead.lead_stage)}
                   </span>
+                  {/*
+                    THE STAGE SAYS COMPLETED; THIS SAYS NOBODY DID IT.
+                    See AdmissionLead.skipped_stages. Rendered beside the badge
+                    rather than instead of it, because the stage is still where
+                    the child is and every filter and gate still reads it.
+                  */}
+                  {lead.skipped_stages?.includes(lead.lead_stage) ? (
+                    <span className="ml-1.5 inline-flex rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900">
+                      skipped
+                    </span>
+                  ) : null}
                 </td>
                 <td className="px-4 py-3">
                   <span

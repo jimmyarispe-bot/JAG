@@ -47,6 +47,14 @@ export function LeadDetail({ lead, notes, tasks, tours, stageHistory }: LeadDeta
               <span className={`rounded-full px-3 py-1 text-xs font-medium ${leadStageColor(lead.lead_stage)}`}>
                 {leadStageLabel(lead.lead_stage)}
               </span>
+              {/* See AdmissionLead.skipped_stages. The record says the same
+                  thing the card in the list says, because a leader who opens a
+                  child from that list must not find the marker gone. */}
+              {lead.skipped_stages?.includes(lead.lead_stage) ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900">
+                  this stage was skipped
+                </span>
+              ) : null}
               <span
                 className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${pipelineAgingClasses(daysInStage)}`}
                 title="Days in current stage"
