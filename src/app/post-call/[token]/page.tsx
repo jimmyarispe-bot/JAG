@@ -133,10 +133,31 @@ export default async function PostCallPage({
             {/* The reason in the words applyAdmissionsDecision wrote, not a
                 paraphrase of them. */}
             <p className="mt-1">{warning}</p>
+            {/*
+              THE SPACE AFTER THE NAME IS EXPLICIT, AND HAS TO BE.
+
+              Jimmy, 15 October, from the live screen: "good except we need a
+              space here". It read "520 testis accepted", and the deny screen
+              read "Jimmy Arispehas been emailed the decision".
+
+              WHAT IS OBSERVED, from the live pages on 15 October: the two
+              runs that lost their leading space are the two that carry an
+              HTML entity. The paragraph above this one has the identical
+              shape without one and kept its space.
+
+              WHAT IS NOT ESTABLISHED: that the entity is the cause. esbuild
+              preserves the space in all three shapes, and Turbopack's own
+              transform could not be run here to check. The correlation is
+              two observations, not a mechanism.
+
+              So the fix does not depend on knowing which: {" "} is a string
+              child, not whitespace text, and no transform can drop it.
+            */}
             <p className="mt-2">
-              {subject.studentName} is accepted and the family has been told, so
-              nothing needs undoing &mdash; but there is nothing for them to sign
-              yet. Tell Jimmy before you close this.
+              {subject.studentName}{" "}
+              is accepted and the family has been told, so nothing needs
+              undoing &mdash; but there is nothing for them to sign yet. Tell
+              Jimmy before you close this.
             </p>
           </div>
         ) : null}
@@ -162,9 +183,13 @@ export default async function PostCallPage({
           the leader it had to come from her. Jimmy gave the words; the letter
           sends; the screen says so.
         */}
+        {/* The explicit space, for the reason written on the accept screen.
+            This run lost its leading space on the live page, which read
+            "Jimmy Arispehas been emailed the decision". */}
         <p className="mt-4 text-slate-700">
-          {subject.guardianName ?? "The family"} has been emailed the decision
-          &mdash; the letter that says the limitation is ours and not{" "}
+          {subject.guardianName ?? "The family"}{" "}
+          has been emailed the decision &mdash; the letter that says the
+          limitation is ours and not{" "}
           {subject.studentFirstName}&rsquo;s.
         </p>
         <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
