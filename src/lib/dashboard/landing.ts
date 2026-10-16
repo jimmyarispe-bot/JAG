@@ -91,7 +91,20 @@ export function landsOnAdmissionsBoard(ctx: IdentityContext): boolean {
      * reaches Admissions, this one decides whether signing in takes her
      * there at all.
      */
-    held.includes("SCHOOL_LEADER")
+    held.includes("SCHOOL_LEADER") ||
+    /*
+     * VIRTUAL_COORDINATOR, ADDED 16 OCTOBER 2026, AND IT IS NOT A PREFERENCE.
+     *
+     * Mahogany Murphy keeps "just admissions n families" (Jimmy, 16 October),
+     * so module-visibility now hides the executive module from her - and the
+     * executive module IS /dashboard. Without this line she would sign in,
+     * land on a Founder Morning Brief she is not meant to see, and find no
+     * way back to it in her own sidebar.
+     *
+     * The board is where her work is, which is the same reason Nina, Heather
+     * and Danni are on this list.
+     */
+    held.includes("VIRTUAL_COORDINATOR")
   );
 }
 

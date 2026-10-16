@@ -70,11 +70,33 @@ describe("what an empty list costs, so nobody loosens the default instead", () =
   /**
    * Failing closed is correct and must stay. The bug was never that [] hides
    * things — it is that [] was what the layout sent.
+   *
+   * IT USED TO NAME calendar AND documents, AND THEY MOVED ON 16 OCTOBER 2026.
+   *
+   * Jimmy, asked which of the six unmapped modules Mahogany Murphy may keep:
+   * "just admissions n families". Five gained an entry, and three of those
+   * five - Communications, Calendar and Documents - had no permission key in
+   * platform_permissions at all, which is exactly why they were shown to
+   * everybody. Migration 560 created the three and granted them to every role
+   * but hers.
+   *
+   * So this assertion was correct until that commit and is now false, and the
+   * right response is to move the EXAMPLE rather than the POINT. Families is
+   * the module that still names no permission - deliberately, it is one of the
+   * two she keeps - so it is what an empty list still shows.
+   *
+   * If Families is ever mapped too, this test fails and whoever does it has to
+   * decide what an empty list means when nothing at all survives it. That is a
+   * better outcome than the assertion quietly becoming vacuous.
    */
   it("still shows the modules that name no permission", () => {
     const shown = ids(visibleModules(DASHBOARD_MODULES, []));
-    expect(shown).toContain("calendar");
-    expect(shown).toContain("documents");
+    expect(shown).toContain("families");
+
+    /* And the three that gained a key in 560 now fail closed with the rest. */
+    expect(shown).not.toContain("communications");
+    expect(shown).not.toContain("calendar");
+    expect(shown).not.toContain("documents");
   });
 
   it("shows admissions to someone holding an admissions permission", () => {

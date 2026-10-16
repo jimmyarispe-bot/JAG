@@ -1,57 +1,100 @@
-the label he asked for reaches the letter
+just admissions n families
 
-Jimmy, 15 October, listing four button labels:
+Jimmy, 16 October 2026, asked which of the six modules shown to everybody
+Mahogany Murphy may keep: "just admissions n families".
 
-  "not choose - schedule your shadow days, choose your tour time to -
-   schedule your tour, choose your time to - schedule your time, send the
-   link to - send schedule interest meeting/conversation link"
+So five come off: Founder Morning Brief, Communications, Workflows, Calendar
+and Documents. Families is unmapped and stays unmapped. Students stays too -
+he asked for "view and edit; all student. quiet, enrolled and pipeline", and
+enrolled children live in that module.
 
-Three landed in 3c908c8e. The fourth did not, and only a render found it.
+── THE COMMENT NOBODY HAD READ CLOSELY ─────────────────────────────────────
 
-BUTTON_LABELS.interest_link_action was set to his words and shipped. It never
-reached him: inquiry_staff_alert wraps the merge field in its own anchor, and
-letter-html keeps an author's anchor text on purpose - "a link somebody wrote
-an anchor around is a decision", argued out on 10 October when the opposite
-rule turned a deliberately plain link into a button. The label was right in
-the code and wrong in the inbox, and ONLY THE LETTER COULD FIX THE LETTER.
+module-visibility.ts says, in its own words, that A MODULE ABSENT FROM THE MAP
+IS VISIBLE TO EVERYONE, "which is the right default for Calendar and
+Documents". That was written on 21 September when the only question was money.
+It is not the right default for somebody whose whole remit is one screen.
 
-Migration 558 changes the anchor text. Applied and read back: the letter now
-says his words, 557's skip button survived the edit, 556's phone line survived
-it, and the subject did not move - all four checked in the migration's own
-guards, because two changes to one letter in one evening is exactly when a
-careless replace() eats the other one.
+Six were absent. 559 gave her a three-permission role and closed none of them:
+the role alone would have left her looking at all six.
 
-DELETING THE ANCHOR TO LET THE LABEL APPLY WAS THE FIRST IDEA AND THE WRONG
-ONE. For an HTML body the buttons are made by buttonsForSoleAnchorParagraphs,
-which promotes a paragraph whose only content is an ANCHOR. A bare merge field
-is not one, so that route would have produced a naked URL where a button has
-been since September.
+── THREE OF THE FIVE HAD NO PERMISSION KEY AT ALL ──────────────────────────
 
-The test shipped three hours ago recorded the fault as a passing expectation,
-with a note saying it would invert when Jimmy said the word. He said the word.
-It is inverted, and now asserts that the letter and BUTTON_LABELS agree.
+Counted against platform_permissions, not assumed: no row named for
+communications, calendar or documents, and none whose module is any of the
+three. That is WHY they were shown to everyone - there has never been
+anything to check.
 
-── AND A CORRECTION I OWE HIM ──────────────────────────────────────────────
+Migration 560 creates the three and grants them to EVERY ROLE BUT HERS
+(excluding GUEST, STUDENT and PARENT, which have no staff sidebar). That is
+deliberately not "the roles that need them": the modules are visible to
+everyone today, so granting them to everyone-but-her leaves every other
+person's sidebar identical and changes exactly one. A key nothing else reads
+cannot widen anyone's reach.
 
-I told him out-of-office was blocked because "no school leader has connected a
-Google account". That was wrong, and he said so: "they are already connected.
-i don't understand."
+executive and workflows use keys that already existed. Who that affects was
+checked BEFORE it was written, not after:
 
-I had read user_google_connections - a per-user OAuth table only he has ever
-used, one row, 7 September, expired. That is not how the JAG reads calendars.
-It reads them through one shared Google Workspace account in
-integration_connections, and last night's scan read five calendars with no
-problems:
+  the 13 teachers        no sidebar at all - isTeacherOnly() sends them to one
+                         page, and TEACHER grants TEACHER_ACCESS through
+                         permission-groups, so all 13 match. Unaffected.
+  Nina, Heather          SCHOOL_LEADER holds both. Unaffected.
+  Danni                  EXECUTIVE_DIRECTOR holds both. Unaffected.
+  Jimmy                  FOUNDER holds both. Unaffected.
+  jimmy.arispe@gmail.com TEAM_MEMBER alone, holds NEITHER. This account loses
+                         Founder Morning Brief and Workflows. It is Jimmy's
+                         own second account and he was told before it shipped.
 
-  thejagcalendar@theacademyway.org
-  nina.gaddy@theacademyga.org
-  heather.brown@theacademyway.org
-  danni.treu@theacademyway.org
-  test.leader@theacademyway.org
+── HIDING /dashboard IS HALF A CHANGE ──────────────────────────────────────
 
-I compounded it by repeating a comment in chase/calendar.ts from 2 October
-saying Danni's calendar is not shared. It is, and has been. Out-of-office is
-not blocked on anybody.
+The executive module IS /dashboard, the page everyone lands on. Hiding it
+without the other half would have had her sign in, arrive on a Founder Morning
+Brief she is not meant to see, and find no way back to it in her own sidebar.
+
+lib/dashboard/landing.ts now sends VIRTUAL_COORDINATOR to the admissions
+board, which is what it already does for Nina, Heather and Danni. One line,
+beside theirs, for the same reason.
+
+── THE TEST, AND THE FAULT IT IS REALLY FOR ────────────────────────────────
+
+15 tests. The one that matters is the last: EVERY KEY THE FIVE MODULES NAME
+MUST BE A KEY SOMEBODY ACTUALLY HOLDS. A map entry naming a misspelled or
+ungranted key hides that module from EVERYBODY, permanently and in silence -
+the same shape as arming the tour gate before its letters existed, which would
+have stopped every GA and FL family dead with nothing on any screen to say so.
+It checks the five against the exact key set Nina holds, read from the
+database.
+
+── THE SHIP FAILED FIRST, AND THE TEST WAS RIGHT TO FAIL ───────────────────
+
+  x tests/unit/dashboard/sidebar-permissions-wired.test.ts
+    "still shows the modules that name no permission"
+
+It asserted that calendar and documents survive an empty permission list. That
+was TRUE and is now FALSE, because this commit is what gives them a permission
+to name. Its point is still right - the bug it was written for was the layout
+sending [] to a map that fails closed - so the EXAMPLE moved and the POINT did
+not. Families is now the module that names no permission, deliberately, being
+one of the two Jimmy kept.
+
+The amended test also asserts the three that gained a key in 560 now fail
+closed with the rest, and says in writing that if Families is ever mapped too,
+whoever does it has to decide what an empty list means when nothing survives
+it - rather than letting the assertion quietly become vacuous.
+
+I predicted that file existed and could not read it: the cloud copy of this
+repo holds 1 of 560 migration files and no tests/unit/dashboard at all. Every
+test that reads the module map or the landing rule has now been run against
+this change - sidebar-permissions-wired, who-lands-where, home-module-naming,
+the-founder-dashboard-is-the-founders, the-base-gate-is-not-an-executive-gate
+and the new one: 64 tests, all passing. school-leader-sees-no-money could not
+run there (it reads migration 349 off disk), so its assertions were read by
+hand instead: it only demands that money-shaped modules ARE gated, which this
+commit can only help.
+
+Typecheck clean. The permission rows are already applied and read back: she
+holds 1 role, 3 permissions, 0 of them money, and the other 13 TEACHER holders
+were untouched.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

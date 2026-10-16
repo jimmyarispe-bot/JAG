@@ -46,6 +46,44 @@ export const MODULE_REQUIRED_PERMISSIONS: Partial<Record<ModuleId, readonly stri
    * school.configure to SCHOOL_LEADER as a database row.
    */
   "school-leader": ["school.configure", "executive.dashboard"],
+  /*
+   * ── THE FIVE THAT WERE SHOWN TO EVERYBODY ────────────────────────────────
+   *
+   * Jimmy, 16 October 2026, asked which of the six unmapped modules Mahogany
+   * Murphy may keep: "just admissions n families". Families is unmapped and
+   * stays unmapped; the other five are named here.
+   *
+   * THE COMMENT ABOVE WAS LOAD-BEARING AND NOBODY HAD READ IT CLOSELY. "A
+   * module absent from this map is visible to everyone, which is the right
+   * default for Calendar and Documents" - written on 21 September when the
+   * only question was money. It is not the right default for a person whose
+   * whole remit is one screen.
+   *
+   * THREE OF THE FIVE HAD NO PERMISSION KEY IN THE DATABASE AT ALL. Counted
+   * against platform_permissions, not assumed: nothing named for
+   * communications, calendar or documents, which is why they were shown to
+   * everyone - there was never anything to check. Migration 560 creates the
+   * three and grants them to EVERY ROLE BUT HERS, so no other person's
+   * sidebar changes by a single entry.
+   *
+   * executive and workflows use keys that already existed. Who that affects
+   * was checked before it was written: the 13 teachers have no sidebar at all
+   * (isTeacherOnly redirects them to one page), Nina and Heather hold both
+   * keys through SCHOOL_LEADER, Danni through EXECUTIVE_DIRECTOR and Jimmy
+   * through FOUNDER. One account loses two entries -
+   * jimmy.arispe@gmail.com, which holds TEAM_MEMBER alone - and he was told
+   * before it shipped.
+   *
+   * executive IS /dashboard, THE LANDING PAGE, so hiding it is only half a
+   * change. The other half is lib/dashboard/landing.ts, which now sends her
+   * to the admissions board instead - the same thing it already does for
+   * Nina, Heather and Danni.
+   */
+  executive: ["executive.dashboard"],
+  communications: ["communications.view"],
+  workflows: ["workflows.view", "workflows.manage"],
+  calendar: ["calendar.view"],
+  documents: ["documents.view"],
   teacher: ["teacher.view", "teacher.manage", "TEACHER_ACCESS"],
   scheduling: ["scheduling.view", "scheduling.manage", "scheduling.executive"],
 };
