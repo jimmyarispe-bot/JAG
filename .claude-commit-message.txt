@@ -1,100 +1,74 @@
-just admissions n families
+nothing covers the board
 
-Jimmy, 16 October 2026, asked which of the six modules shown to everybody
-Mahogany Murphy may keep: "just admissions n families".
+Jimmy, 16 October 2026:
 
-So five come off: Founder Morning Brief, Communications, Workflows, Calendar
-and Documents. Families is unmapped and stays unmapped. Students stays too -
-he asked for "view and edit; all student. quiet, enrolled and pipeline", and
-enrolled children live in that module.
+  "when users are logging into the jag, specifically danni, heather, nina,
+   they should not see that smaller window popup asking with all the different
+   card options on it. the first things they should always see is their own
+   schools current pipeline screen"
 
-── THE COMMENT NOBODY HAD READ CLOSELY ─────────────────────────────────────
+── THE REDIRECT WAS NEVER BROKEN ───────────────────────────────────────────
 
-module-visibility.ts says, in its own words, that A MODULE ABSENT FROM THE MAP
-IS VISIBLE TO EVERYONE, "which is the right default for Calendar and
-Documents". That was written on 21 September when the only question was money.
-It is not the right default for somebody whose whole remit is one screen.
+landsOnAdmissionsBoard has sent those three straight to the pipeline since
+10 October, when Jimmy asked why Nina was seeing Home. It still does.
 
-Six were absent. 559 gave her a three-permission role and closed none of them:
-the role alone would have left her looking at all six.
+GuideChooser then opened ON TOP OF IT. It is the "What do you want to work
+on?" dialog - areas, then walkthroughs - mounted in the dashboard layout and
+greeting every person on arrival. So the redirect worked, landed them on the
+board, and the first thing they actually saw was a menu covering it.
 
-── THREE OF THE FIVE HAD NO PERMISSION KEY AT ALL ──────────────────────────
+TWO FEATURES, EACH CORRECT ALONE, DISAGREEING ABOUT WHAT "THE FIRST THING" IS.
+Neither piece's tests caught it because neither piece was wrong. The seam is
+always where it breaks - the third time this fortnight, after the permissions
+that never reached the sidebar and the label that never reached the letter.
 
-Counted against platform_permissions, not assumed: no row named for
-communications, calendar or documents, and none whose module is any of the
-three. That is WHY they were shown to everyone - there has never been
-anything to check.
+── WHY THE DISMISS BUTTON WAS NOT THE ANSWER ───────────────────────────────
 
-Migration 560 creates the three and grants them to EVERY ROLE BUT HERS
-(excluding GUEST, STUDENT and PARENT, which have no staff sidebar). That is
-deliberately not "the roles that need them": the modules are visible to
-everyone today, so granting them to everyone-but-her leaves every other
-person's sidebar identical and changes exactly one. A key nothing else reads
-cannot widen anyone's reach.
+GuideProvider keeps `dismissed` in localStorage, keyed per user AND PER
+DEVICE - its own header says so plainly. Nina pressing "I can find my way
+around JAG" on her laptop is greeted again on her phone, again on a new
+machine, for ever. A per-device opt-out cannot answer "they should not see
+it", and telling Jimmy to have them each press a button would have been
+offering him the thing that does not work.
 
-executive and workflows use keys that already existed. Who that affects was
-checked BEFORE it was written, not after:
+── ONE RULE, NOT TWO LISTS ─────────────────────────────────────────────────
 
-  the 13 teachers        no sidebar at all - isTeacherOnly() sends them to one
-                         page, and TEACHER grants TEACHER_ACCESS through
-                         permission-groups, so all 13 match. Unaffected.
-  Nina, Heather          SCHOOL_LEADER holds both. Unaffected.
-  Danni                  EXECUTIVE_DIRECTOR holds both. Unaffected.
-  Jimmy                  FOUNDER holds both. Unaffected.
-  jimmy.arispe@gmail.com TEAM_MEMBER alone, holds NEITHER. This account loses
-                         Founder Morning Brief and Workflows. It is Jimmy's
-                         own second account and he was told before it shipped.
+The layout reads landsOnAdmissionsBoard - THE SAME FUNCTION THE REDIRECT
+USES - rather than naming SCHOOL_LEADER and EXECUTIVE_DIRECTOR a second time.
+landing.ts's own header warns about exactly that: "The same question answered
+in three places is how every workspace in the network ended up titled The
+Academy FL."
 
-── HIDING /dashboard IS HALF A CHANGE ──────────────────────────────────────
+  IF SIGNING IN TAKES YOU STRAIGHT TO YOUR BOARD, NOTHING MAY COVER IT.
 
-The executive module IS /dashboard, the page everyone lands on. Hiding it
-without the other half would have had her sign in, arrive on a Founder Morning
-Brief she is not meant to see, and find no way back to it in her own sidebar.
+It therefore covers Mahogany Murphy, who joined that list earlier today, and
+will cover whoever is added next without anybody remembering this file exists.
 
-lib/dashboard/landing.ts now sends VIRTUAL_COORDINATOR to the admissions
-board, which is what it already does for Nina, Heather and Danni. One line,
-beside theirs, for the same reason.
+── WHAT DOES NOT CHANGE ────────────────────────────────────────────────────
 
-── THE TEST, AND THE FAULT IT IS REALLY FOR ────────────────────────────────
+greetOnArrival defaults TRUE, so every person who does not land on a board is
+greeted exactly as before. The launcher still opens the chooser deliberately
+and all fifty walkthroughs stay one click away - the people who run admissions
+are precisely who might want one the day they hit something they have not done
+before. This stops the GREETING, not the feature.
 
-15 tests. The one that matters is the last: EVERY KEY THE FIVE MODULES NAME
-MUST BE A KEY SOMEBODY ACTUALLY HOLDS. A map entry naming a misspelled or
-ungranted key hides that module from EVERYBODY, permanently and in silence -
-the same shape as arming the tour gate before its letters existed, which would
-have stopped every GA and FL family dead with nothing on any screen to say so.
-It checks the five against the exact key set Nina holds, read from the
-database.
+The founder is untouched: FOUNDER is excluded from the board redirect on
+purpose - "the founder dashboard leads with the numbers, on purpose, and that
+is a different job" - so Jimmy is still greeted and still lands there. The
+test asserts it, including for a founder who also holds SCHOOL_LEADER.
 
-── THE SHIP FAILED FIRST, AND THE TEST WAS RIGHT TO FAIL ───────────────────
+── THE TEST ────────────────────────────────────────────────────────────────
 
-  x tests/unit/dashboard/sidebar-permissions-wired.test.ts
-    "still shows the modules that name no permission"
+9 tests, and two of them exist because of this feature's own history: it once
+shipped complete and UNMOUNTED - provider, chooser, panel, fifty walkthroughs,
+84 passing tests, and no line in the layout rendering any of it, found by
+Jimmy opening the dashboard and looking for it. So the switch is asserted to
+be PASSED, not merely to exist, and the layout is asserted NOT to contain the
+role names, so that anybody who writes a second list here has to go and read
+landing.ts instead.
 
-It asserted that calendar and documents survive an empty permission list. That
-was TRUE and is now FALSE, because this commit is what gives them a permission
-to name. Its point is still right - the bug it was written for was the layout
-sending [] to a map that fails closed - so the EXAMPLE moved and the POINT did
-not. Families is now the module that names no permission, deliberately, being
-one of the two Jimmy kept.
-
-The amended test also asserts the three that gained a key in 560 now fail
-closed with the rest, and says in writing that if Families is ever mapped too,
-whoever does it has to decide what an empty list means when nothing survives
-it - rather than letting the assertion quietly become vacuous.
-
-I predicted that file existed and could not read it: the cloud copy of this
-repo holds 1 of 560 migration files and no tests/unit/dashboard at all. Every
-test that reads the module map or the landing rule has now been run against
-this change - sidebar-permissions-wired, who-lands-where, home-module-naming,
-the-founder-dashboard-is-the-founders, the-base-gate-is-not-an-executive-gate
-and the new one: 64 tests, all passing. school-leader-sees-no-money could not
-run there (it reads migration 349 off disk), so its assertions were read by
-hand instead: it only demands that money-shaped modules ARE gated, which this
-commit can only help.
-
-Typecheck clean. The permission rows are already applied and read back: she
-holds 1 role, 3 permissions, 0 of them money, and the other 13 TEACHER holders
-were untouched.
+144 tests across tests/unit/dashboard and tests/unit/guides pass. Typecheck
+clean.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

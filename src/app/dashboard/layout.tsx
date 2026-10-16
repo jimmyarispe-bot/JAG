@@ -9,6 +9,7 @@ import { redirectIfPasswordResetRequired } from "@/lib/auth/must-reset-password"
 import { getAuthUser } from "@/lib/auth/auth-user";
 import { canViewExecutiveDirectorDashboard } from "@/lib/dashboard/executive-director-dashboard";
 import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-access";
+import { landsOnAdmissionsBoard } from "@/lib/dashboard/landing";
 import { requireAuthorizedRoute } from "@/lib/platform/identity/page-guard";
 import {
   isTeacherOnly,
@@ -203,7 +204,27 @@ export default async function DashboardLayout({
         * userId keys the per-person progress and the "stop opening this"
         * choice, so two people at one machine do not inherit each other's.
         */}
-      <GuideProvider userId={auth.user.id}>
+      {/*
+        * greetOnArrival - Jimmy, 16 October 2026: Danni, Heather and Nina
+        * "should not see that smaller window popup... the first things they
+        * should always see is their own schools current pipeline screen".
+        *
+        * READ FROM landsOnAdmissionsBoard, THE SAME FUNCTION THE REDIRECT
+        * USES, rather than a second list of role names. The rule is one rule:
+        * IF SIGNING IN TAKES YOU STRAIGHT TO YOUR BOARD, NOTHING MAY COVER IT.
+        * A separate list here would be the two-places-one-fact fault that
+        * landing.ts's own header warns about, and the first person added to
+        * one list and not the other would be greeted by a dialog over a board
+        * with no way to explain why.
+        *
+        * It covers Mahogany Murphy too, who joined that list on 16 October,
+        * and will cover whoever is added next without anybody remembering
+        * this file exists.
+        */}
+      <GuideProvider
+        userId={auth.user.id}
+        greetOnArrival={!landsOnAdmissionsBoard(ctx)}
+      >
         <GuideChooser />
         <GuidePanel />
         {children}
