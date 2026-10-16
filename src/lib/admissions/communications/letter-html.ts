@@ -139,7 +139,6 @@ const FALLBACK_LABEL = "Open this link";
 
 const INK = "#0f172a";
 const BODY_INK = "#334155";
-const MUTED = "#64748b";
 const FAINT = "#94a3b8";
 const RULE = "#e2e8f0";
 const PRIMARY = "#1e3a5f";
@@ -175,14 +174,20 @@ const BUTTON = "#7c3aed";
  */
 const BUTTON_INK = "#ffffff";
 /*
- * AND THE "paste this into your browser" LINK IS A THIRD COLOUR, because it
- * is 12px text ON WHITE rather than a label on the button. #ff7518 as text on
- * white was 2.7:1 and genuinely hard to read, so it needed a darker shade of
- * the same hue. The purple settled on is 5.7:1 as text on white, so here it
- * is simply the button colour again - but the variable stays, because the
- * next colour may not be so forgiving.
+ * MUTED AND LINK_INK WENT WITH THE PASTE LINE, 16 October 2026.
+ *
+ * Both existed only for the grey "Or paste this into your browser:" paragraph
+ * under every button and had no other reader. LINK_INK's own note said "the
+ * variable stays, because the next colour may not be so forgiving" - true
+ * while something used it, and an unused const is a lint failure that fails a
+ * Vercel build while tsc stays green.
+ *
+ * Its reasoning is kept here in case that paragraph ever returns: that link
+ * was 12px text ON WHITE rather than a label on a button, #ff7518 as text on
+ * white was 2.7:1 and genuinely hard to read, and the purple is 5.7:1 as text
+ * on white - which is why the link colour and the button colour ended up the
+ * same value.
  */
-const LINK_INK = "#7c3aed";
 const PAGE = "#f1f5f9";
 
 export function escapeHtml(value: string): string {
@@ -209,6 +214,33 @@ function safeHref(value: string): string | null {
 }
 
 /**
+ * The button, and NOTHING UNDERNEATH IT.
+ *
+ * Jimmy, 16 October 2026, asked for one word: "no paste in your browser".
+ *
+ * Every button used to carry a second paragraph beneath it - "Or paste this
+ * into your browser:" and then the whole URL again, in grey. He had already
+ * struck every one of them out of the flow document on 15 October, marking
+ * each DELETE by hand; this is the same instruction applied to the letters
+ * themselves, which is where a parent actually meets them.
+ *
+ * THE REASON IT WAS THERE IS WRITTEN DOWN AND IT WAS BACKWARDS. The old
+ * comment read: "A button is not a link to somebody whose client strips
+ * tables, and a letter that becomes unusable in Outlook is worse than an ugly
+ * one." Outlook renders tables - tables are the standard way to lay an email
+ * out PRECISELY BECAUSE Outlook's engine handles them and handles little
+ * else. The fallback was guarding against the one thing least likely to
+ * happen, and charging every letter a repeated URL for it.
+ *
+ * WHAT IT COST was worst exactly where Jimmy noticed it: the Virtual
+ * assessment letter (561) carries two Google appointment-schedule links, each
+ * about 120 characters, so the two buttons he approved arrived under 240
+ * characters of grey URL. The letter he said was "exactly what we need" did
+ * not have them.
+ *
+ * THE LINK IS NOT LOST. The <a> is inside the table cell, not replaced by it,
+ * so a button is still a link to anything that can read an anchor.
+ *
  * The button, built from pieces that are ALREADY HTML-SAFE.
  *
  * Both callers arrive with their values escaped at different moments - the
@@ -224,13 +256,7 @@ function buttonBlockRaw(hrefAttr: string, labelHtml: string): string {
     `<tr><td style="border-radius:8px;background:${BUTTON};">` +
     `<a href="${hrefAttr}" style="display:inline-block;padding:13px 24px;font-size:15px;` +
     `font-weight:600;color:${BUTTON_INK};text-decoration:none;">${labelHtml}</a>` +
-    `</td></tr></table>` +
-    /* The naked URL stays, smaller, underneath. A button is not a link to
-       somebody whose client strips tables, and a letter that becomes
-       unusable in Outlook is worse than an ugly one. */
-    `<p style="margin:6px 0 18px;font-size:12px;line-height:1.5;color:${MUTED};word-break:break-all;">` +
-    `Or paste this into your browser:<br />` +
-    `<a href="${hrefAttr}" style="color:${LINK_INK};">${hrefAttr}</a></p>`
+    `</td></tr></table>`
   );
 }
 

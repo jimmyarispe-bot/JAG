@@ -22,7 +22,21 @@ import type { MergeContext } from "@/lib/admissions/communications/merge-fields"
  * screenshotted, so the thing under test is the thing that failed.
  */
 
-/** The stored body of inquiry_staff_alert, verbatim from the live row. */
+/**
+ * The stored body of inquiry_staff_alert, verbatim from the live row,
+ * RE-READ ON 16 OCTOBER 2026 AND IT HAD DRIFTED TWICE.
+ *
+ * This constant claimed to be the live row and was two migrations behind it:
+ * 557 appended the Skip next stage paragraph, and 558 changed the call to
+ * action from "Send them the interest meeting link" to Jimmy's words. The
+ * tests all passed the whole time, because a fixture that is wrong is still
+ * internally consistent - it just stops being about the letter it names.
+ *
+ * That is the same shape as the fault this file was written for: the module
+ * had no tests while one template was wrong twice. A copy of a letter needs
+ * re-reading whenever the letter changes, and the two assertions below that
+ * depended on the old copy are now about the real one.
+ */
 const INQUIRY_STAFF_ALERT_BODY =
   "<p><strong>{{student_name}}</strong> — new inquiry at {{school_name}}.</p>" +
   "<p>Program: {{inquiry_programs}}</p>" +
@@ -31,7 +45,8 @@ const INQUIRY_STAFF_ALERT_BODY =
   'Phone: <a href="tel:{{parent_phone_dial}}">{{parent_phone}}</a></p>' +
   "<p><strong>This family has not heard from us yet.</strong> " +
   "Nothing is sent until you send it.</p>" +
-  '<p><a href="{{interest_link_action}}">Send them the interest meeting link</a></p>';
+  '<p><a href="{{interest_link_action}}">Send schedule interest meeting/conversation link</a></p>' +
+  '<p><a href="{{skip_stage_link}}">Skip next stage</a></p>';
 
 const CTX: MergeContext = {
   studentFirstName: "test disregard 3:38",
@@ -42,6 +57,7 @@ const CTX: MergeContext = {
   schoolName: "XXXXXXXX Test Campus",
   inquiryPrograms: ["Only Virtual"],
   interestLinkToken: "3b7e",
+  skipStageToken: "8dfa2cd104df16797fdc438837bb0f06afe8b397a06b54f1b8dae95474670a21",
 };
 
 function staffAlert(): string {
@@ -58,21 +74,51 @@ describe("the one HTML template gets a button too", () => {
     const html = staffAlert();
     expect(html).toContain("background:#7c3aed");
     expect(html).toContain("color:#ffffff");
-    expect(html).toMatch(/>Send them the interest meeting link<\/a>/);
+    expect(html).toMatch(/>Send schedule interest meeting\/conversation link<\/a>/);
   });
 
   it("ties the button to the send-interest-link address", () => {
     expect(staffAlert()).toMatch(/href="https?:\/\/[^"]*\/send-interest-link\/3b7e"/);
   });
 
-  it("keeps the naked address underneath, for a client that strips tables", () => {
-    expect(staffAlert()).toContain("Or paste this into your browser");
+  it("puts NOTHING underneath the button", () => {
+    /*
+     * INVERTED 16 OCTOBER 2026. Jimmy: "no paste in your browser".
+     *
+     * Every button used to carry "Or paste this into your browser:" and the
+     * whole URL again in grey underneath. He had already struck every one of
+     * them out of the flow document by hand on 15 October; this is the same
+     * instruction applied to the letters themselves.
+     *
+     * The reason it existed was written down and was backwards - "a client
+     * that strips tables" - when tables are the standard way to lay out an
+     * email PRECISELY BECAUSE Outlook handles them. It was guarding the least
+     * likely failure and charging every letter a repeated URL for it. Worst
+     * at Virtual, where two Google appointment links put 240 characters of
+     * grey URL under the two buttons Jimmy had just approved without them.
+     */
+    const html = staffAlert();
+    expect(html).not.toContain("Or paste this into your browser");
+    /* The anchor is INSIDE the table cell, not replaced by it, so a button is
+       still a link to anything that can read one. */
+    expect(html).toMatch(/<a href="[^"]*\/send-interest-link\/3b7e"/);
   });
 
-  it("builds exactly one button, not one per anchor", () => {
-    /* The letter has three anchors. Only one of them is a call to action. */
+  it("builds one button per call to action, not one per anchor", () => {
+    /*
+     * TWO SINCE MIGRATION 557, and it was one until then. The letter has FOUR
+     * anchors: the parent's mailto, the parent's tel, the interest-meeting
+     * link and Skip next stage. Only the last two are calls to action; the
+     * first two sit inside a sentence and are refused twice over, by the
+     * sole-anchor rule and by the http/https check.
+     *
+     * The number is asserted rather than "at least one" because it is the
+     * thing that breaks quietly: a letter gaining a third button nobody meant
+     * to add looks fine in every other test here.
+     */
     const html = staffAlert();
-    expect(html.match(/background:#7c3aed/g)).toHaveLength(1);
+    expect(html.match(/background:#7c3aed/g)).toHaveLength(2);
+    expect(html).toContain("Skip next stage");
   });
 
   it("leaves the parent's email and phone as links inside their sentence", () => {

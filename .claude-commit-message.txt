@@ -1,84 +1,75 @@
-virtual books its assessments
+no paste in your browser
 
-Jimmy, 16 October 2026, gave the sentence:
+Jimmy, 16 October 2026, in five words. Every button in every letter carried a
+second paragraph under it - "Or paste this into your browser:" and then the
+whole URL again, in grey, 12px. It is gone.
 
-  "in the email sent to parents confirming receipt of the admissions
-   application include a sentence in there that says - the next step in the
-   process is to click on the 2 links below to schedule [student]'s Math and
-   Structure Literacy Assessments. After these have been completed, Heather
-   will reach out to you with next steps."
+He had already struck every one of them out of the flow document on 15
+October, marking each DELETE by hand. This is the same instruction applied to
+the letters themselves, which is where a parent actually meets them.
 
-and then, shown it rendered: "this visual is exactly what we need in the
-email". So the mockup is the letter, and migration 561 is that letter.
+── THE REASON IT EXISTED WAS WRITTEN DOWN AND IT WAS BACKWARDS ─────────────
 
-── A VIRTUAL ROW, NOT AN EDIT TO THE NETWORK ROW ───────────────────────────
+  "The naked URL stays, smaller, underneath. A button is not a link to
+   somebody whose client strips tables, and a letter that becomes unusable in
+   Outlook is worse than an ugly one."
 
-application_submitted_email is ONE ROW serving all five campuses. Putting the
-assessment sentence in it would tell a GA and an FL parent to book two
-assessments their school does not run. Virtual gets its own row, which is what
-inquiry_thank_you_email and interview_confirmation_email already do there, and
-the network row is left exactly as it was - checked by a guard, because GA and
-FL read it.
+Outlook renders tables. Tables are the standard way to lay an email out
+PRECISELY BECAUSE Outlook's engine handles them and handles little else. The
+fallback was guarding the least likely failure and charging every letter a
+repeated URL for it.
 
-HS DOES NOT GET ONE: "we have some revisions for virtual. not hs."
+THE LINK IS NOT LOST. The <a> sits INSIDE the table cell rather than being
+replaced by it, so a button is still a link to anything that can read an
+anchor. The test asserts that, not just the absence.
 
-That also corrects LEAD_STAGES, where the retired assessment_scheduled stage
-is still labelled "Assessment Scheduled - HS and Virtual" from his note of
-9 October. Virtual only, and two assessments rather than one. The label is not
-changed here - the stage is retired and offered nowhere - but it is wrong and
-is written down.
+WHERE IT COST MOST is where he noticed it: 561's Virtual assessment letter
+carries two Google appointment-schedule links of about 120 characters each,
+so the two buttons he had just approved arrived under 240 characters of grey
+URL. The mockup he called "exactly what we need" did not have them.
 
-"FOR THE FULL-SCHOOL PROGRAM" NEEDED NO CONDITION. academy_virtual is the only
-program code that campus uses, across all 161 of its leads, and its label is
-literally "The Academy Virtual - Full School Program". HS is academy_hs.
-Counted before concluding it.
+── TWO CONSTANTS WENT WITH IT ──────────────────────────────────────────────
 
-── TWO SENTENCES ARE DELIBERATELY ABSENT FROM THE VIRTUAL ROW ──────────────
+MUTED and LINK_INK existed only for that paragraph and had no other reader.
+LINK_INK's own note said "the variable stays, because the next colour may not
+be so forgiving" - true while something used it, and AN UNUSED CONST IS A LINT
+FAILURE THAT FAILS A VERCEL BUILD WHILE TSC STAYS GREEN. Its contrast
+reasoning is kept in a comment where it stands, for the day that paragraph
+comes back.
 
-The network row says "I will review it myself as quickly as possible and then
-email you with the next step, which normally involves scheduling your Shadow
-Days" and "There is nothing else for you to do in the meantime."
+── THE TEST FIXTURE WAS TWO MIGRATIONS STALE AND NOBODY NOTICED ────────────
 
-A PARENT CANNOT BE TOLD TO CLICK TWO LINKS AND THAT THERE IS NOTHING TO DO.
-Both are out of the Virtual row and both survive on the network row. Guards
-check both directions.
+letter-html-buttons.test.ts holds a copy of inquiry_staff_alert's body
+labelled "verbatim from the live row". It was not. 557 appended the Skip next
+stage paragraph and 558 changed the call to action to Jimmy's words, and the
+constant still carried neither. Every assertion passed the whole time: a
+fixture that is wrong is still internally consistent, it has just stopped
+being about the letter it names.
 
-── WHY THE BODY IS HTML WHEN THE NETWORK ROW IS PLAIN TEXT ─────────────────
+That is this file's own failure shape. It was written because inquiry_staff_
+alert was wrong twice while eighty-four plain-text letters were right, and the
+module had no tests at all. A copy of a letter needs re-reading whenever the
+letter changes.
 
-The two links must be BUTTONS and they are not merge fields - they are two
-fixed Google appointment schedules, one per teacher, so BUTTON_LABELS has no
-entry for either and nothing in the code names them. letter-html promotes a
-paragraph whose sole content is an anchor and uses THE ANCHOR'S OWN WORDS as
-the label. That is how inquiry_staff_alert gets its button, and it is how
-Jimmy's two labels arrive exactly as he wrote them.
+Re-read from the live row and two assertions came with it:
 
-THAT IS ALSO WHY THERE IS A RENDER TEST. The migration's guards check the row;
-they cannot check what a parent sees. If that promotion rule ever changes the
-row stays perfectly valid and the parent gets two bare URLs under a sentence
-telling them to click two buttons. The test renders the body READ BACK FROM
-THE DATABASE and asserts both buttons carry his labels, his sentence survives
-word for word, neither contradicting sentence appears, and no literal braces
-reach a parent.
+  "builds exactly one button"   ->  TWO. The letter has four anchors now -
+                                    mailto, tel, the interest link, and Skip
+                                    next stage. The last two are buttons.
+  the old call-to-action label  ->  "Send schedule interest meeting/
+                                    conversation link", which is what 558
+                                    put in the letter.
 
-── A WRONG ASSERTION, CAUGHT BY RUNNING IT ─────────────────────────────────
+── WHAT DOES NOT CHANGE ────────────────────────────────────────────────────
 
-The first version expected "Marcus&#39;s". renderHtmlTemplate escapes the
-VALUE a merge field resolves to; the apostrophe in "{{student_first_name}}'s"
-is literal text the author wrote and passes through untouched. The render was
-right and the expectation was wrong, and the comment now says so.
+Every other rule in that module. An anchor with words around it is still a
+link, a javascript: anchor is still refused, an anchor with no words still
+gets no button, an ampersand is still not double-escaped, and the eighty-four
+plain-text letters still turn a link on its own line into a button.
 
-── HIS WORDS, INCLUDING THE TWO I WOULD NOT HAVE CHOSEN ────────────────────
-
-"Structure Literacy" in the sentence and "Structured Literacy" on the button
-disagree. Both are his, from the same two messages, and both are reproduced
-rather than reconciled - the wording of a letter a parent reads is his.
-
-"Heather will reach out to you" names her rather than using
-{{admissions_contact_name}}. Correct today, and the one line that would need
-changing if Virtual ever has a different admissions contact; the sign-off
-beneath it already uses the merge field.
-
-9 tests in tests/unit/communications pass.
+21 tests in tests/unit/communications pass. Typecheck clean and eslint clean
+on the changed file - run deliberately, because the thing removed here is the
+kind that leaves an orphaned const behind.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
