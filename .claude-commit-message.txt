@@ -1,74 +1,84 @@
-nothing covers the board
+virtual books its assessments
 
-Jimmy, 16 October 2026:
+Jimmy, 16 October 2026, gave the sentence:
 
-  "when users are logging into the jag, specifically danni, heather, nina,
-   they should not see that smaller window popup asking with all the different
-   card options on it. the first things they should always see is their own
-   schools current pipeline screen"
+  "in the email sent to parents confirming receipt of the admissions
+   application include a sentence in there that says - the next step in the
+   process is to click on the 2 links below to schedule [student]'s Math and
+   Structure Literacy Assessments. After these have been completed, Heather
+   will reach out to you with next steps."
 
-── THE REDIRECT WAS NEVER BROKEN ───────────────────────────────────────────
+and then, shown it rendered: "this visual is exactly what we need in the
+email". So the mockup is the letter, and migration 561 is that letter.
 
-landsOnAdmissionsBoard has sent those three straight to the pipeline since
-10 October, when Jimmy asked why Nina was seeing Home. It still does.
+── A VIRTUAL ROW, NOT AN EDIT TO THE NETWORK ROW ───────────────────────────
 
-GuideChooser then opened ON TOP OF IT. It is the "What do you want to work
-on?" dialog - areas, then walkthroughs - mounted in the dashboard layout and
-greeting every person on arrival. So the redirect worked, landed them on the
-board, and the first thing they actually saw was a menu covering it.
+application_submitted_email is ONE ROW serving all five campuses. Putting the
+assessment sentence in it would tell a GA and an FL parent to book two
+assessments their school does not run. Virtual gets its own row, which is what
+inquiry_thank_you_email and interview_confirmation_email already do there, and
+the network row is left exactly as it was - checked by a guard, because GA and
+FL read it.
 
-TWO FEATURES, EACH CORRECT ALONE, DISAGREEING ABOUT WHAT "THE FIRST THING" IS.
-Neither piece's tests caught it because neither piece was wrong. The seam is
-always where it breaks - the third time this fortnight, after the permissions
-that never reached the sidebar and the label that never reached the letter.
+HS DOES NOT GET ONE: "we have some revisions for virtual. not hs."
 
-── WHY THE DISMISS BUTTON WAS NOT THE ANSWER ───────────────────────────────
+That also corrects LEAD_STAGES, where the retired assessment_scheduled stage
+is still labelled "Assessment Scheduled - HS and Virtual" from his note of
+9 October. Virtual only, and two assessments rather than one. The label is not
+changed here - the stage is retired and offered nowhere - but it is wrong and
+is written down.
 
-GuideProvider keeps `dismissed` in localStorage, keyed per user AND PER
-DEVICE - its own header says so plainly. Nina pressing "I can find my way
-around JAG" on her laptop is greeted again on her phone, again on a new
-machine, for ever. A per-device opt-out cannot answer "they should not see
-it", and telling Jimmy to have them each press a button would have been
-offering him the thing that does not work.
+"FOR THE FULL-SCHOOL PROGRAM" NEEDED NO CONDITION. academy_virtual is the only
+program code that campus uses, across all 161 of its leads, and its label is
+literally "The Academy Virtual - Full School Program". HS is academy_hs.
+Counted before concluding it.
 
-── ONE RULE, NOT TWO LISTS ─────────────────────────────────────────────────
+── TWO SENTENCES ARE DELIBERATELY ABSENT FROM THE VIRTUAL ROW ──────────────
 
-The layout reads landsOnAdmissionsBoard - THE SAME FUNCTION THE REDIRECT
-USES - rather than naming SCHOOL_LEADER and EXECUTIVE_DIRECTOR a second time.
-landing.ts's own header warns about exactly that: "The same question answered
-in three places is how every workspace in the network ended up titled The
-Academy FL."
+The network row says "I will review it myself as quickly as possible and then
+email you with the next step, which normally involves scheduling your Shadow
+Days" and "There is nothing else for you to do in the meantime."
 
-  IF SIGNING IN TAKES YOU STRAIGHT TO YOUR BOARD, NOTHING MAY COVER IT.
+A PARENT CANNOT BE TOLD TO CLICK TWO LINKS AND THAT THERE IS NOTHING TO DO.
+Both are out of the Virtual row and both survive on the network row. Guards
+check both directions.
 
-It therefore covers Mahogany Murphy, who joined that list earlier today, and
-will cover whoever is added next without anybody remembering this file exists.
+── WHY THE BODY IS HTML WHEN THE NETWORK ROW IS PLAIN TEXT ─────────────────
 
-── WHAT DOES NOT CHANGE ────────────────────────────────────────────────────
+The two links must be BUTTONS and they are not merge fields - they are two
+fixed Google appointment schedules, one per teacher, so BUTTON_LABELS has no
+entry for either and nothing in the code names them. letter-html promotes a
+paragraph whose sole content is an anchor and uses THE ANCHOR'S OWN WORDS as
+the label. That is how inquiry_staff_alert gets its button, and it is how
+Jimmy's two labels arrive exactly as he wrote them.
 
-greetOnArrival defaults TRUE, so every person who does not land on a board is
-greeted exactly as before. The launcher still opens the chooser deliberately
-and all fifty walkthroughs stay one click away - the people who run admissions
-are precisely who might want one the day they hit something they have not done
-before. This stops the GREETING, not the feature.
+THAT IS ALSO WHY THERE IS A RENDER TEST. The migration's guards check the row;
+they cannot check what a parent sees. If that promotion rule ever changes the
+row stays perfectly valid and the parent gets two bare URLs under a sentence
+telling them to click two buttons. The test renders the body READ BACK FROM
+THE DATABASE and asserts both buttons carry his labels, his sentence survives
+word for word, neither contradicting sentence appears, and no literal braces
+reach a parent.
 
-The founder is untouched: FOUNDER is excluded from the board redirect on
-purpose - "the founder dashboard leads with the numbers, on purpose, and that
-is a different job" - so Jimmy is still greeted and still lands there. The
-test asserts it, including for a founder who also holds SCHOOL_LEADER.
+── A WRONG ASSERTION, CAUGHT BY RUNNING IT ─────────────────────────────────
 
-── THE TEST ────────────────────────────────────────────────────────────────
+The first version expected "Marcus&#39;s". renderHtmlTemplate escapes the
+VALUE a merge field resolves to; the apostrophe in "{{student_first_name}}'s"
+is literal text the author wrote and passes through untouched. The render was
+right and the expectation was wrong, and the comment now says so.
 
-9 tests, and two of them exist because of this feature's own history: it once
-shipped complete and UNMOUNTED - provider, chooser, panel, fifty walkthroughs,
-84 passing tests, and no line in the layout rendering any of it, found by
-Jimmy opening the dashboard and looking for it. So the switch is asserted to
-be PASSED, not merely to exist, and the layout is asserted NOT to contain the
-role names, so that anybody who writes a second list here has to go and read
-landing.ts instead.
+── HIS WORDS, INCLUDING THE TWO I WOULD NOT HAVE CHOSEN ────────────────────
 
-144 tests across tests/unit/dashboard and tests/unit/guides pass. Typecheck
-clean.
+"Structure Literacy" in the sentence and "Structured Literacy" on the button
+disagree. Both are his, from the same two messages, and both are reproduced
+rather than reconciled - the wording of a letter a parent reads is his.
+
+"Heather will reach out to you" names her rather than using
+{{admissions_contact_name}}. Correct today, and the one line that would need
+changing if Virtual ever has a different admissions contact; the sign-off
+beneath it already uses the merge field.
+
+9 tests in tests/unit/communications pass.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6
