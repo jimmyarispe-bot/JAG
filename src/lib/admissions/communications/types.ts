@@ -299,6 +299,30 @@ export const MERGE_FIELDS = [
    */
   "inquiry_programs",
   /**
+   * The three fields of "While you were out" (migration 564).
+   *
+   * REGISTERED HERE EVEN THOUGH THE ENGINE NEVER RENDERS THAT LETTER, and
+   * the reason is this list's whole job. `template-tokens-exist` reads every
+   * {{token}} out of every migration that writes a template body and checks
+   * it against MERGE_FIELDS, because migration 294 seeded live letters
+   * against names nobody had defined and three families came within about
+   * forty-eight hours of reading "Congratulations again on
+   * {{student_first_name}}'s place". A token in a body with no entry here is
+   * that failure, whatever is meant to substitute it.
+   *
+   * out-of-office.ts substitutes all three itself, before handing the letter
+   * straight to the email provider - the letter names several families and
+   * `admissions_communication_queue.lead_id` is NOT NULL, so routing it
+   * through the engine would hang five families' details on one child's
+   * record. The entries in buildMergeValues are therefore the safe answer if
+   * the letter ever reaches the engine by a path nobody intended, not the
+   * answer a reader normally sees.
+   */
+  "out_of_office_dates",
+  "out_of_office_families",
+  /** The admissions pipeline board. Always resolvable, no token needed. */
+  "pipeline_link",
+  /**
    * The child's full name - first and last, never the preferred name alone.
    *
    * SEPARATE FROM student_name, which returns the preferred name when there

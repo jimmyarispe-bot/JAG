@@ -1,75 +1,60 @@
-no paste in your browser
+the leader is not here
 
-Jimmy, 16 October 2026, in five words. Every button in every letter carried a
-second paragraph under it - "Or paste this into your browser:" and then the
-whole URL again, in grey, 12px. It is gone.
+Out of office, built to Jimmy's correction: "i didn't say nothing moves, i
+said the skip to next step needs a human."
 
-He had already struck every one of them out of the flow document on 15
-October, marking each DELETE by hand. This is the same instruction applied to
-the letters themselves, which is where a parent actually meets them.
+While a school leader's calendar is marked out of office for a whole working
+day, a new inquiry at her campus gets the interest meeting link sent to the
+family the same night instead of waiting for her. It calls
+sendInterestMeetingLink - the same function her own button calls, with the
+same token - so the machine does exactly what her press does and nothing
+more. No stage is skipped. No gate is answered. No judgement is made.
 
-── THE REASON IT EXISTED WAS WRITTEN DOWN AND IT WAS BACKWARDS ─────────────
+The three stages that ARE a judgement - the tour/shadow-day invite and both
+decision gates - wait for her however long she is away.
 
-  "The naked URL stays, smaller, underneath. A button is not a link to
-   somebody whose client strips tables, and a letter that becomes unusable in
-   Outlook is worse than an ugly one."
+WHAT HAD BEEN THROWN AWAY SINCE 2 OCTOBER. chase/calendar.ts drops an event
+with no dateTime and an event with no attendees. An out-of-office block is
+normally both, and nothing in src/ had ever read Google's eventType field. So
+the scan has read every leader's absence every night for a fortnight and
+discarded all of them. The collector now sits above both guards and reads
+eventType === "outOfOffice", never the title: the calendars are full of
+events called "Office" and "Lunch Break".
 
-Outlook renders tables. Tables are the standard way to lay an email out
-PRECISELY BECAUSE Outlook's engine handles them and handles little else. The
-fallback was guarding the least likely failure and charging every letter a
-repeated URL for it.
+TWO GUARDS, BOTH FROM THE LIVE PIPELINE. Nothing older than 14 days is
+touched - Virtual holds 18 children at Interest Meeting Held untouched since
+26 August, and a family that has heard nothing for seven weeks needs a person,
+not a cron. And a Monday-to-Friday absence acts once per child, enforced by a
+unique index rather than a check in the code.
 
-THE LINK IS NOT LOST. The <a> sits INSIDE the table cell rather than being
-replaced by it, so a button is still a link to anything that can read an
-anchor. The test asserts that, not just the absence.
+Heather is the booking contact for HS and Virtual both, so one absence reaches
+two campuses. That falls out of school_admissions_contacts rather than being
+special-cased.
 
-WHERE IT COST MOST is where he noticed it: 561's Virtual assessment letter
-carries two Google appointment-schedule links of about 120 characters each,
-so the two buttons he had just approved arrived under 240 characters of grey
-URL. The mockup he called "exactly what we need" did not have them.
+WHILE YOU WERE OUT (564). The letter she gets on the first working day back,
+naming every family written to in her absence. Jimmy's words, subject cut to
+four by him. Sent outside the admissions queue deliberately:
+admissions_communication_queue.lead_id is NOT NULL, and anchoring a letter
+that names five families to one child would put four other families' names,
+grades and phone numbers on that child's record. Rendered through
+renderLetterHtml so it carries the same chrome as every other letter.
 
-── TWO CONSTANTS WENT WITH IT ──────────────────────────────────────────────
+THE SHIP GATE CAUGHT THIS, CORRECTLY. 564 put three tokens in a letter body
+that MERGE_FIELDS had never heard of - the migration-294 failure, which once
+put three families two days from reading "{{student_first_name}}'s place".
+All three are now registered and valued.
 
-MUTED and LINK_INK existed only for that paragraph and had no other reader.
-LINK_INK's own note said "the variable stays, because the next colour may not
-be so forgiving" - true while something used it, and AN UNUSED CONST IS A LINT
-FAILURE THAT FAILS A VERCEL BUILD WHILE TSC STAYS GREEN. Its contrast
-reasoning is kept in a comment where it stands, for the day that paragraph
-comes back.
+Also 562: the HS application asks whether the student should attend
+Structured Literacy or Math, Jimmy's sentence unchanged, HS only, not
+required. Interest form v41 published, v40 archived.
 
-── THE TEST FIXTURE WAS TWO MIGRATIONS STALE AND NOBODY NOTICED ────────────
+Migrations 562, 563 and 564 applied. 26 new unit tests, all passing; the
+absence walk looked only backwards in the first draft and would have reported
+"day 1 of 1" on every day of a week.
 
-letter-html-buttons.test.ts holds a copy of inquiry_staff_alert's body
-labelled "verbatim from the live row". It was not. 557 appended the Skip next
-stage paragraph and 558 changed the call to action to Jimmy's words, and the
-constant still carried neither. Every assertion passed the whole time: a
-fixture that is wrong is still internally consistent, it has just stopped
-being about the letter it names.
-
-That is this file's own failure shape. It was written because inquiry_staff_
-alert was wrong twice while eighty-four plain-text letters were right, and the
-module had no tests at all. A copy of a letter needs re-reading whenever the
-letter changes.
-
-Re-read from the live row and two assertions came with it:
-
-  "builds exactly one button"   ->  TWO. The letter has four anchors now -
-                                    mailto, tel, the interest link, and Skip
-                                    next stage. The last two are buttons.
-  the old call-to-action label  ->  "Send schedule interest meeting/
-                                    conversation link", which is what 558
-                                    put in the letter.
-
-── WHAT DOES NOT CHANGE ────────────────────────────────────────────────────
-
-Every other rule in that module. An anchor with words around it is still a
-link, a javascript: anchor is still refused, an anchor with no words still
-gets no button, an ampersand is still not double-escaped, and the eighty-four
-plain-text letters still turn a link on its own line into a button.
-
-21 tests in tests/unit/communications pass. Typecheck clean and eslint clean
-on the changed file - run deliberately, because the thing removed here is the
-kind that leaves an orphaned const behind.
+Not proven live: the code is not deployed and the site is unreachable from
+the build environment. The live proof is a real Out of office block on a real
+calendar, then the dry run.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

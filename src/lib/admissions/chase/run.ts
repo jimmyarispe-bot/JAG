@@ -44,6 +44,13 @@ import {
   readSharedCalendarBookings,
   type CalendarBooking,
 } from "@/lib/admissions/chase/calendar";
+import {
+  EMPTY_OUT_OF_OFFICE_REPORT,
+  absencesFromBlocks,
+  runOutOfOfficeStep,
+  sendOutOfOfficeSummaries,
+  type OutOfOfficeReport,
+} from "@/lib/admissions/chase/out-of-office";
 import { bookingKindFromTitle } from "@/lib/admissions/chase/booking-kind";
 import { decideChase, type ChaseDecision } from "@/lib/admissions/chase/clock";
 import { easternDateKey, easternHour } from "@/lib/platform/time/eastern";
@@ -318,6 +325,14 @@ export interface ScanReport {
   readonly calendarProblems: readonly string[];
   /** A campus whose booking contact has not shared a calendar. Loud on purpose. */
   readonly campusesWithNoCalendar: readonly string[];
+  /**
+   * What a school leader's absence did, if one was out today.
+   *
+   * Reported even when it did nothing, because "she was not out" and "the
+   * out-of-office reader is broken" must not look the same from outside -
+   * the same lesson as postCallSkipped above it.
+   */
+  readonly outOfOffice: OutOfOfficeReport;
   readonly bookingsSeen: number;
   readonly bookingsMatched: number;
   readonly bookingsAmbiguous: readonly string[];
@@ -408,6 +423,7 @@ export async function runInterestMeetingScan(
     calendarsSkipped: [],
     calendarProblems: [],
     campusesWithNoCalendar: [],
+    outOfOffice: EMPTY_OUT_OF_OFFICE_REPORT,
     bookingsSeen: 0,
     bookingsMatched: 0,
     bookingsAmbiguous: [],
@@ -551,6 +567,56 @@ export async function runInterestMeetingScan(
     if (!email || readable.has(email)) continue;
     const school = Array.isArray(contact.schools) ? contact.schools[0] : contact.schools;
     campusesWithNoCalendar.push(`${school?.name ?? "A campus"} (${email})`);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Is a school leader not here today?                                 */
+  /* ------------------------------------------------------------------ */
+
+  /*
+   * RUN BEFORE THE CHASE, AND ON ITS OWN ERRORS.
+   *
+   * A family inquiring while their school leader is away should hear from us
+   * the same night, not when she is back. This is the only thing in the whole
+   * chain that acts in her place, and it acts on the one step that is not a
+   * judgement - see the long note at the top of out-of-office.ts.
+   *
+   * try/catch around the whole of it on purpose: this is new, it is the last
+   * thing added to a job that has four other duties, and a fault in it must
+   * not cost the night's chase. The failure is pushed into `errors`, which
+   * the route already shouts about.
+   */
+  let outOfOffice = EMPTY_OUT_OF_OFFICE_REPORT;
+  try {
+    const step = await runOutOfOfficeStep(supabase, {
+      now,
+      outOfOffice: calendars.outOfOffice,
+      dryRun,
+    });
+    /*
+     * The absence that ENDS tonight gets its letter tonight, so she reads it
+     * first thing on the morning she is back rather than at the end of her
+     * first day. Recomputed here rather than threaded out of the step above:
+     * absencesFromBlocks is pure and cheap, and two call sites agreeing by
+     * construction beats two call sites agreeing by discipline.
+     */
+    const summaries = await sendOutOfOfficeSummaries(supabase, {
+      now,
+      absences: absencesFromBlocks(calendars.outOfOffice, { now }),
+      dryRun,
+    });
+    outOfOffice = {
+      ...step,
+      summariesSent: summaries.sent,
+      problems: [...step.problems, ...summaries.problems],
+    };
+    for (const problem of outOfOffice.problems) {
+      errors.push(`out of office: ${problem}`);
+    }
+  } catch (oooError) {
+    errors.push(
+      `out of office: ${oooError instanceof Error ? oooError.message : String(oooError)}`
+    );
   }
 
   /* ------------------------------------------------------------------ */
@@ -1425,6 +1491,7 @@ export async function runInterestMeetingScan(
       calendarsSkipped: calendars.calendarsSkipped,
       calendarProblems: calendars.problems,
       campusesWithNoCalendar,
+      outOfOffice,
       bookingsSeen: calendars.bookings.length,
       bookingsMatched,
       bookingsAmbiguous,
@@ -1555,6 +1622,7 @@ export async function runInterestMeetingScan(
     calendarsSkipped: calendars.calendarsSkipped,
     calendarProblems: calendars.problems,
     campusesWithNoCalendar,
+    outOfOffice,
     bookingsSeen: calendars.bookings.length,
     bookingsMatched,
     bookingsAmbiguous,

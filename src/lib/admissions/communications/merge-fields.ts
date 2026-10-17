@@ -147,6 +147,17 @@ export interface MergeContext {
    */
   skipStageToken?: string | null;
   /**
+   * The two absence-only fields of "While you were out".
+   *
+   * Optional, and normally absent: out-of-office.ts builds that letter and
+   * substitutes them itself. They exist here because MERGE_FIELDS is a closed
+   * union and buildMergeValues returns Record<MergeField, string> - tsc is
+   * what caught the 17 September near-miss, and keeping that loop closed is
+   * worth two fields that are usually undefined.
+   */
+  outOfOfficeDates?: string | null;
+  outOfOfficeFamilies?: string | null;
+  /**
    * Minted when the post-call letter is queued, ten minutes after the inquiry
    * call. Opens /post-call/<token>, which is a THIRD button page and a third
    * column, for the same reason the application one is not the interest one:
@@ -396,6 +407,17 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     decisions_link: ctx.leadId
       ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}?section=decisions`
       : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
+    /*
+       "While you were out" - see the note on these in types.ts. The engine
+       does not render that letter; out-of-office.ts does. These values are
+       the safe answer if it ever arrives here anyway: the two absence fields
+       say so in words rather than leaving a hole in a sentence, which is what
+       an empty string would do to "You were marked out of office ."
+    */
+    out_of_office_dates: ctx.outOfOfficeDates?.trim() || "the days you were away",
+    out_of_office_families:
+      ctx.outOfOfficeFamilies?.trim() || "No families were written to.",
+    pipeline_link: `${resolvePublicAppOrigin()}/dashboard/admissions?view=pipeline`,
     admissions_contact_name: ctx.admissionsContactName ?? "Admissions",
     admissions_contact_email: ctx.admissionsContactEmail ?? "",
     lead_link: ctx.leadId

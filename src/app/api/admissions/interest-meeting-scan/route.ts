@@ -73,6 +73,27 @@ export async function POST(request: NextRequest) {
      * invisible to this job - every FL family would have been chased three
      * times and telephoned however promptly they booked.
      */
+    /*
+     * An absence that acted is shouted about for the same reason: nobody
+     * reads the response of an 11pm cron, and "a leader was out and we wrote
+     * to four families in her place" is the single thing in this job that
+     * happens without a person pressing anything.
+     */
+    if (report.outOfOffice.leadersOut.length) {
+      console.error(
+        "[interest-meeting-scan] OUT OF OFFICE:",
+        report.outOfOffice.leadersOut.join("; "),
+        "| campuses:",
+        report.outOfOffice.campusesCovered.join(", ") || "none",
+        "| links sent:",
+        report.outOfOffice.linksSent.join("; ") || "none",
+        "| left for a person:",
+        report.outOfOffice.leftForAPerson.join("; ") || "none",
+        "| while you were out:",
+        report.outOfOffice.summariesSent.join("; ") || "none"
+      );
+    }
+
     if (report.campusesWithNoCalendar.length) {
       console.error(
         "[interest-meeting-scan] NO CALENDAR SHARED FOR:",

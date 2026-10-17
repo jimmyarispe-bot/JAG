@@ -86,8 +86,45 @@ export interface CalendarBooking {
   readonly attendeeEmails: readonly string[];
 }
 
+/**
+ * A school leader telling Google she is not here.
+ *
+ * READ FROM `eventType`, NEVER FROM THE TITLE. The calendars are full of
+ * events called "Office", "Lunch Break" and "Out" - the same reason the
+ * booking matcher refuses to read names. A block counts when Google itself
+ * says eventType is "outOfOffice", which is what the "Out of office" choice
+ * in Google Calendar sets, and nothing else counts at all.
+ *
+ * THE PRACTICAL CONSEQUENCE, worth saying out loud to whoever reads this
+ * next: a leader who types an ordinary all-day event called "Out" is NOT out
+ * of office as far as this platform is concerned. She has to pick Google's
+ * own "Out of office" option. There is no way to infer the difference that
+ * does not involve guessing at words, and guessing at words is how a child
+ * ends up moved because somebody booked a dentist.
+ */
+export interface OutOfOfficeBlock {
+  readonly calendarId: string;
+  readonly eventId: string;
+  readonly summary: string | null;
+  /**
+   * All-day: the Eastern date key Google supplied, "2026-10-19".
+   * Timed: the full ISO instant with its offset.
+   */
+  readonly startsAt: string;
+  /**
+   * All-day: Google's END DATE, WHICH IS EXCLUSIVE - a single day off on the
+   * 19th arrives as start 2026-10-19, end 2026-10-20. Not corrected here;
+   * the reader that interprets these owns that, and silently subtracting a
+   * day in two places is how an off-by-one becomes permanent.
+   */
+  readonly endsAt: string | null;
+  readonly allDay: boolean;
+}
+
 export interface CalendarRead {
   readonly bookings: readonly CalendarBooking[];
+  /** Every out-of-office block on every calendar read, in the same window. */
+  readonly outOfOffice: readonly OutOfOfficeBlock[];
   readonly calendarsRead: readonly string[];
   readonly calendarsSkipped: readonly string[];
   /** Non-fatal. One calendar refusing should not lose the other two. */
@@ -98,6 +135,17 @@ type GoogleEvent = {
   id?: string;
   status?: string;
   summary?: string;
+  /**
+   * Google's own classification. "default", "outOfOffice", "focusTime",
+   * "workingLocation", "birthday".
+   *
+   * NEVER READ UNTIL 16 OCTOBER, and the omission was invisible because an
+   * out-of-office block is dropped twice over by the booking reader below -
+   * once for having no dateTime (it is usually all day) and once for having
+   * no attendees. So the scan has read every leader's absence every night
+   * since 2 October and thrown all of them away.
+   */
+  eventType?: string;
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
   hangoutLink?: string;
@@ -171,6 +219,7 @@ export async function readSharedCalendarBookings(
   const calendarsSkipped: string[] = [];
   const problems: string[] = [];
   const bookings: CalendarBooking[] = [];
+  const outOfOffice: OutOfOfficeBlock[] = [];
 
   for (const calendar of items) {
     const id = calendar.id?.trim();
@@ -212,6 +261,34 @@ export async function readSharedCalendarBookings(
       for (const event of body.items ?? []) {
         if (event.status === "cancelled") continue;
 
+        /*
+         * TAKEN HERE, ABOVE BOTH GUARDS, AND THAT POSITION IS THE WHOLE POINT.
+         *
+         * Four lines down an event with no dateTime is dropped, and eight
+         * lines down an event with no attendees is dropped. An out-of-office
+         * block is normally both: all day, and nobody invited. Collected
+         * anywhere below this line it would be collected never.
+         *
+         * `continue` after taking it, because an absence is not a booking and
+         * must not fall through into the matcher.
+         */
+        if (event.eventType === "outOfOffice") {
+          const allDayStart = event.start?.date;
+          const timedStart = event.start?.dateTime;
+          const start = timedStart ?? allDayStart;
+          if (start) {
+            outOfOffice.push({
+              calendarId: id.toLowerCase(),
+              eventId: event.id ?? `${id}:ooo:${start}`,
+              summary: event.summary ?? null,
+              startsAt: start,
+              endsAt: event.end?.dateTime ?? event.end?.date ?? null,
+              allDay: !timedStart,
+            });
+          }
+          continue;
+        }
+
         const startsAt = event.start?.dateTime;
         /*
          * An all-day entry has `date` and no `dateTime`. An interest meeting
@@ -250,7 +327,7 @@ export async function readSharedCalendarBookings(
     }
   }
 
-  return { bookings, calendarsRead, calendarsSkipped, problems };
+  return { bookings, outOfOffice, calendarsRead, calendarsSkipped, problems };
 }
 
 /**
