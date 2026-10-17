@@ -1,60 +1,44 @@
-the leader is not here
+the campus falls back to the school
 
-Out of office, built to Jimmy's correction: "i didn't say nothing moves, i
-said the skip to next step needs a human."
+Vanessa Carvajal was sent Gabby's tour confirmation at 12:00pm Eastern today,
+for a tour on Wednesday the 21st at 9:30am. It read:
 
-While a school leader's calendar is marked out of office for a whole working
-day, a new inquiry at her campus gets the interest meeting link sent to the
-family the same night instead of waiting for her. It calls
-sendInterestMeetingLink - the same function her own button calls, with the
-same token - so the machine does exactly what her press does and nothing
-more. No stage is skipped. No gate is answered. No judgement is made.
+  Address: we will confirm this with you - please reply to this email
 
-The three stages that ARE a judgement - the tour/shadow-day invite and both
-decision gates - wait for her however long she is away.
+The Academy FL's address has been in the database since 10 October:
+"1420 Southeast Floresta Drive, Port Saint Lucie, Florida 34983 - in the back
+of the church, at the awning". A mother was told to write in and ask where
+the school is, four days before driving to it.
 
-WHAT HAD BEEN THROWN AWAY SINCE 2 OCTOBER. chase/calendar.ts drops an event
-with no dateTime and an event with no attendees. An out-of-office block is
-normally both, and nothing in src/ had ever read Google's eventType field. So
-the scan has read every leader's absence every night for a fortnight and
-discarded all of them. The collector now sits above both guards and reads
-eventType === "outOfOffice", never the title: the calendars are full of
-events called "Office" and "Lunch Break".
+WHY. admissions_tours.campus_id is NULL on every row the booking scan writes,
+so the appointment carried no campus. buildMergeContextFromParts took the
+appointment's campus and stopped, while every other school-derived field
+beside it already read schoolOf(lead). Two OTHER builders in the same file
+carry the fallback; this one was missed, and nothing failed when it was.
 
-TWO GUARDS, BOTH FROM THE LIVE PIPELINE. Nothing older than 14 days is
-touched - Virtual holds 18 children at Interest Meeting Held untouched since
-26 August, and a family that has heard nothing for seven weeks needs a person,
-not a cron. And a Monday-to-Friday absence acts once per child, enforced by a
-unique index rather than a check in the code.
+campusName had the identical hole, and tour_reminder_24h is live and carries
+{{campus_name}} - so the reminder the day before her tour would have named no
+campus at all.
 
-Heather is the booking contact for HS and Virtual both, so one absence reaches
-two campuses. That falls out of school_admissions_contacts rather than being
-special-cased.
+The "we will confirm this with you" wording stays. It is right for the case
+where nobody knows the address, and a fallback that invents one is worse.
 
-WHILE YOU WERE OUT (564). The letter she gets on the first working day back,
-naming every family written to in her absence. Jimmy's words, subject cut to
-four by him. Sent outside the admissions queue deliberately:
-admissions_communication_queue.lead_id is NOT NULL, and anchoring a letter
-that names five families to one child would put four other families' names,
-grades and phone numbers on that child's record. Rendered through
-renderLetterHtml so it carries the same chrome as every other letter.
+565: two edits to decision_gate_staff_email, both from Jimmy reading the
+letter in Danni's inbox.
 
-THE SHIP GATE CAUGHT THIS, CORRECTLY. 564 put three tokens in a letter body
-that MERGE_FIELDS had never heard of - the migration-294 failure, which once
-put three families two days from reading "{{student_first_name}}'s place".
-All three are now registered and valued.
+  "Athena is waiting on your decision" -> {{student_full_name}}. That letter
+  used {{student_name}}, which resolves to the PREFERRED name. types.ts
+  already says why that is wrong on a staff letter: "'Birdie' does not find
+  Beatrice Okonkwo." The field was added for this exact problem and this
+  letter was never moved onto it. Subject and body. Family letters untouched.
 
-Also 562: the HS application asks whether the student should attend
-Structured Literacy or Math, Jimmy's sentence unchanged, HS only, not
-required. Interest form v41 published, v40 archived.
+  "for someone else to action" -> "to answer". American English.
 
-Migrations 562, 563 and 564 applied. 26 new unit tests, all passing; the
-absence walk looked only backwards in the first draft and would have reported
-"day 1 of 1" on every day of a week.
+buildMergeContextFromParts is exported now, for the five tests that cover the
+fallback, the appointment still winning when it has a campus, and the apology
+surviving when nothing anywhere knows the address.
 
-Not proven live: the code is not deployed and the site is unreachable from
-the build environment. The live proof is a real Out of office block on a real
-calendar, then the dry run.
+Gate: typecheck clean, client boundaries clean, 3954 tests, no new failures.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_014B9rkuWAq2petze3CoyFp6

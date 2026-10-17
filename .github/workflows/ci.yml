@@ -4,9 +4,21 @@ name: CI
 # See docs/architecture/platform-alignment/sprint-058/02_CI_CD_FLOW.md
 on:
   push:
-    branches: [main, release/v1.0.0-rc1, staging]
+    # production ADDED 17 October 2026, and its absence was the whole problem.
+    #
+    # claude-ship.ps1 pushes HEAD:production. production was not on this list,
+    # so every ship this repository has ever made skipped CI entirely - no
+    # lint, no build, no integration tests, no Playwright, none of the seven
+    # readiness harnesses below. The only gate that had ever run against a
+    # shipped commit was the PowerShell script on one Windows machine, which
+    # runs three of them.
+    #
+    # That also tied shipping to that machine being in front of Jimmy. With
+    # production here, the full suite runs on GitHub's hardware and the
+    # verdict is readable from a phone.
+    branches: [main, production, release/v1.0.0-rc1, staging]
   pull_request:
-    branches: [main, release/v1.0.0-rc1, staging]
+    branches: [main, production, release/v1.0.0-rc1, staging]
 
 jobs:
   build-and-test:

@@ -229,7 +229,12 @@ async function fetchInquiryProgramsByLeadIds(
   return byLead;
 }
 
-function buildMergeContextFromParts(
+/**
+ * EXPORTED FOR ITS TEST, 17 October 2026. It is pure - a lead row, an
+ * appointment and some lists in, a MergeContext out - and the campus
+ * fallback below reached a real parent before anything checked it.
+ */
+export function buildMergeContextFromParts(
   lead: LeadMergeRow,
   fundingSources: string[],
   inquiryPrograms: string[],
@@ -289,8 +294,37 @@ function buildMergeContextFromParts(
     grade: lead.applying_for_grade ?? lead.current_grade ?? null,
     dateOfBirth: lead.date_of_birth,
     inquiryPrograms,
-    campusName: appt.campusName,
-    campusAddress: appt.campusAddress,
+    /*
+     * THE CAMPUS FALLS BACK TO THE SCHOOL, AND UNTIL 17 OCTOBER IT DID NOT.
+     *
+     * Vanessa Carvajal was sent Gabby's tour confirmation at 12:00pm Eastern
+     * that day reading "Address: we will confirm this with you - please reply
+     * to this email", for a tour four days later. The Academy FL's address
+     * had been in the database since 10 October:
+     *
+     *   1420 Southeast Floresta Drive, Port Saint Lucie, Florida 34983
+     *   - in the back of the church, at the awning
+     *
+     * `admissions_tours.campus_id` is NULL on every row the booking scan
+     * writes, so appt.campusAddress is null, so merge-fields rendered the
+     * "we do not know where" fallback - which exists for the case where
+     * nobody knows, and we knew.
+     *
+     * Every other school-derived field on this object already reads
+     * schoolOf(lead); these two took the appointment's campus and stopped.
+     * Two OTHER code paths in this same file carry the fallback
+     * (`?? schoolAddressFromLead(...)` at the single-lead and queue builders)
+     * - this one was simply missed, which is why it survived.
+     *
+     * campusName gets the same treatment: tour_reminder_24h is live and
+     * carries {{campus_name}}, so the same null printed an empty campus into
+     * the reminder the day before the tour.
+     *
+     * The campus still wins when the appointment has one. This only decides
+     * what happens when it does not.
+     */
+    campusName: appt.campusName ?? schoolNameFromLead(lead),
+    campusAddress: appt.campusAddress ?? schoolAddressFromLead(lead),
     fundingSources,
     applicationId: applicationId ?? null,
     leadId: lead.id,
