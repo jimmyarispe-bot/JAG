@@ -9,10 +9,12 @@ import {
   createStudentRecordAction,
   markPlanFinalAction,
   recordPaymentAction,
+  undoPaymentAction,
+  updateChildDetailsAction,
   updateScholarshipAction,
 } from "@/lib/admissions/finalizing/actions";
 import type { FinalizingChild, FinalizingInstalment } from "@/lib/admissions/finalizing/load";
-import { gradeLabel } from "@/lib/constants/grades";
+import { GRADES, gradeLabel } from "@/lib/constants/grades";
 
 /**
  * ONE CHILD ON FINALIZING CONTRACT - FIVE STEPS, EACH SAYING WHAT IS DONE AND
@@ -86,12 +88,42 @@ const quietButton =
   "rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50";
 const input = "w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-800";
 
+function UndoPayment({
+  instalmentId,
+  leadId,
+  disabled,
+  onUndo,
+}: {
+  instalmentId: string;
+  leadId: string;
+  disabled: boolean;
+  onUndo: (fd: FormData) => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className="text-[11px] text-slate-500 underline"
+      onClick={() => {
+        if (!window.confirm("Remove this recorded payment?")) return;
+        const fd = new FormData();
+        fd.set("instalment_id", instalmentId);
+        fd.set("lead_id", leadId);
+        onUndo(fd);
+      }}
+    >
+      Undo
+    </button>
+  );
+}
+
 export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [paying, setPaying] = useState<FinalizingInstalment | null>(null);
   const [addingAward, setAddingAward] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const name = `${child.firstName} ${child.lastName}`.trim();
   const plan = child.plan;
@@ -116,6 +148,7 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
       }
       setPaying(null);
       setAddingAward(false);
+      if (!(result && typeof result === "object" && "warning" in result && result.warning)) setEditing(false);
       router.refresh();
     });
   }
@@ -146,10 +179,91 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
             {child.guardianEmail ? ` · ${child.guardianEmail}` : ""}
           </p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800">
-          Accepted {shortDate(child.stageEnteredAt)}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800">
+            Accepted {shortDate(child.stageEnteredAt)}
+          </span>
+          <button type="button" className={quietButton} onClick={() => setEditing((v) => !v)}>
+            {editing ? "Close" : "Edit details"}
+          </button>
+        </div>
       </header>
+
+      {editing ? (
+        <form
+          className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
+          onSubmit={submitForm(updateChildDetailsAction, "Details saved.")}
+        >
+          <input type="hidden" name="lead_id" value={child.leadId} />
+          {child.details.parent2 ? <input type="hidden" name="parent2_id" value={child.details.parent2.id} /> : null}
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Child</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="text-xs text-slate-600">Legal first name
+              <input name="first_name" defaultValue={child.details.firstName} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Last name
+              <input name="last_name" defaultValue={child.details.lastName} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Preferred name
+              <input name="preferred_name" defaultValue={child.details.preferredName ?? ""} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Date of birth
+              <input name="date_of_birth" type="date" defaultValue={child.details.dateOfBirth ?? ""} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Grade for the contract year
+              <select name="applying_for_grade" defaultValue={child.details.applyingForGrade ?? ""} className={input}>
+                <option value="">—</option>
+                {GRADES.map((g) => (
+                  <option key={g.value} value={g.value}>{g.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Parent 1 (signs, receives the contract)</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="text-xs text-slate-600">First name
+              <input name="guardian_first_name" defaultValue={child.details.guardianFirstName ?? ""} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Last name
+              <input name="guardian_last_name" defaultValue={child.details.guardianLastName ?? ""} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Email
+              <input name="guardian_email" type="email" defaultValue={child.details.guardianEmail ?? ""} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Phone
+              <input name="guardian_phone" defaultValue={child.details.guardianPhone ?? ""} className={input} />
+            </label>
+          </div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Parent 2 (optional)</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="text-xs text-slate-600">First name
+              <input name="parent2_first_name" defaultValue={child.details.parent2?.firstName ?? ""} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Last name
+              <input name="parent2_last_name" defaultValue={child.details.parent2?.lastName ?? ""} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Email
+              <input name="parent2_email" type="email" defaultValue={child.details.parent2?.email ?? ""} className={input} />
+            </label>
+            <label className="text-xs text-slate-600">Phone
+              <input name="parent2_phone" defaultValue={child.details.parent2?.phone ?? ""} className={input} />
+            </label>
+          </div>
+          {contractSigned ? (
+            <p className="text-[11px] text-slate-600">
+              The contract is already signed. Changes here update the records; the signed contract stays as signed.
+            </p>
+          ) : null}
+          <div className="flex gap-2">
+            <button type="submit" className={button} disabled={pending}>
+              {pending ? "Saving…" : "Save details"}
+            </button>
+            <button type="button" className={quietButton} onClick={() => setEditing(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       {message ? (
         <p
@@ -328,14 +442,22 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
         <Step n={4} title="Contract signed by the parent" done={contractSigned}>
           {!planFinal ? (
             <p className="text-xs text-slate-500">Waiting on a final tuition plan. Nothing is sent before every figure is known.</p>
-          ) : contractSigned ? (
-            <p>Signed.</p>
           ) : (
-            <p className="text-xs text-slate-500">
-              {child.packetStatus
-                ? `Contract ${child.packetStatus.replace(/_/g, " ")}.`
-                : "Sending the contract to the parent's JAG login is the next part of this build."}
-            </p>
+            <>
+              <p className="text-xs">
+                {contractSigned
+                  ? "Signed by the parent."
+                  : child.packetStatus
+                    ? `Sent — ${child.packetStatus === "partially_signed" ? "partly initialled" : "waiting on the parent"}.`
+                    : "Not sent yet."}
+              </p>
+              <Link
+                href={`/dashboard/admissions/finalizing/${child.leadId}/contract`}
+                className={contractSigned || child.packetStatus ? quietButton : button}
+              >
+                {contractSigned ? "View signed contract (print / PDF)" : child.packetStatus ? "View contract" : "Preview and send contract"}
+              </Link>
+            </>
           )}
         </Step>
 
@@ -359,9 +481,17 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
                       <span className="flex items-center gap-2">
                         {usd(i.amount)}
                         {i.isPaid ? (
-                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800">
-                            Paid {shortDate(i.paidAt)}
-                          </span>
+                          <>
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800">
+                              Paid {shortDate(i.paidAt)}
+                            </span>
+                            <UndoPayment
+                              instalmentId={i.id}
+                              leadId={child.leadId}
+                              disabled={pending}
+                              onUndo={(fd) => run(() => undoPaymentAction(fd), "Payment removed.")}
+                            />
+                          </>
                         ) : (
                           <>
                             {i.paidAmount ? (

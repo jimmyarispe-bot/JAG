@@ -14,6 +14,9 @@
 import { revalidatePath } from "next/cache";
 
 import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
+import { loadLeadContract } from "@/lib/admissions/contract/for-lead";
+import { ensurePacket } from "@/lib/admissions/contract/packet";
+import { inviteProspectGuardians } from "@/lib/admissions/portal/prospect-invites";
 import { convertLeadToStudentAction } from "@/lib/admissions/handoff/actions";
 import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-access";
 import { getIdentityContext } from "@/lib/platform/identity/context";
@@ -302,4 +305,280 @@ export async function recordPaymentAction(formData: FormData) {
 
   refresh();
   return { success: true, fullyPaid, enrolled };
+}
+
+/**
+ * Step 4 - send the contract.
+ *
+ * Refuses unless the contract renders in full with this family's figures:
+ * loadLeadContract returns an error for no final plan, a scholarship still
+ * waiting on its amount, or a campus with no named signatory. Nothing
+ * unresolved reaches a family.
+ *
+ * Then: the application and packet records the signature needs, a parent row
+ * from what the family gave on the inquiry form if there is none (parent
+ * access is matched on that email), and the invitation that creates the
+ * parent's JAG login and lands them on /contract.
+ *
+ * `confirm` must be true - the screen shows the letter first.
+ */
+export async function sendContractAction(leadId: string, confirm: boolean) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase } = auth;
+  if (!confirm) return { error: "Confirm before sending." };
+
+  const loaded = await loadLeadContract(supabase, leadId);
+  if ("error" in loaded) return { error: loaded.error };
+  const contract = loaded.contract;
+
+  const packet = await ensurePacket(supabase, {
+    leadId,
+    schoolId: contract.schoolId,
+    schoolYearId: contract.schoolYearId,
+  });
+  if ("error" in packet) return { error: packet.error };
+
+  const { data: lead } = await supabase
+    .from("admissions_leads")
+    .select("first_name, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, schools(organization_id)")
+    .eq("id", leadId)
+    .maybeSingle();
+  if (!lead) return { error: "That child could not be found." };
+
+  let { data: guardians } = await supabase
+    .from("admissions_lead_guardians")
+    .select("id, email, primary_guardian")
+    .eq("lead_id", leadId)
+    .not("email", "is", null)
+    .order("primary_guardian", { ascending: false });
+
+  if (!guardians || guardians.length === 0) {
+    if (!lead.guardian_email) return { error: "There is no parent email on this child's record." };
+    const { error: gError } = await supabase.from("admissions_lead_guardians").insert({
+      lead_id: leadId,
+      first_name: lead.guardian_first_name ?? "Parent/Guardian",
+      last_name: lead.guardian_last_name ?? "Household",
+      email: lead.guardian_email,
+      phone: lead.guardian_phone ?? null,
+      primary_guardian: true,
+      receives_billing: true,
+    });
+    if (gError) return { error: `Could not record the parent: ${gError.message}` };
+    const reread = await supabase
+      .from("admissions_lead_guardians")
+      .select("id, email, primary_guardian")
+      .eq("lead_id", leadId)
+      .not("email", "is", null);
+    guardians = reread.data;
+  }
+
+  const primary = (guardians ?? [])[0];
+  if (!primary) return { error: "There is no parent to send the contract to." };
+
+  const schools = (lead as Record<string, unknown>).schools as
+    | { organization_id?: string }
+    | { organization_id?: string }[]
+    | null;
+  const organizationId = (Array.isArray(schools) ? schools[0]?.organization_id : schools?.organization_id) ?? "";
+
+  const result = await inviteProspectGuardians({
+    leadId,
+    guardianIds: [String(primary.id)],
+    organizationId,
+    schoolId: contract.schoolId,
+    childName: String(lead.first_name ?? contract.studentName),
+    signatory: "Jimmy Arispe",
+    schoolName: contract.schoolName,
+    purpose: "contract",
+  });
+
+  const outcome = result.invited[0];
+  refresh();
+  if (!outcome) return { error: "No invitation was sent." };
+  if (!outcome.ok) {
+    return {
+      success: true,
+      warning: `Contract is ready to sign, but no invitation was sent to ${outcome.email}: ${outcome.error}`,
+    };
+  }
+  return { success: true, sentTo: outcome.email };
+}
+
+/**
+ * EDIT ANYTHING ABOUT THE CHILD AND THE FAMILY.
+ *
+ * Jimmy, 18 October 2026: "i need to be able to change any information
+ * during this stage". The child's name, date of birth and grade, and both
+ * parents. Tuition and scholarships are edited in their own steps.
+ *
+ * WRITTEN EVERYWHERE THE FACT LIVES, so the contract and the records agree:
+ * the lead, the primary parent row (which is also what lets a parent's login
+ * see this child - it matches on email), and the student record once there is
+ * one.
+ *
+ * A SIGNED CONTRACT DOES NOT CHANGE. Migration 571 keeps the copy the parent
+ * signed; edits after that change the record, not the signed document.
+ */
+export async function updateChildDetailsAction(formData: FormData) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase } = auth;
+
+  const leadId = text(formData.get("lead_id"));
+  if (!leadId) return { error: "Missing child." };
+
+  const firstName = text(formData.get("first_name"));
+  const lastName = text(formData.get("last_name"));
+  const preferredName = text(formData.get("preferred_name"));
+  const dateOfBirth = text(formData.get("date_of_birth"));
+  const grade = text(formData.get("applying_for_grade"));
+  const gFirst = text(formData.get("guardian_first_name"));
+  const gLast = text(formData.get("guardian_last_name"));
+  const gEmail = text(formData.get("guardian_email"))?.toLowerCase() ?? null;
+  const gPhone = text(formData.get("guardian_phone"));
+  const p2Id = text(formData.get("parent2_id"));
+  const p2First = text(formData.get("parent2_first_name"));
+  const p2Last = text(formData.get("parent2_last_name"));
+  const p2Email = text(formData.get("parent2_email"))?.toLowerCase() ?? null;
+  const p2Phone = text(formData.get("parent2_phone"));
+
+  if (!firstName || !lastName) return { error: "The child needs a first and last name." };
+  if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) return { error: "Date of birth is not a date." };
+  if (gEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gEmail)) return { error: "Parent 1's email is not an email address." };
+  if (p2Email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p2Email)) return { error: "Parent 2's email is not an email address." };
+
+  const { data: before } = await supabase
+    .from("admissions_leads")
+    .select("guardian_email")
+    .eq("id", leadId)
+    .maybeSingle();
+  if (!before) return { error: "That child could not be found." };
+
+  const { error: leadError } = await supabase
+    .from("admissions_leads")
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      preferred_name: preferredName,
+      date_of_birth: dateOfBirth,
+      applying_for_grade: grade,
+      guardian_first_name: gFirst,
+      guardian_last_name: gLast,
+      guardian_email: gEmail,
+      guardian_phone: gPhone,
+    })
+    .eq("id", leadId);
+  if (leadError) return { error: leadError.message };
+
+  const warnings: string[] = [];
+
+  // Parent 1: the primary guardian row, if there is one.
+  const { data: primary } = await supabase
+    .from("admissions_lead_guardians")
+    .select("id")
+    .eq("lead_id", leadId)
+    .eq("primary_guardian", true)
+    .limit(1)
+    .maybeSingle();
+  if (primary) {
+    const { error } = await supabase
+      .from("admissions_lead_guardians")
+      .update({
+        first_name: gFirst ?? "Parent/Guardian",
+        last_name: gLast ?? "Household",
+        email: gEmail,
+        phone: gPhone,
+      })
+      .eq("id", primary.id);
+    if (error) warnings.push(`Parent 1's contact row was not updated: ${error.message}`);
+  }
+  const oldEmail = (before.guardian_email as string | null)?.toLowerCase() ?? null;
+  if (oldEmail && gEmail && oldEmail !== gEmail) {
+    warnings.push(
+      `Parent 1's email changed from ${oldEmail}. If that parent already has a JAG login, it no longer opens this child's contract — send the contract again to invite the new address.`
+    );
+  }
+
+  // Parent 2: update the row, or add one if a name was given.
+  if (p2Id) {
+    const { error } = await supabase
+      .from("admissions_lead_guardians")
+      .update({ first_name: p2First ?? "", last_name: p2Last ?? "", email: p2Email, phone: p2Phone })
+      .eq("id", p2Id);
+    if (error) warnings.push(`Parent 2 was not updated: ${error.message}`);
+  } else if (p2First || p2Last) {
+    const { error } = await supabase.from("admissions_lead_guardians").insert({
+      lead_id: leadId,
+      first_name: p2First ?? "",
+      last_name: p2Last ?? "",
+      email: p2Email,
+      phone: p2Phone,
+      primary_guardian: false,
+    });
+    if (error) warnings.push(`Parent 2 was not added: ${error.message}`);
+  }
+
+  // The student record, once there is one.
+  const { data: student } = await supabase
+    .from("students")
+    .select("id")
+    .eq("admissions_lead_id", leadId)
+    .limit(1)
+    .maybeSingle();
+  if (student) {
+    const { error } = await supabase
+      .from("students")
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        preferred_name: preferredName,
+        date_of_birth: dateOfBirth,
+        grade_level: grade,
+      })
+      .eq("id", student.id);
+    if (error) warnings.push(`The student record was not updated: ${error.message}`);
+  }
+
+  refresh();
+  revalidatePath(`/dashboard/admissions/finalizing/${leadId}/contract`);
+  return warnings.length ? { success: true, warning: warnings.join(" ") } : { success: true };
+}
+
+/**
+ * Undo a payment recorded by mistake. Clears what was recorded on the
+ * instalment; the schedule itself is untouched. Only while the child is still
+ * in Finalizing Contract - once the first payment has enrolled them, moving
+ * them back is a separate decision, not an undo.
+ */
+export async function undoPaymentAction(formData: FormData) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase } = auth;
+
+  const instalmentId = text(formData.get("instalment_id"));
+  const leadId = text(formData.get("lead_id"));
+  if (!instalmentId || !leadId) return { error: "Missing payment." };
+
+  const { data: lead } = await supabase.from("admissions_leads").select("lead_stage").eq("id", leadId).maybeSingle();
+  if (lead?.lead_stage !== "accepted") {
+    return { error: "This child is already enrolled. A payment that enrolled them cannot be undone from here." };
+  }
+
+  const { error } = await supabase
+    .from("student_tuition_instalments")
+    .update({
+      is_paid: false,
+      paid_at: null,
+      paid_amount: null,
+      payment_method: null,
+      payment_reference: null,
+      payment_notes: null,
+      payment_recorded_by: null,
+      payment_recorded_at: null,
+    })
+    .eq("id", instalmentId);
+  if (error) return { error: error.message };
+  refresh();
+  return { success: true };
 }

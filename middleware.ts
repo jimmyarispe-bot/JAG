@@ -51,6 +51,10 @@ function isProtectedPage(pathname: string): boolean {
     pathname.startsWith("/settings") ||
     pathname.startsWith("/platform") ||
     pathname.startsWith("/apply/portal") ||
+    /* The parent's contract page - signed in, like every parent area.
+       18 October 2026. */
+    pathname === "/contract" ||
+    pathname.startsWith("/contract/") ||
     /*
      * THE ADMISSIONS MARKETING SITE IS OFF THE PUBLIC INTERNET.
      *
@@ -256,6 +260,8 @@ export const config = {
     "/platform/:path*",
     "/apply/portal",
     "/apply/portal/:path*",
+    "/contract",
+    "/contract/:path*",
     /* Not "/api/admissions" - the matcher is rooted, so these two cover the
        marketing site and nothing else. */
     "/admissions",

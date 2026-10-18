@@ -70,6 +70,19 @@ export interface FinalizingChild {
   packetStatus: string | null;
   /** The first instalment that asks the family for money, if any. */
   firstPayable: FinalizingInstalment | null;
+  /** Everything Jimmy can edit on Finalizing Contract, as stored. */
+  details: {
+    firstName: string;
+    lastName: string;
+    preferredName: string | null;
+    dateOfBirth: string | null;
+    applyingForGrade: string | null;
+    guardianFirstName: string | null;
+    guardianLastName: string | null;
+    guardianEmail: string | null;
+    guardianPhone: string | null;
+    parent2: { id: string; firstName: string; lastName: string; email: string | null; phone: string | null } | null;
+  };
 }
 
 function num(value: unknown): number | null {
@@ -109,7 +122,7 @@ export async function loadFinalizingChildren(
   const { data: leads, error: leadsError } = await supabase
     .from("admissions_leads")
     .select(
-      "id, lead_stage, first_name, last_name, school_id, applying_for_grade, current_grade, guardian_first_name, guardian_last_name, guardian_email, stage_entered_at, state_funding_program_code, state_funding_award_amount, state_funding_award_id, schools(name)"
+      "id, lead_stage, first_name, last_name, preferred_name, date_of_birth, school_id, applying_for_grade, current_grade, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, stage_entered_at, state_funding_program_code, state_funding_award_amount, state_funding_award_id, schools(name)"
     )
     .in("lead_stage", stages as string[])
     .is("archived_at", null)
@@ -138,6 +151,28 @@ export async function loadFinalizingChildren(
   for (const s of studentsResult.data ?? []) {
     if (s.admissions_lead_id && !studentByLead.has(String(s.admissions_lead_id))) {
       studentByLead.set(String(s.admissions_lead_id), String(s.id));
+    }
+  }
+
+  /* The second parent, if the family gave one: a non-primary guardian row. */
+  const parent2ByLead = new Map<string, FinalizingChild["details"]["parent2"]>();
+  if (withMoney) {
+    const { data: g } = await supabase
+      .from("admissions_lead_guardians")
+      .select("id, lead_id, first_name, last_name, email, phone, primary_guardian")
+      .in("lead_id", leadIds)
+      .order("created_at", { ascending: true });
+    for (const row of (g ?? []) as Record<string, unknown>[]) {
+      if (row.primary_guardian) continue;
+      const lead = String(row.lead_id);
+      if (parent2ByLead.has(lead)) continue;
+      parent2ByLead.set(lead, {
+        id: String(row.id),
+        firstName: String(row.first_name ?? ""),
+        lastName: String(row.last_name ?? ""),
+        email: str(row.email),
+        phone: str(row.phone),
+      });
     }
   }
 
@@ -263,6 +298,18 @@ export async function loadFinalizingChildren(
       awards: studentId ? awardsByStudent.get(studentId) ?? [] : [],
       packetStatus: packetByLead.get(leadId) ?? null,
       firstPayable: plan ? firstPayableInstalment(plan.instalments) : null,
+      details: {
+        firstName: String(l.first_name ?? ""),
+        lastName: String(l.last_name ?? ""),
+        preferredName: str(l.preferred_name),
+        dateOfBirth: str(l.date_of_birth),
+        applyingForGrade: str(l.applying_for_grade),
+        guardianFirstName: str(l.guardian_first_name),
+        guardianLastName: str(l.guardian_last_name),
+        guardianEmail: str(l.guardian_email),
+        guardianPhone: str(l.guardian_phone),
+        parent2: parent2ByLead.get(leadId) ?? null,
+      },
     };
   });
 

@@ -145,3 +145,54 @@ export function buildProspectInviteBody(input: {
     `</div>`,
   ].join("\n");
 }
+
+/**
+ * THE CONTRACT INVITATION - 18 October 2026.
+ *
+ * Sent from Finalizing Contract when Jimmy presses Send contract. The parent
+ * creates a JAG account and lands on /contract, which is the only page a
+ * parent account can open (Jimmy: "parents should only get access to this
+ * related information when/if they receive a login to the jag").
+ *
+ * DRAFT WORDING, written by Claude, shown to Jimmy in the Send contract
+ * confirmation before any family receives it. Signed by Jimmy, who signs the
+ * contract for the school.
+ */
+export const CONTRACT_INVITE_PATH = "/contract";
+
+export function contractInviteSubject(childName: string): string {
+  const child = safe(childName) || "your child";
+  return `${child}'s Enrollment and Tuition Contract - The Academy`;
+}
+
+export function buildContractInviteBody(input: {
+  parentName?: string;
+  childName: string;
+  schoolName?: string;
+  inviteLink: string;
+}): string {
+  const child = safe(input.childName) || "your child";
+  const campus = safe(input.schoolName ?? "") || "The Academy";
+  const link = input.inviteLink;
+  const paragraph = (html: string) => `  <p style="${PARAGRAPH_STYLE}">${html}</p>`;
+  const parent = safe(input.parentName ?? "");
+  const greeting =
+    parent && parent.toLowerCase() !== "parent/guardian" ? [paragraph(`${parent},`)] : [];
+
+  return [
+    `<div style="${LETTER_STYLE}">`,
+    ...greeting,
+    paragraph(`Congratulations again on ${child}'s acceptance to ${campus}.`),
+    paragraph(
+      `${child}'s Enrollment and Tuition Contract is ready. It sets out your tuition, any scholarships, and your Schedule of Tuition Payments. Please read it, initial each part, and sign it.`
+    ),
+    paragraph(
+      `<a href="${link}" style="${LINK_STYLE}">CLICK THIS LINK TO CREATE YOUR JAG ACCOUNT AND SIGN ${child.toUpperCase()}'S CONTRACT</a>`
+    ),
+    paragraph(
+      `You can print or save a PDF copy of the contract at any time. Once it is signed, you will receive an invoice for your first tuition payment.`
+    ),
+    paragraph(`Sincerely,<br>Jimmy Arispe<br>${campus}`),
+    `</div>`,
+  ].join("\n");
+}

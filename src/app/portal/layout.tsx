@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { redirectIfPasswordResetRequired } from "@/lib/auth/must-reset-password";
 import { getAuthUser } from "@/lib/auth/auth-user";
 import { getSessionUser } from "@/lib/auth/session";
+import { isParentOnly, PARENT_HOME } from "@/lib/admissions/contract/parent-only";
 import {
   canAccessParentPortal,
   canAccessStudentPortal,
@@ -20,6 +21,10 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!user || !sessionUser) redirect("/login?next=/portal");
 
   redirectIfPasswordResetRequired(user, "/portal");
+
+  /* Parents see their child's contract and nothing else until Jimmy opens the
+     rest. See lib/admissions/contract/parent-only.ts. */
+  if (isParentOnly(sessionUser)) redirect(PARENT_HOME);
   const [isParent, isStudent, studentIds, selfId, unread, branding] = await Promise.all([
     canAccessParentPortal(supabase, sessionUser.id),
     canAccessStudentPortal(supabase, sessionUser.id),

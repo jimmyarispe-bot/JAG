@@ -85,11 +85,13 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
      */
     children: [
       { href: "/dashboard/admissions", label: "Current Pipeline" },
-      { href: "/dashboard/quiet-students", label: "Quiet Students" },
       /* Jimmy, 18 October 2026: "add another subpage/menu under n label it
          Finalizing Contract ... this page is only accessible by jimmy right
          now". */
       { href: "/dashboard/admissions/finalizing", label: "Finalizing Contract", founderOnly: true },
+      /* Last. Jimmy, 18 October 2026: "switch the order - put quiet students
+         at the bottom". */
+      { href: "/dashboard/quiet-students", label: "Quiet Students" },
     ],
   },
   /* Jimmy, 18 October 2026: "Create the Enrolled Student page between the

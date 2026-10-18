@@ -55,6 +55,9 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { createManagedUser } from "@/lib/platform/identity/user-management";
 import {
+  CONTRACT_INVITE_PATH,
+  buildContractInviteBody,
+  contractInviteSubject,
   PROSPECT_INVITE_SUBJECT,
   PROSPECT_PORTAL_PATH,
   buildProspectInviteBody,
@@ -263,6 +266,11 @@ export async function inviteProspectGuardians(input: {
   signatory: string;
   /** The campus name, printed under the signatory. */
   schoolName?: string;
+  /**
+   * Which letter. "application" (the default, unchanged) or "contract" - the
+   * Finalizing Contract invitation, which lands the parent on /contract.
+   */
+  purpose?: "application" | "contract";
 }): Promise<{ invited: ProspectInviteOutcome[]; skipped: number }> {
   const admin = createServiceRoleClient();
   const ids = input.guardianIds.slice(0, PROSPECT_INVITE_BATCH_LIMIT);
@@ -334,10 +342,21 @@ export async function inviteProspectGuardians(input: {
        * — a parent sets a password and is bounced off a staff route, having
        * been promised their child's application.
        */
-      activationNext: PROSPECT_PORTAL_PATH,
+      activationNext: input.purpose === "contract" ? CONTRACT_INVITE_PATH : PROSPECT_PORTAL_PATH,
       // The parent letter, in place of the staff onboarding copy. See
       // prospect-invite-email.ts for why that default is wrong here.
-      invitation: {
+      invitation: input.purpose === "contract"
+        ? {
+            subject: contractInviteSubject(input.childName),
+            buildBody: (inviteLink: string) =>
+              buildContractInviteBody({
+                parentName: clean(row.first_name) ?? "",
+                childName: input.childName,
+                schoolName: input.schoolName,
+                inviteLink,
+              }),
+          }
+        : {
         subject: PROSPECT_INVITE_SUBJECT,
         buildBody: (inviteLink) =>
           buildProspectInviteBody({

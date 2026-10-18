@@ -44,11 +44,13 @@ function sidebar(permissions: readonly string[]): string[] {
 }
 
 describe("Mahogany Murphy's sidebar", () => {
-  it("shows Admissions, Families and Students and nothing else", () => {
+  it("shows Admissions, Enrolled Students, Families and Students and nothing else", () => {
     /* Families is deliberately unmapped and therefore shown - it is one of the
        two Jimmy named. Students is here because he asked for view and edit on
        every child, and enrolled children live in that module. */
-    expect(sidebar(MAHOGANY).sort()).toEqual(["admissions", "families", "students"]);
+    /* Enrolled Students, 18 October 2026: "accessible by all school leaders",
+       and gated by admissions.view like Admissions itself. */
+    expect(sidebar(MAHOGANY).sort()).toEqual(["admissions", "enrolled-students", "families", "students"]);
   });
 
   it.each(["executive", "communications", "workflows", "calendar", "documents"])(

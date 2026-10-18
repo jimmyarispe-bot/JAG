@@ -106,6 +106,11 @@ export async function getLeads() {
   const { data, error } = await supabase
     .from("admissions_leads")
     .select("*, schools(name)")
+    /* An archived child is off every list. Until 18 October 2026 this read
+       ignored archived_at, so the two duplicates archived on 7 October stayed
+       on the board, and archiving the Danni Treu test card (Jimmy: "delete
+       danni treu student cards. those were tests") would not have hidden it. */
+    .is("archived_at", null)
     .order("inquiry_date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 

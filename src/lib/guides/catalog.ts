@@ -191,29 +191,45 @@ export const GUIDE_AREAS: readonly GuideArea[] = [
       },
       {
         id: "admissions.quiet-students",
-        title: "Find a family who left, or one still waiting on a decision",
-        summary: "Declined, Alumni, and the children nobody has answered yet.",
+        title: "Find a family who left, or one in the holding pattern",
+        summary: "Alumni, Holding Pattern, No - our decision, No - family decision.",
         steps: [
           {
             title: "Open Quiet Students",
             detail:
-              "Three columns, your campus only: Decision Needed, Declined and Alumni. They are off the pipeline board so it only shows families still moving.",
+              "Four columns, your campus only: Alumni, Holding Pattern, No - our decision and No - family decision. They are off the pipeline board so it only shows families still moving.",
             href: "/dashboard/quiet-students",
           },
           {
-            title: "Start with Decision Needed",
+            title: "Start with Holding Pattern",
             detail:
-              "The only column here waiting on a person. A child in it has not been told anything, and the number beside their name is how many days that has been true.",
+              "Where Move to Quiet puts a child. The number beside each name is how many days since they first enquired.",
           },
           {
-            title: "Open the child to see the whole history",
-            detail:
-              "What the family first wrote about them, your notes from the meeting, and every letter that went out.",
+            title: "Change a child's column from the dropdown on their card",
+            detail: "The four columns, and Move to Current Pipeline at the bottom.",
           },
           {
             title: "Move them back if they are returning",
             detail:
-              "Change the stage on the case page and the child rejoins the pipeline at whatever step you choose.",
+              "Choose Move to Current Pipeline. You are asked which stage, and the child rejoins the board there.",
+          },
+        ],
+      },
+      {
+        id: "admissions.enrolled-students",
+        title: "See who is enrolled",
+        summary: "Children whose first tuition payment has been made, by campus.",
+        steps: [
+          {
+            title: "Open Enrolled Students",
+            detail:
+              "Every child at your campus whose family has signed the contract and made the first tuition payment.",
+            href: "/dashboard/enrolled-students",
+          },
+          {
+            title: "Open a child to see what the family told us",
+            detail: "Click their name for the inquiry and the application on one page.",
           },
         ],
       },
