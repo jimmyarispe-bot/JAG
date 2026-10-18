@@ -75,7 +75,7 @@ export async function getAutomationDashboardMetrics(): Promise<AutomationDashboa
       .length ?? 0;
 
   const activeLeads = (leads.data ?? []).filter(
-    (l) => !["enrolled", "declined"].includes(l.lead_stage)
+    (l) => !["enrolled", "declined", "family_declined"].includes(l.lead_stage)
   );
   const agingDays =
     activeLeads.length > 0

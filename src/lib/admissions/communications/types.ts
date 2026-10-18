@@ -38,6 +38,20 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   // Decision gates (247). A gate asks a school leader a question; these are the
   // branches it can send.
   "decision_gate_opened",
+  /*
+   * ONE LETTER PER QUESTION, 17 OCTOBER 2026.
+   *
+   * decision_gate_opened carried one "Decision needed" letter for all three
+   * gates, with one button - "Open the decision" - that sent a leader into
+   * JAG to find out which question it was. Jimmy, reading it: three
+   * separate emails, "not with an open decision button".
+   *
+   * decision_gate_opened stays the after-the-tour question (send the
+   * application?). These two are the other two. See decisionLetterEvent in
+   * gates/definitions.ts, which is the only place that chooses between them.
+   */
+  "staff_shadow_days_decision",
+  "staff_admission_decision",
   // The tour's own notes letter, 13 October 2026. The interest meeting has
   // had one since 5 October; the tour never did, and nothing in the JAG
   // moved a child from Tour Scheduled to Tour Completed as a result.
@@ -262,6 +276,22 @@ export const MERGE_FIELDS = [
   "shadow_days_note",
   /** Deep link to the pending-decisions page, for the staff gate notification. */
   "decisions_link",
+  /**
+   * The answer buttons on the three "Decision needed" letters, 17 October
+   * 2026. Each opens /decide/<decision_token>/<answer>, a page that names the
+   * child and asks once more before anything is sent - Outlook and Gmail
+   * fetch every link in an email to check it, so a link that sent on its own
+   * would answer for her. Registered here for migration 296's audit, like
+   * every link above.
+   */
+  "send_application_link",
+  "invite_shadow_days_link",
+  "accept_link",
+  "deny_link",
+  /** The case page's Applications section. Sign-in required; staff only. */
+  "application_view_link",
+  /** The case page itself, labelled with the child's name. Staff only. */
+  "record_link",
   "admissions_contact_name",
   "admissions_contact_email",
   /** Straight to the lead in the dashboard — for staff mail only. */
@@ -417,7 +447,9 @@ export type MergeField = (typeof MERGE_FIELDS)[number];
 
 export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   inquiry_submitted: "Inquiry Submitted",
-  decision_gate_opened: "Decision Waiting (staff)",
+  decision_gate_opened: "Decision Waiting: Send the Application (staff)",
+  staff_shadow_days_decision: "Decision Waiting: Shadow Days (staff)",
+  staff_admission_decision: "Decision Waiting: Accept or Deny (staff)",
   staff_tour_held: "Tour Happening Now (staff)",
   staff_shadow_day_held: "Shadow Day Completed (staff)",
   application_invited: "Invited to Apply",

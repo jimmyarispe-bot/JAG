@@ -28,7 +28,7 @@ function section(partial: ProfileSectionDefinition): ProfileSectionDefinition {
   return partial;
 }
 
-const CLOSED_ADMISSION_STAGES = ["enrolled", "declined"];
+const CLOSED_ADMISSION_STAGES = ["enrolled", "declined", "family_declined"];
 
 async function loadFamilyOverviewDashboard(
   supabase: AuthClient,

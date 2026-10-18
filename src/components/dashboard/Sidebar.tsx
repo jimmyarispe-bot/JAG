@@ -22,6 +22,13 @@ import {
   visibleSectionItems,
 } from "@/lib/dashboard/intelligence-navigation";
 
+/** The sidebar modules everyone other than Jimmy is shown. */
+const NON_FOUNDER_MODULES: ReadonlySet<string> = new Set([
+  "admissions",
+  "enrolled-students",
+  "families",
+]);
+
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
@@ -95,16 +102,47 @@ export function Sidebar({
     return hit?.href ?? null;
   }
 
-  const navSections = SIDEBAR_NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: visibleSectionItems(section, permissions),
-  })).filter((section) => section.items.length > 0);
+  /*
+   * EVERYONE BUT JIMMY SEES ADMISSIONS AND FAMILIES. Jimmy, 18 October 2026:
+   *
+   *   "except for me, hide/disable on the left sidebar founder morning brief,
+   *    student success, communications, workflows, calendar, documents,
+   *    scheduling, teacher studio, school leader, scholarship, finance,
+   *    workforce, executive workspace, mission control, briefings for
+   *    everyone else"
+   *
+   * and, asked about teachers, "Teachers keep Teacher Studio": a viewer who
+   * cannot see Admissions at all (a teacher) still gets Teacher Studio, which
+   * is where hours are logged.
+   *
+   * This hides links; it does not lock pages. Every page keeps its own
+   * permission check, so a page reached by its address behaves as before.
+   */
+  const navSections = isFounder
+    ? SIDEBAR_NAV_SECTIONS.map((section) => ({
+        ...section,
+        items: visibleSectionItems(section, permissions),
+      })).filter((section) => section.items.length > 0)
+    : [];
   // The Modules list used to render every entry to everybody, so an admissions
   // School Leader saw Scholarships and Finance in her sidebar and was bounced
   // only after clicking. See lib/dashboard/module-visibility.
-  const modules = visibleModules(getBrandedDashboardModules(branding), permissions).map(
-    (module) => moduleForViewer(module, { isFounder, isExecutiveDirector })
-  );
+  const permitted = visibleModules(getBrandedDashboardModules(branding), permissions);
+  const seesAdmissions = permitted.some((m) => m.id === "admissions");
+  const modules = permitted
+    .filter(
+      (module) =>
+        isFounder ||
+        NON_FOUNDER_MODULES.has(module.id) ||
+        (module.id === "teacher" && !seesAdmissions)
+    )
+    .map((module) => moduleForViewer(module, { isFounder, isExecutiveDirector }))
+    /* A child link marked founderOnly (Finalizing Contract) is Jimmy's only. */
+    .map((module) =>
+      module.children && !isFounder
+        ? { ...module, children: module.children.filter((child) => !child.founderOnly) }
+        : module
+    );
 
   /*
    * ONE MODULE IS HIGHLIGHTED, NOT TWO.
@@ -361,7 +399,10 @@ export function Sidebar({
               })}
             </>
           )}
-          {isExecutiveDirector && !isFounder && (
+          {/* The Executive Director block is hidden for everyone but Jimmy
+              (18 October 2026, see navSections). It can never render now:
+              it needs a non-founder, and only a founder has navSections. */}
+          {isExecutiveDirector && !isFounder && navSections.length > 0 && (
             <>
               <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Executive Director
@@ -383,7 +424,7 @@ export function Sidebar({
           <p
             className={cn(
               "mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500",
-              (isFounder || isExecutiveDirector) && "mt-4"
+              isFounder && "mt-4"
             )}
           >
             Account

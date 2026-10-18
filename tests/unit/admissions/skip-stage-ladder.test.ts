@@ -73,7 +73,7 @@ describe("the ladder lands one stage on, not two", () => {
     expect(target?.skippedLabel).toBe("Application");
     expect(target?.landingStage).toBe("application_submitted");
     /* The decision gate's letter, not a notes letter - see the next block. */
-    expect(target?.notesEvent).toBe("decision_gate_opened");
+    expect(target?.notesEvent).toBe("staff_shadow_days_decision");
   });
 });
 

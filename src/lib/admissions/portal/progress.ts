@@ -108,7 +108,7 @@ export function computeAdmissionsProgress(input: {
   );
   const decided = ["accepted", "waitlisted", "denied", "enrolled"].includes(
     application.application_status
-  ) || ["accepted", "waitlisted", "declined", "enrolled"].includes(application.lead_stage);
+  ) || ["accepted", "waitlisted", "declined", "family_declined", "enrolled"].includes(application.lead_stage);
 
   const stepCompletion: Record<PortalProgressStepId, boolean> = {
     inquiry: inquiryComplete,

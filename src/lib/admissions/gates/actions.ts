@@ -18,6 +18,7 @@ import { getInquiryHighlights } from "@/lib/admissions/interest-form/carry-forwa
 import { prepareApplicationForInvite } from "@/lib/admissions/application-for-invited-lead";
 import {
   branchFor,
+  decisionLetterEvent,
   gateFor,
   type GateKey,
   type PendingGate,
@@ -70,7 +71,8 @@ export async function openDecisionGateWith(
   try {
     await notifyAdmissionsEvent(supabase, {
       leadId,
-      events: ["decision_gate_opened"],
+      /* The letter for THIS question - see DECISION_LETTER_EVENT. */
+      events: [decisionLetterEvent(gateKey)],
     });
     await supabase
       .from(GATE_TABLE)

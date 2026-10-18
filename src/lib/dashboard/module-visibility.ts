@@ -27,6 +27,7 @@ import type { DashboardModule, ModuleId } from "@/lib/dashboard/navigation";
  */
 export const MODULE_REQUIRED_PERMISSIONS: Partial<Record<ModuleId, readonly string[]>> = {
   admissions: ["admissions.view", "admissions.manage", "admissions.accept"],
+  "enrolled-students": ["admissions.view", "admissions.manage", "admissions.accept"],
   /* The same four keys as Finance. The database already denies all four to
      SCHOOL_LEADER (migration 349), so this entry hides itself from Nina and
      Heather without a new permission. */

@@ -124,7 +124,7 @@ export function groupForStudent(status: string): PersonGroup {
 export function groupForLead(stage: string): PersonGroup {
   if (stage === "enrolled") return "enrolled";
   if (stage === "accepted") return "accepted";
-  if (stage === "declined") return "not_enrolled";
+  if (stage === "declined" || stage === "family_declined") return "not_enrolled";
   // not_returning | waitlisted | anything unrecognised
   if (stage === "not_returning" || stage === "waitlisted") return "other";
   return "pipeline";

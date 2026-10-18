@@ -40,6 +40,7 @@ const LEGACY_LEAD_STAGES = [
   "accepted",
   "waitlisted",
   "declined",
+  "family_declined",
   "not_returning",
   "enrolled",
 ] as const;

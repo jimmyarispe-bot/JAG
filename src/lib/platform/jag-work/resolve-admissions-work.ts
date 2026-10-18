@@ -26,7 +26,7 @@ function buildLeadWorkItems(input: ResolveAdmissionsJagWorkInput): JagWorkItem[]
   const items: JagWorkItem[] = [];
 
   for (const lead of input.leads) {
-    if (["enrolled", "declined"].includes(lead.lead_stage)) continue;
+    if (["enrolled", "declined", "family_declined"].includes(lead.lead_stage)) continue;
 
     const name = leadName(lead);
     const href = `/dashboard/admissions/cases/${lead.id}`;

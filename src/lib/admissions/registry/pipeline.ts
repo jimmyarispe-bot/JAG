@@ -46,36 +46,38 @@ export {
 const ALLOWED_TRANSITIONS: Partial<
   Record<AdmissionsPipelineStageKey, AdmissionsPipelineStageKey[]>
 > = {
-  inquiry: ["interest_meeting_requested", "waitlisted", "declined", "not_returning"],
+  inquiry: ["interest_meeting_requested", "waitlisted", "declined", "family_declined", "not_returning"],
   interest_meeting_requested: [
     "interest_call_scheduled",
     "interest_meeting_held",
     "tour_requested",
     "waitlisted",
     "declined",
+    "family_declined",
     "not_returning",
   ],
-  interest_call_scheduled: ["interest_meeting_held", "waitlisted", "declined", "not_returning"],
+  interest_call_scheduled: ["interest_meeting_held", "waitlisted", "declined", "family_declined", "not_returning"],
   // Gate 1 (invite_to_apply) opens here and at tour_conducted.
   interest_meeting_held: [
     "tour_requested",
     "application_started",
     "waitlisted",
     "declined",
+    "family_declined",
     "not_returning",
   ],
-  tour_requested: ["tour_scheduled", "waitlisted", "declined", "not_returning"],
-  tour_scheduled: ["tour_conducted", "waitlisted", "declined", "not_returning"],
-  tour_conducted: ["application_started", "waitlisted", "declined", "not_returning"],
-  application_started: ["application_submitted", "waitlisted", "declined", "not_returning"],
+  tour_requested: ["tour_scheduled", "waitlisted", "declined", "family_declined", "not_returning"],
+  tour_scheduled: ["tour_conducted", "waitlisted", "declined", "family_declined", "not_returning"],
+  tour_conducted: ["application_started", "waitlisted", "declined", "family_declined", "not_returning"],
+  application_started: ["application_submitted", "waitlisted", "declined", "family_declined", "not_returning"],
   // Gate 2 (invite_to_shadow_days) opens here.
-  application_submitted: ["shadow_day_scheduled", "waitlisted", "declined", "not_returning"],
-  shadow_day_scheduled: ["shadow_day_completed", "waitlisted", "declined", "not_returning"],
+  application_submitted: ["shadow_day_scheduled", "waitlisted", "declined", "family_declined", "not_returning"],
+  shadow_day_scheduled: ["shadow_day_completed", "waitlisted", "declined", "family_declined", "not_returning"],
   // Gate 3 (accept_or_deny) opens here. This is the Decision column on the
   // board, and answering it is what moves the family on.
-  shadow_day_completed: ["accepted", "waitlisted", "declined", "not_returning"],
-  accepted: ["enrollment_complete", "waitlisted", "declined", "not_returning"],
-  waitlisted: ["accepted", "declined", "enrollment_complete"],
+  shadow_day_completed: ["accepted", "waitlisted", "declined", "family_declined", "not_returning"],
+  accepted: ["enrollment_complete", "waitlisted", "declined", "family_declined", "not_returning"],
+  waitlisted: ["accepted", "declined", "family_declined", "enrollment_complete"],
 };
 
 export function getAllowedPipelineTransitions(

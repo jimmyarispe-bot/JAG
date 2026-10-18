@@ -73,13 +73,25 @@ export const LEAD_STAGES = [
    *
    * It is called Decision Needed because that is what is true about her.
    */
-  { value: "waitlisted", step: null, group: "closed", label: "Decision Needed", color: "bg-orange-100 text-orange-900" },
-  { value: "declined", step: null, group: "closed", label: "Declined", color: "bg-red-100 text-red-700" },
   /*
    * WAS "Not Returning". Thirteen children. They were students here, which is
    * the one thing "not returning" never said about them.
    */
   { value: "not_returning", step: null, group: "closed", label: "Alumni", color: "bg-slate-200 text-slate-700" },
+  /*
+   * 18 OCTOBER 2026 - THE QUIET COLUMNS, IN JIMMY'S ORDER:
+   *   "1. Alumni 2. Waitlisted 3. No - our decision 4. No - family decision
+   *    5. move to current pipeline", then on column 2: "Holding Pattern".
+   *
+   * Relabels, not moves. `waitlisted` is what Move to Quiet has always set
+   * (44 children on 18 October, 43 of them parked on 15 and 17 October), so
+   * it becomes the holding pattern they were already in. `declined` (83)
+   * becomes No - our decision, per the spec: "anything miscategorized gets
+   * moved by hand later". `family_declined` is new and starts empty.
+   */
+  { value: "waitlisted", step: null, group: "closed", label: "Holding Pattern", color: "bg-orange-100 text-orange-900" },
+  { value: "declined", step: null, group: "closed", label: "No - our decision", color: "bg-red-100 text-red-700" },
+  { value: "family_declined", step: null, group: "closed", label: "No - family decision", color: "bg-rose-100 text-rose-800" },
 
   /*
    * ── RETIRED ──────────────────────────────────────────────────────────────
@@ -146,6 +158,69 @@ export const BOARD_STAGE_OPTIONS: readonly {
   ...PIPELINE_LEAD_STAGES.map((s) => ({ value: s.value, step: s.step, label: s.label })),
   { value: "waitlisted", step: null, label: "Move to Quiet" },
 ];
+
+/**
+ * THE PIPELINE BOARD - SIX STAGES, THEN ENROLLED, THEN MOVE TO QUIET.
+ *
+ * Jimmy, 18 October 2026: "the document is the one with the correct stages.
+ * plus move to quiet at the bottom". The Admissions Flow document has six
+ * stages; the database keeps its finer stages (letters, tasks and the chase
+ * are keyed to them), and the board GROUPS them. Asked, Jimmy chose "Group
+ * them": the board shows the six.
+ *
+ * `entry` is the stage a child is put on when a leader picks that group from
+ * the dropdown. It is the first step of that stage in the document, and the
+ * same value the old numbered dropdown set for it, so picking a group does
+ * exactly what picking its first old option did - no new behaviour.
+ *
+ * #6 Admissions Decision holds the children with an open accept-or-deny
+ * question. Picking it puts the child on shadow_day_completed, which is the
+ * stage that opens that question (gates/definitions.ts) - the same thing old
+ * option "11. Shadow Days Completed" did.
+ *
+ * FINALIZING CONTRACT AND ENROLLED ARE LOCKED. Jimmy, 18 October: "create
+ * these columns in the admissions pipeline and lock them in the sense that
+ * they are only moving when i am moving them in the finalizing contract
+ * area/page". Accepting a child (answering the decision) lands them in
+ * Finalizing Contract; the initial tuition payment moves them to Enrolled.
+ * Neither is offered in any dropdown, and their cards carry none.
+ */
+export interface BoardGroup {
+  key: string;
+  step: number | null;
+  label: string;
+  stages: readonly LeadStageValue[];
+  entry: LeadStageValue;
+  color: string;
+  /** Shown as a column, never offered as a choice, no dropdown on its cards. */
+  locked?: boolean;
+}
+
+export const BOARD_GROUPS: readonly BoardGroup[] = [
+  { key: "inquiry", step: 1, label: "New Inquiry Received", stages: ["new_inquiry"], entry: "new_inquiry", color: "bg-slate-100 text-slate-700" },
+  { key: "interest_meeting", step: 2, label: "Interest Meeting", stages: ["information_sent", "interview_scheduled", "interest_meeting_held"], entry: "information_sent", color: "bg-sky-100 text-sky-700" },
+  { key: "tours", step: 3, label: "Tours", stages: ["tour_requested", "tour_scheduled", "tour_completed"], entry: "tour_requested", color: "bg-teal-100 text-teal-700" },
+  { key: "application", step: 4, label: "Application", stages: ["application_started", "application_submitted", "records_requested", "admissions_review"], entry: "application_started", color: "bg-indigo-100 text-indigo-700" },
+  { key: "shadow_days", step: 5, label: "Shadow Days", stages: ["shadow_day_scheduled", "shadow_day_completed", "assessment_scheduled"], entry: "shadow_day_scheduled", color: "bg-lime-100 text-lime-800" },
+  { key: "decision", step: 6, label: "Admissions Decision", stages: [], entry: "shadow_day_completed", color: "bg-amber-100 text-amber-900" },
+  { key: "finalizing", step: null, label: "Finalizing Contract", stages: ["accepted"], entry: "accepted", color: "bg-emerald-100 text-emerald-800", locked: true },
+  { key: "enrolled", step: null, label: "Enrolled", stages: ["enrolled"], entry: "enrolled", color: "bg-green-100 text-green-800", locked: true },
+];
+
+/** The groups a person may choose: the six stages. */
+export const CHOOSABLE_BOARD_GROUPS: readonly BoardGroup[] = BOARD_GROUPS.filter((g) => !g.locked);
+
+/** The value the dropdown uses for "Move to Quiet". Lands in Holding Pattern. */
+export const MOVE_TO_QUIET_STAGE: LeadStageValue = "waitlisted";
+
+export function boardGroupForStage(stage: string | null | undefined): BoardGroup | null {
+  if (!stage) return null;
+  return BOARD_GROUPS.find((g) => (g.stages as readonly string[]).includes(stage)) ?? null;
+}
+
+export function boardGroupLabel(group: BoardGroup): string {
+  return group.step ? `${group.step}. ${group.label}` : group.label;
+}
 
 /**
  * The three Old Students columns, in the order Jimmy named them:

@@ -28,7 +28,7 @@ export const ANNUAL_TUITION: Record<string, number> = {
 /** Pipeline stages that represent a family who has said yes but is not enrolled. */
 const CLOSING_STAGES = ["accepted", "application_submitted", "admissions_review"];
 /** Stages that are still genuinely open opportunity. */
-const DEAD_STAGES = ["declined", "not_returning", "enrolled"];
+const DEAD_STAGES = ["declined", "family_declined", "not_returning", "enrolled"];
 
 export interface CampusLine {
   schoolId: string;

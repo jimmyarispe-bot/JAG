@@ -66,6 +66,7 @@ const SCHEDULE: Record<ParentWaitKey, WaitSchedule> = {
 const TERMINAL_STAGES = new Set([
   "enrolled",
   "declined",
+  "family_declined",
   "not_returning",
   "waitlisted",
 ]);

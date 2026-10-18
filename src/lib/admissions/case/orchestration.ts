@@ -22,6 +22,7 @@ import type { LeadStageValue } from "@/lib/constants/admissions";
 import { leadStageLabel } from "@/lib/constants/admissions";
 import { openDecisionGateWith } from "@/lib/admissions/gates/actions";
 import { gateOpeningAtStage } from "@/lib/admissions/gates/definitions";
+import { notifyReachedFinalizingContract } from "@/lib/admissions/finalizing/notify";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -29,6 +30,8 @@ const TERMINAL_PIPELINE_STAGES: AdmissionsPipelineStageKey[] = [
   "accepted",
   "waitlisted",
   "declined",
+  "family_declined",
+  "not_returning",
   "enrollment_complete",
 ];
 
@@ -291,6 +294,17 @@ export async function transitionCaseStage(
   const schoolNameForGate = Array.isArray(schools)
     ? schools[0]?.name ?? null
     : schools?.name ?? null;
+
+  /*
+   * FINALIZING CONTRACT. Jimmy, 18 October 2026: "notify
+   * jimmy.arispe@theacademyway.org each time a student reaches this stage".
+   * Accepted IS Finalizing Contract, and every acceptance - the board's
+   * Decision column, the letter's Accept button, the case page - arrives here.
+   * The notice never throws; the acceptance has already happened.
+   */
+  if (newStage === "accepted") {
+    await notifyReachedFinalizingContract(supabase, leadId);
+  }
 
   const gateKey = gateOpeningAtStage(newStage, schoolNameForGate);
   if (gateKey) {

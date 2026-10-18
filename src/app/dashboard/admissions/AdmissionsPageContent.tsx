@@ -217,7 +217,12 @@ async function AdmissionsLegacyView({
           ) : null
         }
       />
-      <AdmissionsNavigation activeView={view} permissions={ctx?.permissions ?? []} />
+      {/* 18 October 2026, Jimmy, on the two rows of tabs and buttons that sat
+          here (Executive ... Bulk Import): "with current admissions pipeline
+          delete all highlighted buttons and functions. just want the search
+          bar and stages." Asked whether to delete the pages behind them too,
+          he chose to remove the buttons only - every page still opens by its
+          address, and the work queue still shows them. */}
       {view === "executive" && execMetrics ? (
         <ExecutiveAdmissionsDashboard metrics={execMetrics} drillDown={drillDown} drillFilter={drill} />
       ) : view === "reporting" ? (

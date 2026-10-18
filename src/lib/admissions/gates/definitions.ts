@@ -153,6 +153,27 @@ export const GATES: Record<GateKey, GateDefinition> = {
 
 export const GATE_KEYS = Object.keys(GATES) as GateKey[];
 
+/**
+ * THE LETTER THAT ASKS EACH QUESTION. One per gate, 17 October 2026.
+ *
+ * Until then every gate sent decision_gate_staff_email, whose one button
+ * opened JAG to find out what was being asked. Athena Betras's letter that
+ * morning was the send-the-application question; Jimmy read it as the
+ * shadow-days one, because nothing in it said which. Each letter now names
+ * its own question and carries its own answer buttons.
+ *
+ * Exhaustive by type, so a fourth gate cannot be added without a letter.
+ */
+export const DECISION_LETTER_EVENT: Record<GateKey, CommunicationTriggerEvent> = {
+  invite_to_apply: "decision_gate_opened",
+  invite_to_shadow_days: "staff_shadow_days_decision",
+  accept_or_deny: "staff_admission_decision",
+};
+
+export function decisionLetterEvent(gateKey: GateKey): CommunicationTriggerEvent {
+  return DECISION_LETTER_EVENT[gateKey];
+}
+
 export function gateFor(key: string): GateDefinition | null {
   return (GATES as Record<string, GateDefinition | undefined>)[key] ?? null;
 }

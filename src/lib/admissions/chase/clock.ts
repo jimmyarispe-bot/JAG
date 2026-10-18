@@ -123,6 +123,7 @@ const STAGES_PAST_CHASING: ReadonlySet<string> = new Set([
   "accepted",
   "waitlisted",
   "declined",
+  "family_declined",
   "not_returning",
   "enrolled",
 ]);

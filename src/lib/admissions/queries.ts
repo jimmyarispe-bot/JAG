@@ -223,7 +223,7 @@ export async function getAdmissionsReporting() {
     total: leads.length,
     enrolled: leads.filter((l) => l.lead_stage === "enrolled").length,
     accepted: leads.filter((l) => l.lead_stage === "accepted").length,
-    inPipeline: leads.filter((l) => !["enrolled", "declined"].includes(l.lead_stage)).length,
+    inPipeline: leads.filter((l) => !["enrolled", "declined", "family_declined"].includes(l.lead_stage)).length,
     byStage,
     byProgram,
     byFunding: fundingReport.byFunding,

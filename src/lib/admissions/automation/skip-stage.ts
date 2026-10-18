@@ -165,8 +165,10 @@ export function skipTargetForStage(
   }
 
   /* Steps 5-7: the application is next. Landing on Application Submitted
-     opens the decision gate, whose letter - decision_gate_staff_email, 17
-     sends - is the one that asks her to decide. NOT a notes letter: the
+     asks the shadow-days question, and its letter - the shadow-days
+     "Decision needed", one letter per question since 17 October (it was
+     decision_gate_staff_email for all three) - is the one that asks her to
+     decide. NOT a notes letter: the
      notes page would read occasionForStage('application_submitted') as the
      interest meeting and offer a tour to a child who has had one. */
   if (step <= 7) {
@@ -174,7 +176,7 @@ export function skipTargetForStage(
       landingStage: "application_submitted",
       skippedLabel: "Application",
       skipped: stagesBetween(step, 9),
-      notesEvent: "decision_gate_opened",
+      notesEvent: "staff_shadow_days_decision",
     };
   }
 

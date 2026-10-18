@@ -141,6 +141,13 @@ export interface MergeContext {
    */
   interestLinkToken?: string | null;
   /**
+   * admissions_leads.decision_token (migration 566). Opens /decide/<token>/
+   * <answer>, the page behind the answer buttons on the three "Decision
+   * needed" letters. The page reads the child's LIVE stage, so an old letter
+   * can never answer a question the child has moved past.
+   */
+  decisionToken?: string | null;
+  /**
    * DEFAULTED ON THE ROW BY MIGRATION 557, not minted. The skip button is on
    * the inquiry notice - the first letter of all - and post_call_token shows
    * what lazy minting costs there: 13 of 358 leads held one.
@@ -267,6 +274,19 @@ function applicationLink(ctx: MergeContext): string {
 
 function uploadLink(ctx: MergeContext): string {
   return portalLink(ctx);
+}
+
+/**
+ * /decide/<token>/<answer>, or the case page when the lead has no token.
+ * The answer is in the path, not chosen on the page, because the letter's
+ * button already said which answer it was.
+ */
+function decideLink(ctx: MergeContext, answer: "yes" | "accept" | "deny"): string {
+  const token = ctx.decisionToken?.trim();
+  if (token) return `${resolvePublicAppOrigin()}/decide/${token}/${answer}`;
+  return ctx.leadId
+    ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}?section=decisions`
+    : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`;
 }
 
 export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> {
@@ -498,6 +518,23 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
        to render its fallback on every staff letter for a fortnight, which is
        what engine.ts line 50 is about.
     */
+    /*
+       THE ANSWER BUTTONS ON THE THREE "DECISION NEEDED" LETTERS.
+       Jimmy, 17 October 2026: "Yes - schedule shadow days", "See entire
+       application", and no "Open the decision". Each answer falls back to
+       the case page, where the decision can still be made signed in - the
+       same rule as every token link below.
+    */
+    send_application_link: decideLink(ctx, "yes"),
+    invite_shadow_days_link: decideLink(ctx, "yes"),
+    accept_link: decideLink(ctx, "accept"),
+    deny_link: decideLink(ctx, "deny"),
+    application_view_link: ctx.leadId
+      ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}?section=applications`
+      : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,
+    record_link: ctx.leadId
+      ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}`
+      : `${resolvePublicAppOrigin()}/dashboard/people`,
     skip_stage_link: ctx.skipStageToken?.trim()
       ? `${resolvePublicAppOrigin()}/skip-stage/${ctx.skipStageToken.trim()}`
       : ctx.leadId

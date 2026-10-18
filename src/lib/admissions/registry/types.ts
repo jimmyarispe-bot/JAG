@@ -29,6 +29,7 @@ export type AdmissionsPipelineStageKey =
   | "accepted"
   | "waitlisted"
   | "declined"
+  | "family_declined"
   | "not_returning"
   | "enrollment_complete";
 

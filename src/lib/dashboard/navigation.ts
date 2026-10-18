@@ -9,6 +9,7 @@ import { getJagNavigationService } from "@/jag/navigation";
 export type ModuleId =
   | "executive"
   | "admissions"
+  | "enrolled-students"
   | "students"
   | "families"
   | "communications"
@@ -42,7 +43,12 @@ export interface DashboardModule {
    * own href is still the destination of the first child, so nothing is
    * unreachable, and nothing links to a parent that goes nowhere.
    */
-  children?: readonly { readonly href: string; readonly label: string }[];
+  children?: readonly {
+    readonly href: string;
+    readonly label: string;
+    /** Shown to the founder only (Jimmy). The page checks again itself. */
+    readonly founderOnly?: boolean;
+  }[];
 }
 
 export const DASHBOARD_MODULES: DashboardModule[] = [
@@ -80,7 +86,23 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     children: [
       { href: "/dashboard/admissions", label: "Current Pipeline" },
       { href: "/dashboard/quiet-students", label: "Quiet Students" },
+      /* Jimmy, 18 October 2026: "add another subpage/menu under n label it
+         Finalizing Contract ... this page is only accessible by jimmy right
+         now". */
+      { href: "/dashboard/admissions/finalizing", label: "Finalizing Contract", founderOnly: true },
     ],
+  },
+  /* Jimmy, 18 October 2026: "Create the Enrolled Student page between the
+     admissions and student success ... accessible by all school leaders". */
+  {
+    id: "enrolled-students",
+    href: "/dashboard/enrolled-students",
+    sidebarLabel: "Enrolled Students",
+    pageTitle: "Enrolled Students",
+    pageSubtitle: "Children whose first tuition payment has been made, by campus",
+    placeholderTitle: "",
+    placeholderDescription: "",
+    placeholderFeatures: [],
   },
   {
     id: "students",

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { answerDecisionGate } from "@/lib/admissions/gates/actions";
 import { GATES, type PendingGate } from "@/lib/admissions/gates/definitions";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
@@ -26,7 +26,19 @@ import { daysInCurrentStage, pipelineAgingClasses } from "@/lib/admissions/workf
  * their answer cannot drift apart, and nothing here restates either in its own
  * words.
  */
-export function BoardDecisionColumn({ gates }: { gates: readonly PendingGate[] }) {
+export function BoardDecisionColumn({
+  gates,
+  title = "Decision",
+  extraCount = 0,
+  children,
+}: {
+  gates: readonly PendingGate[];
+  /** 18 Oct 2026: on the board this column is "6. Admissions Decision". */
+  title?: string;
+  /** Cards rendered after the open questions (the accepted children). */
+  extraCount?: number;
+  children?: ReactNode;
+}) {
   const definition = GATES.accept_or_deny;
   const [open, setOpen] = useState<PendingGate[]>([...gates]);
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -63,9 +75,9 @@ export function BoardDecisionColumn({ gates }: { gates: readonly PendingGate[] }
       <div className="border-b border-amber-200 px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
-            Decision
+            {title}
           </span>
-          <span className="text-xs font-medium text-amber-700">{open.length}</span>
+          <span className="text-xs font-medium text-amber-700">{open.length + extraCount}</span>
         </div>
         <p className="mt-1 text-xs text-amber-800">{definition.question}</p>
       </div>
@@ -139,7 +151,9 @@ export function BoardDecisionColumn({ gates }: { gates: readonly PendingGate[] }
           );
         })}
 
-        {open.length === 0 && (
+        {children}
+
+        {open.length === 0 && extraCount === 0 && (
           <p className="py-4 text-center text-xs text-amber-700">Nothing waiting on you</p>
         )}
       </div>

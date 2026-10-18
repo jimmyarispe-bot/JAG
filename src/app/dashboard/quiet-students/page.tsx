@@ -58,7 +58,7 @@ export default async function QuietStudentsPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
         title="Quiet Students"
-        subtitle="Families who have gone, and the ones still waiting on a decision"
+        subtitle="Alumni, Holding Pattern, No - our decision, No - family decision"
         actions={
           <Link
             href="/dashboard/admissions"

@@ -133,6 +133,23 @@ export const BUTTON_LABELS: Readonly<Record<string, string>> = {
    * names for one move.
    */
   skip_stage_link: "Skip next stage",
+  /*
+   * THE THREE "DECISION NEEDED" LETTERS, 17 OCTOBER 2026. Jimmy's own button
+   * for the shadow days ("Yes — schedule shadow days", "See entire
+   * application"), and the four below written to match it and approved by
+   * him the same evening. "Open the decision" is no longer on any letter;
+   * decisions_link keeps its label above only for a body nobody has moved.
+   *
+   * record_link CARRIES THE CHILD'S NAME - "See Athena's record" - so a label
+   * may now hold a merge field. renderBlock resolves it with the letter's own
+   * values; nothing else in this map uses one.
+   */
+  send_application_link: "Yes — send the application",
+  invite_shadow_days_link: "Yes — schedule shadow days",
+  accept_link: "Accept — send email",
+  deny_link: "Deny — send email",
+  application_view_link: "See entire application",
+  record_link: "See {{student_first_name}}'s record",
 };
 
 const FALLBACK_LABEL = "Open this link";
@@ -351,7 +368,15 @@ function renderBlock(
     if (!unresolved && isLinkField(key)) {
       const href = safeHref(value);
       if (href) {
-        if (!link) link = { href, label: BUTTON_LABELS[key] ?? FALLBACK_LABEL };
+        if (!link) {
+          /* A label may carry a merge field (record_link does). Resolved
+             here, escaped later by buttonBlock like every other label. */
+          const label = (BUTTON_LABELS[key] ?? FALLBACK_LABEL).replace(
+            /\{\{(\w+)\}\}/g,
+            (token) => renderTemplate(token, ctx)
+          );
+          link = { href, label };
+        }
         /*
          * THE URL COMES OUT OF THE SENTENCE. It is about to appear twice
          * below - once as a button, once in full underneath it - and three
