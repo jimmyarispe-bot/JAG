@@ -10,8 +10,8 @@
  * in the order the family filled them in. A section the viewer may not see,
  * or that fails to load, is left out rather than taking the page down.
  *
- * The full case page (notes, tasks, letters, the stage controls) is one link
- * away at the top.
+ * The campus is named at the top. The link to the full case page was taken
+ * off (Jimmy, 18 October: "delete full case").
  */
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -20,7 +20,6 @@ import "@/lib/platform/profile";
 
 import { AdmissionsCaseSectionSwitch } from "@/components/admissions/case/sections/AdmissionsCaseSectionSwitch";
 import {
-  buildAdmissionsCaseHref,
   loadAdmissionsCaseSectionData,
   resolveAdmissionsCaseProfile,
 } from "@/lib/admissions/profile";
@@ -59,6 +58,11 @@ export default async function AdmissionsCaseFullRecordPage({ params }: FullRecor
   const allowed = SECTION_PERMISSIONS.some((p) => envelope.permissions.includes(p));
   if (!allowed) notFound();
 
+  const { data: school } = envelope.schoolId
+    ? await supabase.from("schools").select("name").eq("id", envelope.schoolId).maybeSingle()
+    : { data: null };
+  const schoolName = (school?.name as string | undefined) ?? null;
+
   const loaded = await Promise.all(
     SECTIONS.map(async (section) => {
       try {
@@ -74,10 +78,12 @@ export default async function AdmissionsCaseFullRecordPage({ params }: FullRecor
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">{envelope.displayName}</h1>
-          {envelope.subtitle ? (
-            <p className="mt-1 text-sm text-slate-500">{envelope.subtitle}</p>
+          {/* The campus first. Jimmy, 18 October 2026: "delete full case; add
+              school at top". */}
+          {schoolName ? (
+            <p className="text-sm font-semibold uppercase tracking-wide text-brand-700">{schoolName}</p>
           ) : null}
+          <h1 className="text-2xl font-semibold text-slate-900">{envelope.displayName}</h1>
         </div>
         <div className="flex gap-2">
           <Link
@@ -85,12 +91,6 @@ export default async function AdmissionsCaseFullRecordPage({ params }: FullRecor
             className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             ← Pipeline
-          </Link>
-          <Link
-            href={buildAdmissionsCaseHref(id)}
-            className="rounded-xl border border-brand-200 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
-          >
-            Full case page
           </Link>
         </div>
       </div>
