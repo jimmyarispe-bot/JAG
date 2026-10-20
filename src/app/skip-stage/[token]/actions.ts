@@ -21,7 +21,9 @@ import { skipNextStage } from "@/lib/admissions/automation/skip-stage";
 export async function skipStageAction(formData: FormData) {
   const token = String(formData.get("token") ?? "");
 
-  const result = await skipNextStage({ token });
+  const expectedStage = String(formData.get("from") ?? "") || null;
+
+  const result = await skipNextStage({ token, expectedStage });
 
   if ("error" in result) {
     redirect(
@@ -37,6 +39,7 @@ export async function skipStageAction(formData: FormData) {
    */
   redirect(
     `/skip-stage/${encodeURIComponent(token)}?done=${encodeURIComponent(result.landedOn)}` +
+      (result.alreadyDone ? "&again=1" : "") +
       (result.letterProblem ? `&warning=${encodeURIComponent(result.letterProblem)}` : "")
   );
 }

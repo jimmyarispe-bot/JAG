@@ -59,7 +59,7 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { processCommunicationQueue } from "@/lib/admissions/communications/engine";
-import { campusRunsTours } from "@/lib/admissions/tour";
+import { campusRunsTours, tourGateArmed } from "@/lib/admissions/tour";
 import { LEAD_STAGES, leadStageLabel } from "@/lib/constants/admissions";
 import type { LeadStageValue } from "@/lib/constants/admissions";
 
@@ -75,8 +75,12 @@ interface Query {
   maybeSingle: () => Answer<Row | null>;
   insert: (row: Row) => Answer<null>;
 }
+interface Filtered extends Answer<null> {
+  eq: (column: string, value: string) => Filtered;
+  select: (columns: string) => Answer<Row[] | null>;
+}
 interface Mutation {
-  update: (values: Row) => { eq: (column: string, value: string) => Answer<null> };
+  update: (values: Row) => Filtered;
 }
 interface UntypedAdmin {
   from: (table: string) => Query & Mutation;
@@ -280,9 +284,36 @@ export async function leadForSkipToken(token: string): Promise<SkipSubject | nul
  */
 export async function skipNextStage(params: {
   token: string;
-}): Promise<{ ok: true; landedOn: string; letterProblem: string | null } | { error: string }> {
+  /** The stage the page showed her. A press made against an older stage is
+      a second press, and a second press does nothing. */
+  expectedStage?: string | null;
+}): Promise<
+  | { ok: true; landedOn: string; letterProblem: string | null; alreadyDone: boolean }
+  | { error: string }
+> {
   const subject = await leadForSkipToken(params.token);
   if (!subject) return { error: "That link is not valid." };
+
+  /*
+   * ONE PRESS, ONE STAGE - ENFORCED HERE, 19 OCTOBER 2026.
+   *
+   * John Nygren (FL). Danni pressed Skip on the inquiry letter once. The
+   * history shows two moves four seconds apart: New Inquiry -> Interest
+   * Meeting Held at 15:44:30, then Interest Meeting Held -> Tour Completed at
+   * 15:44:34, and two "happening now; TAKE notes" letters. The second letter
+   * landed two seconds before the second move, so nobody read it and pressed
+   * again - the form was submitted twice. The redirect stops a refresh; it
+   * never stopped a double tap. The page now sends the stage it showed, and a
+   * press against any other stage is a no-op.
+   */
+  if (params.expectedStage && params.expectedStage !== subject.currentStage) {
+    return {
+      ok: true,
+      landedOn: subject.currentStageLabel,
+      letterProblem: null,
+      alreadyDone: true,
+    };
+  }
 
   const target = subject.target;
   if (!target) {
@@ -296,7 +327,38 @@ export async function skipNextStage(params: {
 
   const db = admin();
 
-  /* The history row first, and its error is read. A stage that moved with no
+  /*
+   * THE MOVE IS CONDITIONAL ON THE STAGE STILL BEING THE ONE READ, so two
+   * presses that arrive together cannot both move the child. Whichever lands
+   * second updates nothing and is told the skip is already done. This now
+   * goes BEFORE the history row: the conditional update is the lock, and a
+   * history row for a move that did not happen would be worse than none.
+   */
+  const merged = Array.from(
+    new Set([...subject.alreadySkipped, ...target.skipped])
+  );
+
+  const { data: moved, error: updateError } = await db
+    .from("admissions_leads")
+    .update({ lead_stage: target.landingStage, skipped_stages: merged })
+    .eq("id", subject.leadId)
+    .eq("lead_stage", subject.currentStage ?? "")
+    .select("id");
+
+  if (updateError) {
+    console.error("[skip-stage] stage update failed:", updateError.message);
+    return { error: "That did not save. Tell Jimmy before you press it again." };
+  }
+  if (!moved || moved.length === 0) {
+    return {
+      ok: true,
+      landedOn: subject.currentStageLabel,
+      letterProblem: null,
+      alreadyDone: true,
+    };
+  }
+
+  /* The history row, and its error is read, and its error is read. A stage that moved with no
      history is a move nobody can account for afterwards, and this table is
      the only record of who skipped what. */
   const { error: historyError } = await db
@@ -309,31 +371,21 @@ export async function skipNextStage(params: {
       changed_at: new Date().toISOString(),
     });
 
+  /* The child has moved; a missing history row is reported, not fatal. */
   if (historyError) {
     console.error("[skip-stage] history insert failed:", historyError.message);
-    return { error: "That did not save. Tell Jimmy before you press it again." };
   }
 
-  /* The union, not a replacement: a child may be skipped more than once on
-     the way up, and the second press must not erase what the first recorded. */
-  const merged = Array.from(
-    new Set([...subject.alreadySkipped, ...target.skipped])
-  );
-
-  const { error: updateError } = await db
-    .from("admissions_leads")
-    .update({ lead_stage: target.landingStage, skipped_stages: merged })
-    .eq("id", subject.leadId);
-
-  if (updateError) {
-    console.error("[skip-stage] stage update failed:", updateError.message);
-    return { error: "That did not save. Tell Jimmy before you press it again." };
-  }
+  /* The letter's button is /post-call/<token>. A child who never had an
+     interest meeting booked has no post-call token, and the letter fell back
+     to the case page - which is why Danni's letter had no tour button. */
+  await ensurePostCallToken(db, subject.leadId);
 
   const letterProblem = await queueStaffLetter(db, {
     leadId: subject.leadId,
     schoolId: subject.schoolId,
     triggerEvent: target.notesEvent,
+    letter: skipLetterFor(target, subject.schoolName),
   });
 
   /*
@@ -366,7 +418,14 @@ export async function skipNextStage(params: {
     }
   }
 
-  return { ok: true, landedOn: leadStageLabel(target.landingStage), letterProblem };
+  return {
+    ok: true,
+    landedOn: leadStageLabel(target.landingStage),
+    letterProblem: historyError
+      ? letterProblem ?? "The stage was skipped, but the history row did not save. Tell Jimmy."
+      : letterProblem,
+    alreadyDone: false,
+  };
 }
 
 /**
@@ -386,7 +445,12 @@ export async function skipNextStage(params: {
  */
 async function queueStaffLetter(
   db: UntypedAdmin,
-  params: { leadId: string; schoolId: string | null; triggerEvent: string }
+  params: {
+    leadId: string;
+    schoolId: string | null;
+    triggerEvent: string;
+    letter: SkipLetter | null;
+  }
 ): Promise<string | null> {
   if (!params.schoolId) return "This child has no campus on the record, so no letter was sent.";
 
@@ -425,6 +489,8 @@ async function queueStaffLetter(
     channel: String(template.channel ?? "email"),
     scheduled_for: new Date().toISOString(),
     status: "pending",
+    custom_subject: params.letter?.subject ?? null,
+    custom_body: params.letter?.body ?? null,
     merge_overrides: null,
   });
 
@@ -434,4 +500,90 @@ async function queueStaffLetter(
   }
 
   return null;
+}
+
+/**
+ * WHAT A SKIPPED STAGE'S LETTER SAYS.
+ *
+ * Danni, 19 October 2026, on the letter a skip sent her:
+ *
+ *   "it sent me an email that said: 'Meeting with Parent is happening now,
+ *    take notes email' It should have said: Send the schedule tour link.
+ *    (the parent still has not received an email from me)."
+ *
+ * The notes letters are written for an appointment that is happening now. A
+ * skipped stage is not happening at all, so the same template is sent with
+ * its subject and body replaced: what was skipped, that the family has heard
+ * nothing, and the one button that sends them the next thing. The button is
+ * the post-call page, which already offers exactly that question for the
+ * stage the child lands on.
+ *
+ * The application skip keeps its letter: "Decision needed" is already the
+ * right question.
+ */
+export interface SkipLetter {
+  readonly subject: string;
+  readonly body: string;
+}
+
+const CHILD_FACTS =
+  "{{student_full_name}}\r\n{{student_grade}}\r\n{{student_age}}\r\n{{parent_phone}}";
+
+export function skipLetterFor(
+  target: SkipTarget,
+  schoolName: string | null | undefined
+): SkipLetter | null {
+  if (target.notesEvent === "staff_inquiry_call_held") {
+    const tour = tourGateArmed() && campusRunsTours(schoolName);
+    const action = tour ? "Send the schedule tour link" : "Send the shadow day invite";
+    return {
+      subject: `${action}: {{student_full_name}}`,
+      body:
+        "You skipped the interest meeting for {{student_full_name}}. " +
+        "{{guardian_name}} has not received an email from you yet.\r\n\r\n" +
+        `${action}:\r\n\r\n{{post_call_link}}\r\n\r\n` +
+        `${CHILD_FACTS}\r\n\r\n{{skip_stage_link}}`,
+    };
+  }
+  if (target.notesEvent === "staff_tour_held") {
+    return {
+      subject: "Send the application: {{student_full_name}}",
+      body:
+        "You skipped the tour for {{student_full_name}}. " +
+        "{{guardian_name}} has not received an email from you yet.\r\n\r\n" +
+        "Send the application:\r\n\r\n{{post_call_link}}\r\n\r\n" +
+        `${CHILD_FACTS}\r\n\r\n{{skip_stage_link}}`,
+    };
+  }
+  if (target.notesEvent === "staff_shadow_day_held") {
+    return {
+      subject: "Accept or deny: {{student_full_name}}",
+      body:
+        "You skipped the shadow days for {{student_full_name}}. " +
+        "{{guardian_name}} has not received an email from you yet.\r\n\r\n" +
+        "Accept or deny {{student_first_name}}:\r\n\r\n{{post_call_link}}\r\n\r\n" +
+        CHILD_FACTS,
+    };
+  }
+  return null;
+}
+
+/** Minted once and reused - the rule mintPostCallToken in chase/run.ts keeps. */
+async function ensurePostCallToken(db: UntypedAdmin, leadId: string): Promise<void> {
+  const { data } = await db
+    .from("admissions_leads")
+    .select("post_call_token")
+    .eq("id", leadId)
+    .maybeSingle();
+  if (text((data as Row | null)?.post_call_token)) return;
+
+  const token = (
+    globalThis.crypto.randomUUID() + globalThis.crypto.randomUUID()
+  ).replace(/-/g, "");
+
+  const { error } = await db
+    .from("admissions_leads")
+    .update({ post_call_token: token })
+    .eq("id", leadId);
+  if (error) console.error("[skip-stage] post-call token not minted:", error.message);
 }

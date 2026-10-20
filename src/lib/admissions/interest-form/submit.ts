@@ -29,6 +29,7 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 import { setAutomationStartedAt } from "@/lib/admissions/automation-gate";
 import { sendStudentQuestionnaire } from "@/lib/admissions/student-questionnaire/send";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { noteGsnsLetterOnLead } from "@/lib/scholarships/gsns-letter";
 
 function asString(value: unknown): string {
   if (value == null) return "";
@@ -527,6 +528,12 @@ export async function submitPublishedInterestForm(
     definition: published.definition,
     values: visible,
   });
+
+  // A GA Special Needs Scholarship letter is read on arrival: the GTID and the
+  // letter's total go onto the lead (Jimmy, 20 Oct 2026). Never throws.
+  if (attachedDocuments.length > 0) {
+    await noteGsnsLetterOnLead(createServiceRoleClient(), leadId);
+  }
 
   /*
    * WHAT THEY TICKED, CARRIED RATHER THAN LOOKED UP.

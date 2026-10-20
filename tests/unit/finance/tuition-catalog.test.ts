@@ -166,7 +166,9 @@ describe("who pays is derived, not stored", () => {
     expect(row.providerSchoolName).toBe("The Academy Virtual");
   });
 
-  it("owes it school to school when a campus takes another school's class", async () => {
+  // Jimmy, 20 October 2026: "the parents pay this for structured literacy.
+  // this amount should be added into their total and schedule of payments."
+  it("bills the family when a campus takes another school's class", async () => {
     createAuthClient.mockResolvedValue(
       makeClient({
         schools: SCHOOLS,
@@ -193,8 +195,8 @@ describe("who pays is derived, not stored", () => {
     if ("error" in result) throw new Error(result.error);
 
     const row = result.groups[0]!.rows[0]!;
-    // No family is billed for this. The Academy FL owes The Academy Virtual.
-    expect(row.billedToFamily).toBe(false);
+    // The family pays The Academy FL; FL settles with Virtual separately.
+    expect(row.billedToFamily).toBe(true);
     expect(row.schoolName).toBe("The Academy FL");
     expect(row.providerSchoolName).toBe("The Academy Virtual");
   });

@@ -21,6 +21,9 @@ import { convertLeadToStudentAction } from "@/lib/admissions/handoff/actions";
 import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-access";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { createAuthClient } from "@/lib/supabase/server-auth";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { GSNS_PROGRAM_CODE, decidedOn, easternToday, gsnsShareOn, shareOf } from "@/lib/scholarships/gsns";
+import { applyGsnsLetterToStudent } from "@/lib/scholarships/gsns-letter";
 
 import { firstPayableInstalment, type FinalizingInstalment } from "./load";
 import { notifyEnrolledByFirstPayment } from "./notify";
@@ -72,8 +75,153 @@ export async function createStudentRecordAction(leadId: string) {
   const auth = await requireJimmy();
   if ("error" in auth) return { error: auth.error };
   const result = await convertLeadToStudentAction(leadId);
+  // The family's GSNS letter, if they uploaded one, becomes the award now.
+  if (!(result && typeof result === "object" && "error" in result && result.error)) {
+    await readLetterInto(auth.supabase, leadId);
+  }
   refresh();
   return result;
+}
+
+async function readLetterInto(
+  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  leadId: string
+): Promise<{ error: string } | { text: string }> {
+  const { data: student, error } = await supabase
+    .from("students")
+    .select("id, school_id")
+    .eq("admissions_lead_id", leadId)
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!student) return { error: "Create the student record first." };
+  const result = await applyGsnsLetterToStudent(supabase as never, createServiceRoleClient() as never, {
+    leadId,
+    studentId: student.id as string,
+    schoolId: student.school_id as string,
+  });
+  if ("error" in result) return result;
+  const a = result.applied;
+  return {
+    text:
+      `Read the letter: total ${usd(a.total_award_amount)}${a.gtid ? `, GTID ${a.gtid}` : ""}. ` +
+      `${a.award_percent}% = ${usd(a.awarded_amount)}` +
+      (a.award_percent_deadline ? ` if the contract is signed and the first payment made before ${longDate(a.award_percent_deadline)}.` : "."),
+  };
+}
+
+function usd(n: number): string {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+function longDate(day: string): string {
+  return new Date(`${day}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/**
+ * A GSNS award typed by hand with the letter's total: the share is worked out
+ * the same way as a letter read automatically. Anything else: as typed.
+ */
+function gsnsFromForm(
+  programCode: string | null,
+  programName: string | null,
+  awardYear: string,
+  formData: FormData
+): { error: string } | { figures: Record<string, unknown> | null; amount: number | null } {
+  const total = money(formData.get("total_award_amount"));
+  const isGsns = programCode === GSNS_PROGRAM_CODE || /special needs scholarship/i.test(programName ?? "");
+  if (total === null || !isGsns) return { figures: null, amount: null };
+  const share = gsnsShareOn(easternToday(), awardYear);
+  if (!share) return { error: "Give the school year as 2026-2027." };
+  const amount = shareOf(total, share.percent);
+  return {
+    amount,
+    figures: {
+      program_code: GSNS_PROGRAM_CODE,
+      total_award_amount: total,
+      award_percent: share.percent,
+      award_percent_deadline: share.deadline,
+      state_student_number: text(formData.get("state_student_number")),
+    },
+  };
+}
+
+/** Finalizing card: read the family's GSNS letter into the award. */
+export async function readAwardLetterAction(leadId: string) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const { count } = await auth.supabase
+    .from("enrollment_packets")
+    .select("lead_id", { count: "exact", head: true })
+    .eq("lead_id", leadId);
+  if ((count ?? 0) > 0) return { error: LOCKED };
+  const result = await readLetterInto(auth.supabase, leadId);
+  refresh();
+  if ("error" in result) return result;
+  return { success: true, message: result.text };
+}
+
+/**
+ * The GSNS share moved: a deadline passed before the contract and first
+ * payment were both in, or both arrived and decided it. Jimmy applies the new
+ * share; the plan is then rebuilt from it.
+ */
+export async function applyGsnsShareAction(awardId: string, leadId: string) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase } = auth;
+
+  const { data: award, error } = await supabase
+    .from("scholarship_awards")
+    .select("id, award_year, total_award_amount, program_code")
+    .eq("id", awardId)
+    .maybeSingle();
+  if (error) return { error: error.message };
+  const row = award as { award_year: string; total_award_amount: number | string | null; program_code: string | null } | null;
+  if (!row || row.program_code !== GSNS_PROGRAM_CODE || row.total_award_amount === null) {
+    return { error: "This is not a GA Special Needs Scholarship with a letter total." };
+  }
+
+  const [{ data: packet }, { data: student }] = await Promise.all([
+    supabase
+      .from("enrollment_packets")
+      .select("signed_contract_at, completed_at")
+      .eq("lead_id", leadId)
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("students").select("id").eq("admissions_lead_id", leadId).maybeSingle(),
+  ]);
+  let firstPaidAt: string | null = null;
+  if (student) {
+    const { data: paid } = await supabase
+      .from("student_tuition_instalments")
+      .select("paid_at, student_tuition_plans!inner(student_id, status)")
+      .eq("student_tuition_plans.student_id", (student as { id: string }).id)
+      .eq("is_paid", true)
+      .order("paid_at", { ascending: true })
+      .limit(1);
+    firstPaidAt = ((paid ?? [])[0] as { paid_at?: string | null } | undefined)?.paid_at ?? null;
+  }
+  const p = packet as { signed_contract_at?: string | null; completed_at?: string | null } | null;
+  const day = decidedOn(p?.signed_contract_at ?? p?.completed_at ?? null, firstPaidAt) ?? easternToday();
+  const share = gsnsShareOn(day, row.award_year);
+  if (!share) return { error: "The award's school year could not be read." };
+
+  const total = Number(row.total_award_amount);
+  const { error: updateError } = await supabase
+    .from("scholarship_awards")
+    .update({
+      award_percent: share.percent,
+      award_percent_deadline: share.deadline,
+      awarded_amount: shareOf(total, share.percent),
+    })
+    .eq("id", awardId);
+  if (updateError) return { error: updateError.message };
+  refresh();
+  return {
+    success: true,
+    message: `Now ${share.percent}% = ${usd(shareOf(total, share.percent))}. Rebuild the tuition plan from it.`,
+  };
 }
 
 /**
@@ -92,17 +240,21 @@ export async function addScholarshipAction(formData: FormData) {
   const programCode = text(formData.get("program_code"));
   const awardYear = text(formData.get("award_year"));
   const status = text(formData.get("status"));
-  const amount = money(formData.get("amount"));
+  let amount = money(formData.get("amount"));
 
   if (!studentId || !schoolId) return { error: "Create the student record first." };
   if (!programName) return { error: "Name the scholarship." };
   if (!awardYear) return { error: "Give the school year, for example 2026-2027." };
   if (status !== "awarded" && status !== "applied") return { error: "Choose awarded or applied for." };
+  const gsns = gsnsFromForm(programCode, programName, awardYear, formData);
+  if ("error" in gsns) return gsns;
+  if (gsns.amount !== null) amount = gsns.amount;
   if (status === "awarded" && (amount === null || amount < 0)) {
     return { error: "An awarded scholarship needs its amount." };
   }
 
-  const { error } = await supabase.from("scholarship_awards").insert({
+  const { data: inserted, error } = await supabase.from("scholarship_awards").insert({
+    ...(status === "awarded" && gsns.figures ? gsns.figures : {}),
     student_id: studentId,
     school_id: schoolId,
     program_name: programName,
@@ -112,7 +264,103 @@ export async function addScholarshipAction(formData: FormData) {
     awarded_amount: status === "awarded" ? amount : null,
     awarded_on: status === "awarded" ? new Date().toISOString().slice(0, 10) : null,
     applied_on: status === "applied" ? new Date().toISOString().slice(0, 10) : null,
-  });
+  })
+    .select("id, program_name, program_code, award_year, status, awarded_amount, expected_amount")
+    .single();
+  if (error) return { error: error.message };
+  refresh();
+  // Returned so the card shows it at once, without waiting on the page refresh
+  // (20 Oct 2026: "Scholarship added." sat above "None recorded.").
+  return {
+    success: true,
+    award: {
+      id: String(inserted.id),
+      programName: String(inserted.program_name),
+      programCode: (inserted.program_code as string | null) ?? null,
+      awardYear: String(inserted.award_year),
+      status: String(inserted.status),
+      awardedAmount: inserted.awarded_amount === null ? null : Number(inserted.awarded_amount),
+      expectedAmount: inserted.expected_amount === null ? null : Number(inserted.expected_amount),
+    },
+  };
+}
+
+/**
+ * Jimmy, 20 October 2026: "I need to be able to go back to edit if I make an
+ * error with an entry." Editable until the contract is sent - after that the
+ * parent has the figures, so a change means a new contract, not a quiet edit.
+ */
+async function contractAlreadySent(
+  supabase: Awaited<ReturnType<typeof createAuthClient>>,
+  awardId: string
+): Promise<{ sent: boolean; error?: string }> {
+  const { data: award, error } = await supabase
+    .from("scholarship_awards")
+    .select("student_id")
+    .eq("id", awardId)
+    .maybeSingle();
+  if (error) return { sent: false, error: error.message };
+  if (!award) return { sent: false, error: "That scholarship could not be found." };
+  const { data: student, error: studentError } = await supabase
+    .from("students")
+    .select("admissions_lead_id")
+    .eq("id", award.student_id as string)
+    .maybeSingle();
+  if (studentError) return { sent: false, error: studentError.message };
+  const leadId = (student?.admissions_lead_id as string | null | undefined) ?? null;
+  if (!leadId) return { sent: false };
+  const { count, error: packetError } = await supabase
+    .from("enrollment_packets")
+    .select("lead_id", { count: "exact", head: true })
+    .eq("lead_id", leadId);
+  if (packetError) return { sent: false, error: packetError.message };
+  return { sent: (count ?? 0) > 0 };
+}
+
+const LOCKED = "The contract has already been sent with this figure. It can no longer be changed here.";
+
+/** Correct a scholarship entry: name, code, year, awarded/applied, amount. */
+export async function editScholarshipAction(formData: FormData) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase } = auth;
+
+  const awardId = text(formData.get("award_id"));
+  const programName = text(formData.get("program_name"));
+  const programCode = text(formData.get("program_code"));
+  const awardYear = text(formData.get("award_year"));
+  const status = text(formData.get("status"));
+  let amount = money(formData.get("amount"));
+
+  if (!awardId) return { error: "Missing scholarship." };
+  if (!programName) return { error: "Name the scholarship." };
+  if (!awardYear) return { error: "Give the school year, for example 2026-2027." };
+  if (status !== "awarded" && status !== "applied") return { error: "Choose awarded or applied for." };
+  const gsns = gsnsFromForm(programCode, programName, awardYear, formData);
+  if ("error" in gsns) return gsns;
+  if (gsns.amount !== null) amount = gsns.amount;
+  if (status === "awarded" && (amount === null || amount < 0)) {
+    return { error: "An awarded scholarship needs its amount." };
+  }
+
+  const lock = await contractAlreadySent(supabase, awardId);
+  if (lock.error) return { error: lock.error };
+  if (lock.sent) return { error: LOCKED };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { error } = await supabase
+    .from("scholarship_awards")
+    .update({
+      program_name: programName,
+      program_code: programCode,
+      ...(status === "awarded" && gsns.figures ? gsns.figures : {}),
+      award_year: awardYear,
+      status,
+      awarded_amount: status === "awarded" ? amount : null,
+      awarded_on: status === "awarded" ? today : null,
+      applied_on: status === "applied" ? today : null,
+    })
+    .eq("id", awardId);
   if (error) return { error: error.message };
   refresh();
   return { success: true };
@@ -127,6 +375,10 @@ export async function updateScholarshipAction(formData: FormData) {
   const awardId = text(formData.get("award_id"));
   const intent = text(formData.get("intent"));
   if (!awardId) return { error: "Missing scholarship." };
+
+  const lock = await contractAlreadySent(supabase, awardId);
+  if (lock.error) return { error: lock.error };
+  if (lock.sent) return { error: LOCKED };
 
   if (intent === "withdraw") {
     const { error } = await supabase

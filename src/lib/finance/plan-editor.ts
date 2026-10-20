@@ -175,13 +175,22 @@ export async function loadPlanEditorContext(
       frequency: (price.billing_frequency as BillingFrequency) ?? "monthly",
       offeredOneToOne: Boolean(price.offered_one_to_one),
       oneToOneSessionRate: num(price.one_to_one_session_rate),
-      billedToFamily: item.provider_school_id === price.school_id,
+      // Jimmy, 20 October 2026: "the parents pay this for structured literacy.
+      // this amount should be added into their total and schedule of payments."
+      // The family pays the attending school for every line it chooses. Which
+      // school teaches it is settled school to school, separately.
+      billedToFamily: true,
+      providedByOtherSchool: item.provider_school_id !== price.school_id,
       providerSchoolName:
         schoolNameById.get(item.provider_school_id as string) ?? "(unknown school)",
     });
   }
+  // Tuition and packages first (The HS Experience at the top of HS), then the
+  // classes underneath, each group in catalog order.
+  const kindRank = (kind: string) => (kind === "class" ? 1 : 0);
   catalog.sort(
     (a, b) =>
+      kindRank(a.itemKind) - kindRank(b.itemKind) ||
       (itemById.get(a.catalogItemId)?.sort_order ?? 0) -
         (itemById.get(b.catalogItemId)?.sort_order ?? 0) ||
       a.itemName.localeCompare(b.itemName)

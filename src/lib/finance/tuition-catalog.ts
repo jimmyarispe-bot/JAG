@@ -79,7 +79,8 @@ export async function listTuitionPriceGrid(): Promise<
       description: item.description,
       providerSchoolId: item.provider_school_id,
       providerSchoolName: schoolNameById.get(item.provider_school_id) ?? "(unknown school)",
-      billedToFamily: item.provider_school_id === price.school_id,
+      // The family pays for every line (Jimmy, 20 Oct 2026). Kept for the label only.
+      billedToFamily: true,
       standardAmount: price.standard_amount,
       billingFrequency: price.billing_frequency,
       offeredOneToOne: price.offered_one_to_one,

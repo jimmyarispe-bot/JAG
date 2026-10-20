@@ -84,7 +84,7 @@ export async function scheduleInterviewReminders(
     reminders.map(({ event }) =>
       supabase
         .from("admissions_communication_templates")
-        .select("id, template_key, channel")
+        .select("id, template_key, channel, school_id")
         .eq("trigger_event", event)
         .eq("is_active", true)
         .or(`school_id.is.null,school_id.eq.${lead.school_id}`)
@@ -94,7 +94,27 @@ export async function scheduleInterviewReminders(
   const queueRows = [];
   for (let i = 0; i < reminders.length; i++) {
     const { event, hoursBefore } = reminders[i];
-    const templates = templateSets[i].data ?? [];
+    /*
+     * ONE REMINDER PER KEY - THE CAMPUS COPY WINS. 19 OCTOBER 2026.
+     *
+     * FL has its own interview_reminder_24h ("Tomorrow — interest
+     * conversation about ...") beside the network-wide one ("Tomorrow —
+     * Interest Meeting for ..."). Both were queued for Benjamin Malik, so his
+     * mother would have had two reminders for one call. getTemplatesForTrigger
+     * in engine.ts has always kept one per key with the campus override
+     * winning; this query was written separately and never did.
+     */
+    const byKey = new Map<string, { id: string; template_key: string; channel: string; school_id: string | null }>();
+    const fetched = (templateSets[i].data ?? []) as {
+      id: string;
+      template_key: string;
+      channel: string;
+      school_id: string | null;
+    }[];
+    for (const t of [...fetched].sort((a, b) => (a.school_id ? 1 : 0) - (b.school_id ? 1 : 0))) {
+      byKey.set(t.template_key, t);
+    }
+    const templates = [...byKey.values()];
     for (const template of templates) {
       const scheduledFor = new Date(
         interviewDate.getTime() - hoursBefore * 60 * 60 * 1000

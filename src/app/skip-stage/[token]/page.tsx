@@ -38,13 +38,28 @@ export default async function SkipStagePage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ done?: string; problem?: string; why?: string; warning?: string }>;
+  searchParams: Promise<{ done?: string; problem?: string; why?: string; warning?: string; again?: string }>;
 }) {
   const { token } = await params;
-  const { done, problem, why, warning } = await searchParams;
+  const { done, problem, why, warning, again } = await searchParams;
 
   const subject = await leadForSkipToken(token);
   if (!subject) notFound();
+
+  if (done && again) {
+    return (
+      <main className="mx-auto max-w-xl px-6 py-16">
+        <h1 className="text-2xl font-semibold text-slate-900">
+          Already skipped. {subject.studentName} is at {done}.
+        </h1>
+        <p className="mt-4 text-slate-700">
+          That press had already been made, so nothing more changed and no
+          second email was sent.
+        </p>
+        <p className="mt-6 text-sm text-slate-500">You can close this page.</p>
+      </main>
+    );
+  }
 
   if (done) {
     return (
@@ -132,6 +147,7 @@ export default async function SkipStagePage({
 
       <form action={skipStageAction} className="mt-8">
         <input type="hidden" name="token" value={token} />
+        <input type="hidden" name="from" value={subject.currentStage ?? ""} />
         <button
           type="submit"
           className="rounded-md bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"

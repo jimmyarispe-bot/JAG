@@ -1301,7 +1301,25 @@ export async function runInterestMeetingScan(
      * the confirmation. A third message about one booking is noise.
      */
     const meetingLead = leadById.get(leadId) ?? null;
-    const STAGES_THAT_MAY_ADVANCE_TO_SCHEDULED = ["new_inquiry", "information_sent"];
+    /*
+     * HOLDING PATTERN TOO, ADDED 19 OCTOBER 2026.
+     *
+     * Danni, on Benjamin Malik (FL): "I quieted a kid named Benjamin Malik.
+     * When he did schedule an interest call, it did not take him out of
+     * 'Quiet'. I manually moved him to the correct place under Interest call
+     * scheduled."
+     *
+     * Holding Pattern (`waitlisted`, what Move to Quiet sets) means nothing
+     * is moving. A parent booking the interest meeting is something moving,
+     * and the booking is a fact. The judgement columns - No - our decision,
+     * No - family decision, Alumni - are still left alone: a school leader
+     * put them there on purpose, and she takes them out.
+     */
+    const STAGES_THAT_MAY_ADVANCE_TO_SCHEDULED = [
+      "new_inquiry",
+      "information_sent",
+      "waitlisted",
+    ];
     if (
       meetingLead &&
       STAGES_THAT_MAY_ADVANCE_TO_SCHEDULED.includes(meetingLead.lead_stage ?? "")

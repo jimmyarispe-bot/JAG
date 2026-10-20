@@ -6,15 +6,19 @@ import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 
 import {
   addScholarshipAction,
+  applyGsnsShareAction,
   createStudentRecordAction,
+  editScholarshipAction,
   markPlanFinalAction,
+  readAwardLetterAction,
   recordPaymentAction,
   undoPaymentAction,
   updateChildDetailsAction,
   updateScholarshipAction,
 } from "@/lib/admissions/finalizing/actions";
-import type { FinalizingChild, FinalizingInstalment } from "@/lib/admissions/finalizing/load";
+import type { FinalizingAward, FinalizingChild, FinalizingInstalment } from "@/lib/admissions/finalizing/load";
 import { GRADES, gradeLabel } from "@/lib/constants/grades";
+import { decidedOn, easternToday, gsnsShareOn, shareOf } from "@/lib/scholarships/gsns";
 
 /**
  * ONE CHILD ON FINALIZING CONTRACT - FIVE STEPS, EACH SAYING WHAT IS DONE AND
@@ -117,6 +121,56 @@ function UndoPayment({
   );
 }
 
+/**
+ * GSNS: the letter's total, the share, and whether the share still holds.
+ * "we would need to receive the signed contract and first payment before these
+ * dates for the corresponding scholarship percentage to apply" (Jimmy, 20 Oct).
+ */
+function GsnsShareLine({
+  award,
+  signedAt,
+  firstPaidAt,
+  disabled,
+  onApply,
+}: {
+  award: FinalizingAward;
+  signedAt: string | null;
+  firstPaidAt: string | null;
+  disabled: boolean;
+  onApply: () => void;
+}) {
+  const total = award.totalAwardAmount ?? 0;
+  const decided = decidedOn(signedAt, firstPaidAt);
+  const now = gsnsShareOn(decided ?? easternToday(), award.awardYear);
+  const held = award.awardPercent;
+  const moved = now !== null && held !== null && now.percent !== held;
+  return (
+    <div className="mt-1 space-y-1 text-[11px] text-slate-600">
+      <p>
+        Letter total {usd(total)}
+        {award.stateStudentNumber ? ` · GTID ${award.stateStudentNumber}` : ""}
+        {held !== null ? ` · ${held}%` : ""}
+      </p>
+      {moved && now ? (
+        <div className="flex flex-wrap items-center gap-2 rounded bg-amber-50 px-2 py-1 text-amber-900">
+          <span>
+            {decided
+              ? `Contract and first payment both in on ${shortDate(decided)}: ${now.percent}% = ${usd(shareOf(total, now.percent))}.`
+              : `The ${shortDate(award.awardPercentDeadline)} deadline passed. Now ${now.percent}% = ${usd(shareOf(total, now.percent))}.`}
+          </span>
+          <button type="button" className="underline" disabled={disabled} onClick={onApply}>
+            Apply {now.percent}%
+          </button>
+        </div>
+      ) : decided ? (
+        <p className="text-emerald-700">Decided: contract and first payment both in on {shortDate(decided)}.</p>
+      ) : award.awardPercentDeadline ? (
+        <p>Holds if the contract is signed and the first payment made before {shortDate(award.awardPercentDeadline)}.</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -124,6 +178,9 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
   const [paying, setPaying] = useState<FinalizingInstalment | null>(null);
   const [addingAward, setAddingAward] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [editingAwardId, setEditingAwardId] = useState<string | null>(null);
+  // An award just added shows at once; the page refresh then replaces it.
+  const [justAdded, setJustAdded] = useState<FinalizingAward[]>([]);
 
   const name = `${child.firstName} ${child.lastName}`.trim();
   const plan = child.plan;
@@ -131,7 +188,7 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
   const contractSigned = child.packetStatus === "completed";
   const firstPaid = Boolean(child.firstPayable?.isPaid);
 
-  function run(task: () => Promise<{ error?: string; warning?: string; enrolled?: boolean } | unknown>, okText: string) {
+  function run(task: () => Promise<unknown>, okText: string) {
     setMessage(null);
     startTransition(async () => {
       const result = (await task()) as { error?: string; warning?: string; enrolled?: boolean } | undefined;
@@ -143,11 +200,17 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
         setMessage({ tone: "error", text: result.warning });
       } else if (result && typeof result === "object" && "enrolled" in result && result.enrolled) {
         setMessage({ tone: "ok", text: `${name} is enrolled and on Enrolled Students.` });
+      } else if (result && typeof result === "object" && "message" in result && typeof result.message === "string") {
+        setMessage({ tone: "ok", text: result.message });
       } else {
         setMessage({ tone: "ok", text: okText });
       }
+      if (result && typeof result === "object" && "award" in result && result.award) {
+        setJustAdded((prev) => [...prev, (result as { award: FinalizingAward }).award]);
+      }
       setPaying(null);
       setAddingAward(false);
+      setEditingAwardId(null);
       if (!(result && typeof result === "object" && "warning" in result && result.warning)) setEditing(false);
       router.refresh();
     });
@@ -161,7 +224,12 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
     };
   }
 
-  const openAwards = child.awards.filter((a) => a.status === "applied" || a.status === "awarded");
+  const knownIds = new Set(child.awards.map((a) => a.id));
+  const openAwards = [...child.awards, ...justAdded.filter((a) => !knownIds.has(a.id))].filter(
+    (a) => a.status === "applied" || a.status === "awarded"
+  );
+  // Scholarship entries can be corrected until the contract goes to the parent.
+  const awardsLocked = Boolean(child.packetStatus);
 
   return (
     <article className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
@@ -317,7 +385,62 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
                   </span>
                   <span>{award.status === "awarded" ? usd(award.awardedAmount) : "Amount not known yet"}</span>
                 </div>
-                {award.status === "applied" ? (
+                {award.totalAwardAmount !== null ? (
+                  <GsnsShareLine
+                    award={award}
+                    signedAt={child.contractSignedAt}
+                    firstPaidAt={child.firstPayable?.isPaid ? child.firstPayable.paidAt : null}
+                    disabled={pending}
+                    onApply={() => run(() => applyGsnsShareAction(award.id, child.leadId), "Share updated.")}
+                  />
+                ) : null}
+                {editingAwardId === award.id ? (
+                  <form
+                    className="mt-2 space-y-2"
+                    onSubmit={submitForm(editScholarshipAction, "Scholarship updated.")}
+                  >
+                    <input type="hidden" name="award_id" value={award.id} />
+                    <input name="program_name" defaultValue={award.programName} className={input} aria-label="Scholarship name" />
+                    <input name="program_code" defaultValue={award.programCode ?? ""} placeholder="Code (optional)" className={input} aria-label="Code" />
+                    <input name="award_year" defaultValue={award.awardYear} className={input} aria-label="School year" />
+                    <select name="status" defaultValue={award.status} className={input} aria-label="Status">
+                      <option value="awarded">Awarded — amount known</option>
+                      <option value="applied">Applied for — amount not known yet</option>
+                    </select>
+                    <input
+                      name="amount"
+                      defaultValue={award.awardedAmount ?? ""}
+                      placeholder="Amount (awarded only)"
+                      className={input}
+                      inputMode="decimal"
+                      aria-label="Amount"
+                    />
+                    <input
+                      name="total_award_amount"
+                      defaultValue={award.totalAwardAmount ?? ""}
+                      placeholder="GA Special Needs only: letter's total (works out the %)"
+                      className={input}
+                      inputMode="decimal"
+                      aria-label="Letter total"
+                    />
+                    <input
+                      name="state_student_number"
+                      defaultValue={award.stateStudentNumber ?? ""}
+                      placeholder="GTID (optional)"
+                      className={input}
+                      aria-label="GTID"
+                    />
+                    <div className="flex gap-2">
+                      <button type="submit" className={button} disabled={pending}>
+                        {pending ? "Saving…" : "Save changes"}
+                      </button>
+                      <button type="button" className={quietButton} onClick={() => setEditingAwardId(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
+                {award.status === "applied" && !awardsLocked && editingAwardId !== award.id ? (
                   <form
                     className="mt-2 flex gap-2"
                     onSubmit={submitForm(updateScholarshipAction, "Scholarship amount recorded.")}
@@ -329,21 +452,39 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
                     </button>
                   </form>
                 ) : null}
-                <form
-                  className="mt-1"
-                  onSubmit={submitForm(updateScholarshipAction, "Scholarship removed.")}
-                >
-                  <input type="hidden" name="award_id" value={award.id} />
-                  <input type="hidden" name="intent" value="withdraw" />
-                  <button type="submit" className="text-[11px] text-slate-500 underline" disabled={pending}>
-                    Remove
-                  </button>
-                </form>
+                {awardsLocked ? (
+                  <p className="mt-1 text-[11px] text-slate-500">Locked — the contract has been sent.</p>
+                ) : editingAwardId === award.id ? null : (
+                  <div className="mt-1 flex gap-3">
+                    <button
+                      type="button"
+                      className="text-[11px] text-brand-700 underline"
+                      disabled={pending}
+                      onClick={() => setEditingAwardId(award.id)}
+                    >
+                      Edit
+                    </button>
+                    <form onSubmit={submitForm(updateScholarshipAction, "Scholarship removed.")}>
+                      <input type="hidden" name="award_id" value={award.id} />
+                      <input type="hidden" name="intent" value="withdraw" />
+                      <button
+                        type="submit"
+                        className="text-[11px] text-slate-500 underline"
+                        disabled={pending}
+                        onClick={(e) => {
+                          if (!window.confirm(`Remove ${award.programName}?`)) e.preventDefault();
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </form>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
 
-          {child.studentId ? (
+          {child.studentId && !awardsLocked ? (
             addingAward ? (
               <form
                 className="space-y-2 rounded-lg border border-slate-200 p-3"
@@ -370,6 +511,13 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
                   className={input}
                   inputMode="decimal"
                 />
+                <input
+                  name="total_award_amount"
+                  placeholder="GA Special Needs only: letter's total (works out the %)"
+                  className={input}
+                  inputMode="decimal"
+                />
+                <input name="state_student_number" placeholder="GTID (optional)" className={input} />
                 <div className="flex gap-2">
                   <button type="submit" className={button} disabled={pending}>
                     Add scholarship
@@ -380,13 +528,25 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
                 </div>
               </form>
             ) : (
-              <button type="button" className={quietButton} onClick={() => setAddingAward(true)}>
-                + Add scholarship
-              </button>
+              <div className="flex flex-wrap gap-2">
+                {!openAwards.some((a) => a.totalAwardAmount !== null) ? (
+                  <button
+                    type="button"
+                    className={quietButton}
+                    disabled={pending}
+                    onClick={() => run(() => readAwardLetterAction(child.leadId), "Letter read.")}
+                  >
+                    Read the GSNS award letter
+                  </button>
+                ) : null}
+                <button type="button" className={quietButton} onClick={() => setAddingAward(true)}>
+                  + Add scholarship
+                </button>
+              </div>
             )
-          ) : (
+          ) : !child.studentId ? (
             <p className="text-xs text-slate-500">Waiting on the student record.</p>
-          )}
+          ) : null}
         </Step>
 
         {/* 3 */}

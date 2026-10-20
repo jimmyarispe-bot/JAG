@@ -34,6 +34,11 @@ export interface FinalizingAward {
   status: string;
   awardedAmount: number | null;
   expectedAmount: number | null;
+  /** GSNS: the letter's full-year total, the share, and the deadline for it. */
+  totalAwardAmount: number | null;
+  awardPercent: number | null;
+  awardPercentDeadline: string | null;
+  stateStudentNumber: string | null;
 }
 
 export interface FinalizingPlan {
@@ -68,6 +73,8 @@ export interface FinalizingChild {
   plan: FinalizingPlan | null;
   awards: FinalizingAward[];
   packetStatus: string | null;
+  /** When the parent signed the contract, if they have. */
+  contractSignedAt: string | null;
   /** The first instalment that asks the family for money, if any. */
   firstPayable: FinalizingInstalment | null;
   /** Everything Jimmy can edit on Finalizing Contract, as stored. */
@@ -139,7 +146,7 @@ export async function loadFinalizingChildren(
         supabase.from("students").select("id, admissions_lead_id").in("admissions_lead_id", leadIds),
         supabase
           .from("enrollment_packets")
-          .select("lead_id, packet_status, generated_at")
+          .select("lead_id, packet_status, generated_at, signed_contract_at, completed_at")
           .in("lead_id", leadIds)
           .order("generated_at", { ascending: false }),
       ])
@@ -177,9 +184,13 @@ export async function loadFinalizingChildren(
   }
 
   const packetByLead = new Map<string, string>();
+  const signedAtByLead = new Map<string, string | null>();
   for (const p of (packetsResult.data ?? []) as Record<string, unknown>[]) {
     const lead = String(p.lead_id);
-    if (!packetByLead.has(lead)) packetByLead.set(lead, String(p.packet_status));
+    if (!packetByLead.has(lead)) {
+      packetByLead.set(lead, String(p.packet_status));
+      signedAtByLead.set(lead, str(p.signed_contract_at) ?? str(p.completed_at));
+    }
   }
 
   const studentIds = [...studentByLead.values()];
@@ -198,7 +209,9 @@ export async function loadFinalizingChildren(
         .order("created_at", { ascending: false }),
       supabase
         .from("scholarship_awards")
-        .select("id, student_id, program_name, program_code, award_year, status, awarded_amount, expected_amount")
+        .select(
+          "id, student_id, program_name, program_code, award_year, status, awarded_amount, expected_amount, total_award_amount, award_percent, award_percent_deadline, state_student_number"
+        )
         .in("student_id", studentIds)
         .order("created_at", { ascending: true }),
     ]);
@@ -266,6 +279,10 @@ export async function loadFinalizingChildren(
         status: String(a.status),
         awardedAmount: num(a.awarded_amount),
         expectedAmount: num(a.expected_amount),
+        totalAwardAmount: num(a.total_award_amount),
+        awardPercent: num(a.award_percent),
+        awardPercentDeadline: str(a.award_percent_deadline),
+        stateStudentNumber: str(a.state_student_number),
       });
       awardsByStudent.set(sid, list);
     }
@@ -297,6 +314,7 @@ export async function loadFinalizingChildren(
       plan,
       awards: studentId ? awardsByStudent.get(studentId) ?? [] : [],
       packetStatus: packetByLead.get(leadId) ?? null,
+      contractSignedAt: signedAtByLead.get(leadId) ?? null,
       firstPayable: plan ? firstPayableInstalment(plan.instalments) : null,
       details: {
         firstName: String(l.first_name ?? ""),

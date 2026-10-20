@@ -22,6 +22,8 @@ export interface CatalogChoice {
   /** False when another school provides it: owed school to school, not billed. */
   readonly billedToFamily: boolean;
   readonly providerSchoolName: string;
+  /** Taught by another campus: the family still pays; the campuses settle between them. */
+  readonly providedByOtherSchool: boolean;
 }
 
 export interface AwardChoice {

@@ -98,9 +98,9 @@ function Row({ row }: { row: TuitionPriceRow }) {
           {row.itemKind === "package" ? "Package" : "Class"}
           {row.description ? ` · ${row.description}` : ""}
         </p>
-        {!row.billedToFamily ? (
-          <p className="mt-1 text-xs font-medium text-amber-700">
-            Owed to {row.providerSchoolName} · not billed to the family
+        {row.providerSchoolId !== row.schoolId ? (
+          <p className="mt-1 text-xs text-slate-500">
+            Taught by {row.providerSchoolName} · the family pays it here
           </p>
         ) : null}
       </td>

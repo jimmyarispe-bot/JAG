@@ -19,7 +19,7 @@ export interface TuitionPriceRow {
   readonly description: string | null;
   readonly providerSchoolId: string;
   readonly providerSchoolName: string;
-  /** False when the attending school is not the provider: owed school to school. */
+  /** Always true: the family pays for every line, whichever campus teaches it. */
   readonly billedToFamily: boolean;
   /** Price for one billing period. The period is `billingFrequency`. */
   readonly standardAmount: number | null;

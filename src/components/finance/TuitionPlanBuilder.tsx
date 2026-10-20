@@ -207,10 +207,9 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
                           ? ` · or ${formatUsd(c.oneToOneSessionRate)} per 1:1 session`
                           : ""}
                       </span>
-                      {!c.billedToFamily ? (
-                        <span className="block text-xs font-medium text-amber-700">
-                          Provided by {c.providerSchoolName} — owed school to school, not billed to
-                          this family
+                      {c.providedByOtherSchool ? (
+                        <span className="block text-xs text-slate-500">
+                          Taught by {c.providerSchoolName} · the family pays it here
                         </span>
                       ) : null}
                     </span>
