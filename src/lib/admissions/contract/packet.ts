@@ -27,6 +27,11 @@ export interface PacketRow {
   schoolId: string;
   status: string;
   completedAt: string | null;
+  /**
+   * When the contract invitation went to the parent (migration 576). The
+   * acceptance builds a packet too, so a packet existing is NOT "sent".
+   */
+  contractSentAt: string | null;
   /** The contract as signed (migration 571), for a completed packet. */
   signedBlocks: SignedBlock[] | null;
 }
@@ -54,7 +59,7 @@ function readSignedBlocks(value: unknown): SignedBlock[] | null {
 export async function latestPacketForLead(db: AnyClient, leadId: string): Promise<PacketRow | null> {
   const { data } = await db
     .from("enrollment_packets")
-    .select("id, application_id, lead_id, school_id, packet_status, completed_at, signed_contract")
+    .select("id, application_id, lead_id, school_id, packet_status, completed_at, signed_contract, contract_sent_at")
     .eq("lead_id", leadId)
     .order("generated_at", { ascending: false })
     .limit(1)
@@ -67,6 +72,7 @@ export async function latestPacketForLead(db: AnyClient, leadId: string): Promis
     schoolId: String(data.school_id),
     status: String(data.packet_status ?? "sent"),
     completedAt: (data.completed_at as string | null) ?? null,
+    contractSentAt: ((data as Record<string, unknown>).contract_sent_at as string | null) ?? null,
     signedBlocks: readSignedBlocks((data as Record<string, unknown>).signed_contract),
   };
 }
@@ -156,6 +162,7 @@ export async function ensurePacket(
       schoolId: String(packet.school_id),
       status: String(packet.packet_status),
       completedAt: null,
+      contractSentAt: null,
       signedBlocks: null,
     },
   };

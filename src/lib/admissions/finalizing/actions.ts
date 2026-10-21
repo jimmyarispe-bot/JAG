@@ -156,7 +156,8 @@ export async function readAwardLetterAction(leadId: string) {
   const { count } = await auth.supabase
     .from("enrollment_packets")
     .select("lead_id", { count: "exact", head: true })
-    .eq("lead_id", leadId);
+    .eq("lead_id", leadId)
+    .not("contract_sent_at" as never, "is", null);
   if ((count ?? 0) > 0) return { error: LOCKED };
   const result = await readLetterInto(auth.supabase, leadId);
   refresh();
@@ -313,10 +314,13 @@ async function contractAlreadySent(
   if (studentError) return { sent: false, error: studentError.message };
   const leadId = (student?.admissions_lead_id as string | null | undefined) ?? null;
   if (!leadId) return { sent: false };
+  // Sent means the contract invitation went out (migration 576). The packet
+  // the acceptance builds is not a sent contract.
   const { count, error: packetError } = await supabase
     .from("enrollment_packets")
     .select("lead_id", { count: "exact", head: true })
-    .eq("lead_id", leadId);
+    .eq("lead_id", leadId)
+    .not("contract_sent_at" as never, "is", null);
   if (packetError) return { sent: false, error: packetError.message };
   return { sent: (count ?? 0) > 0 };
 }
@@ -773,6 +777,12 @@ export async function sendContractAction(leadId: string, confirm: boolean) {
   });
 
   const outcome = result.invited[0];
+  if (outcome?.ok) {
+    await supabase
+      .from("enrollment_packets")
+      .update({ contract_sent_at: new Date().toISOString() } as never)
+      .eq("id", packet.packet.id);
+  }
   refresh();
   if (!outcome) return { error: "No invitation was sent." };
   if (!outcome.ok) {

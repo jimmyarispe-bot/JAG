@@ -67,6 +67,8 @@ export interface FinalizingPlan {
   awaitingReason: string | null;
   billingMode: string;
   annualTuition: number | null;
+  /** What is billed from (prorated). The state is invoiced at most this. */
+  billingBasis: number | null;
   remainingDue: number | null;
   monthlyAmount: number | null;
   instalments: FinalizingInstalment[];
@@ -173,7 +175,7 @@ export async function loadFinalizingChildren(
         supabase.from("students").select("id, admissions_lead_id").in("admissions_lead_id", leadIds),
         supabase
           .from("enrollment_packets")
-          .select("lead_id, packet_status, generated_at, signed_contract_at, completed_at")
+          .select("lead_id, packet_status, generated_at, signed_contract_at, completed_at, contract_sent_at")
           .in("lead_id", leadIds)
           .order("generated_at", { ascending: false }),
       ])
@@ -214,8 +216,13 @@ export async function loadFinalizingChildren(
   const signedAtByLead = new Map<string, string | null>();
   for (const p of (packetsResult.data ?? []) as Record<string, unknown>[]) {
     const lead = String(p.lead_id);
-    if (!packetByLead.has(lead)) {
-      packetByLead.set(lead, String(p.packet_status));
+    if (!signedAtByLead.has(lead)) {
+      // Only a contract that went to the parent, or one being signed, counts.
+      // The acceptance builds a packet marked "sent" too (migration 576).
+      const status = String(p.packet_status);
+      if (p.contract_sent_at || status === "completed" || status === "partially_signed") {
+        packetByLead.set(lead, status);
+      }
       signedAtByLead.set(lead, str(p.signed_contract_at) ?? str(p.completed_at));
     }
   }
@@ -230,7 +237,7 @@ export async function loadFinalizingChildren(
       supabase
         .from("student_tuition_plans")
         .select(
-          "id, student_id, lifecycle, awaiting_reason, billing_mode, annual_tuition, remaining_due, monthly_amount, status, created_at"
+          "id, student_id, lifecycle, awaiting_reason, billing_mode, annual_tuition, billing_basis, remaining_due, monthly_amount, status, created_at"
         )
         .in("student_id", studentIds)
         .not("status", "in", "(superseded,cancelled)")
@@ -322,6 +329,7 @@ export async function loadFinalizingChildren(
         awaitingReason: str(p.awaiting_reason),
         billingMode: String(p.billing_mode),
         annualTuition: num(p.annual_tuition),
+        billingBasis: num(p.billing_basis),
         remainingDue: num(p.remaining_due),
         monthlyAmount: num(p.monthly_amount),
         instalments: instalmentsByPlan.get(String(p.id)) ?? [],

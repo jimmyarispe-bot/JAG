@@ -826,9 +826,12 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
                 <StateInvoices
                   invoices={child.stateInvoices}
                   hasAwards={openAwards.some((a) => a.status === "awarded" && (a.awardedAmount ?? 0) > 0)}
-                  awardTotal={openAwards
-                    .filter((a) => a.status === "awarded")
-                    .reduce((sum, a) => sum + (a.awardedAmount ?? 0), 0)}
+                  awardTotal={Math.min(
+                    openAwards
+                      .filter((a) => a.status === "awarded")
+                      .reduce((sum, a) => sum + (a.awardedAmount ?? 0), 0),
+                    plan.billingBasis ?? Number.POSITIVE_INFINITY
+                  )}
                   disabled={pending}
                   onCreate={() =>
                     run(() => createScholarshipInvoicesAction(child.studentId as string, plan.id), "Invoices made.")

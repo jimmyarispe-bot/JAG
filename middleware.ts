@@ -35,6 +35,29 @@ function isJagPublicPath(pathname: string): boolean {
   );
 }
 
+/**
+ * THE ONE PARENT LOCK. Jimmy, 21 October 2026: "make sure with 100% certainty
+ * that the parents are only seeing their account and they are not seeing any
+ * other menus or tabs or any other information concerning anything else in
+ * the JAG."
+ *
+ * A login whose every role is PARENT reaches these and nothing else. Every
+ * other page redirects to /contract; every other API answers 403. The pages'
+ * own guards and the database policies (migration 577) still apply - this is
+ * the layer that makes a typed-in URL go nowhere.
+ */
+const PARENT_HOME_PATH = "/contract";
+
+function isParentAllowedPath(pathname: string): boolean {
+  return (
+    pathname === "/contract" ||
+    pathname.startsWith("/contract/") ||
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname.startsWith("/auth/")
+  );
+}
+
 function isProtectedPage(pathname: string): boolean {
   return (
     pathname.startsWith("/dashboard") ||
@@ -216,6 +239,26 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  if (user && !isParentAllowedPath(pathname)) {
+    const { data: parentOnly, error: parentCheckError } = await timing.measure(
+      "mw_parent_only",
+      async () => await supabase.rpc("is_parent_only", { uid: user.id }),
+      "Parent lock"
+    );
+    // A failed check does not lock staff out: the data itself is refused to a
+    // parent by the database (migration 577) and every staff page checks
+    // permissions a parent does not hold. This lock is the third layer.
+    if (parentCheckError) {
+      console.error("[middleware] parent check failed", parentCheckError.message);
+    }
+    if (parentOnly === true) {
+      if (pathname.startsWith("/api/")) {
+        return finish(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
+      }
+      return finish(NextResponse.redirect(new URL(PARENT_HOME_PATH, req.url)));
+    }
+  }
+
   if (user) {
     requestHeaders.set("x-jag-authenticated", "1");
     requestHeaders.set("x-jag-user-id", user.id);
@@ -231,6 +274,9 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    /* Everything a signed-in parent could type, so the parent lock above sees
+       every page - not only the protected list below. Static files excluded. */
+    "/((?!_next/static|_next/image|favicon\\.ico|icon|apple-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|xml|woff|woff2)$).*)",
     "/jag",
     "/jag/:path*",
     "/dashboard",

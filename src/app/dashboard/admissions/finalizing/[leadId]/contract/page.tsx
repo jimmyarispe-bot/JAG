@@ -85,7 +85,7 @@ export default async function FinalizingContractPreviewPage({
       </div>
 
       {!packet || packet.status === "sent" ? (
-        <SendContractPanel leadId={leadId} letterHtml={letter} alreadySent={Boolean(packet)} />
+        <SendContractPanel leadId={leadId} letterHtml={letter} alreadySent={Boolean(packet?.contractSentAt || packet?.status === "completed")} />
       ) : null}
 
       <ContractDocument contract={contract} signatures={signatures} />
