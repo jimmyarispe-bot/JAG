@@ -165,11 +165,52 @@ export function contractInviteSubject(childName: string): string {
   return `${child}'s Enrollment and Tuition Contract - The Academy`;
 }
 
+/**
+ * THE TUITION, IN THE EMAIL ITSELF. Jimmy, 20 October 2026: "i am assuming if
+ * they had a payment due now that once i finalized it the parent would
+ * automatically get an email with all the tuition information" - tapped: with
+ * the contract. The same figures the contract prints; nothing recomputed.
+ */
+export function buildTuitionSummaryHtml(f: {
+  annual_tuition: number;
+  billing_basis: number;
+  proration_label: string | null;
+  scholarship_total: number;
+  remaining_due: number;
+  monthly_amount: number | null;
+  instalments: readonly { label: string; dueDate: string | null; amount: number }[];
+}): string {
+  const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  const day = (d: string | null) =>
+    d ? new Date(`${d.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Due upon signing";
+  const row = (a: string, b: string) =>
+    `<tr><td style="padding:4px 12px 4px 0">${a}</td><td style="padding:4px 0;text-align:right">${b}</td></tr>`;
+  const lines = [
+    row("Tuition", usd(f.annual_tuition)),
+    ...(f.proration_label ? [row(`Prorated (${safe(f.proration_label)})`, usd(f.billing_basis))] : []),
+    ...(f.scholarship_total > 0 ? [row("Scholarships", `−${usd(f.scholarship_total)}`)] : []),
+    row("<strong>You owe</strong>", `<strong>${usd(f.remaining_due)}</strong>`),
+  ];
+  const schedule = f.instalments
+    .filter((i) => i.amount > 0)
+    .map((i) => row(`${safe(i.label)} · ${day(i.dueDate)}`, usd(i.amount)));
+  return [
+    `<table style="border-collapse:collapse;font-size:15px">${lines.join("")}</table>`,
+    schedule.length
+      ? `<p style="${PARAGRAPH_STYLE}"><strong>Schedule of Tuition Payments</strong></p><table style="border-collapse:collapse;font-size:15px">${schedule.join("")}</table>`
+      : f.monthly_amount
+        ? `<p style="${PARAGRAPH_STYLE}">Monthly tuition: <strong>${usd(f.monthly_amount)}</strong></p>`
+        : "",
+  ].join("\n");
+}
+
 export function buildContractInviteBody(input: {
   parentName?: string;
   childName: string;
   schoolName?: string;
   inviteLink: string;
+  /** The family's figures, from buildTuitionSummaryHtml. */
+  tuitionSummaryHtml?: string;
 }): string {
   const child = safe(input.childName) || "your child";
   const campus = safe(input.schoolName ?? "") || "The Academy";
@@ -186,6 +227,7 @@ export function buildContractInviteBody(input: {
     paragraph(
       `${child}'s Enrollment and Tuition Contract is ready. It sets out your tuition, any scholarships, and your Schedule of Tuition Payments. Please read it, initial each part, and sign it.`
     ),
+    ...(input.tuitionSummaryHtml ? [`  <div style="margin:0 0 16px">${input.tuitionSummaryHtml}</div>`] : []),
     paragraph(
       `<a href="${link}" style="${LINK_STYLE}">CLICK THIS LINK TO CREATE YOUR JAG ACCOUNT AND SIGN ${child.toUpperCase()}'S CONTRACT</a>`
     ),

@@ -21,6 +21,9 @@ function inst(sequence: number, amount: number, isPaid = false): FinalizingInsta
     paidAmount: null,
     paymentMethod: null,
     paymentReference: null,
+    squareInvoiceId: null,
+    squareInvoiceNumber: null,
+    squareInvoiceError: null,
   };
 }
 

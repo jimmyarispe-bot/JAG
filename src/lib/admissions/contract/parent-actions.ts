@@ -27,6 +27,7 @@ import { sendTransactionalEmail } from "@/lib/platform/email/send";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { FINALIZING_CONTRACT_NOTIFY } from "@/lib/admissions/finalizing/notify";
+import { invoiceFirstPayment } from "@/lib/finance/first-payment-invoice";
 
 import { contractBlocksForSchool, loadLeadContract } from "./for-lead";
 import { escapeHtml } from "./render";
@@ -136,6 +137,20 @@ export async function signContractPartAction(formData: FormData) {
       .eq("lifecycle", "final");
   }
 
+  // "Once it is signed, you will receive an invoice for your first tuition
+  // payment." Square emails it now (Jimmy, 20 Oct 2026). Never blocks signing.
+  let invoiceLine = "";
+  if (!("error" in loaded)) {
+    const invoiced = await invoiceFirstPayment(admin as unknown as SupabaseClient, {
+      planId: loaded.contract.planId,
+      leadId: String(packet.lead_id),
+    });
+    invoiceLine =
+      "error" in invoiced
+        ? `<p><strong>The first-payment invoice was NOT sent:</strong> ${escapeHtml(invoiced.error)} Retry on Finalizing Contract.</p>`
+        : `<p>Square has emailed the family the invoice for the first payment${invoiced.invoiceNumber ? ` (#${escapeHtml(invoiced.invoiceNumber)})` : ""}.</p>`;
+  }
+
   try {
     const child = "error" in loaded ? "A child" : loaded.contract.studentName;
     await sendTransactionalEmail({
@@ -143,6 +158,7 @@ export async function signContractPartAction(formData: FormData) {
       subject: `Contract signed: ${child} — ${schoolName}`,
       body:
         `<p>${escapeHtml(signerName)} signed ${escapeHtml(child)}'s contract at ${escapeHtml(schoolName)}.</p>` +
+        invoiceLine +
         `<p>Next: the first tuition payment. Recorded in full, ${escapeHtml(child)} moves to Enrolled Students.</p>`,
       kind: "system_notification",
     });

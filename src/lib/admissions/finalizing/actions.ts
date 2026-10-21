@@ -24,6 +24,10 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { GSNS_PROGRAM_CODE, decidedOn, easternToday, gsnsShareOn, shareOf } from "@/lib/scholarships/gsns";
 import { applyGsnsLetterToStudent } from "@/lib/scholarships/gsns-letter";
+import { createScholarshipInvoices, squareInvoiceDashboardUrl } from "@/lib/scholarships/square-invoices";
+import { placementFromForm, savePlacement } from "@/lib/admissions/placement";
+import { invoiceFirstPayment } from "@/lib/finance/first-payment-invoice";
+import { buildTuitionSummaryHtml } from "@/lib/admissions/portal/prospect-invite-email";
 
 import { firstPayableInstalment, type FinalizingInstalment } from "./load";
 import { notifyEnrolledByFirstPayment } from "./notify";
@@ -448,8 +452,126 @@ export async function markPlanFinalAction(planId: string) {
     })
     .eq("id", planId);
   if (error) return { error: error.message };
+
+  // The state's payments, one Square invoice each (Jimmy, 20 Oct 2026). The
+  // plan is final whatever Square says; a failure shows on the card to retry.
+  const invoices = await createScholarshipInvoices(supabase as never, {
+    studentId: plan.student_id as string,
+    planId,
+  });
   refresh();
-  return { success: true };
+  return { success: true, message: `Plan is final. ${describeInvoiceRun(invoices)}` };
+}
+
+function describeInvoiceRun(run: Awaited<ReturnType<typeof createScholarshipInvoices>>): string {
+  if ("error" in run) return `Square invoices not made: ${run.error}`;
+  if (run.created === 0 && run.failed === 0) return "";
+  const made = run.created > 0 ? `${run.created} state scholarship invoice${run.created === 1 ? "" : "s"} made in Square.` : "";
+  const failed = run.failed > 0 ? ` ${run.failed} failed: ${run.errors[0]}` : "";
+  return `${made}${failed}`.trim();
+}
+
+/** Send (or resend after a failure) the Square invoice for the first payment. */
+export async function invoiceFirstPaymentAction(planId: string, leadId: string) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const result = await invoiceFirstPayment(createServiceRoleClient() as never, { planId, leadId });
+  refresh();
+  if ("error" in result) return { error: `The invoice was not sent: ${result.error}` };
+  return { success: true, message: `Square has emailed the first-payment invoice${result.invoiceNumber ? ` (#${result.invoiceNumber})` : ""}.` };
+}
+
+/** Jimmy sets or corrects the HS classes and the actual start date. */
+export async function updatePlacementAction(formData: FormData) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const leadId = text(formData.get("lead_id"));
+  if (!leadId) return { error: "Missing child." };
+  const parsed = placementFromForm(formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const problem = await savePlacement(auth.supabase as never, leadId, parsed.value);
+  if (problem) return { error: problem };
+  refresh();
+  return { success: true, message: "Classes and start date saved." };
+}
+
+/** Retry, or make them for a plan that was final before this existed. */
+export async function createScholarshipInvoicesAction(studentId: string, planId: string | null) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const run = await createScholarshipInvoices(auth.supabase as never, { studentId, planId });
+  refresh();
+  if ("error" in run) return { error: run.error };
+  if (run.failed > 0) return { error: describeInvoiceRun(run) };
+  return { success: true, message: describeInvoiceRun(run) || "Nothing left to make." };
+}
+
+/**
+ * The state paid. Recorded as a scholarship receipt against the award; the
+ * Square invoice is then marked paid by Jimmy in Square (its API cannot).
+ */
+export async function recordStatePaymentAction(formData: FormData) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase } = auth;
+
+  const invoiceId = text(formData.get("invoice_id"));
+  const amount = money(formData.get("amount"));
+  const receivedOn = text(formData.get("received_on"));
+  const reference = text(formData.get("reference"));
+  if (!invoiceId) return { error: "Missing invoice." };
+  if (amount === null || amount <= 0) return { error: "Enter the amount the state paid." };
+  if (!receivedOn) return { error: "Enter the date it arrived." };
+
+  const { data: inv, error } = await supabase
+    .from("scholarship_invoices" as never)
+    .select("id, award_id, label, square_invoice_id, receipt_id")
+    .eq("id", invoiceId)
+    .maybeSingle();
+  if (error) return { error: error.message };
+  const row = inv as { award_id: string; label: string; square_invoice_id: string | null; receipt_id: string | null } | null;
+  if (!row) return { error: "That invoice could not be found." };
+  if (row.receipt_id) return { error: "This state payment is already recorded." };
+
+  const { data: receipt, error: receiptError } = await supabase
+    .from("scholarship_receipts")
+    .insert({
+      award_id: row.award_id,
+      amount,
+      received_on: receivedOn,
+      reference,
+      notes: `State payment: ${row.label}`,
+    })
+    .select("id")
+    .single();
+  if (receiptError) return { error: receiptError.message };
+
+  const { error: linkError } = await supabase
+    .from("scholarship_invoices" as never)
+    .update({ receipt_id: (receipt as { id: string }).id } as never)
+    .eq("id", invoiceId);
+  if (linkError) return { error: linkError.message };
+  refresh();
+  return {
+    success: true,
+    message: row.square_invoice_id
+      ? "Recorded. Now mark it paid in Square: Mark as paid → Other → State scholarship."
+      : "Recorded.",
+    openUrl: row.square_invoice_id ? squareInvoiceDashboardUrl(row.square_invoice_id) : null,
+  };
+}
+
+/** Jimmy says he has marked it paid in Square. */
+export async function markSquareInvoicePaidAction(invoiceId: string) {
+  const auth = await requireJimmy();
+  if ("error" in auth) return { error: auth.error };
+  const { error } = await auth.supabase
+    .from("scholarship_invoices" as never)
+    .update({ square_marked_paid_at: new Date().toISOString() } as never)
+    .eq("id", invoiceId);
+  if (error) return { error: error.message };
+  refresh();
+  return { success: true, message: "Marked paid in Square." };
 }
 
 /**
@@ -530,6 +652,9 @@ export async function recordPaymentAction(formData: FormData) {
           paidAmount: null,
           paymentMethod: null,
           paymentReference: null,
+          squareInvoiceId: null,
+          squareInvoiceNumber: null,
+          squareInvoiceError: null,
         })
       )
     );
@@ -643,6 +768,7 @@ export async function sendContractAction(leadId: string, confirm: boolean) {
     signatory: "Jimmy Arispe",
     schoolName: contract.schoolName,
     purpose: "contract",
+    tuitionSummaryHtml: buildTuitionSummaryHtml(contract.fields),
   });
 
   const outcome = result.invited[0];

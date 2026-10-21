@@ -13,6 +13,7 @@
  * that would produce a wrong invoice, so each failure names itself.
  */
 
+import { HS_OPTION_CATALOG, HS_SCHOOL_ID, describeChoice, placementFromLead } from "@/lib/admissions/placement";
 import { createAuthClient } from "@/lib/supabase/server-auth";
 import type { BillingFrequency } from "@/lib/finance/plan-builder";
 import { monthsInSchoolYear } from "@/lib/finance/school-year-months";
@@ -45,7 +46,7 @@ export async function loadPlanEditorContext(
 
   const { data: student, error: studentError } = await supabase
     .from("students")
-    .select("id, first_name, last_name, grade_level, school_id, family_id, status")
+    .select("id, first_name, last_name, grade_level, school_id, family_id, status, admissions_lead_id")
     .eq("id", studentId)
     .single();
 
@@ -261,7 +262,36 @@ export async function loadPlanEditorContext(
     });
   }
 
+  // HS placement from Accept (Jimmy, 20 Oct 2026). Tutoring wins over the
+  // class when both point at Structured Literacy - it is the one with days.
+  let placementSuggestion: Record<string, number> | null = null;
+  let placementSummary: string | null = null;
+  const leadId = (student as { admissions_lead_id?: string | null }).admissions_lead_id ?? null;
+  if (leadId && student.school_id === HS_SCHOOL_ID) {
+    const { data: leadRow } = await supabase
+      .from("admissions_leads")
+      .select("placement_class_names, placement_sl_tutoring_days, placement_math_tutoring_days, actual_start_date, placement_recorded_at" as never)
+      .eq("id", leadId)
+      .maybeSingle();
+    const placed = placementFromLead(leadRow as Record<string, unknown> | null);
+    if (placed.recordedAt) {
+      placementSuggestion = {};
+      for (const option of placed.options) {
+        const map = HS_OPTION_CATALOG[option];
+        const item = map ? catalog.find((c) => c.itemCode === map.itemCode) : undefined;
+        if (!item) continue;
+        const days = map.byTheDay === "sl" ? placed.slTutoringDays ?? 0 : map.byTheDay === "math" ? placed.mathTutoringDays ?? 0 : 0;
+        placementSuggestion[item.catalogItemId] = Math.max(placementSuggestion[item.catalogItemId] ?? 0, days);
+      }
+      placementSummary =
+        `School leader placed: ${describeChoice(placed)}` +
+        (placed.actualStartDate ? ` · starts ${placed.actualStartDate}` : "");
+    }
+  }
+
   return {
+    placementSuggestion,
+    placementSummary,
     studentId: student.id as string,
     studentName:
       `${student.first_name ?? ""} ${student.last_name ?? ""}`.trim() || "(unnamed student)",

@@ -58,6 +58,7 @@
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { HS_SCHOOL_ID, placementFromForm, savePlacement } from "@/lib/admissions/placement";
 import { campusRunsTours, requireTourLink, tourGateArmed } from "@/lib/admissions/tour";
 import { prepareApplicationForInvite } from "@/lib/admissions/application-for-invited-lead";
 import { gradeLabel } from "@/lib/constants/grades";
@@ -187,6 +188,8 @@ export function occasionForStage(stage: string | null | undefined): PostCallOcca
 
 export interface PostCallSubject {
   readonly leadId: string;
+  /** The campus. The HS shadow-day page asks for placement (migration 574). */
+  readonly schoolId: string | null;
   readonly studentName: string;
   readonly schoolName: string | null;
   readonly guardianName: string | null;
@@ -238,7 +241,7 @@ export async function leadForPostCallToken(
     .select(
       "id, first_name, last_name, preferred_name, guardian_first_name, " +
         "guardian_last_name, guardian_email, guardian_phone, notes, " +
-        "lead_stage, applying_for_grade, current_grade, date_of_birth, " +
+        "lead_stage, applying_for_grade, current_grade, date_of_birth, school_id, " +
         "schools(name, tour_booking_url)"
     )
     .eq("post_call_token", token)
@@ -304,6 +307,7 @@ export async function leadForPostCallToken(
 
   return {
     leadId,
+    schoolId: text(lead.school_id),
     studentName,
     schoolName,
     guardianName,
@@ -550,6 +554,12 @@ export async function recordPostCallDecision(params: {
   token: string;
   action: PostCallAction;
   notes: string | null;
+  /**
+   * HS only: the classes and the actual start date the school leader chose
+   * (Jimmy, 20 Oct 2026). Required to accept at HS; saved before the
+   * decision so Jimmy's Finalizing Contract email carries it.
+   */
+  placement?: FormData | null;
 }): Promise<
   | {
       ok: true;
@@ -581,7 +591,7 @@ export async function recordPostCallDecision(params: {
 
   const { data: lead } = await db
     .from("admissions_leads")
-    .select("id, lead_stage, stage_entered_at, schools(name, tour_booking_url)")
+    .select("id, lead_stage, stage_entered_at, school_id, schools(name, tour_booking_url)")
     .eq("post_call_token", params.token)
     .maybeSingle();
 
@@ -1022,6 +1032,19 @@ export async function recordPostCallDecision(params: {
     params.action === "shadow_day_denied"
   ) {
     const accepting = params.action === "shadow_day_accepted";
+
+    // HS: placement first. Refused before anything moves, so her notes and
+    // choices can be fixed and resent.
+    if (accepting && text(leadRow?.school_id) === HS_SCHOOL_ID) {
+      const placement = params.placement ? placementFromForm(params.placement) : null;
+      if (!placement || !placement.ok) {
+        return { error: placement && !placement.ok ? placement.error : "Choose the classes and the actual start date." };
+      }
+      const placementProblem = await savePlacement(db as never, leadId, placement.value);
+      if (placementProblem) {
+        return { error: `The classes and start date did not save: ${placementProblem}` };
+      }
+    }
 
     await markShadowDayHeld();
 

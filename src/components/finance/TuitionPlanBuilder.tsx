@@ -46,7 +46,8 @@ interface Props {
 }
 
 export function TuitionPlanBuilder({ ctx, canSave }: Props) {
-  const [selected, setSelected] = useState<Record<string, number>>({});
+  // Starts from the HS placement chosen at Accept, when there is one.
+  const [selected, setSelected] = useState<Record<string, number>>(ctx.placementSuggestion ?? {});
   // Ticked by default only when there is a real figure. An applied-for award
   // reads as 0 in awardedAmount, and 0 would bill the family everything.
   const [awardIds, setAwardIds] = useState<string[]>(
@@ -177,6 +178,9 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
           What {ctx.studentName.split(" ")[0]} is taking
         </h2>
+        {ctx.placementSummary ? (
+          <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-slate-700">{ctx.placementSummary}</p>
+        ) : null}
         <div className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white">
           {ctx.catalog.length === 0 ? (
             <p className="px-4 py-6 text-sm text-slate-500">
@@ -197,14 +201,16 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
                     <span className="flex-1">
                       <span className="font-medium text-slate-900">{c.itemName}</span>
                       <span className="block text-xs text-slate-500">
-                        {c.amount === null ? (
+                        {c.amount === null && c.offeredOneToOne && c.oneToOneSessionRate !== null ? (
+                          `1:1 only — ${formatUsd(c.oneToOneSessionRate)} per day`
+                        ) : c.amount === null ? (
                           // Blank is not zero. An unpriced item may not be billed.
                           <span className="text-amber-700">No price set — cannot be billed yet</span>
                         ) : (
                           `${formatUsd(c.amount)} / ${c.frequency === "monthly" ? "month" : c.frequency === "annual" ? "year" : c.frequency}`
                         )}
-                        {c.offeredOneToOne && c.oneToOneSessionRate !== null
-                          ? ` · or ${formatUsd(c.oneToOneSessionRate)} per 1:1 session`
+                        {c.offeredOneToOne && c.oneToOneSessionRate !== null && c.amount !== null
+                          ? ` · or ${formatUsd(c.oneToOneSessionRate)} per 1:1 day`
                           : ""}
                       </span>
                       {c.providedByOtherSchool ? (
@@ -218,7 +224,7 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
                   {on && c.offeredOneToOne ? (
                     <div className="mt-2 flex items-center gap-2 pl-7 text-sm">
                       <label className="text-slate-600" htmlFor={`sessions-${c.catalogItemId}`}>
-                        1:1 sessions per month
+                        1:1 days per month
                       </label>
                       <input
                         id={`sessions-${c.catalogItemId}`}

@@ -1,5 +1,16 @@
 import { notFound } from "next/navigation";
 
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import {
+  HS_OPTIONS,
+  HS_OPTION_MATH_TUTORING,
+  HS_OPTION_SL_TUTORING,
+  HS_SCHOOL_ID,
+  describeChoice,
+  longDay,
+  readFamilyAsk,
+  type FamilyAsk,
+} from "@/lib/admissions/placement";
 import { recordPostCallAction } from "@/app/post-call/[token]/actions";
 import { SaveButton } from "@/app/post-call/[token]/SaveButton";
 import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
@@ -56,6 +67,12 @@ export default async function PostCallPage({
 
   const subject = await leadForPostCallToken(token);
   if (!subject) notFound();
+
+  // HS: what the parent asked for, shown beside the leader's choice.
+  const familyAsk =
+    subject.occasion === "shadow_day" && subject.schoolId === HS_SCHOOL_ID
+      ? await readFamilyAsk(createServiceRoleClient() as never, subject.leadId)
+      : null;
 
   const dial = telHref(subject.guardianPhone);
 
@@ -350,6 +367,8 @@ export default async function PostCallPage({
             />
           </label>
 
+          {familyAsk ? <HsPlacementFields ask={familyAsk} firstName={subject.studentFirstName} /> : null}
+
           <div className="mt-8 border-t border-slate-200 pt-6">
             {/* The child's first name, not the guardian's - the same mistake
                 the tour page made on its first live test. */}
@@ -611,5 +630,73 @@ export default async function PostCallPage({
         <SaveButton />
       </form>
     </main>
+  );
+}
+
+/**
+ * HS PLACEMENT AT ACCEPT. Jimmy, 20 October 2026: "heather/school leader was
+ * supposed to be given options of the classes the student will attend. And be
+ * able to choose the actual start date. Preferred and start are both shown to
+ * heather/school leader."
+ *
+ * Pre-filled from the parent's application; required only to accept, and
+ * checked on the server, so Deny never trips over it.
+ */
+function HsPlacementFields({ ask, firstName }: { ask: FamilyAsk; firstName: string }) {
+  const days = (option: string) =>
+    option === HS_OPTION_SL_TUTORING ? ask.slTutoringDays : option === HS_OPTION_MATH_TUTORING ? ask.mathTutoringDays : null;
+  return (
+    <fieldset className="mt-8 space-y-4 border-t border-slate-200 pt-6">
+      <legend className="text-sm font-bold uppercase tracking-wide text-slate-900">
+        {firstName}&rsquo;s classes and start date
+      </legend>
+      <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+        <p>
+          <span className="font-semibold">Parent&rsquo;s preferred start:</span> {longDay(ask.preferredStart)}
+        </p>
+        <p className="mt-1">
+          <span className="font-semibold">Parent asked for:</span> {describeChoice(ask)}
+        </p>
+      </div>
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-slate-800">Classes {firstName} will attend</p>
+        {HS_OPTIONS.map((option) => (
+          <div key={option} className="space-y-1">
+            <label className="flex items-start gap-2 text-sm text-slate-800">
+              <input
+                type="checkbox"
+                name="placement_option"
+                value={option}
+                defaultChecked={ask.options.includes(option)}
+                className="mt-1"
+              />
+              <span>{option}</span>
+            </label>
+            {option === HS_OPTION_SL_TUTORING || option === HS_OPTION_MATH_TUTORING ? (
+              <label className="ml-6 flex items-center gap-2 text-xs text-slate-600">
+                Days per month
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  name={option === HS_OPTION_SL_TUTORING ? "placement_sl_days" : "placement_math_days"}
+                  defaultValue={days(option) ?? ""}
+                  className="w-20 rounded-md border border-slate-300 p-1"
+                />
+              </label>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      <label className="block text-sm">
+        <span className="font-semibold text-slate-800">Actual start date</span>
+        <input
+          type="date"
+          name="actual_start_date"
+          defaultValue={ask.preferredStart ?? ""}
+          className="mt-1 block rounded-md border border-slate-300 p-2"
+        />
+      </label>
+    </fieldset>
   );
 }

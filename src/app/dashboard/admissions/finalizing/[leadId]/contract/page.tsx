@@ -15,7 +15,7 @@ import { PrintButton } from "@/components/admissions/contract/PrintButton";
 import { SendContractPanel } from "@/components/admissions/finalizing/SendContractPanel";
 import { loadLeadContract } from "@/lib/admissions/contract/for-lead";
 import { latestPacketForLead, signaturesForPacket } from "@/lib/admissions/contract/packet";
-import { buildContractInviteBody } from "@/lib/admissions/portal/prospect-invite-email";
+import { buildContractInviteBody, buildTuitionSummaryHtml } from "@/lib/admissions/portal/prospect-invite-email";
 import { canViewFounderDashboard } from "@/lib/dashboard/founder-dashboard-access";
 import { getIdentityContext } from "@/lib/platform/identity/context";
 import { createAuthClient } from "@/lib/supabase/server-auth";
@@ -66,6 +66,7 @@ export default async function FinalizingContractPreviewPage({
     childName: contract.studentName.split(" ")[0] ?? contract.studentName,
     schoolName: contract.schoolName,
     inviteLink: "#",
+    tuitionSummaryHtml: buildTuitionSummaryHtml(contract.fields),
   });
 
   return (

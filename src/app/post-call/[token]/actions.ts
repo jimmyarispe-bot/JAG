@@ -31,7 +31,7 @@ export async function recordPostCallAction(formData: FormData) {
     redirect(`/post-call/${encodeURIComponent(token)}?problem=choose`);
   }
 
-  const result = await recordPostCallDecision({ token, action, notes });
+  const result = await recordPostCallDecision({ token, action, notes, placement: formData });
 
   if ("error" in result) {
     redirect(

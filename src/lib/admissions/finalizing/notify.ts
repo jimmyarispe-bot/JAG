@@ -1,6 +1,13 @@
 import { resolvePublicAppOrigin } from "@/lib/platform/branding";
 import { sendTransactionalEmail } from "@/lib/platform/email/send";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
+import {
+  HS_SCHOOL_ID,
+  describeChoice,
+  longDay,
+  placementFromLead,
+  readFamilyAsk,
+} from "@/lib/admissions/placement";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -39,6 +46,32 @@ async function describeChild(
   return { name, campus };
 }
 
+async function startAndPlacementHtml(supabase: AuthClient, leadId: string): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from("admissions_leads")
+      .select("school_id, placement_class_names, placement_sl_tutoring_days, placement_math_tutoring_days, actual_start_date, placement_recorded_at")
+      .eq("id", leadId)
+      .maybeSingle();
+    const row = data as Record<string, unknown> | null;
+    const ask = await readFamilyAsk(supabase as never, leadId);
+    const lines = [`Parent's preferred start: ${escape(longDay(ask.preferredStart))}`];
+    if (row?.school_id === HS_SCHOOL_ID) {
+      const placed = placementFromLead(row);
+      lines.push(`Parent asked for: ${escape(describeChoice(ask))}`);
+      lines.push(
+        placed.recordedAt
+          ? `School leader placed: ${escape(describeChoice(placed))}`
+          : "School leader placed: not chosen at Accept"
+      );
+      lines.push(`Actual start date: ${escape(placed.actualStartDate ? longDay(placed.actualStartDate) : "not chosen")}`);
+    }
+    return `<p>${lines.join("<br>")}</p>`;
+  } catch {
+    return "";
+  }
+}
+
 /**
  * A child has been accepted and is now in Finalizing Contract.
  *
@@ -52,11 +85,15 @@ export async function notifyReachedFinalizingContract(
   try {
     const { name, campus } = await describeChild(supabase, leadId);
     const link = `${resolvePublicAppOrigin()}/dashboard/admissions/finalizing`;
+    // "That then needs to be included in the information sent to me" (Jimmy,
+    // 20 Oct 2026): the preferred start, and at HS the leader's placement.
+    const start = await startAndPlacementHtml(supabase, leadId);
     const result = await sendTransactionalEmail({
       to: FINALIZING_CONTRACT_NOTIFY,
       subject: `Finalizing Contract: ${name} — ${campus}`,
       body:
         `<p>${escape(name)} at ${escape(campus)} has been accepted and is now in Finalizing Contract.</p>` +
+        start +
         `<p>Next: tuition, scholarships, the Schedule of Tuition Payments and the contract.</p>` +
         `<p><a href="${link}">Open Finalizing Contract</a></p>`,
       kind: "system_notification",

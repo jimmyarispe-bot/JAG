@@ -266,6 +266,8 @@ export async function inviteProspectGuardians(input: {
   signatory: string;
   /** The campus name, printed under the signatory. */
   schoolName?: string;
+  /** Contract letter only: the family's figures (buildTuitionSummaryHtml). */
+  tuitionSummaryHtml?: string;
   /**
    * Which letter. "application" (the default, unchanged) or "contract" - the
    * Finalizing Contract invitation, which lands the parent on /contract.
@@ -354,6 +356,7 @@ export async function inviteProspectGuardians(input: {
                 childName: input.childName,
                 schoolName: input.schoolName,
                 inviteLink,
+                tuitionSummaryHtml: input.tuitionSummaryHtml,
               }),
           }
         : {

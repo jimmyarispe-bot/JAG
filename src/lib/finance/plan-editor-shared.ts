@@ -126,6 +126,13 @@ export interface PlanEditorContext {
    * plan needs to know whether it has already been given to someone else.
    */
   readonly siblingsWithPlans: { readonly name: string; readonly hasSiblingDiscount: boolean }[];
+  /**
+   * HS: what the school leader placed at Accept, as catalogItemId -> days per
+   * month (0 = taken as a class). The builder starts ticked from it.
+   */
+  readonly placementSuggestion: Record<string, number> | null;
+  /** The same, in words, shown above the list. */
+  readonly placementSummary: string | null;
 }
 
 export const PAYMENT_CHANNELS = [

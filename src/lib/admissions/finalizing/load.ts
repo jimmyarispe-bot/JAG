@@ -1,3 +1,4 @@
+import { HS_SCHOOL_ID, placementFromLead, readFamilyAsk, type FamilyAsk, type Placement } from "@/lib/admissions/placement";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
@@ -24,6 +25,10 @@ export interface FinalizingInstalment {
   paidAmount: number | null;
   paymentMethod: string | null;
   paymentReference: string | null;
+  /** The Square invoice emailed for it (migration 575). */
+  squareInvoiceId: string | null;
+  squareInvoiceNumber: string | null;
+  squareInvoiceError: string | null;
 }
 
 export interface FinalizingAward {
@@ -39,6 +44,21 @@ export interface FinalizingAward {
   awardPercent: number | null;
   awardPercentDeadline: string | null;
   stateStudentNumber: string | null;
+}
+
+export interface FinalizingStateInvoice {
+  id: string;
+  awardId: string;
+  sequence: number;
+  label: string;
+  dueDate: string;
+  amount: number;
+  status: string;
+  lastError: string | null;
+  squareInvoiceId: string | null;
+  squareInvoiceNumber: string | null;
+  receiptId: string | null;
+  squareMarkedPaidAt: string | null;
 }
 
 export interface FinalizingPlan {
@@ -72,9 +92,16 @@ export interface FinalizingChild {
   studentId: string | null;
   plan: FinalizingPlan | null;
   awards: FinalizingAward[];
+  /** One Square invoice per state scholarship payment (migration 573). */
+  stateInvoices: FinalizingStateInvoice[];
   packetStatus: string | null;
   /** When the parent signed the contract, if they have. */
   contractSignedAt: string | null;
+  /** What the parent asked for: preferred start, and at HS the classes. */
+  familyAsk: FamilyAsk;
+  /** HS: what the school leader chose at Accept (migration 574). */
+  placement: Placement;
+  isHs: boolean;
   /** The first instalment that asks the family for money, if any. */
   firstPayable: FinalizingInstalment | null;
   /** Everything Jimmy can edit on Finalizing Contract, as stored. */
@@ -129,7 +156,7 @@ export async function loadFinalizingChildren(
   const { data: leads, error: leadsError } = await supabase
     .from("admissions_leads")
     .select(
-      "id, lead_stage, first_name, last_name, preferred_name, date_of_birth, school_id, applying_for_grade, current_grade, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, stage_entered_at, state_funding_program_code, state_funding_award_amount, state_funding_award_id, schools(name)"
+      "id, lead_stage, first_name, last_name, preferred_name, date_of_birth, school_id, applying_for_grade, current_grade, guardian_first_name, guardian_last_name, guardian_email, guardian_phone, stage_entered_at, state_funding_program_code, state_funding_award_amount, state_funding_award_id, placement_class_names, placement_sl_tutoring_days, placement_math_tutoring_days, actual_start_date, placement_recorded_at, schools(name)"
     )
     .in("lead_stage", stages as string[])
     .is("archived_at", null)
@@ -196,6 +223,7 @@ export async function loadFinalizingChildren(
   const studentIds = [...studentByLead.values()];
   const plansByStudent = new Map<string, FinalizingPlan>();
   const awardsByStudent = new Map<string, FinalizingAward[]>();
+  const invoicesByStudent = new Map<string, FinalizingStateInvoice[]>();
 
   if (studentIds.length > 0) {
     const [plansResult, awardsResult] = await Promise.all([
@@ -219,6 +247,35 @@ export async function loadFinalizingChildren(
     if (plansResult.error) return { children: [], error: plansResult.error.message };
     if (awardsResult.error) return { children: [], error: awardsResult.error.message };
 
+    const { data: invRows, error: invError } = await supabase
+      .from("scholarship_invoices" as never)
+      .select(
+        "id, award_id, student_id, sequence, label, due_date, amount, status, last_error, square_invoice_id, square_invoice_number, receipt_id, square_marked_paid_at"
+      )
+      .in("student_id", studentIds)
+      .neq("status", "cancelled")
+      .order("due_date", { ascending: true });
+    if (invError) return { children: [], error: invError.message };
+    for (const r of (invRows ?? []) as Record<string, unknown>[]) {
+      const sid = String(r.student_id);
+      const list = invoicesByStudent.get(sid) ?? [];
+      list.push({
+        id: String(r.id),
+        awardId: String(r.award_id),
+        sequence: Number(r.sequence),
+        label: String(r.label),
+        dueDate: String(r.due_date),
+        amount: num(r.amount) ?? 0,
+        status: String(r.status),
+        lastError: str(r.last_error),
+        squareInvoiceId: str(r.square_invoice_id),
+        squareInvoiceNumber: str(r.square_invoice_number),
+        receiptId: str(r.receipt_id),
+        squareMarkedPaidAt: str(r.square_marked_paid_at),
+      });
+      invoicesByStudent.set(sid, list);
+    }
+
     const latestPlanRow = new Map<string, Record<string, unknown>>();
     for (const p of (plansResult.data ?? []) as Record<string, unknown>[]) {
       const sid = String(p.student_id);
@@ -231,7 +288,7 @@ export async function loadFinalizingChildren(
       const { data: inst, error: instError } = await supabase
         .from("student_tuition_instalments")
         .select(
-          "id, plan_id, sequence, label, due_date, amount, is_paid, paid_at, paid_amount, payment_method, payment_reference"
+          "id, plan_id, sequence, label, due_date, amount, is_paid, paid_at, paid_amount, payment_method, payment_reference, square_invoice_id, square_invoice_number, square_invoice_error"
         )
         .in("plan_id", planIds)
         .order("sequence", { ascending: true });
@@ -250,6 +307,9 @@ export async function loadFinalizingChildren(
           paidAmount: num(i.paid_amount),
           paymentMethod: str(i.payment_method),
           paymentReference: str(i.payment_reference),
+          squareInvoiceId: str(i.square_invoice_id),
+          squareInvoiceNumber: str(i.square_invoice_number),
+          squareInvoiceError: str(i.square_invoice_error),
         });
         instalmentsByPlan.set(pid, list);
       }
@@ -288,6 +348,13 @@ export async function loadFinalizingChildren(
     }
   }
 
+  const askByLead = new Map<string, FamilyAsk>();
+  await Promise.all(
+    leadRows.map(async (l) => {
+      askByLead.set(String(l.id), await readFamilyAsk(supabase as never, String(l.id)));
+    })
+  );
+
   const children: FinalizingChild[] = leadRows.map((l) => {
     const leadId = String(l.id);
     const studentId = studentByLead.get(leadId) ?? null;
@@ -313,8 +380,12 @@ export async function loadFinalizingChildren(
       studentId,
       plan,
       awards: studentId ? awardsByStudent.get(studentId) ?? [] : [],
+      stateInvoices: studentId ? invoicesByStudent.get(studentId) ?? [] : [],
       packetStatus: packetByLead.get(leadId) ?? null,
       contractSignedAt: signedAtByLead.get(leadId) ?? null,
+      familyAsk: askByLead.get(leadId) ?? { preferredStart: null, options: [], slTutoringDays: null, mathTutoringDays: null },
+      placement: placementFromLead(l as Record<string, unknown>),
+      isHs: String(l.school_id) === HS_SCHOOL_ID,
       firstPayable: plan ? firstPayableInstalment(plan.instalments) : null,
       details: {
         firstName: String(l.first_name ?? ""),

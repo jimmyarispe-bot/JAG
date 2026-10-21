@@ -7,18 +7,35 @@ import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import {
   addScholarshipAction,
   applyGsnsShareAction,
+  createScholarshipInvoicesAction,
   createStudentRecordAction,
+  markSquareInvoicePaidAction,
   editScholarshipAction,
+  invoiceFirstPaymentAction,
   markPlanFinalAction,
   readAwardLetterAction,
+  recordStatePaymentAction,
   recordPaymentAction,
   undoPaymentAction,
   updateChildDetailsAction,
+  updatePlacementAction,
   updateScholarshipAction,
 } from "@/lib/admissions/finalizing/actions";
-import type { FinalizingAward, FinalizingChild, FinalizingInstalment } from "@/lib/admissions/finalizing/load";
+import type {
+  FinalizingAward,
+  FinalizingChild,
+  FinalizingInstalment,
+  FinalizingStateInvoice,
+} from "@/lib/admissions/finalizing/load";
 import { GRADES, gradeLabel } from "@/lib/constants/grades";
 import { decidedOn, easternToday, gsnsShareOn, shareOf } from "@/lib/scholarships/gsns";
+import {
+  HS_OPTIONS,
+  HS_OPTION_MATH_TUTORING,
+  HS_OPTION_SL_TUTORING,
+  describeChoice,
+  longDay,
+} from "@/lib/admissions/placement";
 
 /**
  * ONE CHILD ON FINALIZING CONTRACT - FIVE STEPS, EACH SAYING WHAT IS DONE AND
@@ -171,6 +188,212 @@ function GsnsShareLine({
   );
 }
 
+/**
+ * The preferred start the parent gave, and at HS what the school leader
+ * placed. Jimmy, 20 Oct 2026: "Preferred and start are both shown" ... "That
+ * then needs to be included in the information sent to me."
+ */
+function StartAndClasses({
+  child,
+  disabled,
+  onSave,
+}: {
+  child: FinalizingChild;
+  disabled: boolean;
+  onSave: (fd: FormData) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const ask = child.familyAsk;
+  const placed = child.placement;
+  const seed = placed.recordedAt ? placed : { ...ask, actualStartDate: ask.preferredStart };
+  return (
+    <div className="space-y-1 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-700">
+      <p>
+        <span className="font-semibold text-slate-900">Parent&rsquo;s preferred start:</span> {longDay(ask.preferredStart)}
+      </p>
+      {child.isHs ? (
+        <>
+          <p>
+            <span className="font-semibold text-slate-900">Parent asked for:</span> {describeChoice(ask)}
+          </p>
+          <p>
+            <span className="font-semibold text-slate-900">School leader placed:</span>{" "}
+            {placed.recordedAt ? describeChoice(placed) : <span className="text-amber-700">not chosen at Accept</span>}
+          </p>
+          <p>
+            <span className="font-semibold text-slate-900">Actual start date:</span>{" "}
+            {placed.actualStartDate ? longDay(placed.actualStartDate) : <span className="text-amber-700">not chosen</span>}
+          </p>
+          {editing ? (
+            <form
+              className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-white p-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                onSave(new FormData(e.currentTarget));
+                setEditing(false);
+              }}
+            >
+              <input type="hidden" name="lead_id" value={child.leadId} />
+              {HS_OPTIONS.map((option) => (
+                <div key={option}>
+                  <label className="flex items-start gap-2">
+                    <input type="checkbox" name="placement_option" value={option} defaultChecked={seed.options.includes(option)} className="mt-0.5" />
+                    <span>{option}</span>
+                  </label>
+                  {option === HS_OPTION_SL_TUTORING || option === HS_OPTION_MATH_TUTORING ? (
+                    <label className="ml-6 flex items-center gap-2 text-[11px] text-slate-600">
+                      Days per month
+                      <input
+                        type="number"
+                        min={1}
+                        max={31}
+                        name={option === HS_OPTION_SL_TUTORING ? "placement_sl_days" : "placement_math_days"}
+                        defaultValue={(option === HS_OPTION_SL_TUTORING ? seed.slTutoringDays : seed.mathTutoringDays) ?? ""}
+                        className="w-16 rounded border border-slate-200 px-1 py-0.5"
+                      />
+                    </label>
+                  ) : null}
+                </div>
+              ))}
+              <label className="block">
+                Actual start date{" "}
+                <input type="date" name="actual_start_date" defaultValue={seed.actualStartDate ?? ""} className="rounded border border-slate-200 px-1 py-0.5" />
+              </label>
+              <div className="flex gap-2">
+                <button type="submit" className={button} disabled={disabled}>Save</button>
+                <button type="button" className={quietButton} onClick={() => setEditing(false)}>Cancel</button>
+              </div>
+            </form>
+          ) : (
+            <button type="button" className="text-[11px] text-brand-700 underline" onClick={() => setEditing(true)}>
+              {placed.recordedAt ? "Change classes or start date" : "Set classes and start date"}
+            </button>
+          )}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The state's payments, one Square invoice each - records only, never sent.
+ * "when we receive the payment from the state we will mark them as paid via
+ * state scholarship" (Jimmy, 20 Oct 2026). Square will not let the JAG mark
+ * them paid, so the JAG records the payment and opens the invoice in Square.
+ */
+function StateInvoices({
+  invoices,
+  hasAwards,
+  awardTotal,
+  disabled,
+  onCreate,
+  onRecord,
+  onMarkedPaid,
+}: {
+  invoices: FinalizingStateInvoice[];
+  hasAwards: boolean;
+  awardTotal: number;
+  disabled: boolean;
+  onCreate: () => void;
+  onRecord: (fd: FormData) => void;
+  onMarkedPaid: (id: string) => void;
+}) {
+  const [recording, setRecording] = useState<string | null>(null);
+  if (!hasAwards && invoices.length === 0) return null;
+  const needsWork = invoices.length === 0 || invoices.some((i) => i.status === "pending" || i.status === "error");
+  const invoiced = invoices.reduce((sum, i) => sum + i.amount, 0);
+  const mismatch = invoices.length > 0 && Math.abs(invoiced - awardTotal) > 0.009;
+  return (
+    <div className="space-y-2 rounded-lg border border-slate-200 p-3">
+      <p className="text-xs font-semibold text-slate-800">State scholarship invoices (Square · not sent to the family)</p>
+      {mismatch ? (
+        <p className="rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900">
+          Invoices total {usd(invoiced)}; the scholarship is now {usd(awardTotal)}. Adjust them in Square.
+        </p>
+      ) : null}
+      {invoices.length > 0 ? (
+        <ul className="divide-y divide-slate-100 text-xs">
+          {invoices.map((i) => (
+            <li key={i.id} className="space-y-1 py-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {i.label} · due {shortDate(i.dueDate)}
+                  {i.squareInvoiceNumber ? ` · Square #${i.squareInvoiceNumber}` : ""}
+                </span>
+                <span className="flex items-center gap-2">
+                  {usd(i.amount)}
+                  {i.squareMarkedPaidAt ? (
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800">Paid by the state</span>
+                  ) : i.receiptId ? (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-800">Received · mark paid in Square</span>
+                  ) : i.status === "open" ? (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">Open</span>
+                  ) : i.status === "error" ? (
+                    <span className="rounded-full bg-red-50 px-2 py-0.5 text-red-800">Not in Square</span>
+                  ) : (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">Not in Square yet</span>
+                  )}
+                </span>
+              </div>
+              {i.status === "error" && i.lastError ? <p className="text-[11px] text-red-700">{i.lastError}</p> : null}
+              <div className="flex flex-wrap gap-3 text-[11px]">
+                {i.squareInvoiceId ? (
+                  <a
+                    className="text-brand-700 underline"
+                    href={`https://app.squareup.com/dashboard/invoices/${i.squareInvoiceId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open in Square
+                  </a>
+                ) : null}
+                {i.status === "open" && !i.receiptId ? (
+                  <button type="button" className="text-brand-700 underline" disabled={disabled} onClick={() => setRecording(i.id)}>
+                    Record state payment
+                  </button>
+                ) : null}
+                {i.receiptId && !i.squareMarkedPaidAt ? (
+                  <button type="button" className="text-brand-700 underline" disabled={disabled} onClick={() => onMarkedPaid(i.id)}>
+                    I marked it paid in Square
+                  </button>
+                ) : null}
+              </div>
+              {recording === i.id ? (
+                <form
+                  className="grid gap-2 rounded bg-slate-50 p-2 sm:grid-cols-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    onRecord(new FormData(e.currentTarget));
+                    setRecording(null);
+                  }}
+                >
+                  <input type="hidden" name="invoice_id" value={i.id} />
+                  <input name="amount" defaultValue={i.amount.toFixed(2)} className={input} inputMode="decimal" aria-label="Amount the state paid" />
+                  <input name="received_on" type="date" defaultValue={today()} className={input} aria-label="Date it arrived" />
+                  <input name="reference" placeholder="Check # (optional)" className={input} />
+                  <div className="flex gap-2 sm:col-span-3">
+                    <button type="submit" className={button} disabled={disabled}>
+                      Record state payment
+                    </button>
+                    <button type="button" className={quietButton} onClick={() => setRecording(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {needsWork ? (
+        <button type="button" className={quietButton} disabled={disabled} onClick={onCreate}>
+          {invoices.length === 0 ? "Make the Square invoices" : "Retry in Square"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -204,6 +427,9 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
         setMessage({ tone: "ok", text: result.message });
       } else {
         setMessage({ tone: "ok", text: okText });
+      }
+      if (result && typeof result === "object" && "openUrl" in result && typeof result.openUrl === "string") {
+        window.open(result.openUrl, "_blank", "noopener");
       }
       if (result && typeof result === "object" && "award" in result && result.award) {
         setJustAdded((prev) => [...prev, (result as { award: FinalizingAward }).award]);
@@ -343,6 +569,8 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
           {message.text}
         </p>
       ) : null}
+
+      <StartAndClasses child={child} disabled={pending} onSave={(fd) => run(() => updatePlacementAction(fd), "Saved.")} />
 
       <div className="space-y-4">
         {/* 1 */}
@@ -594,6 +822,21 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
                   </button>
                 ) : null}
               </div>
+              {planFinal ? (
+                <StateInvoices
+                  invoices={child.stateInvoices}
+                  hasAwards={openAwards.some((a) => a.status === "awarded" && (a.awardedAmount ?? 0) > 0)}
+                  awardTotal={openAwards
+                    .filter((a) => a.status === "awarded")
+                    .reduce((sum, a) => sum + (a.awardedAmount ?? 0), 0)}
+                  disabled={pending}
+                  onCreate={() =>
+                    run(() => createScholarshipInvoicesAction(child.studentId as string, plan.id), "Invoices made.")
+                  }
+                  onRecord={(fd) => run(() => recordStatePaymentAction(fd), "State payment recorded.")}
+                  onMarkedPaid={(id) => run(() => markSquareInvoicePaidAction(id), "Marked paid in Square.")}
+                />
+              ) : null}
             </>
           )}
         </Step>
@@ -623,6 +866,31 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
 
         {/* 5 */}
         <Step n={5} title="First tuition payment" done={firstPaid}>
+          {plan && contractSigned && child.firstPayable && !child.firstPayable.isPaid ? (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {child.firstPayable.squareInvoiceId ? (
+                <span className="text-slate-700">
+                  Square invoice{child.firstPayable.squareInvoiceNumber ? ` #${child.firstPayable.squareInvoiceNumber}` : ""} emailed to the family.
+                </span>
+              ) : (
+                <>
+                  <span className={child.firstPayable.squareInvoiceError ? "text-red-700" : "text-slate-600"}>
+                    {child.firstPayable.squareInvoiceError
+                      ? `Invoice not sent: ${child.firstPayable.squareInvoiceError}`
+                      : "No Square invoice yet."}
+                  </span>
+                  <button
+                    type="button"
+                    className={quietButton}
+                    disabled={pending}
+                    onClick={() => run(() => invoiceFirstPaymentAction(plan.id, child.leadId), "Invoice sent.")}
+                  >
+                    Email the Square invoice
+                  </button>
+                </>
+              )}
+            </div>
+          ) : null}
           {!plan ? (
             <p className="text-xs text-slate-500">Waiting on the tuition plan.</p>
           ) : plan.instalments.length === 0 ? (
