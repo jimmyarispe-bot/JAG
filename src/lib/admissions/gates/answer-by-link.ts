@@ -55,7 +55,7 @@ import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/
 
 const TOKEN_PATTERN = /^[0-9a-f]{64}$/;
 
-export const LINK_ANSWERS = ["yes", "accept", "deny"] as const;
+export const LINK_ANSWERS = ["yes", "no", "accept", "deny"] as const;
 export type LinkAnswer = (typeof LINK_ANSWERS)[number];
 
 export function isLinkAnswer(value: unknown): value is LinkAnswer {
@@ -97,7 +97,7 @@ export function wordingFor(
   gateKey: GateKey,
   answer: LinkAnswer,
   firstName: string
-): { readonly question: string; readonly button: string } | null {
+): { readonly question: string; readonly button: string; readonly consequence?: string } | null {
   if (gateKey === "invite_to_apply" && answer === "yes") {
     return {
       question: `Send ${firstName}'s parent the Application for Admissions?`,
@@ -108,6 +108,20 @@ export function wordingFor(
     return {
       question: `Send ${firstName}'s Shadow Day invitation?`,
       button: "Yes — schedule shadow days",
+    };
+  }
+  /*
+   * "No — not the right fit". Jimmy, 19 October 2026, on the GA and FL
+   * shadow days letter. The family gets HIS letter (not_right_fit_email),
+   * not the network decline, so the page says so.
+   */
+  if (gateKey === "invite_to_shadow_days" && answer === "no") {
+    return {
+      question: `Tell ${firstName}'s parent ${firstName} is not the right fit?`,
+      button: "No — not the right fit",
+      consequence:
+        `${firstName}'s parent gets the "not the right fit" letter, ${firstName} moves to Declined, ` +
+        `and no shadow days are scheduled.`,
     };
   }
   if (gateKey === "accept_or_deny" && answer === "accept") {
@@ -188,8 +202,14 @@ export function branchForLink(
   const gate = gateFor(gateKey);
   if (!gate) return null;
   const branch = branchFor(gate, answer);
-  /* A link only ever says yes, accept or deny. "No" stays in JAG. */
-  return branch && branch.answer !== "no" ? branch : null;
+  /*
+   * A link says yes, accept or deny - and, since 19 October 2026, "No — not
+   * the right fit" on the shadow days question only. Every other "No" stays
+   * in JAG.
+   */
+  if (!branch) return null;
+  if (branch.answer === "no" && gateKey !== "invite_to_shadow_days") return null;
+  return branch;
 }
 
 /**
@@ -339,6 +359,38 @@ export async function answerDecisionByLink(params: {
         ? outcome.warning
         : null;
     return { ok: true, warning };
+  }
+
+  /* ---- "No — not the right fit": Declined, then Jimmy's letter. ---- */
+  if (gateKey === "invite_to_shadow_days" && branch.answer === "no") {
+    const { transitionCaseStage } = await import("@/lib/admissions/case/orchestration");
+    const moved = await transitionCaseStage(service, leadId, "declined", null);
+    if (moved.error) {
+      console.error("[decide] answered no but the stage did not move:", moved.error);
+      return {
+        error:
+          `Your answer was recorded, but ${subject.studentFirstName} did not move to Declined ` +
+          `and the family was not emailed: ${moved.error} Finish it in JAG.`,
+      };
+    }
+    try {
+      const { notifyAdmissionsEvent } = await import(
+        "@/lib/admissions/communications/triggers"
+      );
+      await notifyAdmissionsEvent(service, {
+        leadId,
+        events: ["shadow_days_not_right_fit"],
+        sentBy: null,
+      });
+    } catch (err) {
+      console.error("[decide] the not-the-right-fit email failed:", err);
+      return {
+        error:
+          `Your answer was recorded and ${subject.studentFirstName} is Declined, but the email ` +
+          "to the family did not go out. Send it from the family's case page in JAG.",
+      };
+    }
+    return { ok: true, warning: null };
   }
 
   /* ---- Send the application: the token and the application first. ---- */

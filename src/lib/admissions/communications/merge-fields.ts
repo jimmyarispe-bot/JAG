@@ -281,7 +281,7 @@ function uploadLink(ctx: MergeContext): string {
  * The answer is in the path, not chosen on the page, because the letter's
  * button already said which answer it was.
  */
-function decideLink(ctx: MergeContext, answer: "yes" | "accept" | "deny"): string {
+function decideLink(ctx: MergeContext, answer: "yes" | "no" | "accept" | "deny"): string {
   const token = ctx.decisionToken?.trim();
   if (token) return `${resolvePublicAppOrigin()}/decide/${token}/${answer}`;
   return ctx.leadId
@@ -529,6 +529,7 @@ export function buildMergeValues(ctx: MergeContext): Record<MergeField, string> 
     invite_shadow_days_link: decideLink(ctx, "yes"),
     accept_link: decideLink(ctx, "accept"),
     deny_link: decideLink(ctx, "deny"),
+    not_right_fit_link: decideLink(ctx, "no"),
     application_view_link: ctx.leadId
       ? `${resolvePublicAppOrigin()}/dashboard/admissions/cases/${ctx.leadId}?section=applications`
       : `${resolvePublicAppOrigin()}/dashboard/admissions/decisions`,

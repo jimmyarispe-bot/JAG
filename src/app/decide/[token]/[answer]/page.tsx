@@ -87,7 +87,7 @@ export default async function DecidePage({
         </p>
       ) : null}
 
-      <p className="mt-8 text-slate-700">{branch.consequence}</p>
+      <p className="mt-8 text-slate-700">{wording.consequence ?? branch.consequence}</p>
 
       <form action={answerDecisionAction} className="mt-8">
         <input type="hidden" name="token" value={token} />

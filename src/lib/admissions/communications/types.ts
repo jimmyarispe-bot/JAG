@@ -67,6 +67,12 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   "shadow_days_invited",
   "shadow_days_not_invited",
   /*
+   * "No — not the right fit", pressed from the GA and FL "Decision needed"
+   * letter, 19 October 2026. Jimmy's own letter (not_right_fit_email,
+   * migration 573 of 19 Oct), GA and FL rows only.
+   */
+  "shadow_days_not_right_fit",
+  /*
    * The shadow day is BOOKED - a different message from the invitation to book
    * one, and from an interview.
    *
@@ -288,6 +294,8 @@ export const MERGE_FIELDS = [
   "invite_shadow_days_link",
   "accept_link",
   "deny_link",
+  /** "No — not the right fit" on the GA and FL shadow days letter, 19 Oct 2026. */
+  "not_right_fit_link",
   /** The case page's Applications section. Sign-in required; staff only. */
   "application_view_link",
   /** The case page itself, labelled with the child's name. Staff only. */
@@ -456,6 +464,7 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   application_not_invited: "Inquiry Closed With Thanks",
   shadow_days_invited: "Invited to Shadow Days",
   shadow_days_not_invited: "Application Declined",
+  shadow_days_not_right_fit: "Not the Right Fit",
   shadow_day_scheduled: "Shadow Day Booked",
   staff_shadow_day_scheduled: "Staff: Shadow Day Booked",
   tour_scheduled: "Tour Scheduled",
