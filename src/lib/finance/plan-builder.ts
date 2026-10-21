@@ -368,7 +368,9 @@ export function schoolYearMonthSlots(schoolYearEndDate: string, months: number):
   const slots: InstalmentSlotInput[] = [];
   for (let i = 0; i < months; i++) {
     const iso = `${year}-${String(month).padStart(2, "0")}-25`;
-    const label = `Due ${new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+    // The month's name, not its date: the date has its own column, and
+    // "Due October 25, 2026 | 25 October 2026" printed it twice (21 Oct 2026).
+    const label = `${new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "long" })} tuition`;
     slots.push({ label, dueDate: iso, payable: true });
     month += 1;
     if (month > 12) {

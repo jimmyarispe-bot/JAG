@@ -11,6 +11,7 @@
  * dashboard use (canViewFounderDashboard) - one rule, not a name.
  */
 
+import { sendEverythingReceived } from "@/lib/admissions/finalizing/everything-received";
 import { revalidatePath } from "next/cache";
 
 import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
@@ -681,6 +682,17 @@ export async function recordPaymentAction(formData: FormData) {
       }
       enrolled = true;
       await notifyEnrolledByFirstPayment(supabase, leadId);
+      // To the family, school leader copied (Jimmy, 21 Oct 2026).
+      const letter = await sendEverythingReceived(supabase, leadId);
+      if (!letter.sent) {
+        refresh();
+        return {
+          success: true,
+          fullyPaid,
+          enrolled,
+          warning: `Payment recorded and enrolled, but the letter to the family was NOT sent: ${letter.error ?? "unknown error"}`,
+        };
+      }
     }
   }
 

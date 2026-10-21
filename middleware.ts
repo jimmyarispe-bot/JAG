@@ -245,11 +245,17 @@ export async function middleware(req: NextRequest) {
       async () => await supabase.rpc("is_parent_only", { uid: user.id }),
       "Parent lock"
     );
-    // A failed check does not lock staff out: the data itself is refused to a
-    // parent by the database (migration 577) and every staff page checks
-    // permissions a parent does not hold. This lock is the third layer.
+    // A FAILED CHECK BLOCKS. Jimmy, 21 Oct 2026: if the parent check cannot
+    // answer, nobody passes - a parent must never slip through on an error.
+    // Staff see a "try again" sign-in page for the moment it takes to recover.
     if (parentCheckError) {
-      console.error("[middleware] parent check failed", parentCheckError.message);
+      console.error("[middleware] parent check failed - blocking", parentCheckError.message);
+      if (pathname.startsWith("/api/")) {
+        return finish(NextResponse.json({ error: "Please try again in a moment." }, { status: 503 }));
+      }
+      const retry = new URL("/login", req.url);
+      retry.searchParams.set("error", "Please try again in a moment.");
+      return finish(NextResponse.redirect(retry));
     }
     if (parentOnly === true) {
       if (pathname.startsWith("/api/")) {

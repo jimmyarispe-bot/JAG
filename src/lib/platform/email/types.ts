@@ -32,6 +32,13 @@ export type SendEmailParams = {
    * along with the recipient, so a diverted test never reaches a real leader.
    */
   bcc?: string | string[];
+  /**
+   * Visible copy. Added 21 October 2026 for the "we have received everything"
+   * letter, which names the school leader and copies her in so the family
+   * sees who will be in touch. Jimmy: "Copy in the school leader to that
+   * email." Stripped by divert.ts exactly like bcc.
+   */
+  cc?: string | string[];
   /** Optional classification for logging / templates. */
   kind?: EmailKind;
 };

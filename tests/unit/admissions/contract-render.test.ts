@@ -131,6 +131,14 @@ describe("the schedule on the face of the contract", () => {
     expect(table).toContain("$5,300.00");
   });
 
+  it("never prints the date twice (Jimmy, 21 Oct 2026)", () => {
+    const table = renderScheduleTable([
+      { label: "Due October 25, 2026", dueDate: "2026-10-25", amount: 850 },
+    ]);
+    expect(table).not.toContain("Due October 25, 2026");
+    expect(table).toContain("<td>October tuition</td><td>25 October 2026</td>");
+  });
+
   it("refuses to render a schedule with no rows", () => {
     expect(() => renderScheduleTable([])).toThrow(/no instalments/);
   });
@@ -140,7 +148,8 @@ describe("the schedule on the face of the contract", () => {
       { label: "Due August 25, 2026", dueDate: "2026-08-25", amount: 0 },
       { label: "Due September 25, 2026", dueDate: "2026-09-25", amount: 500 },
     ]);
-    expect(table).toContain("Due August 25, 2026");
+    expect(table).toContain("August tuition");
+    expect(table).toContain("25 August 2026");
     expect(table).toContain("$0.00");
   });
 });

@@ -16,7 +16,7 @@ describe("HS bills only the months attended", () => {
       "2027-05-25",
     ]);
     expect(slots.every((s) => s.payable)).toBe(true);
-    expect(slots[0].label).toBe("Due October 25, 2026");
+    expect(slots[0].label).toBe("October tuition");
   });
 
   it("a full year is August to May", () => {

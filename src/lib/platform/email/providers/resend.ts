@@ -71,6 +71,11 @@ export function createResendEmailProvider(apiKey: string): EmailProvider {
         .filter(Boolean)
         .filter((e) => e.includes("@") && !e.includes(",") && !/\s/.test(e));
 
+      const copies = (Array.isArray(params.cc) ? params.cc : params.cc ? [params.cc] : [])
+        .map((e) => e.trim())
+        .filter(Boolean)
+        .filter((e) => e.includes("@") && !e.includes(",") && !/\s/.test(e));
+
       const fromEmail = resolveEmailFrom(params.from);
       const fromName = resolveEmailFromName(params.fromName);
 
@@ -83,6 +88,7 @@ export function createResendEmailProvider(apiKey: string): EmailProvider {
           ...(params.text?.trim() ? { text: params.text } : {}),
           ...(params.replyTo ? { replyTo: params.replyTo } : {}),
           ...(blindCopies.length ? { bcc: blindCopies } : {}),
+          ...(copies.length ? { cc: copies } : {}),
         });
 
         if (error) {

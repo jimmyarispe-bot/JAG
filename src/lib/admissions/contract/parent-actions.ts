@@ -173,7 +173,10 @@ export async function signContractPartAction(formData: FormData) {
       body:
         `<p>${escapeHtml(signerName)} signed ${escapeHtml(child)}'s contract at ${escapeHtml(schoolName)}.</p>` +
         invoiceLine +
-        `<p>Next: the first tuition payment. Recorded in full, ${escapeHtml(child)} moves to Enrolled Students.</p>`,
+        // Nothing owed: already enrolled above, there is no first payment.
+        (owesNothing
+          ? ""
+          : `<p>Next: the first tuition payment. Recorded in full, ${escapeHtml(child)} moves to Enrolled Students.</p>`),
       kind: "system_notification",
     });
   } catch (error) {

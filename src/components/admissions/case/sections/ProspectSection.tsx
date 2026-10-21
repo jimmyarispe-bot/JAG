@@ -5,7 +5,6 @@ import {
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import { missing } from "./shared";
 import { EmailLink, PhoneLink } from "@/components/platform/contact/ContactLink";
-import { ProspectPortalInvitePanel } from "@/components/admissions/case/ProspectPortalInvitePanel";
 import type { ProspectInviteCandidate } from "@/lib/admissions/portal/prospect-invites";
 
 export function ProspectSection(props: ProfileSectionViewProps) {
@@ -51,12 +50,8 @@ export function ProspectSection(props: ProfileSectionViewProps) {
           )}
         </div>
       </ProfileCard>
-      {data.leadId && (
-        <ProspectPortalInvitePanel
-          leadId={data.leadId}
-          candidates={data.inviteCandidates ?? []}
-        />
-      )}
+      {/* "Application portal access" / Invite parent: hidden 21 Oct 2026 (Jimmy, "A. Hide
+          the button"). A parent login opens the contract only; applications go by link. */}
       {data.guardians.length > 0 && (
         <ProfileCard title="Additional Guardians">
           <ul className="space-y-2 text-sm">

@@ -1,3 +1,5 @@
+import { paymentLabel } from "@/lib/finance/payment-label";
+import { jimmySignatureHtml } from "@/lib/admissions/portal/jimmy-signature";
 /**
  * The letter a prospective parent actually receives.
  *
@@ -61,7 +63,7 @@ export const PROSPECT_PORTAL_PATH = "/apply/portal";
  * Inline, because email clients strip <style> blocks. A readable measure and a
  * generous line height, because a parent reads this on a phone.
  */
-const LETTER_STYLE = [
+export const LETTER_STYLE = [
   "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif",
   "font-size:16px",
   "line-height:1.6",
@@ -70,7 +72,7 @@ const LETTER_STYLE = [
 ].join(";");
 
 /** The paragraph gap itself — the thing that was silently collapsing. */
-const PARAGRAPH_STYLE = "margin:0 0 16px";
+export const PARAGRAPH_STYLE = "margin:0 0 16px";
 
 /** Named explicitly: some clients render an unstyled anchor in body colour. */
 const LINK_STYLE = "color:#1d4ed8;text-decoration:underline";
@@ -195,7 +197,7 @@ export function buildTuitionSummaryHtml(f: {
   ];
   const schedule = f.instalments
     .filter((i) => i.amount > 0)
-    .map((i) => row(`${safe(i.label)} · ${day(i.dueDate)}`, usd(i.amount)));
+    .map((i) => row(`${safe(paymentLabel(i.label, i.dueDate))} · ${day(i.dueDate)}`, usd(i.amount)));
   return [
     `<table style="border-collapse:collapse;font-size:15px">${lines.join("")}</table>`,
     schedule.length
@@ -240,7 +242,9 @@ export function buildContractInviteBody(input: {
         ? `You can print or save a PDF copy of the contract at any time. Your scholarship covers your tuition, so there is nothing for you to pay.`
         : `You can print or save a PDF copy of the contract at any time. Once it is signed, you will receive an invoice for your first tuition payment.`
     ),
-    paragraph(`Sincerely,<br>Jimmy Arispe<br>${campus}`),
+    paragraph(`Sincerely,`),
+    // Jimmy's Academy Way signature, the campus under the network (21 Oct 2026).
+    jimmySignatureHtml(input.schoolName),
     `</div>`,
   ].join("\n");
 }

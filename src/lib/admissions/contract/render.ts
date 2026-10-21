@@ -26,6 +26,7 @@
  * first time anyone renders it, rather than by a parent reading `{{studnet_name}}`.
  */
 
+import { paymentLabel } from "@/lib/finance/payment-label";
 import { formatUsd } from "@/lib/finance/plan-builder";
 
 /** One row of the schedule as it appears on the contract. */
@@ -171,7 +172,7 @@ export function renderScheduleTable(instalments: readonly ContractInstalment[]):
   const rows = instalments
     .map(
       (i) =>
-        `<tr><td>${escapeHtml(i.label)}</td>` +
+        `<tr><td>${escapeHtml(paymentLabel(i.label, i.dueDate))}</td>` +
         `<td>${i.dueDate ? escapeHtml(longDate(i.dueDate)) : "Upon signing"}</td>` +
         `<td style="text-align:right">${escapeHtml(formatUsd(i.amount))}</td></tr>`
     )

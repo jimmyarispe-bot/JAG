@@ -191,7 +191,7 @@ export function divertEmail(params: SendEmailParams): SendEmailParams | null {
      * leader did not ask to be copied on a test, and a BCC she cannot see
      * coming is the one kind of mail nobody thinks to check.
      */
-    return { ...params, replyTo, bcc: undefined };
+    return { ...params, replyTo, bcc: undefined, cc: undefined };
   }
 
   const intended = asList(params.to);
@@ -222,5 +222,7 @@ export function divertEmail(params: SendEmailParams): SendEmailParams | null {
      * no way to tell it from a real one, because that is what blind means.
      */
     bcc: undefined,
+    /* The visible copy too: a test must never reach a school leader. */
+    cc: undefined,
   };
 }
