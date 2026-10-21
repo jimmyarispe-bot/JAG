@@ -106,7 +106,7 @@ describe("the figures on the face of the contract", () => {
   it("shows the schedule, and it totals what is owed", () => {
     const out = html();
     expect(out).toContain("Due Upon Signing Contract");
-    expect(out).toContain("25 April 2027");
+    expect(out).toContain("April 25, 2027");
     // Eight at $662.50.
     expect(out.match(/\$662\.50/g) ?? []).toHaveLength(8);
   });

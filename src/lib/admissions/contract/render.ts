@@ -141,7 +141,10 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/** 2026-10-25 -> "25 October 2026". Parsed as text: see school-year-months.ts. */
+/**
+ * 2026-10-25 -> "October 25, 2026". American order (Jimmy, 21 Oct 2026, "fix
+ * the date order"; was "25 October 2026"). Parsed as text: see school-year-months.ts.
+ */
 export function longDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
   if (!m) return iso;
@@ -151,7 +154,7 @@ export function longDate(iso: string): string {
   ];
   const monthIndex = Number(m[2]) - 1;
   if (monthIndex < 0 || monthIndex > 11) return iso;
-  return `${Number(m[3])} ${months[monthIndex]} ${m[1]}`;
+  return `${months[monthIndex]} ${Number(m[3])}, ${m[1]}`;
 }
 
 /**

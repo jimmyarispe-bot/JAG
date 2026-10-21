@@ -125,7 +125,7 @@ describe("the schedule on the face of the contract", () => {
     const table = renderScheduleTable(ANDREW.instalments);
     expect(table).toContain("Due Upon Signing Contract");
     expect(table).toContain("Upon signing");
-    expect(table).toContain("25 October 2026");
+    expect(table).toContain("October 25, 2026");
     expect(table).toContain("$662.50");
     // Eight payments of $662.50 is exactly what the family owes.
     expect(table).toContain("$5,300.00");
@@ -136,7 +136,7 @@ describe("the schedule on the face of the contract", () => {
       { label: "Due October 25, 2026", dueDate: "2026-10-25", amount: 850 },
     ]);
     expect(table).not.toContain("Due October 25, 2026");
-    expect(table).toContain("<td>October tuition</td><td>25 October 2026</td>");
+    expect(table).toContain("<td>October tuition</td><td>October 25, 2026</td>");
   });
 
   it("refuses to render a schedule with no rows", () => {
@@ -149,7 +149,7 @@ describe("the schedule on the face of the contract", () => {
       { label: "Due September 25, 2026", dueDate: "2026-09-25", amount: 500 },
     ]);
     expect(table).toContain("August tuition");
-    expect(table).toContain("25 August 2026");
+    expect(table).toContain("August 25, 2026");
     expect(table).toContain("$0.00");
   });
 });
@@ -216,13 +216,13 @@ describe("checking a template before anyone signs it", () => {
 
 describe("dates a parent can read", () => {
   it("writes an ISO date out in full", () => {
-    expect(longDate("2026-10-25")).toBe("25 October 2026");
+    expect(longDate("2026-10-25")).toBe("October 25, 2026");
   });
 
   it("does not drift a day the way new Date() would", () => {
     // new Date("2026-01-01") is midnight UTC, which is 31 December west of
     // Greenwich. Parsed as text, the first of January stays the first.
-    expect(longDate("2026-01-01")).toBe("1 January 2026");
+    expect(longDate("2026-01-01")).toBe("January 1, 2026");
   });
 
   it("leaves something that is not a date alone rather than inventing one", () => {
