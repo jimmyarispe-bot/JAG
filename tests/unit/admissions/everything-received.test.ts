@@ -21,6 +21,15 @@ describe("the letter after the first payment", () => {
     expect(body).toContain("We have received everything that we require, and Nina Gaddy, our school leader, will be in touch with you next.");
   });
 
+  it("does not thank a $0 family for a payment they never made", () => {
+    const b = buildEverythingReceivedBody({
+      parentNames: ["Jennifer"], childName: "Harris", schoolName: "The Academy HS",
+      leaderName: "Heather Badger-Brown", owesNothing: true,
+    });
+    expect(b).toContain("We have received Harris's signed contract. We have received everything that we require");
+    expect(b).not.toContain("first tuition payment");
+  });
+
   it("falls back when the leader's name is unknown", () => {
     const b = buildEverythingReceivedBody({ parentNames: [], childName: "Ian", schoolName: "The Academy FL", leaderName: null });
     expect(b).toContain("and our school leader will be in touch with you next.");

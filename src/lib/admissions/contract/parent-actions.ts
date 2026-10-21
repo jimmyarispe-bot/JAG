@@ -19,6 +19,7 @@
  * "contracted" and tells Jimmy.
  */
 
+import { sendEverythingReceived } from "@/lib/admissions/finalizing/everything-received";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
@@ -150,9 +151,17 @@ export async function signContractPartAction(formData: FormData) {
     const { data: leadNow } = await admin.from("admissions_leads").select("lead_stage").eq("id", leadId).maybeSingle();
     if ((leadNow as { lead_stage?: string } | null)?.lead_stage === "accepted") {
       const moved = await transitionCaseStage(admin as never, leadId, "enrolled", null);
-      invoiceLine = moved.error
-        ? `<p><strong>Nothing is owed, but the move to Enrolled failed:</strong> ${escapeHtml(moved.error)}</p>`
-        : `<p>The family owes nothing after scholarships, so the child is now on Enrolled Students. No invoice was sent.</p>`;
+      if (moved.error) {
+        invoiceLine = `<p><strong>Nothing is owed, but the move to Enrolled failed:</strong> ${escapeHtml(moved.error)}</p>`;
+      } else {
+        // To the family, the campus's school leader copied (Jimmy, 21 Oct 2026).
+        const letter = await sendEverythingReceived(admin, leadId, { owesNothing: true });
+        invoiceLine =
+          `<p>The family owes nothing after scholarships, so the child is now on Enrolled Students. No invoice was sent.</p>` +
+          (letter.sent
+            ? `<p>The family has been sent "We have received everything we require", with the school leader copied.</p>`
+            : `<p><strong>The "We have received everything" letter was NOT sent:</strong> ${escapeHtml(letter.error ?? "unknown error")}</p>`);
+      }
     }
   } else if (!("error" in loaded)) {
     const invoiced = await invoiceFirstPayment(admin as unknown as SupabaseClient, {

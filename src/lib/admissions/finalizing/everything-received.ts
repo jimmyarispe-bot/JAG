@@ -8,7 +8,9 @@
  * nothing (Harris Borum): there is no first payment, so it never fires.
  *
  * Sent the moment the first payment is recorded in full and the child moves
- * to Enrolled. Signed with Jimmy's Academy Way signature, campus underneath.
+ * to Enrolled. A family who owes nothing gets it when they sign, since the
+ * signature enrolls them (Jimmy, 21 Oct 2026: "A. Parent letter, leader
+ * CC'd"), to the leader of the child's own campus. Signed with Jimmy's Academy Way signature, campus underneath.
  */
 import { jimmySignatureHtml } from "@/lib/admissions/portal/jimmy-signature";
 import { LETTER_STYLE, PARAGRAPH_STYLE } from "@/lib/admissions/portal/prospect-invite-email";
@@ -26,6 +28,8 @@ export function buildEverythingReceivedBody(input: {
   childName: string;
   schoolName: string;
   leaderName: string | null;
+  /** Scholarships cover everything: there was no first payment to thank them for. */
+  owesNothing?: boolean;
 }): string {
   const p = (html: string) => `  <p style="${PARAGRAPH_STYLE}">${html}</p>`;
   const names = input.parentNames.map((n) => n.trim()).filter(Boolean);
@@ -39,7 +43,9 @@ export function buildEverythingReceivedBody(input: {
     `<div style="${LETTER_STYLE}">`,
     ...greeting,
     p(
-      `Thank you. We have received ${child}'s signed contract and first tuition payment. ` +
+      (input.owesNothing
+        ? `Thank you. We have received ${child}'s signed contract. `
+        : `Thank you. We have received ${child}'s signed contract and first tuition payment. `) +
         `We have received everything that we require, and ${leader} will be in touch with you next.`
     ),
     p(`Sincerely,`),
@@ -51,7 +57,11 @@ export function buildEverythingReceivedBody(input: {
 type Client = { from: (table: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /** Never throws: a failed letter must not undo a recorded payment. */
-export async function sendEverythingReceived(supabase: Client, leadId: string): Promise<{ sent: boolean; error?: string }> {
+export async function sendEverythingReceived(
+  supabase: Client,
+  leadId: string,
+  options: { owesNothing?: boolean } = {}
+): Promise<{ sent: boolean; error?: string }> {
   try {
     const { data: lead } = await supabase
       .from("admissions_leads")
@@ -98,6 +108,7 @@ export async function sendEverythingReceived(supabase: Client, leadId: string): 
         childName: row?.first_name ?? "",
         schoolName,
         leaderName,
+        owesNothing: options.owesNothing,
       }),
       kind: "transactional",
     });
