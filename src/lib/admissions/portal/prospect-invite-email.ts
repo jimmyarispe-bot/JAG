@@ -160,9 +160,11 @@ export function buildProspectInviteBody(input: {
  */
 export const CONTRACT_INVITE_PATH = "/contract";
 
-export function contractInviteSubject(childName: string): string {
+/** The campus by name - "change the subject to read the specific school" (Jimmy, 21 Oct 2026). */
+export function contractInviteSubject(childName: string, schoolName?: string): string {
   const child = safe(childName) || "your child";
-  return `${child}'s Enrollment and Tuition Contract - The Academy`;
+  const school = safe(schoolName ?? "") || "The Academy";
+  return `${child}'s Enrollment and Tuition Contract - ${school}`;
 }
 
 /**
@@ -211,6 +213,8 @@ export function buildContractInviteBody(input: {
   inviteLink: string;
   /** The family's figures, from buildTuitionSummaryHtml. */
   tuitionSummaryHtml?: string;
+  /** Scholarships cover everything: no first-payment invoice is coming. */
+  owesNothing?: boolean;
 }): string {
   const child = safe(input.childName) || "your child";
   const campus = safe(input.schoolName ?? "") || "The Academy";
@@ -232,7 +236,9 @@ export function buildContractInviteBody(input: {
       `<a href="${link}" style="${LINK_STYLE}">CLICK THIS LINK TO CREATE YOUR JAG ACCOUNT AND SIGN ${child.toUpperCase()}'S CONTRACT</a>`
     ),
     paragraph(
-      `You can print or save a PDF copy of the contract at any time. Once it is signed, you will receive an invoice for your first tuition payment.`
+      input.owesNothing
+        ? `You can print or save a PDF copy of the contract at any time. Your scholarship covers your tuition, so there is nothing for you to pay.`
+        : `You can print or save a PDF copy of the contract at any time. Once it is signed, you will receive an invoice for your first tuition payment.`
     ),
     paragraph(`Sincerely,<br>Jimmy Arispe<br>${campus}`),
     `</div>`,

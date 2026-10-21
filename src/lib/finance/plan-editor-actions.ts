@@ -1,10 +1,12 @@
 "use server";
 
+import { HS_SCHOOL_ID } from "@/lib/admissions/placement";
 import { revalidatePath } from "next/cache";
 
 import { assertPermission } from "@/lib/platform/identity/action-guards";
 import {
   buildPlan,
+  schoolYearMonthSlots,
   standardSlots,
   type PlanLineInput,
 } from "@/lib/finance/plan-builder";
@@ -146,7 +148,10 @@ export async function saveTuitionPlan(selection: SavePlanSelection) {
                 monthsInYear: ctx.monthsInYear,
               }
             : undefined,
-        instalments: standardSlots(selection.firstPayableMonth),
+        instalments:
+          ctx.schoolId === HS_SCHOOL_ID
+            ? schoolYearMonthSlots(ctx.schoolYearEndDate, selection.prorationMonths ?? ctx.monthsInYear)
+            : standardSlots(selection.firstPayableMonth),
       });
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Could not build that plan." };

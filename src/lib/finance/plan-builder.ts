@@ -350,6 +350,35 @@ export function formatUsd(n: number): string {
  * schedule that must never be guessed is a due date, and these are the dates the
  * documents families already hold actually carry.
  */
+/**
+ * HS: ONLY THE MONTHS THE CHILD ATTENDS. Jimmy, 21 October 2026 (Harris
+ * Borum): "HS months only" - no "upon signing" row and no $0 months before the
+ * school year. The last `months` months of the school year, each due the 25th.
+ * Harris, 8 of 10 months: October 25, 2026 to May 25, 2027.
+ */
+export function schoolYearMonthSlots(schoolYearEndDate: string, months: number): InstalmentSlotInput[] {
+  const m = schoolYearEndDate.match(/^(\d{4})-(\d{2})/);
+  if (!m || months < 1) return [];
+  let year = Number(m[1]);
+  let month = Number(m[2]) - (months - 1);
+  while (month < 1) {
+    month += 12;
+    year -= 1;
+  }
+  const slots: InstalmentSlotInput[] = [];
+  for (let i = 0; i < months; i++) {
+    const iso = `${year}-${String(month).padStart(2, "0")}-25`;
+    const label = `Due ${new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+    slots.push({ label, dueDate: iso, payable: true });
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return slots;
+}
+
 export function standardSlots(firstPayableMonth: string): InstalmentSlotInput[] {
   const months: Array<[string, string]> = [
     ["Due May 25, 2026", "2026-05-25"],

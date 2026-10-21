@@ -769,6 +769,7 @@ export async function sendContractAction(leadId: string, confirm: boolean) {
     schoolName: contract.schoolName,
     purpose: "contract",
     tuitionSummaryHtml: buildTuitionSummaryHtml(contract.fields),
+    owesNothing: contract.fields.remaining_due <= 0,
   });
 
   const outcome = result.invited[0];

@@ -28,6 +28,7 @@ import { createAuthClient } from "@/lib/supabase/server-auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { FINALIZING_CONTRACT_NOTIFY } from "@/lib/admissions/finalizing/notify";
 import { invoiceFirstPayment } from "@/lib/finance/first-payment-invoice";
+import { transitionCaseStage } from "@/lib/admissions/case/orchestration";
 
 import { contractBlocksForSchool, loadLeadContract } from "./for-lead";
 import { escapeHtml } from "./render";
@@ -140,7 +141,20 @@ export async function signContractPartAction(formData: FormData) {
   // "Once it is signed, you will receive an invoice for your first tuition
   // payment." Square emails it now (Jimmy, 20 Oct 2026). Never blocks signing.
   let invoiceLine = "";
-  if (!("error" in loaded)) {
+  // NOTHING OWED: the signature enrolls. Jimmy, 21 Oct 2026 (Harris Borum,
+  // scholarship larger than tuition): "Signed contract" moves the child to
+  // Enrolled when there is no first payment to wait for.
+  const owesNothing = !("error" in loaded) && loaded.contract.fields.remaining_due <= 0;
+  if (owesNothing) {
+    const leadId = String(packet.lead_id);
+    const { data: leadNow } = await admin.from("admissions_leads").select("lead_stage").eq("id", leadId).maybeSingle();
+    if ((leadNow as { lead_stage?: string } | null)?.lead_stage === "accepted") {
+      const moved = await transitionCaseStage(admin as never, leadId, "enrolled", null);
+      invoiceLine = moved.error
+        ? `<p><strong>Nothing is owed, but the move to Enrolled failed:</strong> ${escapeHtml(moved.error)}</p>`
+        : `<p>The family owes nothing after scholarships, so the child is now on Enrolled Students. No invoice was sent.</p>`;
+    }
+  } else if (!("error" in loaded)) {
     const invoiced = await invoiceFirstPayment(admin as unknown as SupabaseClient, {
       planId: loaded.contract.planId,
       leadId: String(packet.lead_id),

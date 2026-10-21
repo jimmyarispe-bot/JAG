@@ -1,11 +1,13 @@
 "use client";
 
+import { HS_SCHOOL_ID } from "@/lib/admissions/placement";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 
 import {
   buildPlan,
   formatUsd,
+  schoolYearMonthSlots,
   standardSlots,
   type BuiltPlan,
   type PlanLineInput,
@@ -48,6 +50,8 @@ interface Props {
 export function TuitionPlanBuilder({ ctx, canSave }: Props) {
   // Starts from the HS placement chosen at Accept, when there is one.
   const [selected, setSelected] = useState<Record<string, number>>(ctx.placementSuggestion ?? {});
+  // HS bills only the months attended (Jimmy, 21 Oct 2026).
+  const hsMonthsOnly = ctx.schoolId === HS_SCHOOL_ID;
   // Ticked by default only when there is a real figure. An applied-for award
   // reads as 0 in awardedAmount, and 0 would bill the family everything.
   const [awardIds, setAwardIds] = useState<string[]>(
@@ -112,13 +116,15 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
             prorationMonths < ctx.monthsInYear
               ? { monthsAttending: prorationMonths, monthsInYear: ctx.monthsInYear }
               : undefined,
-          instalments: standardSlots(firstMonth),
+          instalments: hsMonthsOnly
+            ? schoolYearMonthSlots(ctx.schoolYearEndDate, prorationMonths)
+            : standardSlots(firstMonth),
         }),
       };
     } catch (e) {
       return { problem: e instanceof Error ? e.message : "Could not build that plan." };
     }
-  }, [mode, lines, ctx.bundles, ctx.awards, ctx.monthsInYear, awardIds, sibling, prorationMonths, firstMonth]);
+  }, [mode, lines, ctx.bundles, ctx.awards, ctx.monthsInYear, ctx.schoolYearEndDate, hsMonthsOnly, awardIds, sibling, prorationMonths, firstMonth]);
 
   function toggle(catalogItemId: string, offeredOneToOne: boolean) {
     setSelected((prev) => {
@@ -351,6 +357,14 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
             </select>
           </div>
 
+          {hsMonthsOnly ? (
+            <div className="text-sm">
+              <p className="text-slate-600">Payments</p>
+              <p className="mt-1 text-xs text-slate-500">
+                The {prorationMonths} months attended, the last of the school year, each due the 25th.
+              </p>
+            </div>
+          ) : (
           <div className="text-sm">
             <label className="block text-slate-600" htmlFor="first-month">
               First month they pay
@@ -368,6 +382,7 @@ export function TuitionPlanBuilder({ ctx, canSave }: Props) {
               ))}
             </select>
           </div>
+          )}
 
           <div className="text-sm">
             <label className="block text-slate-600" htmlFor="channel">

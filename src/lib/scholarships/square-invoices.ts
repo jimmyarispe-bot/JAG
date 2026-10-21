@@ -101,6 +101,18 @@ export async function createScholarshipInvoices(
     for (const c of catalog ?? []) scheduleByCode.set(c.program_code as string, (c.payment_schedule as string) ?? null);
   }
 
+  // CAPPED AT TUITION. Georgia pays the lesser of the award and the school's
+  // tuition, so the state is never invoiced for more than is billed (Jimmy,
+  // 21 Oct 2026, Harris Borum: $8,744.25 award on $6,800 of tuition).
+  let capCents = Number.POSITIVE_INFINITY;
+  {
+    let q = supabase.from("student_tuition_plans").select("billing_basis").eq("student_id", input.studentId);
+    q = input.planId ? q.eq("id", input.planId) : q.not("status", "in", "(superseded,cancelled)");
+    const { data: planRows } = await q.order("created_at", { ascending: false }).limit(1);
+    const basis = Number((planRows ?? [])[0]?.billing_basis);
+    if (Number.isFinite(basis) && basis > 0) capCents = Math.round(basis * 100);
+  }
+
   // Rows first. An award that already has rows keeps them - the schedule is
   // not silently rewritten under invoices that already exist in Square.
   for (const a of awards ?? []) {
@@ -109,12 +121,15 @@ export async function createScholarshipInvoices(
       .select("id", { count: "exact", head: true })
       .eq("award_id", a.id as string)
       .neq("status", "cancelled");
+    const awardedCents = Math.round(Number(a.awarded_amount ?? 0) * 100);
+    const claimCents = Math.max(0, Math.min(awardedCents, capCents));
+    capCents -= claimCents;
     if ((count ?? 0) > 0) continue;
     const schedule = statePaymentSchedule({
       programCode: (a.program_code as string | null) ?? null,
       programName: a.program_name as string,
       awardYear: a.award_year as string,
-      awardedAmount: Number(a.awarded_amount ?? 0),
+      awardedAmount: claimCents / 100,
       awardPercent: a.award_percent === null || a.award_percent === undefined ? null : Number(a.award_percent),
       paymentSchedule: scheduleByCode.get(a.program_code as string) ?? null,
     });

@@ -99,8 +99,9 @@ export default async function ParentContractPage() {
             <div key={item.packetId} className="space-y-3">
               {item.status === "completed" ? (
                 <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 print:hidden">
-                  Signed — thank you. You will receive an invoice for your first tuition payment. You can
-                  print or save this contract as a PDF at any time.
+                  {item.contract.fields.remaining_due <= 0
+                    ? "Signed — thank you. Your scholarship covers your tuition, so there is nothing for you to pay. You can print or save this contract as a PDF at any time."
+                    : "Signed — thank you. You will receive an invoice for your first tuition payment. You can print or save this contract as a PDF at any time."}
                 </p>
               ) : (
                 <p className="rounded-xl bg-white px-4 py-3 text-sm text-slate-700 print:hidden">

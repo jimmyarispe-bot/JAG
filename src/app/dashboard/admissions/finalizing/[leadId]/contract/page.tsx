@@ -67,6 +67,7 @@ export default async function FinalizingContractPreviewPage({
     schoolName: contract.schoolName,
     inviteLink: "#",
     tuitionSummaryHtml: buildTuitionSummaryHtml(contract.fields),
+    owesNothing: contract.fields.remaining_due <= 0,
   });
 
   return (

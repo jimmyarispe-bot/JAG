@@ -268,6 +268,8 @@ export async function inviteProspectGuardians(input: {
   schoolName?: string;
   /** Contract letter only: the family's figures (buildTuitionSummaryHtml). */
   tuitionSummaryHtml?: string;
+  /** Contract letter only: nothing to pay after scholarships. */
+  owesNothing?: boolean;
   /**
    * Which letter. "application" (the default, unchanged) or "contract" - the
    * Finalizing Contract invitation, which lands the parent on /contract.
@@ -349,7 +351,7 @@ export async function inviteProspectGuardians(input: {
       // prospect-invite-email.ts for why that default is wrong here.
       invitation: input.purpose === "contract"
         ? {
-            subject: contractInviteSubject(input.childName),
+            subject: contractInviteSubject(input.childName, input.schoolName),
             buildBody: (inviteLink: string) =>
               buildContractInviteBody({
                 parentName: clean(row.first_name) ?? "",
@@ -357,6 +359,7 @@ export async function inviteProspectGuardians(input: {
                 schoolName: input.schoolName,
                 inviteLink,
                 tuitionSummaryHtml: input.tuitionSummaryHtml,
+                owesNothing: input.owesNothing,
               }),
           }
         : {

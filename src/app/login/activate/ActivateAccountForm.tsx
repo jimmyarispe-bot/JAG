@@ -61,7 +61,7 @@ export default function ActivateAccountForm() {
     <main className="mx-auto mt-24 max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
       <h1 className="text-2xl font-bold text-slate-900">Activate your account</h1>
       <p className="mt-1 text-sm text-slate-500">
-        You&apos;ve been invited to AcademyOS. Create a password to finish setting up your
+        You&apos;ve been invited to The JAG OS. Create a password to finish setting up your
         account.
       </p>
 

@@ -187,7 +187,10 @@ export async function loadLeadContract(
     prorated_tuition: n(plan.prorated_tuition),
     proration_label: (plan.proration_label as string | null) ?? null,
     billing_basis: n(plan.billing_basis) ?? 0,
-    scholarship_total: scholarshipTotal,
+    // Capped at what is billed: Georgia pays the lesser of the award and the
+    // tuition, and a contract must not show more scholarship than tuition
+    // (Jimmy, 21 Oct 2026, Harris Borum: "cap at tuition").
+    scholarship_total: Math.min(scholarshipTotal, n(plan.billing_basis) ?? scholarshipTotal),
     remaining_due: n(plan.remaining_due) ?? 0,
     monthly_amount: n(plan.monthly_amount),
     tuition_insurance_cost: Math.round((n(plan.annual_tuition) ?? 0) * 2.5) / 100,

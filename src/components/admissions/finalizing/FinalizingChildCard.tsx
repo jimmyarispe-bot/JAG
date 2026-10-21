@@ -893,6 +893,10 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
           ) : null}
           {!plan ? (
             <p className="text-xs text-slate-500">Waiting on the tuition plan.</p>
+          ) : plan.billingMode === "scheduled" && (plan.remainingDue ?? 0) <= 0 ? (
+            <p className="text-xs text-slate-600">
+              Nothing owed after scholarships. Signing the contract moves {name} to Enrolled Students.
+            </p>
           ) : plan.instalments.length === 0 ? (
             <p className="text-xs text-slate-500">This plan has no payment schedule.</p>
           ) : (
