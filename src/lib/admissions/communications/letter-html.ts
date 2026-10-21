@@ -148,6 +148,7 @@ export const BUTTON_LABELS: Readonly<Record<string, string>> = {
   invite_shadow_days_link: "Yes — schedule shadow days",
   accept_link: "Accept — send email",
   deny_link: "Deny — send email",
+  not_right_fit_link: "No — not the right fit",
   application_view_link: "See entire application",
   record_link: "See {{student_first_name}}'s record",
 };
