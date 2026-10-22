@@ -57,15 +57,24 @@ export async function signContractPartAction(formData: FormData) {
   const parent = await createAuthClient();
   const { data: packet, error: packetError } = await parent
     .from("enrollment_packets")
-    .select("id, lead_id, school_id, packet_status, schools(name)")
+    .select("id, lead_id, school_id, packet_status")
     .eq("id", packetId)
     .maybeSingle();
   if (packetError) return { error: packetError.message };
   if (!packet) return { error: "This contract is not available to your account." };
   if (packet.packet_status === "completed") return { error: "This contract is already signed." };
 
-  const schools = (packet as Record<string, unknown>).schools as { name?: string } | { name?: string }[] | null;
-  const schoolName = (Array.isArray(schools) ? schools[0]?.name : schools?.name) ?? "";
+  /* The school's name is read with the service role, AFTER the parent's own
+     client has proved this packet is theirs. Migration 578 locks a parent out
+     of `schools`, so embedding schools(name) in the parent read came back
+     empty and every Sign / Initial click said "not recognized" (Jennifer
+     Borum, 21 October). The name only picks which contract parts apply. */
+  const { data: school } = await createServiceRoleClient()
+    .from("schools")
+    .select("name")
+    .eq("id", String(packet.school_id))
+    .maybeSingle();
+  const schoolName = (school as { name?: string } | null)?.name ?? "";
   const blocks = contractBlocksForSchool(schoolName);
   if (!blocks || !blocks.some((b) => b.templateKey === templateKey)) {
     return { error: "That part of the contract is not recognized." };
