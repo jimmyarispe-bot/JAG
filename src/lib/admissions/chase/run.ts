@@ -52,6 +52,7 @@ import {
   type OutOfOfficeReport,
 } from "@/lib/admissions/chase/out-of-office";
 import { bookingKindFromTitle } from "@/lib/admissions/chase/booking-kind";
+import { ensureTourNotesLetter } from "@/lib/admissions/chase/tour-notes";
 import { decideChase, type ChaseDecision } from "@/lib/admissions/chase/clock";
 import { easternDateKey, easternHour } from "@/lib/platform/time/eastern";
 import { resolveOrganizationIdForUser } from "@/lib/platform/identity/org-membership";
@@ -1086,7 +1087,15 @@ export async function runInterestMeetingScan(
 
     if (tourLead && isTour) {
       const thisTour = appointmentKey(leadId, booking.startsAt);
-      if (alreadyRecordedTour.has(thisTour)) continue;
+      if (alreadyRecordedTour.has(thisTour)) {
+        /* A tour already on record - entered by hand, or recorded before 539 -
+           still gets its notes letter. Idempotent. Danni, 22 October 2026. */
+        if (!dryRun) {
+          const knownTourProblem = await ensureTourNotesLetter(leadId, booking.startsAt);
+          if (knownTourProblem) postCallSkipped.push(knownTourProblem);
+        }
+        continue;
+      }
       alreadyRecordedTour.add(thisTour);
       toursRecorded.push(`${leadId} <- tour ${appointmentTextForFamily(booking.startsAt)}`);
       if (dryRun) continue;
@@ -1177,27 +1186,7 @@ export async function runInterestMeetingScan(
         continue;
       }
 
-      const tourToken = await mintPostCallToken(supabase, leadId);
-      if (!tourToken) {
-        errors.push(`Could not mint a notes token for the tour of ${leadId}.`);
-        continue;
-      }
-
-      const tourProblem = await queueLetter(supabase, {
-        leadId,
-        schoolId: leadById.get(leadId)?.school_id ?? null,
-        triggerEvent: TOUR_NOTES_EVENT,
-        sendAt: tourStartsAt,
-        mergeOverrides: {
-          postCallToken: tourToken,
-          /* Rendered for a reader, not an ISO string - the Eastern rule lives
-             in appointmentTextForFamily and nowhere else. */
-          interviewDatetime: appointmentTextForFamily(booking.startsAt),
-          /* Null on purpose. A tour is in person and Google creates no
-             conference for one, which is why 539 drops {{meeting_link}}. */
-          meetingLink: null,
-        },
-      });
+      const tourProblem = await ensureTourNotesLetter(leadId, booking.startsAt);
       if (tourProblem) postCallSkipped.push(tourProblem);
       continue;
     }
