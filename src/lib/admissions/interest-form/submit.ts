@@ -424,6 +424,42 @@ export async function submitPublishedInterestForm(
   const fundingSources = parseFundingSourcesFromForm(formData);
   const referralForLead = encodeLeadReferralExtras(visible);
 
+  /*
+   * THE SAME CHILD, AT THE SAME CAMPUS, SUBMITTED AGAIN.
+   *
+   * 22 October 2026: Journii Jackson's mother sent the GA inquiry twice in an
+   * hour, and the RPC below made a new family each time - two records, two
+   * staff notices, two pipelines, and duplicate tasks on the board. The
+   * second copy even had the parent's name in the child's preferred name.
+   *
+   * Matched on campus + guardian email + child's last name + first (or
+   * preferred) name. A DIFFERENT campus is a new inquiry, on purpose: the
+   * same Journii had a Virtual record from 14 October and the GA inquiry is
+   * real. Archived records never match - a family who left and came back
+   * starts fresh.
+   *
+   * On a match nothing new is created. The answers and any documents go onto
+   * the existing record, staff get one internal note on it, and the family
+   * sees the same thank-you page.
+   */
+  const existingLeadId = await findSameChildAtSameCampus({
+    schoolId: asString(visible.school_id),
+    guardianEmail: asString(visible.guardian_email),
+    firstName: asString(visible.first_name),
+    preferredName: asString(visible.preferred_name),
+    lastName: asString(visible.last_name),
+  });
+  if (existingLeadId) {
+    return await recordRepeatInquiry({
+      leadId: existingLeadId,
+      organizationId: org.organizationId,
+      formId: published.formId,
+      formVersionId: published.formVersionId,
+      definition: published.definition,
+      values: visible,
+    });
+  }
+
   const supabase = await createAuthClient();
   const { data, error } = await supabase.rpc("submit_public_admissions_inquiry", {
     p_school_id: asString(visible.school_id),
@@ -714,4 +750,112 @@ export async function submitInterestFormForExistingLead(
   await recordStateFundingOnLead({ admin, leadId, values: visible });
 
   return { leadId, submissionId: persisted.submissionId };
+}
+
+/** Lower-cased and trimmed; an empty value never matches anything. */
+function norm(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/**
+ * The id of a live record for this child at this campus, or null.
+ * Service role: the public form runs as anon, and anon cannot read leads.
+ */
+async function findSameChildAtSameCampus(input: {
+  schoolId: string;
+  guardianEmail: string;
+  firstName: string;
+  preferredName: string;
+  lastName: string;
+}): Promise<string | null> {
+  const email = norm(input.guardianEmail);
+  const last = norm(input.lastName);
+  const names = new Set([norm(input.firstName), norm(input.preferredName)].filter(Boolean));
+  if (!input.schoolId || !email || !last || names.size === 0) return null;
+
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("admissions_leads")
+    .select("id, first_name, preferred_name, last_name, guardian_email, created_at")
+    .eq("school_id", input.schoolId)
+    .ilike("guardian_email", email)
+    .is("archived_at", null)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    // Never block a family's inquiry on a lookup. Worst case is the old
+    // behaviour: a second record a human can archive.
+    console.error("[interest-form] duplicate lookup failed", error.message);
+    return null;
+  }
+
+  const rows = (data ?? []) as {
+    id: string;
+    first_name: string | null;
+    preferred_name: string | null;
+    last_name: string | null;
+  }[];
+  const match = rows.find(
+    (r) =>
+      norm(r.last_name ?? "") === last &&
+      (names.has(norm(r.first_name ?? "")) || names.has(norm(r.preferred_name ?? "")))
+  );
+  return match?.id ?? null;
+}
+
+/** Keep what a returning family sent, on the record they already have. */
+async function recordRepeatInquiry(input: {
+  leadId: string;
+  organizationId: string;
+  formId: string;
+  formVersionId: string;
+  definition: Parameters<typeof attachInquiryDocuments>[0]["definition"];
+  values: Parameters<typeof attachInquiryDocuments>[0]["values"];
+}): Promise<{ leadId: string; submissionId: string } | { error: string }> {
+  const admin = createServiceRoleClient();
+
+  const attachedDocuments = await attachInquiryDocuments({
+    leadId: input.leadId,
+    definition: input.definition,
+    values: input.values,
+  });
+  if (attachedDocuments.length > 0) {
+    await noteGsnsLetterOnLead(admin, input.leadId);
+  }
+
+  const persisted = await persistInterestSubmission({
+    organizationId: input.organizationId,
+    leadId: input.leadId,
+    formId: input.formId,
+    formVersionId: input.formVersionId,
+    source: EXPRESS_INTEREST_SUBMISSION_SOURCE,
+    referralSource: asJoinedString(input.values.referral_source) || null,
+    values: input.values,
+  });
+
+  const docs = attachedDocuments.length
+    ? ` Documents attached: ${attachedDocuments.length}.`
+    : "";
+  const { error: noteError } = await admin.from("admissions_communications").insert({
+    lead_id: input.leadId,
+    communication_type: "internal_note",
+    subject: "Inquiry submitted again",
+    body:
+      "This family submitted the inquiry form again. No new record was " +
+      `created; their answers are saved on this one.${docs}`,
+    sent_to: "staff",
+    sent_at: new Date().toISOString(),
+    delivery_status: "sent",
+  } as never);
+  if (noteError) {
+    console.error("[interest-form] repeat-inquiry note not written", noteError.message);
+  }
+
+  if ("error" in persisted) {
+    console.error("[interest-form] repeat-inquiry answers", persisted.error);
+    return { error: "Inquiry received but submission archive failed. Please contact admissions." };
+  }
+
+  revalidatePath("/apply");
+  return { leadId: input.leadId, submissionId: persisted.submissionId };
 }
