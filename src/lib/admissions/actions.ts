@@ -1,6 +1,7 @@
 "use server";
 
 import { setAutomationStartedAt } from "@/lib/admissions/automation-gate";
+import { ensureTourNotesLetter } from "@/lib/admissions/chase/tour-notes";
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/platform/activity";
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
@@ -452,6 +453,8 @@ export async function scheduleAppointmentAndAdvance(input: {
   // the same decision the same way.
   if (spec.table === "admissions_tours") {
     await onTourScheduled(supabase, leadId, scheduledAtIso, user?.id ?? null);
+    // The tour notes letter: see chase/tour-notes.ts. Danni, 22 October 2026.
+    await ensureTourNotesLetter(leadId, scheduledAtIso);
   } else if (leadStage === "shadow_day_scheduled") {
     await notifyAdmissionsEvent(supabase, {
       leadId,
@@ -503,6 +506,7 @@ export async function scheduleTour(formData: FormData) {
   if (result.error) return { error: result.error };
 
   await onTourScheduled(supabase, leadId, scheduledAt, user?.id ?? null);
+  await ensureTourNotesLetter(leadId, scheduledAt);
 
   revalidatePath("/dashboard/admissions");
   revalidatePath(`/dashboard/admissions/leads/${leadId}`);
