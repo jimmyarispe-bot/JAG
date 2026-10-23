@@ -21,7 +21,7 @@ import {
   type BoardLead,
 } from "@/lib/admissions/board-filters";
 import {
-  CHOOSABLE_BOARD_GROUPS,
+  choosableBoardGroupsFor,
   OLD_STUDENT_LEAD_STAGES,
   boardGroupLabel,
   type LeadStageValue,
@@ -311,7 +311,7 @@ export function QuietStudentsBoard({ leads }: QuietStudentsBoardProps) {
                               aria-label={`Pipeline stage for ${name}`}
                             >
                               <option value="">Choose a stage…</option>
-                              {CHOOSABLE_BOARD_GROUPS.map((g) => (
+                              {choosableBoardGroupsFor(null).map((g) => (
                                 <option key={g.key} value={g.key}>
                                   {boardGroupLabel(g)}
                                 </option>
@@ -322,7 +322,7 @@ export function QuietStudentsBoard({ leads }: QuietStudentsBoardProps) {
                                 type="button"
                                 disabled={!asking.group || action.isBusy}
                                 onClick={() => {
-                                  const group = CHOOSABLE_BOARD_GROUPS.find((g) => g.key === asking.group);
+                                  const group = choosableBoardGroupsFor(null).find((g) => g.key === asking.group);
                                   if (!group) return;
                                   moveTo(id, group.entry, name);
                                 }}
