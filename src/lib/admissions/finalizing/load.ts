@@ -1,3 +1,4 @@
+import { readFamilyDocuments, readHomeAddresses, type FamilyDocument, type HomeAddress } from "@/lib/admissions/finalizing/family-file";
 import { HS_SCHOOL_ID, placementFromLead, readFamilyAsk, type FamilyAsk, type Placement } from "@/lib/admissions/placement";
 import type { createAuthClient } from "@/lib/supabase/server-auth";
 
@@ -103,6 +104,10 @@ export interface FinalizingChild {
   familyAsk: FamilyAsk;
   /** HS: what the school leader chose at Accept (migration 574). */
   placement: Placement;
+  /** Everything the family uploaded - award letters first. Opened per click. */
+  documents: FamilyDocument[];
+  /** Home and legal-residence address from the application (v43+). */
+  address: HomeAddress | null;
   isHs: boolean;
   /** The first instalment that asks the family for money, if any. */
   firstPayable: FinalizingInstalment | null;
@@ -363,6 +368,12 @@ export async function loadFinalizingChildren(
     })
   );
 
+  const leadIdList = leadRows.map((l) => String(l.id));
+  const [documentsByLead, addressByLead] = await Promise.all([
+    readFamilyDocuments(supabase as never, leadIdList),
+    readHomeAddresses(supabase as never, leadIdList),
+  ]);
+
   const children: FinalizingChild[] = leadRows.map((l) => {
     const leadId = String(l.id);
     const studentId = studentByLead.get(leadId) ?? null;
@@ -393,6 +404,8 @@ export async function loadFinalizingChildren(
       contractSignedAt: signedAtByLead.get(leadId) ?? null,
       familyAsk: askByLead.get(leadId) ?? { preferredStart: null, options: [], slTutoringDays: null, mathTutoringDays: null },
       placement: placementFromLead(l as Record<string, unknown>),
+      documents: documentsByLead.get(leadId) ?? [],
+      address: addressByLead.get(leadId) ?? null,
       isHs: String(l.school_id) === HS_SCHOOL_ID,
       firstPayable: plan ? firstPayableInstalment(plan.instalments) : null,
       details: {
