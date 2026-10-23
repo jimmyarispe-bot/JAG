@@ -57,6 +57,18 @@ export const REMINDER_1_DAY = 2;
 export const REMINDER_2_DAY = 3;
 export const ESCALATION_DAY = 4;
 
+/**
+ * THE SECOND ESCALATION. 23 October 2026.
+ *
+ * Chase Laverde's school leader was told on 13 October to call the family.
+ * Nobody called, and the JAG said nothing more for ten days - the escalation
+ * was the last thing it ever did. Jimmy approved: if the call is still not
+ * recorded and nothing is booked, tell the leader again, three days later,
+ * once. Counted from the escalation, or from the last time somebody moved the
+ * child, whichever is later - a leader who acted has started a new clock.
+ */
+export const SECOND_ESCALATION_DAYS = 3;
+
 export interface ChaseInput {
   /** When the scan is running. Eastern 11pm, in practice. */
   readonly now: Date;
@@ -72,6 +84,10 @@ export interface ChaseInput {
   readonly reminder1SentAt: Date | null;
   readonly reminder2SentAt: Date | null;
   readonly escalatedAt: Date | null;
+  /** When the second escalation went, or null. */
+  readonly escalatedAgainAt?: Date | null;
+  /** When the child last changed stage. A move after the escalation restarts the second clock. */
+  readonly stageEnteredAt?: Date | null;
   /** Current lead stage, to leave alone anything that has moved on. */
   readonly leadStage: string;
   /** A leader has recorded a phone call. Automatic chasing stops. */
@@ -91,7 +107,8 @@ export interface ChaseInput {
 export type ChaseDecision =
   | { readonly action: "nothing"; readonly because: ChaseReason }
   | { readonly action: "reminder"; readonly which: 1 | 2; readonly sendAt: Date }
-  | { readonly action: "escalate"; readonly sendAt: Date; readonly heldForWeekend: boolean };
+  | { readonly action: "escalate"; readonly sendAt: Date; readonly heldForWeekend: boolean }
+  | { readonly action: "escalate_again"; readonly sendAt: Date; readonly heldForWeekend: boolean };
 
 export type ChaseReason =
   | "already_booked"
@@ -99,6 +116,7 @@ export type ChaseReason =
   | "lead_has_moved_on"
   | "a_leader_has_called"
   | "already_escalated"
+  | "already_escalated_twice"
   | "too_early";
 
 /**
@@ -171,23 +189,33 @@ export function decideChase(input: ChaseInput): ChaseDecision {
   }
 
   if (day >= ESCALATION_DAY && input.reminder2SentAt) {
-    if (input.escalatedAt) return { action: "nothing", because: "already_escalated" };
+    if (input.escalatedAt) {
+      if (input.escalatedAgainAt) return { action: "nothing", because: "already_escalated_twice" };
+      const from =
+        input.stageEnteredAt && input.stageEnteredAt > input.escalatedAt
+          ? input.stageEnteredAt
+          : input.escalatedAt;
+      if (easternDaysBetween(from, input.now) < SECOND_ESCALATION_DAYS) {
+        return { action: "nothing", because: "already_escalated" };
+      }
+      const again = leaderMorning(tomorrow, input.holdWeekendEscalation);
+      return { action: "escalate_again", ...again };
+    }
 
-    const naturalDay = tomorrow;
-    const landsOnWeekend = [0, 6].includes(easternWeekdayOfKey(naturalDay));
-    const sendDay =
-      input.holdWeekendEscalation && landsOnWeekend
-        ? nextEasternWeekdayKey(naturalDay)
-        : naturalDay;
-
-    return {
-      action: "escalate",
-      sendAt: easternInstant(sendDay, ESCALATION_HOUR_EASTERN),
-      heldForWeekend: sendDay !== naturalDay,
-    };
+    return { action: "escalate", ...leaderMorning(tomorrow, input.holdWeekendEscalation) };
   }
 
   return { action: "nothing", because: "too_early" };
+}
+
+/** 7am Eastern for the school leader, moved off a weekend when asked. */
+function leaderMorning(naturalDay: string, holdWeekend: boolean): { sendAt: Date; heldForWeekend: boolean } {
+  const landsOnWeekend = [0, 6].includes(easternWeekdayOfKey(naturalDay));
+  const sendDay = holdWeekend && landsOnWeekend ? nextEasternWeekdayKey(naturalDay) : naturalDay;
+  return {
+    sendAt: easternInstant(sendDay, ESCALATION_HOUR_EASTERN),
+    heldForWeekend: sendDay !== naturalDay,
+  };
 }
 
 /**

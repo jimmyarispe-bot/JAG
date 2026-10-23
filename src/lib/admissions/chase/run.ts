@@ -199,6 +199,10 @@ export function holdBookingConfirmations(schoolId: string | null): boolean {
 export const REMINDER_1_EVENT = "parent_interest_meeting_not_booked_1";
 export const REMINDER_2_EVENT = "parent_interest_meeting_not_booked_2";
 export const ESCALATION_EVENT = "staff_interest_meeting_no_response";
+/** Migration 586. Three days after the first, if nobody called and nothing is booked. */
+export const SECOND_ESCALATION_EVENT = "staff_interest_meeting_no_response_2";
+/** The task the first escalation opens on the child's card. */
+export const CALL_FAMILY_TASK = "Call the family - three letters, no interest meeting booked";
 
 /**
  * "RECORD your notes for ..." - to the school leader, at the appointment
@@ -402,6 +406,7 @@ type LeadRow = {
    */
   schools?: { name?: string } | { name?: string }[] | null;
   lead_stage: string | null;
+  stage_entered_at?: string | null;
   guardian_email: string | null;
   created_at: string;
   notes: string | null;
@@ -627,7 +632,7 @@ export async function runInterestMeetingScan(
   const since = new Date(now.getTime() - LEAD_LOOKBACK_DAYS * 86400000).toISOString();
   const { data: leadRows, error: leadError } = await supabase
     .from("admissions_leads")
-    .select("id, school_id, lead_stage, guardian_email, created_at, notes, schools(name)")
+    .select("id, school_id, lead_stage, stage_entered_at, guardian_email, created_at, notes, schools(name)")
     .gte("created_at", since)
     // An archived lead is not chased. Same omission as the nightly
     // parent-reminder sweep, found alongside it on 7 October: migration
@@ -1546,6 +1551,10 @@ export async function runInterestMeetingScan(
       escalatedAt:
         sentAt(lead.id, (r) => r.trigger_event === ESCALATION_EVENT) ??
         (already.has(ESCALATION_EVENT) ? now : null),
+      escalatedAgainAt:
+        sentAt(lead.id, (r) => r.trigger_event === SECOND_ESCALATION_EVENT) ??
+        (already.has(SECOND_ESCALATION_EVENT) ? now : null),
+      stageEnteredAt: lead.stage_entered_at ? new Date(lead.stage_entered_at) : null,
       leadStage: lead.lead_stage ?? "new_inquiry",
       callRecordedAt: calledAt.get(lead.id) ?? null,
       holdWeekendEscalation: holdWeekend,
@@ -1556,7 +1565,9 @@ export async function runInterestMeetingScan(
     const event =
       decision.action === "escalate"
         ? ESCALATION_EVENT
-        : decision.which === 1
+        : decision.action === "escalate_again"
+          ? SECOND_ESCALATION_EVENT
+          : decision.which === 1
           ? REMINDER_1_EVENT
           : REMINDER_2_EVENT;
 
@@ -1582,7 +1593,17 @@ export async function runInterestMeetingScan(
      * passthrough is what told three families the wrong hour on 1 October.
      */
     let overrides: Record<string, unknown> | null = null;
-    if (decision.action === "escalate") {
+    if (decision.action === "escalate" || decision.action === "escalate_again") {
+      /*
+       * THE CALL GOES ON THE CARD. An email can sit unread; a task sits on
+       * "Families waiting on us" until somebody closes it. Opened with the
+       * first escalation; the second finds it already open (migration 584
+       * keeps one open task per name) and leaves it alone.
+       */
+      if (decision.action === "escalate") {
+        const taskProblem = await openCallFamilyTask(supabase, lead.id, decision.sendAt);
+        if (taskProblem) errors.push(taskProblem);
+      }
       const token = await mintCallToken(supabase, lead.id);
       const whenSent = (at: Date | null) =>
         at ? appointmentTextForFamily(at.toISOString()) : null;
@@ -1695,6 +1716,31 @@ function describe(booking: CalendarBooking, leadIds: string[]): string {
  * is reported for a separate fix rather than patched from in here: it is
  * shared machinery that tour reminders also depend on.
  */
+async function openCallFamilyTask(
+  supabase: AuthClient,
+  leadId: string,
+  due: Date
+): Promise<string | null> {
+  const { data: open } = await supabase
+    .from("admissions_tasks")
+    .select("id")
+    .eq("lead_id", leadId)
+    .eq("task_name", CALL_FAMILY_TASK)
+    .eq("task_status", "open")
+    .limit(1);
+  if (open && open.length) return null;
+  const { error } = await supabase.from("admissions_tasks").insert({
+    lead_id: leadId,
+    task_name: CALL_FAMILY_TASK,
+    task_status: "open",
+    due_date: due.toISOString().slice(0, 10),
+  });
+  if (error && error.code !== "23505") {
+    return `${leadId}: escalation sent but the call task was not opened: ${error.message}`;
+  }
+  return null;
+}
+
 async function queueLetter(
   supabase: AuthClient,
   params: {

@@ -28,6 +28,8 @@ import type {
   FinalizingStateInvoice,
 } from "@/lib/admissions/finalizing/load";
 import { GRADES, gradeLabel } from "@/lib/constants/grades";
+import { CaseDocumentOpenButton } from "@/components/admissions/case/sections/CaseDocumentOpenButton";
+import { formatAddress } from "@/lib/admissions/finalizing/family-file";
 import { decidedOn, easternToday, gsnsShareOn, shareOf } from "@/lib/scholarships/gsns";
 import {
   HS_OPTIONS,
@@ -570,6 +572,8 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
         </p>
       ) : null}
 
+      <FamilyFile child={child} />
+
       <StartAndClasses child={child} disabled={pending} onSave={(fd) => run(() => updatePlacementAction(fd), "Saved.")} />
 
       <div className="space-y-4">
@@ -1002,5 +1006,59 @@ export function FinalizingChildCard({ child }: { child: FinalizingChild }) {
         </Step>
       </div>
     </article>
+  );
+}
+
+
+/**
+ * THE FAMILY'S PAPERS AND WHERE THEY LIVE. Jimmy, 23 October 2026, on
+ * Alexandra Gallardo: "i have to be able to see this document myself, in
+ * addition to relying on the jag to pull information/data from it" - and
+ * "i don't know where he lives". Each link is minted on click.
+ */
+function FamilyFile({ child }: { child: FinalizingChild }) {
+  const scholarshipDocs = child.documents.filter((d) => d.isScholarship);
+  const otherDocs = child.documents.filter((d) => !d.isScholarship);
+  const a = child.address;
+  return (
+    <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3 text-xs">
+      <div>
+        <p className="font-semibold text-slate-800">Home address</p>
+        {a?.home ? (
+          <>
+            <p className="text-slate-700">{formatAddress(a.home)}</p>
+            <p className="text-slate-500">
+              Legal residence:{" "}
+              {a.residenceSameAsHome === true
+                ? "same as home"
+                : a.residence
+                  ? formatAddress(a.residence)
+                  : "not given"}
+            </p>
+          </>
+        ) : (
+          <p className="text-amber-800">Not on file. The family has not answered the address questions.</p>
+        )}
+      </div>
+      <div>
+        <p className="font-semibold text-slate-800">Family&apos;s documents</p>
+        {child.documents.length === 0 ? (
+          <p className="text-slate-500">Nothing uploaded.</p>
+        ) : (
+          <ul className="space-y-1">
+            {[...scholarshipDocs, ...otherDocs].map((d) => (
+              <li key={d.id} className="flex items-center justify-between gap-2">
+                <CaseDocumentOpenButton documentId={d.id} label={d.isScholarship ? `Scholarship: ${d.label}` : d.label} />
+                {d.uploadedAt ? (
+                  <span className="shrink-0 text-slate-400">
+                    {new Date(d.uploadedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }

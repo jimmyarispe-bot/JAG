@@ -119,6 +119,10 @@ export const COMMUNICATION_TRIGGER_EVENTS = [
   "parent_interest_meeting_not_booked_1",
   "parent_interest_meeting_not_booked_2",
   "staff_interest_meeting_no_response",
+  /** 23 October 2026, migration 586. Three days after the first, once. */
+  "staff_interest_meeting_no_response_2",
+  /** 23 October 2026, migration 586. HS and Virtual: Heather to Mahogany. */
+  "staff_assessment_requested",
   /**
    * The family's first letter, sent by a school leader rather than by the
    * form. inquiry_thank_you_email and its no-link twin moved onto this event
@@ -500,6 +504,8 @@ export const TRIGGER_EVENT_LABELS: Record<CommunicationTriggerEvent, string> = {
   parent_interest_meeting_not_booked_1: "Interest Meeting Not Booked (1st follow-up)",
   parent_interest_meeting_not_booked_2: "Interest Meeting Not Booked (2nd follow-up)",
   staff_interest_meeting_no_response: "Staff: Three Attempts, No Booking",
+  staff_interest_meeting_no_response_2: "Staff: Still No Call, Still No Booking",
+  staff_assessment_requested: "Staff: Schedule Assessment (to Mahogany)",
   interest_meeting_link_sent: "Interest Meeting Link Sent",
   staff_interest_link_not_sent: "Staff: Interest Link Not Sent Yet",
   staff_interest_link_escalation: "Staff: Three Days, Nobody Contacted Them",
