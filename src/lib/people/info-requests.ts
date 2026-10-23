@@ -214,6 +214,7 @@ async function createAndSend(
 
   const delivery = await sendTransactionalEmail({
     to: gap.email,
+    toFamily: { schoolId: gap.schoolId ?? null },
     subject: message.subject,
     body: message.html,
     text: message.text,
@@ -341,6 +342,7 @@ export async function processDueInfoRequests(
 
     const delivery = await sendTransactionalEmail({
       to,
+      toFamily: { schoolId: (row.school_id as string | null) ?? null },
       subject: message.subject,
       body: message.html,
       text: message.text,

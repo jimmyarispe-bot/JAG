@@ -39,6 +39,12 @@ export type SendEmailParams = {
    * email." Stripped by divert.ts exactly like bcc.
    */
   cc?: string | string[];
+  /**
+   * Set on every letter to a parent. send.ts blind copies Danni and Heather
+   * (family-bcc.ts). schoolId keeps the test campus out. Leave unset for
+   * staff notices and anything carrying a sign-in link.
+   */
+  toFamily?: { schoolId?: string | null };
   /** Optional classification for logging / templates. */
   kind?: EmailKind;
 };
