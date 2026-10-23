@@ -685,6 +685,49 @@ export async function submitWeekAction(weekStart: string, note: string): Promise
     };
   }
 
+  /*
+   * A TAUGHT CLASS WITH NOBODY ON IT IS STOPPED HERE. 23 October 2026.
+   *
+   * Leesa Davis ticked Lit Lab Monday to Friday, put her three children on
+   * Monday, and submitted. Tuesday to Friday each showed "Nobody was
+   * scheduled, so this class pays nothing." - four days of pay gone, and she
+   * found out from the screen after it was sent. The copy button existed;
+   * nothing told her she needed it. So the week is not sent until every day
+   * she taught has its children, or is marked missed.
+   */
+  const { data: entries, error: entriesError } = await week.supabase
+    .from("teacher_class_entries")
+    .select("id, class_date, missed")
+    .eq("teacher_week_id", week.weekId);
+  if (entriesError) return { error: `Could not check your classes: ${entriesError.message}` };
+
+  const taught = ((entries ?? []) as { id: string; class_date: string; missed: boolean | null }[]).filter(
+    (e) => !e.missed
+  );
+  if (taught.length > 0) {
+    const { data: onRoster, error: rosterError } = await week.supabase
+      .from("teacher_class_students")
+      .select("entry_id")
+      .in("entry_id", taught.map((e) => e.id));
+    if (rosterError) return { error: `Could not check your classes: ${rosterError.message}` };
+    const withChildren = new Set(((onRoster ?? []) as { entry_id: string }[]).map((r) => r.entry_id));
+    const empty = taught.filter((e) => !withChildren.has(e.id));
+    if (empty.length > 0) {
+      const days = empty
+        .map((e) =>
+          new Date(`${e.class_date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long" })
+        )
+        .join(", ");
+      return {
+        error:
+          `${empty.length === 1 ? "One class has" : `${empty.length} classes have`} no children on ` +
+          `${empty.length === 1 ? "it" : "them"} (${days}), so ${empty.length === 1 ? "it" : "they"} would pay nothing. ` +
+          `Add the children - or press "Put these children on the other days of this class" on a day that has them - ` +
+          `or mark the day missed. Then submit.`,
+      };
+    }
+  }
+
   const { data, error } = await week.supabase
     .from("teacher_weeks")
     .update({
