@@ -368,20 +368,32 @@ export async function listColleagues(
   supabase: AuthClient,
   exceptEmployeeId: string
 ): Promise<ColleagueOption[]> {
-  const { data } = await supabase
-    .from("employees")
-    .select("id")
-    .eq("employment_status", "active");
+  /*
+   * ACROSS THE NETWORK, NOT ONE SCHOOL. Reading public.employees here let
+   * employees RLS pick the list, and RLS is per school: on 23 October Katie
+   * (Virtual) could not choose Marnie (HS staff record) for the two Earth Lab
+   * classes she covered. teacher_colleague_names() returns only an id and a
+   * name for active staff at every campus - migration 588.
+   */
+  const { data, error } = await supabase.rpc("teacher_colleague_names", { p_ids: null });
+  if (error) return [];
 
-  const ids = ((data ?? []) as { id: string }[])
-    .map((r) => String(r.id))
-    .filter((id) => id !== exceptEmployeeId);
-
-  const names = await namesByEmployeeId(supabase, ids);
-
-  return ids
-    .map((employeeId) => ({ employeeId, name: names.get(employeeId) ?? employeeId }))
+  return ((data ?? []) as { employee_id: string; name: string }[])
+    .map((r) => ({ employeeId: String(r.employee_id), name: String(r.name) }))
+    .filter((c) => c.employeeId !== exceptEmployeeId)
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Names for guest lines, across campuses - see listColleagues. */
+async function colleagueNamesById(
+  supabase: AuthClient,
+  ids: readonly string[]
+): Promise<Map<string, string>> {
+  const { data, error } = await supabase.rpc("teacher_colleague_names", { p_ids: [...ids] });
+  if (error || !data) return namesByEmployeeId(supabase, ids);
+  return new Map(
+    (data as { employee_id: string; name: string }[]).map((r) => [String(r.employee_id), String(r.name)])
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -574,7 +586,7 @@ export async function loadTeacherWeek(
     ),
   ];
   const guestNameById =
-    guestIds.length > 0 ? await namesByEmployeeId(supabase, guestIds) : new Map<string, string>();
+    guestIds.length > 0 ? await colleagueNamesById(supabase, guestIds) : new Map<string, string>();
 
   /* The rate for every class on the week, in one read. week-view prices from
      these rather than from the course name - see CataloguePayInput. */
