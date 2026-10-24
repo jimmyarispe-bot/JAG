@@ -125,6 +125,7 @@ export async function resendCommunication(formData: FormData) {
       to: original.sent_to,
       subject,
       body,
+      toFamily: {},
       ...(from ? { from } : {}),
       ...(fromName ? { fromName } : {}),
       ...(replyTo ? { replyTo } : {}),
@@ -173,7 +174,7 @@ export async function sendManualCommunication(formData: FormData) {
 
   let deliveryStatus = channel === "portal_notification" ? "sent" : "pending";
   if (channel === "email" && sentTo) {
-    const emailResult = await sendTransactionalEmail({ to: sentTo, subject, body });
+    const emailResult = await sendTransactionalEmail({ to: sentTo, subject, body, toFamily: {} });
     deliveryStatus = emailResult.success ? "sent" : "failed";
   } else if (channel === "sms") {
     deliveryStatus = "failed";

@@ -337,6 +337,7 @@ export async function sendStudentQuestionnaire(
     });
     const copyDelivery = await sendTransactionalEmail({
       to: guardian,
+      toFamily: {},
       subject: parentCopy.subject,
       body: parentCopy.html,
       text: parentCopy.text,

@@ -867,6 +867,13 @@ async function deliverCommunication(
       ...(fromName ? { fromName } : {}),
       ...(replyTo ? { replyTo } : {}),
       ...(leaderBcc ? { bcc: leaderBcc } : {}),
+      /* Danni and Heather on every family letter - see family-bcc.ts. Same
+         money exclusion as the leader copy: "only danni n me see anything
+         related to money", and Heather is not Danni. */
+      ...(channel === "email" &&
+      !NOT_COPIED_TO_THE_SCHOOL_LEADER.has(params.template.template_key)
+        ? { toFamily: { schoolId: params.staff?.schoolId ?? null } }
+        : {}),
     });
     deliveryStatus = emailResult.success ? "sent" : "failed";
     deliveryError = emailResult.error ?? null;

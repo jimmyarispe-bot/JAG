@@ -5,6 +5,7 @@ import {
   emailIsDiverted,
   everyRecipientIsExcepted,
 } from "@/lib/platform/email/divert";
+import { familyBccFor } from "@/lib/platform/email/family-bcc";
 import type {
   EmailDeliveryResult,
   EmailKind,
@@ -12,6 +13,30 @@ import type {
 } from "@/lib/platform/email/types";
 
 export type { EmailDeliveryResult, SendEmailParams, EmailKind };
+
+/**
+ * Adds Danni and Heather to the blind copy of a letter to a family.
+ * Added BEFORE the diversion below, so divert.ts strips them with every other
+ * bcc and a test never reaches them. Anyone already on to/cc is not added
+ * again - one person, one copy.
+ */
+function withFamilyBcc(params: SendEmailParams): SendEmailParams {
+  const { toFamily, ...rest } = params;
+  if (!toFamily) return rest;
+  const asList = (v?: string | string[]) =>
+    (Array.isArray(v) ? v : v ? [v] : []).map((e) => e.trim()).filter(Boolean);
+  const already = new Set(
+    [...asList(rest.to), ...asList(rest.cc)].map((e) => e.toLowerCase())
+  );
+  const bcc: string[] = [];
+  for (const e of [...asList(rest.bcc), ...familyBccFor(toFamily.schoolId)]) {
+    const key = e.toLowerCase();
+    if (already.has(key)) continue;
+    already.add(key);
+    bcc.push(e);
+  }
+  return { ...rest, bcc: bcc.length ? bcc : undefined };
+}
 
 /**
  * Primary send entry point for all transactional email.
@@ -27,7 +52,7 @@ export async function sendTransactionalEmail(
   params: SendEmailParams
 ): Promise<EmailDeliveryResult> {
   const withKind: SendEmailParams = {
-    ...params,
+    ...withFamilyBcc(params),
     kind: params.kind ?? "transactional",
   };
 

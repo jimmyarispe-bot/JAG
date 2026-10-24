@@ -65,7 +65,7 @@ export async function sendEverythingReceived(
   try {
     const { data: lead } = await supabase
       .from("admissions_leads")
-      .select("first_name, schools(name, school_leader_bcc_email)")
+      .select("first_name, school_id, schools(name, school_leader_bcc_email)")
       .eq("id", leadId)
       .maybeSingle();
     const row = lead as { first_name?: string | null; schools?: unknown } | null;
@@ -101,6 +101,7 @@ export async function sendEverythingReceived(
     const result = await sendTransactionalEmail({
       to: to.map((g) => String(g.email).trim()),
       ...(leaderEmail ? { cc: leaderEmail } : {}),
+      toFamily: { schoolId: (lead as { school_id?: string | null } | null)?.school_id ?? null },
       replyTo: "jimmy.arispe@theacademyway.org",
       subject: everythingReceivedSubject(schoolName),
       body: buildEverythingReceivedBody({

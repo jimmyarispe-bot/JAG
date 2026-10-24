@@ -146,7 +146,7 @@ export async function executeWorkflowAction(
 
         let deliveryStatus = channel === "portal_notification" ? "sent" : "pending";
         if (channel === "email" && sentTo) {
-          const emailResult = await sendTransactionalEmail({ to: sentTo, subject, body });
+          const emailResult = await sendTransactionalEmail({ to: sentTo, subject, body, toFamily: {} });
           deliveryStatus = emailResult.success ? "sent" : "failed";
         } else if (channel === "sms") {
           deliveryStatus = "failed";
