@@ -82,7 +82,7 @@ export async function findGsnsLetterForLead(admin: AnyClient, leadId: string): P
   }
   return {
     missing: sawImage
-      ? "The award letter is a photo, which cannot be read automatically. Enter the letter's total by hand."
+      ? "The award letter is a photo, which cannot be read automatically. Open it under Family's documents and enter the total by hand."
       : "No Georgia Special Needs Scholarship letter was found in the family's uploads.",
   };
 }

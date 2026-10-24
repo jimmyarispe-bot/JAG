@@ -681,6 +681,21 @@ const NOT_COPIED_TO_THE_SCHOOL_LEADER: ReadonlySet<string> = new Set([
   "financial_aid_requested_email",
 ]);
 
+
+/**
+ * STAFF LETTERS WITH ONE FIXED READER.
+ *
+ * Every other staff_email goes to the campus's admissions contacts. The
+ * assessment request does not: Jimmy, 9 October, "an email is sent from
+ * heather to mahogany.murphy@theacademyway.org to schedule assessment with
+ * the specific parent/child selected". So it goes TO Mahogany, in the school
+ * leader's name, replies to the school leader, and blind-copies her so she
+ * sees what went out in her name.
+ */
+const STAFF_LETTER_FIXED_RECIPIENTS: Readonly<Record<string, readonly string[]>> = {
+  staff_assessment_requested: ["mahogany.murphy@theacademyway.org"],
+};
+
 async function deliverCommunication(
   supabase: AuthClient,
   params: {
@@ -726,8 +741,10 @@ async function deliverCommunication(
    * written to admissions_communications, which is why the join survives - as
    * a record of who was written to, not as an address.
    */
-  const recipients: string[] =
-    channel === "sms"
+  const fixedTo = STAFF_LETTER_FIXED_RECIPIENTS[params.template.trigger_event];
+  const recipients: string[] = fixedTo
+    ? [...fixedTo]
+    : channel === "sms"
       ? [params.mergeCtx.guardianPhone ?? ""]
       : channel === "internal_note"
         ? ["staff"]
@@ -767,14 +784,14 @@ async function deliverCommunication(
     const contactName = params.mergeCtx.admissionsContactName?.trim();
     const schoolName = params.mergeCtx.schoolName?.trim();
     const fromName =
-      channel === "staff_email"
+      channel === "staff_email" && !fixedTo
         ? undefined
         : contactName && schoolName
           ? `${contactName} · ${schoolName}`
           : contactName || schoolName || undefined;
 
     const replyTo =
-      channel === "staff_email"
+      channel === "staff_email" && !fixedTo
         ? params.mergeCtx.guardianEmail ?? undefined
         : params.mergeCtx.admissionsContactEmail ?? undefined;
 
@@ -808,8 +825,9 @@ async function deliverCommunication(
      * Not a merge field, so no template can print it: blind has to stay
      * blind, and a parent must never learn her letter was copied.
      */
-    const leaderBcc =
-      channel === "email" &&
+    const leaderBcc = fixedTo
+      ? (params.mergeCtx.admissionsContactEmail ?? "").trim()
+      : channel === "email" &&
       !NOT_COPIED_TO_THE_SCHOOL_LEADER.has(params.template.template_key)
         ? (params.mergeCtx.schoolLeaderBccEmail ?? "").trim()
         : "";

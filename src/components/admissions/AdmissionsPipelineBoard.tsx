@@ -44,8 +44,8 @@ import {
 } from "@/lib/admissions/board-filters";
 import {
   BOARD_GROUPS,
-  CHOOSABLE_BOARD_GROUPS,
   MOVE_TO_QUIET_STAGE,
+  choosableBoardGroupsFor,
   boardGroupForStage,
   boardGroupLabel,
   leadStageLabel,
@@ -149,7 +149,7 @@ export function AdmissionsPipelineBoard({ leads, decisionGates }: AdmissionsPipe
       moveTo(lead.id, MOVE_TO_QUIET_STAGE, studentName);
       return;
     }
-    const group = CHOOSABLE_BOARD_GROUPS.find((g) => g.key === choice);
+    const group = choosableBoardGroupsFor(lead.school_id).find((g) => g.key === choice);
     if (!group) return;
     if (boardGroupForStage(lead.lead_stage)?.key === group.key) return;
     moveTo(lead.id, group.entry, studentName);
@@ -227,7 +227,7 @@ export function AdmissionsPipelineBoard({ leads, decisionGates }: AdmissionsPipe
           aria-busy={action.isBusy || undefined}
           aria-label={`Stage for ${lead.first_name} ${lead.last_name}`}
         >
-          {CHOOSABLE_BOARD_GROUPS.map((g) => (
+          {choosableBoardGroupsFor(lead.school_id).map((g) => (
             <option key={g.key} value={g.key}>
               {boardGroupLabel(g)}
             </option>

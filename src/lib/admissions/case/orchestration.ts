@@ -23,6 +23,8 @@ import { leadStageLabel } from "@/lib/constants/admissions";
 import { openDecisionGateWith } from "@/lib/admissions/gates/actions";
 import { gateOpeningAtStage } from "@/lib/admissions/gates/definitions";
 import { notifyReachedFinalizingContract } from "@/lib/admissions/finalizing/notify";
+import { ASSESSMENT_SCHOOL_IDS } from "@/lib/constants/admissions";
+import { triggerCommunications } from "@/lib/admissions/communications/engine";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -214,6 +216,10 @@ export async function transitionCaseStage(
 
   if (!lead) return { error: "Case not found" };
 
+  if (newStage === "assessment_scheduled" && !ASSESSMENT_SCHOOL_IDS.includes(lead.school_id ?? "")) {
+    return { error: "Assessments are only for The Academy HS and The Academy Virtual." };
+  }
+
   const previousStage = lead.lead_stage;
   const result = await transitionLeadStage(supabase, leadId, newStage, changedBy, {
     tourScheduledAt: context?.tourScheduledAt,
@@ -304,6 +310,28 @@ export async function transitionCaseStage(
    */
   if (newStage === "accepted") {
     await notifyReachedFinalizingContract(supabase, leadId);
+  }
+
+  /*
+   * ASSESSMENTS - HS AND VIRTUAL. 23 October 2026. Jimmy, 9 October: "when
+   * schedule assessments is selected an email is sent from heather to
+   * mahogany.murphy@theacademyway.org to schedule assessment with the
+   * specific parent/child selected". The stage has moved; a letter that
+   * fails is logged, not thrown.
+   */
+  if (newStage === "assessment_scheduled" && schoolId && ASSESSMENT_SCHOOL_IDS.includes(schoolId)) {
+    try {
+      await triggerCommunications(supabase, {
+        leadId,
+        triggerEvent: "staff_assessment_requested",
+        sentBy: changedBy,
+      });
+    } catch (letterError) {
+      console.error("[transitionCaseStage] assessment letter not sent", {
+        leadId,
+        error: letterError instanceof Error ? letterError.message : String(letterError),
+      });
+    }
   }
 
   const gateKey = gateOpeningAtStage(newStage, schoolNameForGate);

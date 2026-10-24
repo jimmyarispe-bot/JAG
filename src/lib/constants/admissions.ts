@@ -118,7 +118,15 @@ export const LEAD_STAGES = [
    */
   { value: "records_requested", step: null, group: "retired", label: "Records Requested", color: "bg-purple-100 text-purple-700" },
   { value: "admissions_review", step: null, group: "retired", label: "Admissions Review", color: "bg-amber-100 text-amber-700" },
-  { value: "assessment_scheduled", step: null, group: "retired", label: "Assessment Scheduled — HS and Virtual", color: "bg-cyan-100 text-cyan-700" },
+  /*
+   * 23 OCTOBER 2026 - BUILT. Heather, "Jag Dropdown Missing Assessments",
+   * Grace Gaudette at The Academy Virtual. Still "retired" in this list so
+   * the case page and the old Kanban, which cannot tell a campus, never
+   * offer it; the board offers it through its own group below, on HS and
+   * Virtual cards only. Picking it sends staff_assessment_requested: from
+   * Heather to Mahogany (migration 586).
+   */
+  { value: "assessment_scheduled", step: null, group: "retired", label: "Assessments", color: "bg-cyan-100 text-cyan-700" },
 ] as const;
 
 export type LeadStageValue = (typeof LEAD_STAGES)[number]["value"];
@@ -194,21 +202,37 @@ export interface BoardGroup {
   color: string;
   /** Shown as a column, never offered as a choice, no dropdown on its cards. */
   locked?: boolean;
+  /** Offered and shown only for these campuses. Absent = every campus. */
+  onlySchoolIds?: readonly string[];
 }
+
+/** The Academy HS and The Academy Virtual - the two campuses that assess. */
+export const ASSESSMENT_SCHOOL_IDS: readonly string[] = [
+  "a1000000-0000-4000-8000-000000000003",
+  "a1000000-0000-4000-8000-000000000004",
+];
 
 export const BOARD_GROUPS: readonly BoardGroup[] = [
   { key: "inquiry", step: 1, label: "New Inquiry Received", stages: ["new_inquiry"], entry: "new_inquiry", color: "bg-slate-100 text-slate-700" },
   { key: "interest_meeting", step: 2, label: "Interest Meeting", stages: ["information_sent", "interview_scheduled", "interest_meeting_held"], entry: "information_sent", color: "bg-sky-100 text-sky-700" },
   { key: "tours", step: 3, label: "Tours", stages: ["tour_requested", "tour_scheduled", "tour_completed"], entry: "tour_requested", color: "bg-teal-100 text-teal-700" },
   { key: "application", step: 4, label: "Application", stages: ["application_started", "application_submitted", "records_requested", "admissions_review"], entry: "application_started", color: "bg-indigo-100 text-indigo-700" },
-  { key: "shadow_days", step: 5, label: "Shadow Days", stages: ["shadow_day_scheduled", "shadow_day_completed", "assessment_scheduled"], entry: "shadow_day_scheduled", color: "bg-lime-100 text-lime-800" },
+  { key: "shadow_days", step: 5, label: "Shadow Days", stages: ["shadow_day_scheduled", "shadow_day_completed"], entry: "shadow_day_scheduled", color: "bg-lime-100 text-lime-800" },
+  { key: "assessment", step: null, label: "Assessments (HS & Virtual)", stages: ["assessment_scheduled"], entry: "assessment_scheduled", color: "bg-cyan-100 text-cyan-700", onlySchoolIds: ASSESSMENT_SCHOOL_IDS },
   { key: "decision", step: 6, label: "Admissions Decision", stages: [], entry: "shadow_day_completed", color: "bg-amber-100 text-amber-900" },
   { key: "finalizing", step: null, label: "Finalizing Contract", stages: ["accepted"], entry: "accepted", color: "bg-emerald-100 text-emerald-800", locked: true },
   { key: "enrolled", step: null, label: "Enrolled", stages: ["enrolled"], entry: "enrolled", color: "bg-green-100 text-green-800", locked: true },
 ];
 
-/** The groups a person may choose: the six stages. */
+/** The groups a person may choose: the six stages, plus Assessments where it applies. */
 export const CHOOSABLE_BOARD_GROUPS: readonly BoardGroup[] = BOARD_GROUPS.filter((g) => !g.locked);
+
+/** What a card at this campus may choose. Assessments only at HS and Virtual. */
+export function choosableBoardGroupsFor(schoolId: string | null | undefined): readonly BoardGroup[] {
+  return CHOOSABLE_BOARD_GROUPS.filter(
+    (g) => !g.onlySchoolIds || (!!schoolId && g.onlySchoolIds.includes(schoolId))
+  );
+}
 
 /** The value the dropdown uses for "Move to Quiet". Lands in Holding Pattern. */
 export const MOVE_TO_QUIET_STAGE: LeadStageValue = "waitlisted";

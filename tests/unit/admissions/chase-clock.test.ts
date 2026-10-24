@@ -71,9 +71,15 @@ describe("eastern time", () => {
 /** Monday 5 October 2026, 9:00am Eastern. Day 0. */
 const INQUIRY = new Date("2026-10-05T13:00:00Z");
 
+function easternDateKeyPlusDaysForTest(start: string, days: number): string {
+  const d = new Date(`${start}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 /** 11pm Eastern on the given day after the inquiry. */
 function scanNightOfDay(day: number): Date {
-  const key = ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"][day];
+  const key = easternDateKeyPlusDaysForTest("2026-10-05", day);
   return easternInstant(key, 23);
 }
 
@@ -229,6 +235,36 @@ describe("the chase clock", () => {
         })
       )
     ).toEqual({ action: "nothing", because: "a_leader_has_called" });
+  });
+
+  it("escalates a second time three days later, once, if nobody called", () => {
+    const base = {
+      reminder1SentAt: scanNightOfDay(2),
+      reminder2SentAt: scanNightOfDay(3),
+      escalatedAt: scanNightOfDay(4),
+    };
+    expect(decideChase(input({ ...base, now: scanNightOfDay(6) })).action).toBe("nothing");
+    expect(decideChase(input({ ...base, now: scanNightOfDay(7) })).action).toBe("escalate_again");
+    expect(
+      decideChase(input({ ...base, now: scanNightOfDay(9), escalatedAgainAt: scanNightOfDay(7) }))
+    ).toEqual({ action: "nothing", because: "already_escalated_twice" });
+    expect(
+      decideChase(input({ ...base, now: scanNightOfDay(7), callRecordedAt: scanNightOfDay(5) }))
+    ).toEqual({ action: "nothing", because: "a_leader_has_called" });
+  });
+
+  it("restarts the second clock when a leader moves the child after the escalation", () => {
+    expect(
+      decideChase(
+        input({
+          now: scanNightOfDay(8),
+          reminder1SentAt: scanNightOfDay(2),
+          reminder2SentAt: scanNightOfDay(3),
+          escalatedAt: scanNightOfDay(4),
+          stageEnteredAt: scanNightOfDay(7),
+        })
+      ).action
+    ).toBe("nothing");
   });
 
   it("escalates exactly once", () => {
