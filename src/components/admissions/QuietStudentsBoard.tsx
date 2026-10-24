@@ -23,7 +23,7 @@ import {
 import {
   choosableBoardGroupsFor,
   OLD_STUDENT_LEAD_STAGES,
-  boardGroupLabel,
+  boardGroupChoiceLabel,
   type LeadStageValue,
 } from "@/lib/constants/admissions";
 
@@ -313,7 +313,7 @@ export function QuietStudentsBoard({ leads }: QuietStudentsBoardProps) {
                               <option value="">Choose a stage…</option>
                               {choosableBoardGroupsFor(null).map((g) => (
                                 <option key={g.key} value={g.key}>
-                                  {boardGroupLabel(g)}
+                                  {boardGroupChoiceLabel(g, null)}
                                 </option>
                               ))}
                             </select>

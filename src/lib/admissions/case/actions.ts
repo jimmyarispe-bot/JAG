@@ -4,10 +4,8 @@ import { revalidatePath } from "next/cache";
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
 import type { LeadStageValue } from "@/lib/constants/admissions";
 import type { AdmissionsPipelineStageKey } from "@/lib/admissions/registry";
-import {
-  transitionCasePipelineStage,
-  transitionCaseStage,
-} from "@/lib/admissions/case/orchestration";
+import { transitionCasePipelineStage } from "@/lib/admissions/case/orchestration";
+import { moveStageFromDashboard } from "@/lib/admissions/case/stage-letters";
 
 async function requireAdmissionsManage() {
   return assertAnyPermission("admissions.manage", "admissions.accept");
@@ -28,11 +26,12 @@ export async function updateCaseStage(leadId: string, leadStage: LeadStageValue)
     data: { user },
   } = await supabase.auth.getUser();
 
-  const result = await transitionCaseStage(supabase, leadId, leadStage, user?.id ?? null);
+  // Sends what the matching email button sends - see case/stage-letters.ts.
+  const result = await moveStageFromDashboard(supabase, leadId, leadStage, user?.id ?? null);
   if (result.error) return { error: result.error };
 
   revalidateCase(leadId);
-  return { success: true };
+  return { success: true, warning: result.warning ?? null };
 }
 
 /** Orchestrated OS pipeline stage transition for an admissions case. */

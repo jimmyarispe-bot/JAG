@@ -25,6 +25,7 @@ import { gateOpeningAtStage } from "@/lib/admissions/gates/definitions";
 import { notifyReachedFinalizingContract } from "@/lib/admissions/finalizing/notify";
 import { ASSESSMENT_SCHOOL_IDS } from "@/lib/constants/admissions";
 import { triggerCommunications } from "@/lib/admissions/communications/engine";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 
 type AuthClient = Awaited<ReturnType<typeof createAuthClient>>;
 
@@ -310,6 +311,32 @@ export async function transitionCaseStage(
    */
   if (newStage === "accepted") {
     await notifyReachedFinalizingContract(supabase, leadId);
+  }
+
+  /*
+   * SHADOW DAYS COMPLETED ON THE BOARD MARKS THE DAYS HELD, as the post-call
+   * Accept and Deny buttons do (markShadowDayHeld). Service role: the table has
+   * RLS on and no policies. Fails soft; the stage has already moved.
+   */
+  if (newStage === "shadow_day_completed") {
+    try {
+      const stamp = new Date().toISOString();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = createServiceRoleClient() as any;
+      const { error: heldError } = await db
+        .from("admissions_shadow_days")
+        .update({ shadow_day_status: "completed", completed_at: stamp, updated_at: stamp })
+        .eq("lead_id", leadId)
+        .eq("shadow_day_status", "scheduled");
+      if (heldError) {
+        console.error("[transitionCaseStage] shadow days not marked held", { leadId, error: heldError.message });
+      }
+    } catch (heldThrow) {
+      console.error("[transitionCaseStage] shadow days not marked held", {
+        leadId,
+        error: heldThrow instanceof Error ? heldThrow.message : String(heldThrow),
+      });
+    }
   }
 
   /*

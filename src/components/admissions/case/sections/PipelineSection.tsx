@@ -8,7 +8,11 @@ import { StageTimeline } from "@/components/admissions/StageTimeline";
 import { updateCaseStage, updateCasePipelineStage } from "@/lib/admissions/case/actions";
 import { pipelineStageLabel } from "@/lib/admissions/registry";
 import { isAdmissionsCaseProfileEnvelope } from "@/lib/admissions/profile/types";
-import { SELECTABLE_LEAD_STAGES, type LeadStageValue } from "@/lib/constants/admissions";
+import {
+  SELECTABLE_LEAD_STAGES,
+  leadStageChoiceLabel,
+  type LeadStageValue,
+} from "@/lib/constants/admissions";
 import type { ProfileSectionViewProps } from "@/lib/platform/profile/sections/types";
 import { missing } from "./shared";
 
@@ -33,7 +37,9 @@ export function PipelineSection(props: ProfileSectionViewProps) {
 
   function handleLegacyStageChange(stage: string) {
     void stageAction.run(async () => {
-      await updateCaseStage(env!.leadId, stage as LeadStageValue);
+      // A refusal (e.g. no tour link) is returned, not thrown; show it.
+      const result = await updateCaseStage(env!.leadId, stage as LeadStageValue);
+      if (result && "error" in result && result.error) throw new Error(result.error);
       return { success: true };
     });
   }
@@ -58,7 +64,7 @@ export function PipelineSection(props: ProfileSectionViewProps) {
           >
             {SELECTABLE_LEAD_STAGES.map((s) => (
               <option key={s.value} value={s.value}>
-                {s.label}
+                {leadStageChoiceLabel(s, String(data.lead.lead_stage))}
               </option>
             ))}
           </select>

@@ -1,3 +1,5 @@
+import { EMAIL_BUTTON_LABELS } from "@/lib/admissions/email-button-labels";
+
 /**
  * The admissions flow, in the order a family actually moves through it.
  *
@@ -244,6 +246,33 @@ export function boardGroupForStage(stage: string | null | undefined): BoardGroup
 
 export function boardGroupLabel(group: BoardGroup): string {
   return group.step ? `${group.step}. ${group.label}` : group.label;
+}
+
+/**
+ * Stages whose dropdown choice emails the family: offered under the email
+ * button's own words (Jimmy, 23 October 2026). See case/stage-letters.ts for
+ * what each one sends. Column headings and stage keys are unchanged.
+ */
+export const STAGE_CHOICE_EMAIL_LABEL: Partial<Record<LeadStageValue, string>> = {
+  tour_requested: EMAIL_BUTTON_LABELS.tourRequest,
+  application_started: EMAIL_BUTTON_LABELS.application,
+  accepted: EMAIL_BUTTON_LABELS.accept,
+  declined: EMAIL_BUTTON_LABELS.deny,
+};
+
+/** A lead-stage dropdown option: the button's words, unless it is the current stage. */
+export function leadStageChoiceLabel(
+  stage: { value: LeadStageValue; label: string },
+  currentStage: string | null | undefined
+): string {
+  if (stage.value === currentStage) return stage.label;
+  return STAGE_CHOICE_EMAIL_LABEL[stage.value] ?? stage.label;
+}
+
+/** A board dropdown option: the button's words, unless it is the card's own column. */
+export function boardGroupChoiceLabel(group: BoardGroup, currentGroupKey: string | null | undefined): string {
+  if (group.key === currentGroupKey) return boardGroupLabel(group);
+  return STAGE_CHOICE_EMAIL_LABEL[group.entry] ?? boardGroupLabel(group);
 }
 
 /**
