@@ -2,6 +2,9 @@
 
 import { setAutomationStartedAt } from "@/lib/admissions/automation-gate";
 import { ensureTourNotesLetter } from "@/lib/admissions/chase/tour-notes";
+import { ensureInterviewNotesLetter } from "@/lib/admissions/chase/interview-notes";
+import { recordShadowDayFromBoard } from "@/lib/admissions/chase/shadow-day-notes";
+import { moveStageFromDashboard } from "@/lib/admissions/case/stage-letters";
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/lib/platform/activity";
 import { assertAnyPermission } from "@/lib/platform/identity/action-guards";
@@ -150,7 +153,7 @@ export async function updateLeadStage(leadId: string, leadStage: LeadStageValue)
     data: { user },
   } = await supabase.auth.getUser();
 
-  const result = await transitionCaseStage(supabase, leadId, leadStage, user?.id ?? null);
+  const result = await moveStageFromDashboard(supabase, leadId, leadStage, user?.id ?? null);
 
   if (result.error) return { error: result.error };
 
@@ -465,8 +468,14 @@ export async function scheduleAppointmentAndAdvance(input: {
       // the server's timezone rather than the school's.
       mergeOverrides: { interviewDatetime: appointmentTextForFamily(scheduledAtIso) },
     });
+    // The shadow day row and its accept/deny letter, as the scan writes them.
+    const shadowProblem = await recordShadowDayFromBoard(leadId, scheduledAtIso);
+    if (shadowProblem) console.error("[scheduleAppointmentAndAdvance]", shadowProblem);
   } else {
     await onInterviewScheduled(supabase, leadId, null, scheduledAtIso, user?.id ?? null);
+    // The leader's notes letter at the start time, as the scan queues it.
+    const notesProblem = await ensureInterviewNotesLetter(leadId, scheduledAtIso);
+    if (notesProblem) console.error("[scheduleAppointmentAndAdvance]", notesProblem);
   }
 
   revalidatePath("/dashboard/admissions");
@@ -579,6 +588,8 @@ export async function scheduleInterview(formData: FormData) {
       sentBy: user?.id ?? null,
       mergeOverrides: { interviewDatetime: appointmentTextForFamily(scheduledAt) },
     });
+    const shadowProblem = await recordShadowDayFromBoard(leadId, scheduledAt);
+    if (shadowProblem) console.error("[scheduleInterview]", shadowProblem);
   } else {
     await onInterviewScheduled(
       supabase,
@@ -587,6 +598,8 @@ export async function scheduleInterview(formData: FormData) {
       scheduledAt,
       user?.id ?? null
     );
+    const notesProblem = await ensureInterviewNotesLetter(leadId, scheduledAt);
+    if (notesProblem) console.error("[scheduleInterview]", notesProblem);
   }
 
   revalidatePath(`/dashboard/admissions/leads/${leadId}`);

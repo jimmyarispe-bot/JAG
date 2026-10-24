@@ -38,6 +38,7 @@ import { generateEnrollmentPacket } from "@/lib/admissions/enrollment-packets";
 import { ensureApplicationForAcceptedLead } from "@/lib/admissions/application-for-accepted-lead";
 import { onDecisionSubmitted } from "@/lib/admissions/communications/triggers";
 import { loadOrganizationBranding, buildAdmissionsDecisionEmail } from "@/lib/branding";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 
 export type DecisionType = "accept" | "waitlist" | "deny" | "request_info";
 
@@ -99,13 +100,72 @@ export async function applyAdmissionsDecision(
 
   const { data: lead } = await supabase
     .from("admissions_leads")
-    .select("first_name, last_name, guardian_email")
+    .select("first_name, last_name, guardian_email, lead_stage")
     .eq("id", leadId)
     .single();
 
   if (!lead) return { error: "Lead not found" };
 
   const studentName = `${lead.first_name} ${lead.last_name}`;
+  const stageBeforeDecision = (lead as { lead_stage?: string | null }).lead_stage ?? null;
+
+  /*
+   * Service role for the reads and the gate close below: admissions_shadow_days
+   * has RLS on and no policies, so a signed-in client always read zero rows.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const service = createServiceRoleClient() as any;
+
+  /*
+   * ONE OPEN QUESTION CLOSES WITH ITS ANSWER (23 October 2026). A decision made
+   * from the post-call page, the case page or the decisions board leaves a
+   * pending accept_or_deny gate behind if the board had opened one. The gate
+   * paths claim their own row first, so this matches nothing for them.
+   */
+  if (decisionType === "accept" || decisionType === "deny") {
+    const { error: gateError } = await service
+      .from("admissions_decision_gates")
+      .update({
+        status: "answered",
+        answer: decisionType,
+        answered_by: actorUserId,
+        answered_at: new Date().toISOString(),
+        answer_notes: "Answered by the decision recorded for this child.",
+      })
+      .eq("lead_id", leadId)
+      .eq("gate_key", "accept_or_deny")
+      .eq("status", "pending");
+    if (gateError) {
+      console.error("[decision] could not close the pending accept_or_deny gate:", gateError.message);
+    }
+
+    /*
+     * ONE ACCEPTANCE, ONE DENIAL. A second accept would mean a second welcome
+     * letter and a second packet. The stage still moves, so a dropdown choice
+     * is never silently ignored.
+     */
+    const { data: earlier } = await service
+      .from("admissions_decisions")
+      .select("id")
+      .eq("lead_id", leadId)
+      .eq("decision_type", decisionType)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const earlierId = ((earlier ?? []) as { id: string }[])[0]?.id ?? null;
+    if (earlierId) {
+      const moved = await transitionCaseStage(supabase, leadId, DECISION_STAGE[decisionType], actorUserId);
+      if (moved.error) return { error: moved.error };
+      revalidatePath(`/dashboard/admissions/leads/${leadId}`);
+      revalidatePath("/dashboard/admissions");
+      return {
+        success: true,
+        decisionId: earlierId,
+        warning:
+          `${studentName} already has a recorded ${decisionType === "accept" ? "acceptance" : "denial"}. ` +
+          `Nothing was sent again and no second packet was built.`,
+      };
+    }
+  }
 
   /**
    * AN ACCEPTANCE HAS TO PRODUCE THE THING THE FAMILY SIGNS.
@@ -173,7 +233,7 @@ export async function applyAdmissionsDecision(
    */
   let denialLetterIsTrue = false;
   if (decisionType === "deny") {
-    const { data: heldDays, error: heldError } = await supabase
+    const { data: heldDays, error: heldError } = await service
       .from("admissions_shadow_days")
       .select("id")
       .eq("lead_id", leadId)
@@ -190,6 +250,29 @@ export async function applyAdmissionsDecision(
       );
     } else {
       denialLetterIsTrue = (heldDays ?? []).length > 0;
+    }
+
+    /*
+     * THE STAGE ALSO COUNTS (23 October 2026). A child marked Shadow Days
+     * Completed on the board may have no admissions_shadow_days row at all.
+     * Where they stand now, or the history showing they got there, is the same
+     * fact. A failed history read sends nothing, as above.
+     */
+    if (!denialLetterIsTrue && stageBeforeDecision === "shadow_day_completed") {
+      denialLetterIsTrue = true;
+    }
+    if (!denialLetterIsTrue && !heldError) {
+      const { data: history, error: historyError } = await service
+        .from("admissions_lead_stage_history")
+        .select("id")
+        .eq("lead_id", leadId)
+        .eq("new_stage", "shadow_day_completed")
+        .limit(1);
+      if (historyError) {
+        console.error("[decision] could not read the stage history, sending no decline letter:", historyError.message);
+      } else {
+        denialLetterIsTrue = (history ?? []).length > 0;
+      }
     }
   }
 

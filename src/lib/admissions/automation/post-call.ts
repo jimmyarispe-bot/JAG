@@ -62,6 +62,7 @@ import { HS_SCHOOL_ID, placementFromForm, savePlacement } from "@/lib/admissions
 import { campusRunsTours, requireTourLink, tourGateArmed } from "@/lib/admissions/tour";
 import { prepareApplicationForInvite } from "@/lib/admissions/application-for-invited-lead";
 import { gradeLabel } from "@/lib/constants/grades";
+import { EMAIL_BUTTON_LABELS } from "@/lib/admissions/email-button-labels";
 import type { CommunicationTriggerEvent } from "@/lib/admissions/communications/types";
 
 const TOKEN_PATTERN = /^[0-9a-f]{64}$/;
@@ -358,7 +359,7 @@ export const POST_CALL_ACTIONS = [
      * doors into it - the gate on the decisions board, and this button.
      */
     value: "application_invited",
-    label: "Send the application",
+    label: EMAIL_BUTTON_LABELS.application,
     fork: null,
     occasion: "tour" as PostCallOccasion,
     consequence:
@@ -377,7 +378,7 @@ export const POST_CALL_ACTIONS = [
      * different things.
      */
     value: "shadow_day_accepted",
-    label: "Accept - send email",
+    label: EMAIL_BUTTON_LABELS.accept,
     fork: null,
     occasion: "shadow_day" as PostCallOccasion,
     consequence:
@@ -386,7 +387,7 @@ export const POST_CALL_ACTIONS = [
   },
   {
     value: "shadow_day_denied",
-    label: "Deny - send email",
+    label: EMAIL_BUTTON_LABELS.deny,
     fork: null,
     occasion: "shadow_day" as PostCallOccasion,
     /*
@@ -415,7 +416,7 @@ export const POST_CALL_ACTIONS = [
   },
   {
     value: "tour_requested",
-    label: "Send the tour request",
+    label: EMAIL_BUTTON_LABELS.tourRequest,
     fork: "tour" as MeetingFork,
     occasion: "interest_meeting" as PostCallOccasion,
     consequence:
@@ -424,7 +425,7 @@ export const POST_CALL_ACTIONS = [
   },
   {
     value: "shadow_days_invited",
-    label: "Send the shadow day invite",
+    label: EMAIL_BUTTON_LABELS.shadowDayInvite,
     fork: "shadow_day" as MeetingFork,
     occasion: "interest_meeting" as PostCallOccasion,
     consequence:

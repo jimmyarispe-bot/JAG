@@ -6,6 +6,7 @@ import { useActionFeedback } from "@/components/experience-system/feedback";
 import { buildAdmissionsCaseHref } from "@/lib/admissions/profile/href";
 import {
   SELECTABLE_LEAD_STAGES,
+  leadStageChoiceLabel,
   type LeadStageValue,
 } from "@/lib/constants/admissions";
 import { programLabel } from "@/lib/constants/programs";
@@ -230,7 +231,7 @@ export function KanbanBoard({ leads }: KanbanBoardProps) {
                     >
                       {SELECTABLE_LEAD_STAGES.map((s) => (
                         <option key={s.value} value={s.value}>
-                          {s.label}
+                          {leadStageChoiceLabel(s, lead.lead_stage)}
                         </option>
                       ))}
                     </select>

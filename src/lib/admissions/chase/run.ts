@@ -38,7 +38,10 @@ import "server-only";
 import { appointmentTextForFamily } from "@/lib/admissions/appointment-text";
 import { shadowDayCount, shadowDayType } from "@/lib/admissions/shadow-day";
 import { isTestCampus } from "@/lib/admissions/test-campus";
-import { onInterviewScheduled } from "@/lib/admissions/communications/triggers";
+import {
+  notifyAdmissionsEvent,
+  onInterviewScheduled,
+} from "@/lib/admissions/communications/triggers";
 import {
   matchBookingToLead,
   readSharedCalendarBookings,
@@ -53,6 +56,7 @@ import {
 } from "@/lib/admissions/chase/out-of-office";
 import { bookingKindFromTitle } from "@/lib/admissions/chase/booking-kind";
 import { ensureTourNotesLetter } from "@/lib/admissions/chase/tour-notes";
+import { ensureShadowDayNotesLetter } from "@/lib/admissions/chase/shadow-day-notes";
 import { decideChase, type ChaseDecision } from "@/lib/admissions/chase/clock";
 import { easternDateKey, easternHour } from "@/lib/platform/time/eastern";
 import { resolveOrganizationIdForUser } from "@/lib/platform/identity/org-membership";
@@ -791,6 +795,8 @@ export async function runInterestMeetingScan(
   const postCallSkipped: string[] = [];
   const toursRecorded: string[] = [];
   const shadowDaysRecorded: string[] = [];
+  /* Families sent the shadow day confirmation in this run. See item below. */
+  const shadowConfirmationSent = new Set<string>();
 
   /*
    * Families who already have a tour row.
@@ -1037,6 +1043,52 @@ export async function runInterestMeetingScan(
       }
 
       /*
+       * THE FAMILY'S CONFIRMATION, THE SAME ONE THE BOARD'S DIALOG SENDS
+       * (scheduleAppointmentAndAdvance). 23 October 2026. Once per family per
+       * booking: GA and FL book two days, and the second must not send a
+       * second letter. Only for a day still ahead, and held where the scan's
+       * other confirmations are held.
+       */
+      const shadowStillAhead = shadowStartsAt.getTime() > now.getTime();
+      if (shadowStillAhead && !shadowConfirmationSent.has(leadId)) {
+        if (holdBookingConfirmations(shadowLead?.school_id ?? null)) {
+          confirmationsHeld.push(
+            `${leadId} <- shadow day ${appointmentTextForFamily(booking.startsAt)} (confirmation held)`
+          );
+        } else {
+          let alreadyConfirmed = false;
+          if (shadowLead?.stage_entered_at) {
+            const { data: confirmed } = await supabase
+              .from("admissions_communications")
+              .select("id")
+              .eq("lead_id", leadId)
+              .eq("trigger_event", "shadow_day_scheduled")
+              .eq("delivery_status", "sent")
+              .gte("sent_at", shadowLead.stage_entered_at)
+              .limit(1);
+            alreadyConfirmed = (confirmed ?? []).length > 0;
+          }
+          shadowConfirmationSent.add(leadId);
+          if (!alreadyConfirmed) {
+            try {
+              await notifyAdmissionsEvent(supabase, {
+                leadId,
+                events: ["shadow_day_scheduled", "staff_shadow_day_scheduled"],
+                sentBy: null,
+                mergeOverrides: { interviewDatetime: appointmentTextForFamily(booking.startsAt) },
+              });
+            } catch (confirmError) {
+              errors.push(
+                `Shadow day recorded for ${leadId} but the confirmation did not go: ${
+                  confirmError instanceof Error ? confirmError.message : String(confirmError)
+                }`
+              );
+            }
+          }
+        }
+      }
+
+      /*
        * THE NOTES LETTER, AT THE END OF THE APPOINTMENT.
        *
        * sendAt is shadowEndsAt, not the start. Every other notes letter in this
@@ -1058,29 +1110,12 @@ export async function runInterestMeetingScan(
         continue;
       }
 
-      const shadowToken = await mintPostCallToken(supabase, leadId);
-      if (!shadowToken) {
-        errors.push(`Could not mint a notes token for the shadow day of ${leadId}.`);
-        continue;
-      }
-
-      const shadowProblem = await queueLetter(supabase, {
+      /* ONE letter after the LAST day: earlier pending ones are cancelled,
+         and none is queued if one is already due at or after this end. */
+      const shadowProblem = await ensureShadowDayNotesLetter({
         leadId,
-        schoolId: shadowLead?.school_id ?? null,
-        triggerEvent: SHADOW_DAY_NOTES_EVENT,
-        sendAt: shadowEndsAt,
-        mergeOverrides: {
-          postCallToken: shadowToken,
-          /* Rendered for a reader, not an ISO string. The letter does not use
-             it today, but every other notes letter passes it and a queue row
-             that carries less than its siblings is a thing somebody debugs
-             later for no reason. */
-          interviewDatetime: appointmentTextForFamily(booking.startsAt),
-          /* Null even at Virtual. Virtual's shadow day is online, but it is
-             the FAMILY's own booking link that carries the room - Google
-             creates no conference for this scan to read. */
-          meetingLink: null,
-        },
+        startsAtIso: booking.startsAt,
+        endsAtIso: shadowEndsAt.toISOString(),
       });
       if (shadowProblem) postCallSkipped.push(shadowProblem);
       continue;

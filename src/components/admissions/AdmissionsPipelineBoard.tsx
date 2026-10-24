@@ -45,6 +45,7 @@ import {
 import {
   BOARD_GROUPS,
   MOVE_TO_QUIET_STAGE,
+  boardGroupChoiceLabel,
   choosableBoardGroupsFor,
   boardGroupForStage,
   boardGroupLabel,
@@ -229,7 +230,7 @@ export function AdmissionsPipelineBoard({ leads, decisionGates }: AdmissionsPipe
         >
           {choosableBoardGroupsFor(lead.school_id).map((g) => (
             <option key={g.key} value={g.key}>
-              {boardGroupLabel(g)}
+              {boardGroupChoiceLabel(g, current?.key)}
             </option>
           ))}
           <option value={QUIET_OPTION}>Move to Quiet</option>
